@@ -1,0 +1,102 @@
+# gitlab-ci/solve-issues.yml
+
+.solve-issues:
+  image: python:3.10-alpine
+  services:
+    - name: docker:dind
+  before_script:
+    - apk update && apk add docker git jq curl
+  script:
+    - echo "🔍 Checking conditions for automated coding"
+    - |
+      if [ -n "$CI_MERGE_REQUEST_IID" ]; then
+        CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+        if [ -z "$CHANGED_FILES" ] && [ -n "$CI_MERGE_REQUEST_DESCRIPTION" ]; then
+          echo "✅ Conditions met for merge request"
+        else
+          echo "❌ Conditions not met for merge request"
+          exit 0
+        fi
+      elif [ -n "$GITLAB_ISSUE_ID" ]; then
+        ISSUE_DESCRIPTION=$(curl -s --header "PRIVATE-TOKEN: $CODING_AGENT_ACCESS_TOKEN" "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/issues/$GITLAB_ISSUE_ID" | jq -r '.description')
+        if [ -n "$ISSUE_DESCRIPTION" ]; then
+          echo "📝 Manual trigger with issue variables: Issue description found"
+        else
+          echo "❌ Conditions not met: No description in manual trigger issue"
+          exit 0
+        fi
+      elif [ -n "$ISSUE_URL" ] || [ -n "$ISSUE_DESCRIPTION" ]; then
+        echo "📝 Manual trigger with issue variables"
+      else
+        echo "❌ Conditions not met for manual trigger"
+        exit 0
+      fi
+    - echo "📄 Creating data_path markdown file"
+    - |
+      DATA_PATH="issue_description.md"
+      if [ -n "$ISSUE_URL" ]; then
+        DATA_PATH="$ISSUE_URL"
+      elif [ -n "$ISSUE_DESCRIPTION" ]; then
+        echo "$ISSUE_DESCRIPTION" > $DATA_PATH
+      elif [ -n "$CI_MERGE_REQUEST_DESCRIPTION" ]; then
+        echo "$CI_MERGE_REQUEST_DESCRIPTION" > $DATA_PATH
+      elif [ -n "$GITLAB_ISSUE_ID" ]; then
+        echo "$ISSUE_DESCRIPTION" > $DATA_PATH
+      fi
+    - echo "🔄 Determining agent image based on AGENT variable"
+    - |
+      if [ "$AGENT" = "SWE-crafter" ]; then
+        AGENT_IMAGE=umans/swe-crafter
+        AGENT_RUNNER_IMAGE=umans/swe-crafter-run
+        AGENT_GIT_USER=swe-crafter
+        AGENT_GIT_USER_MAIL=swe-crafter@umans.tech
+        CONFIG_FILE=config/test-first_from_url.yaml
+      else
+        AGENT_IMAGE=sweagent/swe-agent:latest
+        AGENT_RUNNER_IMAGE=sweagent/swe-agent-run:latest
+        AGENT_GIT_USER=swe-agent
+        AGENT_GIT_USER_MAIL=swe-agent@umans.tech
+        CONFIG_FILE=config/default_from_url.yaml
+      fi
+      echo "✅ Selected agent image: $AGENT_IMAGE - Runner image: $AGENT_RUNNER_IMAGE"
+    - echo "📦 Pulling required Docker images"
+    - docker pull $AGENT_RUNNER_IMAGE
+    - docker pull $AGENT_IMAGE
+    - mkdir -p /workspace/patches
+    - REPO_NAME=$(basename $(pwd))
+    - echo "⚙️ Generating patch using automated coding tools"
+    - |
+      MODEL_NAME=${MODEL_NAME:-gpt4o}
+      docker run -v /var/run/docker.sock:/var/run/docker.sock \
+      -v $(pwd):/app/repo/${REPO_NAME} \
+      -e OPENAI_API_KEY=${OPENAI_API_KEY} \
+      -e DEEPSEEK_API_BASE_URL=${DEEPSEEK_API_BASE_URL} \
+      -e DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY} \
+      ${AGENT_RUNNER_IMAGE} \
+      python run.py --image_name=$AGENT_IMAGE \
+      --model_name ${MODEL_NAME} \
+      --data_path /app/repo/${REPO_NAME}/$DATA_PATH \
+      --repo_path /app/repo/${REPO_NAME} --apply_patch_locally \
+      --config_file ${CONFIG_FILE} --skip_existing=False
+    - rm -f $DATA_PATH
+    - echo "🔄 Showing the changes made by applying the generated patch"
+    - git diff
+    - echo "📥 Committing the changes"
+    - git config user.email "${AGENT_GIT_USER_MAIL}"
+    - git config user.name "${AGENT_GIT_USER}"
+    - git remote add gitlab_origin https://oauth2:$CODING_AGENT_ACCESS_TOKEN@${CI_PROJECT_URL#https://}
+    - git add .
+    - |
+      if [ -n "$CI_MERGE_REQUEST_TITLE" ]; then
+        COMMIT_MESSAGE="$CI_MERGE_REQUEST_TITLE (automated change 🤖✨)"
+      else
+        COMMIT_MESSAGE="Automated change by ${AGENT} (manual trigger 🤖✨)"
+      fi
+    - git commit -m "$COMMIT_MESSAGE"
+    - git push gitlab_origin HEAD:$CI_COMMIT_REF_NAME
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && ($GITLAB_ISSUE_ID || $ISSUE_URL || $ISSUE_DESCRIPTION)'
+    - when: manual
+
