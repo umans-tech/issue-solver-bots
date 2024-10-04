@@ -17,32 +17,72 @@ development workflow without compromising security or requiring large-scale migr
 - ⚙️ **Customizable Agents and Models**: Choose between different agents and models to suit your needs.
 - 📦 **Isolated Execution**: Utilizes Docker-in-Docker for secure and isolated job execution.
 
+## Table of Contents
+
+1. [Prerequisites](#prerequisites)
+    - [GitLab Runner Configuration](#gitlab-runner-configuration)
+    - [Access Tokens and API Keys](#access-tokens-and-api-keys)
+    - [Project Repository Setup](#project-repository-setup)
+2. [Setup](#setup)
+    - [Option 1: Quick Integration (Turnkey Solution)](#option-1-quick-integration-turnkey-solution)
+    - [Option 2: Custom Integration](#option-2-custom-integration)
+3. [Usage](#usage)
+    - [Trigger via Merge Request Event](#trigger-via-merge-request-event)
+    - [Manual Trigger](#manual-trigger)
+        - [Required Variables](#required-variables)
+        - [How to Trigger Manually](#how-to-trigger-manually)
+    - [Customizing Agents and Models](#customizing-agents-and-models)
+        - [Available Agents](#available-agents)
+        - [Example](#example)
+    - [Docker Configuration](#docker-configuration)
+4. [Environment Variables](#environment-variables)
+5. [Detailed Steps in `solve-issues` Job](#detailed-steps-in-solve-issues-job)
+6. [FAQ](#faq)
+7. [Conclusion](#conclusion)
+
 ## Prerequisites
 
-1. **GitLab Runner with Docker-in-Docker Support**:
+### GitLab Runner Configuration
 
-    - **Option 1 Users**: If you are using GitLab.com's shared runners (managed runners), you can proceed without
-      additional setup. Option 1 has been tested and works out-of-the-box with GitLab.com's shared runners.
-    - **Self-Managed Runners**: Ensure you have a GitLab Runner configured to run Docker-in-Docker (DinD).
+> **Note:** Option 1 has been tested and confirmed to work with GitLab.com's shared runners (managed runners), making it
+> an excellent choice for users who rely on GitLab's shared CI infrastructure.
+
+- **For Option 1 Users (GitLab.com Managed Runners)**:
+
+    - **No additional runner configuration is required.**
+      You can proceed without additional setup.
+      Option 1 has been tested and works out-of-the-box ✨ with GitLab.com's shared runners.
+
+- **For Self-Managed Runners**:
+
+    - Ensure you have a GitLab Runner configured to run Docker-in-Docker (DinD).
       This allows the CI job to run Docker commands within Docker.
-        - The runner must be configured with the following executor settings:
-            - `privileged = true`
-            - `volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]`
+    - The runner must be configured with the following executor settings:
 
-2. **Access Tokens and API Keys**:
+      ```toml
+      privileged = true
+      volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+      ```
 
-    - **`CODING_AGENT_ACCESS_TOKEN`** (**Required**): A GitLab personal access token with API scope. This token is used
-      by the agent to commit and push changes to your repository.
-    - **`OPENAI_API_KEY`** (**Required if using OpenAI models**): Your OpenAI API key to access language models.
-    - **`DEEPSEEK_API_BASE_URL`** and **`DEEPSEEK_API_KEY`** (**Required if using DeepSeek models**): Credentials for
-      accessing DeepSeek services.
-    - **`MODEL_NAME`** (**Optional**): The name of the model to use. Defaults to `gpt4o` if not specified.
+### Access Tokens and API Keys
 
-3. **Project Repository Setup**:
+Set the following environment variables in your GitLab project **Settings > CI/CD > Variables**:
 
-    - Ensure that the repository is properly initialized and that the agent has the necessary permissions to push
-      changes.
-    - The default branch should be protected appropriately to allow the agent to push changes.
+| Variable Name               | Description                                                                                | Required                    | Default |
+|-----------------------------|--------------------------------------------------------------------------------------------|-----------------------------|---------|
+| `CODING_AGENT_ACCESS_TOKEN` | GitLab personal access token with API scope. Used by the agent to commit and push changes. | **Yes**                     | N/A     |
+| `OPENAI_API_KEY`            | OpenAI API key to access language models. Required if using OpenAI models.                 | **Yes** (if using OpenAI)   | N/A     |
+| `DEEPSEEK_API_BASE_URL`     | Base URL for DeepSeek API. Required if using DeepSeek models.                              | **Yes** (if using DeepSeek) | N/A     |
+| `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A     |
+| `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt4o` |
+
+> ⚠️ **Important:** Ensure that your `CODING_AGENT_ACCESS_TOKEN` has the necessary permissions to commit and push
+> changes to your repository.
+
+### Project Repository Setup
+
+- Ensure that the repository is properly initialized and that the agent has the necessary permissions to push changes.
+- The default branch should be protected appropriately to allow the agent to push changes.
 
 ## Setup
 
@@ -58,25 +98,23 @@ include:
   - remote: 'https://raw.githubusercontent.com/umans-tech/issue-solver-bots/main/gitlab-ci/solve-issues.yml'
 ```
 
-This option has been **tested and confirmed to work with GitLab.com's shared runners**.
-It's ideal for getting started quickly without any additional runner configuration.
+This option has been **tested and confirmed to work with GitLab.com's shared runners**. It's ideal for getting started
+quickly without any additional runner configuration.
 
-#### Steps:
+#### Steps
 
-1. **Include the Template**:
+1. **Include the Template**
 
    Add the include statement to your `.gitlab-ci.yml` file as shown above.
 
-2. **Set Required Environment Variables**:
+2. **Set Required Environment Variables**
 
-   In your project's **Settings > CI/CD > Variables**, add the following variables:
+   In your project's **Settings > CI/CD > Variables**, add the necessary variables as per
+   the [Access Tokens and API Keys](#access-tokens-and-api-keys) section.
 
-    - **`CODING_AGENT_ACCESS_TOKEN`**: Your GitLab personal access token with API scope.
-    - **`OPENAI_API_KEY`**: Your OpenAI API key (if using OpenAI models).
+3. **Run the Pipeline**
 
-3. **Run the Pipeline**:
-
-    - Create a new merge request or trigger the pipeline manually as described in the **Usage** section.
+    - Create a new merge request or trigger the pipeline manually as described in the [Usage](#usage) section.
 
 ### Option 2: Custom Integration
 
@@ -115,10 +153,13 @@ stages:
   - test
 ```
 
-#### Note for Self-Managed Runners
+#### Step 4: Set Environment Variables
 
-If you are using self-managed runners, ensure they are configured with Docker-in-Docker support as described in the *
-*Prerequisites** section.
+Add or override any necessary environment variables in your project's **Settings > CI/CD > Variables**, as per
+the [Access Tokens and API Keys](#access-tokens-and-api-keys) section.
+
+> ⚠️ **Caution:** If you are using self-managed runners, ensure they are configured with Docker-in-Docker support as
+> described in the [GitLab Runner Configuration](#gitlab-runner-configuration) section.
 
 ## Usage
 
@@ -131,6 +172,22 @@ The `solve-issues` job can automatically run when a merge request is created. It
 
 This is useful for creating a placeholder merge request that the agent will populate with code changes based on the
 description.
+
+#### Steps
+
+1. **Create a New Merge Request**
+
+    - Ensure the merge request description contains a clear and detailed description of the issue to be resolved.
+
+2. **Do Not Include Any File Changes**
+
+    - The merge request should not include any changes to files. The agent will handle code changes.
+
+3. **Submit the Merge Request**
+
+    - Upon submission, the `solve-issues` job will be triggered automatically.
+
+> 💡 **Tip:** Use the merge request title to summarize the issue, which will be used in commit messages.
 
 ### Manual Trigger
 
@@ -146,15 +203,30 @@ At least one of the following variables must be provided when triggering the job
 
 #### How to Trigger Manually
 
-1. Navigate to **CI/CD > Pipelines** in your GitLab project.
-2. Click on **Run pipeline**.
-3. In the **Variables** section, add the necessary variables:
+1. **Navigate to Pipelines**
 
-    - **`GITLAB_ISSUE_ID`**: e.g., `123`
-    - **`ISSUE_URL`**: e.g., `https://gitlab.com/your-project/issues/123`
-    - **`ISSUE_DESCRIPTION`**: Provide a detailed description.
+    - Go to **CI/CD > Pipelines** in your GitLab project.
 
-4. Click **Run pipeline** to start the job.
+2. **Run Pipeline**
+
+    - Click on **Run pipeline**.
+
+3. **Set Variables**
+
+    - In the **Variables** section, add the necessary variables. For example:
+
+      | Variable            | Value                                        |
+      |---------------------|----------------------------------------------|
+      | `GITLAB_ISSUE_ID`   | `123`                                        |
+      | `ISSUE_URL`         | `https://gitlab.com/your-project/issues/123` |
+      | `ISSUE_DESCRIPTION` | `Description of the issue to resolve`        |
+
+4. **Run the Job**
+
+    - Click **Run pipeline** to start the job.
+
+> ⚠️ **Important:** Ensure that the `CODING_AGENT_ACCESS_TOKEN` has permissions to access the issue if using
+`GITLAB_ISSUE_ID` or `ISSUE_URL`.
 
 ### Customizing Agents and Models
 
@@ -175,6 +247,8 @@ solve-issues:
     MODEL_NAME: gpt-3.5-turbo
 ```
 
+> 💡 **Tip:** Experiment with different agents and models to find the best fit for your project's needs.
+
 ### Docker Configuration
 
 The job uses Docker-in-Docker. Customize Docker settings if necessary.
@@ -188,45 +262,102 @@ solve-issues:
     DOCKER_HOST: "tcp://docker:2375"
 ```
 
+> ⚠️ **Caution:** Modifying Docker settings may require changes to your runner configuration.
+
+## Environment Variables
+
+Below is a summary of all the environment variables used in the `solve-issues` job:
+
+| Variable Name               | Description                                                                                | Required                    | Default             |
+|-----------------------------|--------------------------------------------------------------------------------------------|-----------------------------|---------------------|
+| `AGENT`                     | Agent to use (`SWE-agent` or `SWE-crafter`).                                               | No                          | `SWE-agent`         |
+| `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt4o`             |
+| `CODING_AGENT_ACCESS_TOKEN` | GitLab personal access token with API scope. Used by the agent to commit and push changes. | **Yes**                     | N/A                 |
+| `OPENAI_API_KEY`            | OpenAI API key to access language models. Required if using OpenAI models.                 | **Yes** (if using OpenAI)   | N/A                 |
+| `DEEPSEEK_API_BASE_URL`     | Base URL for DeepSeek API. Required if using DeepSeek models.                              | **Yes** (if using DeepSeek) | N/A                 |
+| `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A                 |
+| `DOCKER_DRIVER`             | Docker storage driver.                                                                     | No                          | `overlay2`          |
+| `DOCKER_HOST`               | Docker host address.                                                                       | No                          | `tcp://docker:2375` |
+
 ## Detailed Steps in `solve-issues` Job
 
-1. **Environment Setup**:
+1. **Environment Setup**
 
     - Installs required packages: Docker, Git, `jq`, and `curl`.
     - Configures Git for committing changes.
 
-2. **Condition Checks**:
+2. **Condition Checks**
 
-    - For merge requests: Checks if the description is present and no files have been changed.
-    - For manual triggers: Checks if at least one of `GITLAB_ISSUE_ID`, `ISSUE_URL`, or `ISSUE_DESCRIPTION` is provided.
+    - **Merge Requests**
 
-3. **Preparing Issue Data**:
+        - Checks if the description is present and no files have been changed.
+        - Proceeds if conditions are met; otherwise, exits gracefully.
 
-    - Creates a markdown file (`issue_description.md`) with the issue description.
+    - **Manual Triggers**
 
-4. **Agent Selection**:
+        - Checks if at least one of `GITLAB_ISSUE_ID`, `ISSUE_URL`, or `ISSUE_DESCRIPTION` is provided.
+        - Fetches issue description if `GITLAB_ISSUE_ID` is provided.
+
+3. **Preparing Issue Data**
+
+    - Creates a markdown file (`issue_description.md`) containing the issue description.
+
+4. **Agent Selection**
 
     - Determines the Docker images to use based on the `AGENT` variable.
     - Supports agents like SWE-agent and SWE-crafter.
 
-5. **Pulling Docker Images**:
+5. **Pulling Docker Images**
 
-    - Pulls the necessary agent and runner Docker images.
+    - Pulls the necessary agent and runner Docker images from Docker Hub.
 
-6. **Generating Patch**:
+6. **Generating Patch**
 
     - Runs the agent to generate code changes based on the issue description.
     - Uses the specified `MODEL_NAME` for the language model.
 
-7. **Applying Changes**:
+7. **Applying Changes**
 
     - Applies the generated patch to the codebase.
-    - Shows the changes using `git diff`.
+    - Displays the changes using `git diff`.
 
-8. **Committing and Pushing Changes**:
+8. **Committing and Pushing Changes**
 
+    - Configures Git with the agent's user name and email.
     - Commits the changes with an automated message.
-    - Pushes the commit to the repository.
+    - Pushes the commit to the repository using the `CODING_AGENT_ACCESS_TOKEN`.
+
+## FAQ
+
+**Q1: What permissions are required for the `CODING_AGENT_ACCESS_TOKEN`?**
+
+- **A**: The token must have API scope and permissions to push to the repository branches where changes will be made.
+
+**Q2: Can I use this setup with self-managed GitLab instances?**
+
+- **A**: Yes, but you need to ensure that your runners are configured properly with Docker-in-Docker support.
+
+**Q3: What models can I use with this setup?**
+
+- **A**: You can use any model supported by the agent. Common options include `gpt4o` (default), `gpt-3.5-turbo`, or
+  models provided by DeepSeek.
+
+**Q4: How do I obtain an OpenAI API key?**
+
+- **A**: You can sign up for an API key on the [OpenAI website](https://platform.openai.com/account/api-keys).
+
+**Q5: What happens if the agent cannot resolve the issue?**
+
+- **A**: The job will complete without pushing any changes. You can check the job logs for details.
+
+**Q6: Is it safe to run Docker-in-Docker on shared runners?**
+
+- **A**: GitLab.com's shared runners are managed securely, and running Docker-in-Docker is supported for jobs that
+  require it.
+
+**Q7: Can I trigger the job via the API?**
+
+- **A**: Yes, you can trigger the job via GitLab's API by specifying the necessary variables.
 
 ## Conclusion
 
@@ -235,8 +366,7 @@ enhance your development workflow. Whether you choose the quick integration or c
 allows for flexible and powerful automation using best-in-class agents like SWE-agent and SWE-crafter, with more agents
 coming soon.
 
-**Note**: Option 1 is tested and confirmed to work with GitLab.com's managed runners, making it an excellent choice for
-users who rely on GitLab's shared CI infrastructure.
+> 🚀 **Tip:** Start with Option 1 to quickly see the benefits, and then explore customizations as needed.
 
 If you have any questions or need assistance, please open an issue on
 our [GitHub repository](https://github.com/umans-tech/issue-solver-bots/issues).
