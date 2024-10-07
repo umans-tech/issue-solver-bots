@@ -1,0 +1,21 @@
+[project]
+name = "issue-solver"
+version = "0.1.0"
+description = "A tool to solve issues in a repository using an autonomous agents."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+issue-solver = "issue_solver:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "ruff>=0.7.3",
+]
