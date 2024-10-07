@@ -132,6 +132,7 @@ include:
 
 #### Step 2: Override Variables
 
+Extend the `solve-issues` template and override the necessary variables in your `.gitlab-ci.yml`. 
 Specify the variables you want to customize under the `variables` section:
 
 ```yaml
@@ -141,6 +142,8 @@ solve-issues:
     MODEL_NAME: gpt-3.5-turbo # Replace with your preferred model
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: "tcp://docker:2375"
+  extends:
+    - .solve-issues
 ```
 
 #### Step 3: Assign the Job to a Stage

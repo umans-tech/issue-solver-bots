@@ -68,7 +68,7 @@ could be automated.
 
 2. **Review the Documentation:**
 
-    - For **GitLab CI** setup: Refer to [`docs/gitlab-ci-setup.md`](docs/gitlab-ci-setup.md)
+    - For **GitLab CI** setup: Refer to [`docs/gitlab-ci-setup.md`](gitlab-ci/README)
     - For **GitHub Actions** setup: Refer to [`docs/github-actions-setup.md`](docs/github-actions-setup.md)
 
 ## Usage
@@ -89,7 +89,7 @@ Integrate with GitLab CI in just a few steps:
 2. **Set Required Environment Variables:**
 
    In your project's **Settings > CI/CD > Variables**, add the necessary variables as per
-   the [GitLab CI Documentation](docs/gitlab-ci-setup.md).
+   the [GitLab CI Documentation](gitlab-ci/README).
 
 3. **Trigger the Pipeline:**
 
