@@ -44,7 +44,8 @@ development workflow without compromising security or requiring large-scale migr
 
 ### GitLab Runner Configuration
 
-> **Note:** Option 1 has been tested and confirmed to work with GitLab.com's shared runners (managed runners), making it
+> [!NOTE]
+> Option 1 has been tested and confirmed to work with GitLab.com's shared runners (managed runners), making it
 > an excellent choice for users who rely on GitLab's shared CI infrastructure.
 
 - **For Option 1 Users (GitLab.com Managed Runners)**:
@@ -76,7 +77,8 @@ Set the following environment variables in your GitLab project **Settings > CI/C
 | `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A     |
 | `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt4o` |
 
-> ⚠️ **Important:** Ensure that your `CODING_AGENT_ACCESS_TOKEN` has the necessary permissions to commit and push
+> [!IMPORTANT] 
+> Ensure that your `CODING_AGENT_ACCESS_TOKEN` has the necessary permissions to commit and push
 > changes to your repository.
 
 ### Project Repository Setup
@@ -132,7 +134,7 @@ include:
 
 #### Step 2: Override Variables
 
-Extend the `solve-issues` template and override the necessary variables in your `.gitlab-ci.yml`. 
+Extend the `solve-issues` template and override the necessary variables in your `.gitlab-ci.yml`.
 Specify the variables you want to customize under the `variables` section:
 
 ```yaml
@@ -161,7 +163,8 @@ stages:
 Add or override any necessary environment variables in your project's **Settings > CI/CD > Variables**, as per
 the [Access Tokens and API Keys](#access-tokens-and-api-keys) section.
 
-> ⚠️ **Caution:** If you are using self-managed runners, ensure they are configured with Docker-in-Docker support as
+> [!CAUTION] 
+> If you are using self-managed runners, ensure they are configured with Docker-in-Docker support as
 > described in the [GitLab Runner Configuration](#gitlab-runner-configuration) section.
 
 ## Usage
@@ -190,7 +193,8 @@ description.
 
     - Upon submission, the `solve-issues` job will be triggered automatically.
 
-> 💡 **Tip:** Use the merge request title to summarize the issue, which will be used in commit messages.
+> [!TIP] 
+> Use the merge request title to summarize the issue, which will be used in commit messages.
 
 ### Manual Trigger
 
@@ -228,7 +232,8 @@ At least one of the following variables must be provided when triggering the job
 
     - Click **Run pipeline** to start the job.
 
-> ⚠️ **Important:** Ensure that the `CODING_AGENT_ACCESS_TOKEN` has permissions to access the issue if using
+> [!IMPORTANT] 
+> Ensure that the `CODING_AGENT_ACCESS_TOKEN` has permissions to access the issue if using
 `GITLAB_ISSUE_ID` or `ISSUE_URL`.
 
 ### Customizing Agents and Models
@@ -250,7 +255,8 @@ solve-issues:
     MODEL_NAME: gpt-3.5-turbo
 ```
 
-> 💡 **Tip:** Experiment with different agents and models to find the best fit for your project's needs.
+> [!TIP] 
+> Experiment with different agents and models to find the best fit for your project's needs.
 
 ### Docker Configuration
 
@@ -265,7 +271,8 @@ solve-issues:
     DOCKER_HOST: "tcp://docker:2375"
 ```
 
-> ⚠️ **Caution:** Modifying Docker settings may require changes to your runner configuration.
+> [!CAUTION] 
+> Modifying Docker settings may require changes to your runner configuration.
 
 ## Environment Variables
 
@@ -369,7 +376,8 @@ enhance your development workflow. Whether you choose the quick integration or c
 allows for flexible and powerful automation using best-in-class agents like SWE-agent and SWE-crafter, with more agents
 coming soon.
 
-> 🚀 **Tip:** Start with Option 1 to quickly see the benefits, and then explore customizations as needed.
+> [!TIP] 
+> Start with Option 1 to quickly see the benefits, and then explore customizations as needed.
 
 If you have any questions or need assistance, please open an issue on
 our [GitHub repository](https://github.com/umans-tech/issue-solver-bots/issues).
