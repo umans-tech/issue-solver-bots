@@ -96,7 +96,7 @@ Integrate with GitLab CI in just a few steps:
     - Create a new merge request with a detailed description, or
     - Manually trigger the pipeline by specifying issue-related variables.
 
-> 💡 **Tip:** Option 1 is tested and confirmed to work with GitLab.com's managed runners, making it an excellent choice
+> [!TIP] Option 1 is tested and confirmed to work with GitLab.com's managed runners, making it an excellent choice
 > for users who rely on GitLab's shared CI infrastructure.
 
 ### GitHub Actions Integration
@@ -117,7 +117,7 @@ Integrate with GitHub Actions easily:
     - Open a new pull request with a detailed description, or
     - Manually trigger the workflow via the Actions tab.
 
-> 🚀 **Tip:** Start by creating a pull request with a clear description of the issue to see the agent in action!
+> [!TIP] Start by creating a pull request with a clear description of the issue to see the agent in action!
 
 ## Supported Platforms and Agents
 
