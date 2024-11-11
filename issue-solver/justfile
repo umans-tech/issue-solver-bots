@@ -1,0 +1,10 @@
+#!/usr/bin/env just --justfile
+
+test: ## ✅ Run all tests
+  uv run pytest
+
+lint: ## 🧹 Lint the code
+    uv run ruff check
+
+format: ## 🎨 Format the code
+    uv run ruff format
