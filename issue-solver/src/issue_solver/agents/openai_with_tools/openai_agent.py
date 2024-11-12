@@ -1,12 +1,15 @@
 from openai import OpenAI
 
+from issue_solver.agents.claude_tools.tools import bash_tool, edit_tool
+
 
 class OpenAIAgent:
     def __init__(self, api_key: str, model: str):
         self.client = OpenAI(api_key=api_key)
         self.model = model
         self.tools = [
-
+            bash_tool(),
+            edit_tool(),
         ]
 
     def run_full_turn(self, system_message, messages, model=None):
