@@ -37,7 +37,7 @@ def resolution_approach_prompt(location: str, pr_description: str) -> str:
     """
 
 
-async def start_resolution():
+async def start_resolution(max_iter=10):
     print("Starting resolution")
     client = anthropic.Anthropic()
 
@@ -52,38 +52,49 @@ async def start_resolution():
         bash_tool(),
         edit_tool(),
     ]
-    response: anthropic.types.message.Message = client.messages.create(
-        model=MODEL_NAME,
-        max_tokens=1024,
-        tools=tools_list,
-        messages=messages_history,
-    )
-    if response.stop_reason == "tool_use":
-        tool_use = next(block for block in response.content if block.type == "tool_use")
-        tool_name = tool_use.name
-        tool_input = cast(dict[str, Any], tool_use.input)
 
-        print(f"\nTool Used: {tool_name}")
-        print(f"Tool Input: {tool_input}")
-
-        messages_history.append({"role": response.role, "content": response.content})
-
-        tool_result = await process_tool_call(tool_name, tool_input)
-
-        tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
-
-        messages_history.append({
-            "role": "user",
-            "content": [tool_result_content],
-        })
-
-        print(messages_history)
-        response = client.messages.create(
+    nb_iter = 1
+    
+    while True:
+        response: anthropic.types.message.Message = client.messages.create(
             model=MODEL_NAME,
-            max_tokens=4096,
-            messages=messages_history,
+            max_tokens=1024,
             tools=tools_list,
+            messages=messages_history,
         )
+        if response.stop_reason == "tool_use":
+            tool_use = next(block for block in response.content if block.type == "tool_use")
+            tool_name = tool_use.name
+            tool_input = cast(dict[str, Any], tool_use.input)
+
+            print(f"\nTool Used: {tool_name}")
+            print(f"Tool Input: {tool_input}")
+
+            messages_history.append({"role": response.role, "content": response.content})
+
+            tool_result = await process_tool_call(tool_name, tool_input)
+
+            tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
+
+            messages_history.append({
+                "role": "user",
+                "content": [tool_result_content],
+            })
+
+            print(messages_history)
+            response = client.messages.create(
+                model=MODEL_NAME,
+                max_tokens=4096,
+                messages=messages_history,
+                tools=tools_list,
+            )
+
+            nb_iter += 1
+            if nb_iter > max_iter:
+                break
+        else:
+            break
+        
 
     final_response = next(
         (block.text for block in response.content if hasattr(block, "text")),
