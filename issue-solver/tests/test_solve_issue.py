@@ -9,7 +9,7 @@ def test_solve_issue():
     # Given
     patch_generator = Mock()
     solve_issue = prepare_solve_issue(patch_generator)
-    os.environ["AGENT_MODEL"] = "gpt4o"
+    os.environ["AGENT_MODEL"] = "gpt-4o"
     os.environ["AGENT_NAME"] = "swe-agent"
     issue_description = """
         Looks like a rounding issue here:
@@ -46,7 +46,7 @@ def test_solve_issue_based_on_gitlab_issue_id():
     patch_generator = Mock()
     issue_reader = Mock()
     solve_issue = setup(issue_reader)(patch_generator)
-    os.environ["AGENT_MODEL"] = "deepseek"
+    os.environ["AGENT_MODEL"] = "deepseek-coder"
     os.environ["AGENT_NAME"] = "swe-crafter"
     issue_description = "Looks like a rounding issue here: /src/marshmallow/fields.py#L1474"
     os.environ["GITLAB_ISSUE_ID"] = "123"
