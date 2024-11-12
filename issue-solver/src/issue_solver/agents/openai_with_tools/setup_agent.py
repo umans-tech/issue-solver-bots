@@ -52,11 +52,11 @@ async def start_resolution():
     tools_list = [
         {
         "type": "function",
-        "function": {bash_tool()}
+        "function": bash_tool()
         },
         {
         "type": "function",
-        "function": {edit_tool()}
+        "function": edit_tool()
         },
     ]
 
@@ -70,9 +70,10 @@ async def start_resolution():
         )
 
         messages_history.append(response.choices[0].message)
+        tool_calls = response.choices[0].message.tool_calls
 
-        if response.choices[0].message.finish_reason == "tool_calls":
-            tool_call = response.choices[0].message.tool_calls[0]
+        if tool_calls:
+            tool_call = tool_calls[0]
             tool_name = tool_call.function.name
             tool_input = json.loads(tool_call.function.arguments)
             tool_id = tool_call.id
@@ -106,11 +107,8 @@ async def start_resolution():
             break
         
 
-    final_response = next(
-        (block.text for block in response.content if hasattr(block, "text")),
-        None,
-    )
-    print(response.content)
+    final_response = response.choices[0].message.content
+    
     print(f"\nFinal Response: {final_response}")
 
     print(response)

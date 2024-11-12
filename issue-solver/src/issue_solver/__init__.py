@@ -9,12 +9,12 @@ from issue_solver.start_resolution import (
     AgentName,
     IssueDescription,
 )
-from issue_solver.agents.claude_tools.setup import start_resolution as start_claude_tools_resolution
+from issue_solver.agents.openai_with_tools.setup_agent import start_resolution as start_agent_tools_resolution
 
 
 async def main() -> None:
     print("Hello from issue-solver!")
-    await start_claude_tools_resolution()
+    await start_agent_tools_resolution()
 
 
 def prepare_solve_issue(
