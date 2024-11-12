@@ -1,10 +1,18 @@
 #!/usr/bin/env just --justfile
 
-test: ## ✅ Run all tests
+# ✅ Run all tests
+test:
   uv run pytest
 
-lint: ## 🧹 Lint the code
+# 🧹 Lint the code
+lint:
     uv run ruff check
 
-format: ## 🎨 Format the code
+# 🎨 Format the code
+format:
     uv run ruff format
+
+# 🚀 Start the API
+set dotenv-load
+api-start:
+    uv run fastapi dev src/issue_solver/webapi/main.py
