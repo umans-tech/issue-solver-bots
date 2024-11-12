@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-issue-solver = "issue_solver:main"
+issue-solver = "issue_solver:run_main"
 
 [build-system]
 requires = ["hatchling"]

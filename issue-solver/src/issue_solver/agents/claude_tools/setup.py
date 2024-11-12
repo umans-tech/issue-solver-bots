@@ -1,8 +1,11 @@
 import anthropic
+from typing import Any, cast
+import asyncio
 
 from issue_solver.agents.claude_tools.tools import bash_tool, edit_tool
 from issue_solver.agents.claude_tools.tools.bash import BashTool
 from issue_solver.agents.claude_tools.tools.edit import EditTool
+from issue_solver.agents.claude_tools.tools.base import ToolResult
 
 MODEL_NAME = "claude-3-5-haiku-20241022"
 
@@ -34,14 +37,14 @@ def resolution_approach_prompt(location: str, pr_description: str) -> str:
     """
 
 
-def start_resolution():
+async def start_resolution():
     print("Starting resolution")
     client = anthropic.Anthropic()
 
     messages_history = [{
         "role": "user",
         "content": resolution_approach_prompt(
-            location="/Users/wasselalazhar/Umans/marshmallow",
+            location="/Users/naji/Documents/Projects/tutor/swe-agent/issue-solver-bots/issue-solver",
             pr_description="Fix the rounding issue in the marshmallow library at /src/marshmallow/fields.py#L1474"
         )
     }]
@@ -58,22 +61,21 @@ def start_resolution():
     if response.stop_reason == "tool_use":
         tool_use = next(block for block in response.content if block.type == "tool_use")
         tool_name = tool_use.name
-        tool_input = tool_use.input
+        tool_input = cast(dict[str, Any], tool_use.input)
 
         print(f"\nTool Used: {tool_name}")
         print(f"Tool Input: {tool_input}")
-        tool_result = process_tool_call(tool_name, tool_input)
-        messages_history.append({"role": response.role, "content": str(response.content)})
+        
+        messages_history.append({"role": response.role, "content": response.content})
+
+        tool_result = await process_tool_call(tool_name, tool_input)
+        
+        tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
+
 
         messages_history.append({
             "role": "user",
-            "content": [
-                {
-                    "type": "tool_result",
-                    "tool_use_id": tool_use.id,
-                    "content": tool_result,
-                }
-            ],
+            "content": [tool_result_content],
         })
 
         print(messages_history)
@@ -93,8 +95,36 @@ def start_resolution():
 
     print(response)
 
+def _make_api_tool_result(
+    result: ToolResult, tool_use_id: str
+):
+    """Convert an agent ToolResult to an API ToolResultBlockParam."""
+    tool_result_content = []
+    is_error = False
+    if result.error:
+        is_error = True
+        tool_result_content = _maybe_prepend_system_tool_result(result, result.error)
+    else:
+        if result.output:
+            tool_result_content.append(
+                {
+                    "type": "text",
+                    "text": _maybe_prepend_system_tool_result(result, result.output),
+                }
+            )
+    return {
+        "type": "tool_result",
+        "content": tool_result_content,
+        "tool_use_id": tool_use_id,
+        "is_error": is_error,
+    }
 
-def process_tool_call(tool_name, tool_input):
+def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str):
+    if result.system:
+        result_text = f"<system>{result.system}</system>\n{result_text}"
+    return result_text
+
+async def process_tool_call(tool_name, tool_input):
     if tool_name == "str_replace_editor":
         return EditTool()(**tool_input)
     elif tool_name == "bash":
