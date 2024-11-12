@@ -1,7 +1,7 @@
 from typing import Any, cast
 import json
 
-from openai import OpenAI, types.message.Message
+from openai import OpenAI
 
 from issue_solver.agents.openai_with_tools.tools import bash_tool, edit_tool
 from issue_solver.agents.openai_with_tools.tools.base import ToolResult
