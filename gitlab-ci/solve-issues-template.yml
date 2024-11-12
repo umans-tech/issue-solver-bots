@@ -10,7 +10,7 @@
     - chmod +x solve_issues.sh
 
   script:
-    - ./solve_issues.sh
+    - sh solve_issues.sh
   after_script:
     - echo "🧹 Cleaning up"
     - rm -f solve_issues.sh
