@@ -4,10 +4,12 @@ version = "0.1.0"
 description = "A tool to solve issues in a repository using an autonomous agents."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "anthropic>=0.39.0",
+]
 
 [project.scripts]
-issue-solver = "issue_solver:main"
+issue-solver = "issue_solver:run_main"
 
 [build-system]
 requires = ["hatchling"]
