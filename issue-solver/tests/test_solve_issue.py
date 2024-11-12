@@ -2,7 +2,12 @@ import os
 from unittest.mock import Mock
 
 from issue_solver import prepare_solve_issue
-from issue_solver.start_resolution import AgentModel, AgentName, IssueDescription, SolveIssueCommand
+from issue_solver.start_resolution import (
+    AgentModel,
+    AgentName,
+    IssueDescription,
+    SolveIssueCommand,
+)
 
 
 def test_solve_issue():
@@ -32,11 +37,13 @@ def test_solve_issue():
 
 def setup(issue_reader):
     def prepare_solve_issue(generate_patch):
-        return lambda: generate_patch(SolveIssueCommand(
-            agent_model=AgentModel(os.environ["AGENT_MODEL"]),
-            agent_name=AgentName(os.environ["AGENT_NAME"]),
-            issue_description=issue_reader(),
-        ))
+        return lambda: generate_patch(
+            SolveIssueCommand(
+                agent_model=AgentModel(os.environ["AGENT_MODEL"]),
+                agent_name=AgentName(os.environ["AGENT_NAME"]),
+                issue_description=issue_reader(),
+            )
+        )
 
     return prepare_solve_issue
 
@@ -48,7 +55,9 @@ def test_solve_issue_based_on_gitlab_issue_id():
     solve_issue = setup(issue_reader)(patch_generator)
     os.environ["AGENT_MODEL"] = "deepseek-coder"
     os.environ["AGENT_NAME"] = "swe-crafter"
-    issue_description = "Looks like a rounding issue here: /src/marshmallow/fields.py#L1474"
+    issue_description = (
+        "Looks like a rounding issue here: /src/marshmallow/fields.py#L1474"
+    )
     os.environ["GITLAB_ISSUE_ID"] = "123"
     issue_reader.return_value = IssueDescription(issue_description)
 
