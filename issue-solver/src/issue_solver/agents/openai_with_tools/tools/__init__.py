@@ -33,8 +33,9 @@ def edit_description() -> str:
         Custom tools for viewing, creating and editing files\n
         * State is persistent across command calls and discussions with the user\n
         * If `path` is a file, `view` displays the result of applying `cat -n`. If `path` is a directory, `view` lists non-hidden files and directories up to 2 levels deep\n
-        * The `create` command cannot be used if the specified `path` already exists as a file\n
-        * If a `command` generates a long output, it will be truncated and marked with `<response clipped>` \n
+        * The `create` cannot be used if `path` already exists as a file\n
+        * Long outputs are truncated and marked with `<response clipped>` \n
+        * `undo_edit` reverts the last edit made to the file at `path`\n
         \n
         `str_replace` command:\n
         * The `old_str` parameter should match EXACTLY one or more consecutive lines from the original file. Be mindful of whitespaces!\n
