@@ -1,11 +1,11 @@
-import anthropic
 from typing import Any, cast
-import asyncio
+
+import anthropic
 
 from issue_solver.agents.claude_tools.tools import bash_tool, edit_tool
+from issue_solver.agents.claude_tools.tools.base import ToolResult
 from issue_solver.agents.claude_tools.tools.bash import BashTool
 from issue_solver.agents.claude_tools.tools.edit import EditTool
-from issue_solver.agents.claude_tools.tools.base import ToolResult
 
 MODEL_NAME = "claude-3-5-haiku-20241022"
 
@@ -65,13 +65,12 @@ async def start_resolution():
 
         print(f"\nTool Used: {tool_name}")
         print(f"Tool Input: {tool_input}")
-        
+
         messages_history.append({"role": response.role, "content": response.content})
 
         tool_result = await process_tool_call(tool_name, tool_input)
-        
-        tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
 
+        tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
 
         messages_history.append({
             "role": "user",
@@ -95,8 +94,9 @@ async def start_resolution():
 
     print(response)
 
+
 def _make_api_tool_result(
-    result: ToolResult, tool_use_id: str
+        result: ToolResult, tool_use_id: str
 ):
     """Convert an agent ToolResult to an API ToolResultBlockParam."""
     tool_result_content = []
@@ -119,10 +119,12 @@ def _make_api_tool_result(
         "is_error": is_error,
     }
 
+
 def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str):
     if result.system:
         result_text = f"<system>{result.system}</system>\n{result_text}"
     return result_text
+
 
 async def process_tool_call(tool_name, tool_input):
     if tool_name == "str_replace_editor":

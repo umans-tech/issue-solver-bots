@@ -145,9 +145,9 @@ class EditTool(BaseAnthropicTool):
                 )
 
             if final_line == -1:
-                file_content = "\n".join(file_lines[init_line - 1 :])
+                file_content = "\n".join(file_lines[init_line - 1:])
             else:
-                file_content = "\n".join(file_lines[init_line - 1 : final_line])
+                file_content = "\n".join(file_lines[init_line - 1: final_line])
 
         return CLIResult(
             output=self._make_output(file_content, str(path), init_line=init_line)
@@ -190,7 +190,7 @@ class EditTool(BaseAnthropicTool):
         replacement_line = file_content.split(old_str)[0].count("\n")
         start_line = max(0, replacement_line - SNIPPET_LINES)
         end_line = replacement_line + SNIPPET_LINES + new_str.count("\n")
-        snippet = "\n".join(new_file_content.split("\n")[start_line : end_line + 1])
+        snippet = "\n".join(new_file_content.split("\n")[start_line: end_line + 1])
 
         # Prepare the success message
         success_msg = f"The file {path} has been edited. "
@@ -220,9 +220,9 @@ class EditTool(BaseAnthropicTool):
                 + file_text_lines[insert_line:]
         )
         snippet_lines = (
-                file_text_lines[max(0, insert_line - SNIPPET_LINES) : insert_line]
+                file_text_lines[max(0, insert_line - SNIPPET_LINES): insert_line]
                 + new_str_lines
-                + file_text_lines[insert_line : insert_line + SNIPPET_LINES]
+                + file_text_lines[insert_line: insert_line + SNIPPET_LINES]
         )
 
         new_file_text = "\n".join(new_file_text_lines)
