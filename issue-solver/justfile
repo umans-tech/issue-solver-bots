@@ -12,7 +12,7 @@ lint:
 format:
     uv run ruff format
 
-# 🚀 Start the API
 set dotenv-load
+# 🚀 Start the API
 api-start:
     uv run fastapi dev src/issue_solver/webapi/main.py
