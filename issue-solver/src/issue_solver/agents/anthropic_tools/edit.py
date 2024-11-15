@@ -2,7 +2,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Literal, get_args
 
-from .base import BaseTool, CLIResult, ToolError, ToolResult
+from anthropic.types.beta import BetaToolTextEditor20241022Param
+
+from .base import BaseAnthropicTool, CLIResult, ToolError, ToolResult
 from .run import maybe_truncate, run
 
 Command = Literal[
@@ -15,7 +17,7 @@ Command = Literal[
 SNIPPET_LINES: int = 4
 
 
-class EditTool(BaseTool):
+class EditTool(BaseAnthropicTool):
     """
     An filesystem editor tool that allows the agent to view, create, and edit files.
     The tool parameters are defined by Anthropic and are not editable.
@@ -30,23 +32,23 @@ class EditTool(BaseTool):
         self._file_history = defaultdict(list)
         super().__init__()
 
-    def to_params(self) -> dict:
+    def to_params(self) -> BetaToolTextEditor20241022Param:
         return {
             "name": self.name,
             "type": self.api_type,
         }
 
     async def __call__(
-            self,
-            *,
-            command: Command,
-            path: str,
-            file_text: str | None = None,
-            view_range: list[int] | None = None,
-            old_str: str | None = None,
-            new_str: str | None = None,
-            insert_line: int | None = None,
-            **kwargs,
+        self,
+        *,
+        command: Command,
+        path: str,
+        file_text: str | None = None,
+        view_range: list[int] | None = None,
+        old_str: str | None = None,
+        new_str: str | None = None,
+        insert_line: int | None = None,
+        **kwargs,
     ):
         _path = Path(path)
         self.validate_path(command, _path)
@@ -143,9 +145,9 @@ class EditTool(BaseTool):
                 )
 
             if final_line == -1:
-                file_content = "\n".join(file_lines[init_line - 1:])
+                file_content = "\n".join(file_lines[init_line - 1 :])
             else:
-                file_content = "\n".join(file_lines[init_line - 1: final_line])
+                file_content = "\n".join(file_lines[init_line - 1 : final_line])
 
         return CLIResult(
             output=self._make_output(file_content, str(path), init_line=init_line)
@@ -188,7 +190,7 @@ class EditTool(BaseTool):
         replacement_line = file_content.split(old_str)[0].count("\n")
         start_line = max(0, replacement_line - SNIPPET_LINES)
         end_line = replacement_line + SNIPPET_LINES + new_str.count("\n")
-        snippet = "\n".join(new_file_content.split("\n")[start_line: end_line + 1])
+        snippet = "\n".join(new_file_content.split("\n")[start_line : end_line + 1])
 
         # Prepare the success message
         success_msg = f"The file {path} has been edited. "
@@ -213,14 +215,14 @@ class EditTool(BaseTool):
 
         new_str_lines = new_str.split("\n")
         new_file_text_lines = (
-                file_text_lines[:insert_line]
-                + new_str_lines
-                + file_text_lines[insert_line:]
+            file_text_lines[:insert_line]
+            + new_str_lines
+            + file_text_lines[insert_line:]
         )
         snippet_lines = (
-                file_text_lines[max(0, insert_line - SNIPPET_LINES): insert_line]
-                + new_str_lines
-                + file_text_lines[insert_line: insert_line + SNIPPET_LINES]
+            file_text_lines[max(0, insert_line - SNIPPET_LINES) : insert_line]
+            + new_str_lines
+            + file_text_lines[insert_line : insert_line + SNIPPET_LINES]
         )
 
         new_file_text = "\n".join(new_file_text_lines)
@@ -265,11 +267,11 @@ class EditTool(BaseTool):
             raise ToolError(f"Ran into {e} while trying to write to {path}") from None
 
     def _make_output(
-            self,
-            file_content: str,
-            file_descriptor: str,
-            init_line: int = 1,
-            expand_tabs: bool = True,
+        self,
+        file_content: str,
+        file_descriptor: str,
+        init_line: int = 1,
+        expand_tabs: bool = True,
     ):
         """Generate output for the CLI based on the content of a file."""
         file_content = maybe_truncate(file_content)
@@ -282,7 +284,7 @@ class EditTool(BaseTool):
             ]
         )
         return (
-                f"Here's the result of running `cat -n` on {file_descriptor}:\n"
-                + file_content
-                + "\n"
+            f"Here's the result of running `cat -n` on {file_descriptor}:\n"
+            + file_content
+            + "\n"
         )

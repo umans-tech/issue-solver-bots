@@ -2,8 +2,10 @@
 
 from typing import Any
 
+from anthropic.types.beta import BetaToolUnionParam
+
 from .base import (
-    BaseTool,
+    BaseAnthropicTool,
     ToolError,
     ToolFailure,
     ToolResult,
@@ -13,13 +15,13 @@ from .base import (
 class ToolCollection:
     """A collection of anthropic-defined tools."""
 
-    def __init__(self, *tools: BaseTool):
+    def __init__(self, *tools: BaseAnthropicTool):
         self.tools = tools
         self.tool_map = {tool.to_params()["name"]: tool for tool in tools}
 
     def to_params(
-            self,
-    ) -> list[dict]:
+        self,
+    ) -> list[BetaToolUnionParam]:
         return [tool.to_params() for tool in self.tools]
 
     async def run(self, *, name: str, tool_input: dict[str, Any]) -> ToolResult:

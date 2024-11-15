@@ -16,9 +16,9 @@ def maybe_truncate(content: str, truncate_after: int | None = MAX_RESPONSE_LEN):
 
 
 async def run(
-        cmd: str,
-        timeout: float | None = 120.0,  # seconds
-        truncate_after: int | None = MAX_RESPONSE_LEN,
+    cmd: str,
+    timeout: float | None = 120.0,  # seconds
+    truncate_after: int | None = MAX_RESPONSE_LEN,
 ):
     """Run a shell command asynchronously with a timeout."""
     process = await asyncio.create_subprocess_shell(
