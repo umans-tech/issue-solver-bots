@@ -2,7 +2,9 @@ import asyncio
 import os
 from typing import ClassVar, Literal
 
-from .base import BaseTool, CLIResult, ToolError, ToolResult
+from anthropic.types.beta import BetaToolBash20241022Param
+
+from .base import BaseAnthropicTool, CLIResult, ToolError, ToolResult
 
 
 class _BashSession:
@@ -101,7 +103,7 @@ class _BashSession:
         return CLIResult(output=output, error=error)
 
 
-class BashTool(BaseTool):
+class BashTool(BaseAnthropicTool):
     """
     A tool that allows the agent to run bash commands.
     The tool parameters are defined by Anthropic and are not editable.
@@ -116,7 +118,7 @@ class BashTool(BaseTool):
         super().__init__()
 
     async def __call__(
-            self, command: str | None = None, restart: bool = False, **kwargs
+        self, command: str | None = None, restart: bool = False, **kwargs
     ):
         if restart:
             if self._session:
@@ -135,7 +137,7 @@ class BashTool(BaseTool):
 
         raise ToolError("no command provided.")
 
-    def to_params(self) -> dict:
+    def to_params(self) -> BetaToolBash20241022Param:
         return {
             "type": self.api_type,
             "name": self.name,

@@ -54,36 +54,34 @@ def edit_tool() -> dict:
                 "command": {
                     "type": "string",
                     "enum": ["view", "create", "str_replace", "insert", "undo_edit"],
-                    "description": "The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`."
+                    "description": "The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.",
                 },
                 "file_text": {
                     "description": "Required parameter of `create` command, with the content of the file to be created.",
-                    "type": "string"
+                    "type": "string",
                 },
                 "insert_line": {
                     "description": "Required parameter of `insert` command. The `new_str` will be inserted AFTER the line `insert_line` of `path`.",
-                    "type": "integer"
+                    "type": "integer",
                 },
                 "new_str": {
                     "description": "Required parameter of `str_replace` command containing the new string. Required parameter of `insert` command containing the string to insert.",
-                    "type": "string"
+                    "type": "string",
                 },
                 "old_str": {
                     "description": "Required parameter of `str_replace` command containing the string in `path` to replace.",
-                    "type": "string"
+                    "type": "string",
                 },
                 "path": {
                     "description": "Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.",
-                    "type": "string"
+                    "type": "string",
                 },
                 "view_range": {
                     "description": "Optional parameter of `view` command when `path` points to a file. If none is given, the full file is shown. If provided, the file will be shown in the indicated line number range, e.g. [11, 12] will show lines 11 and 12. Indexing at 1 to start. Setting `[start_line, -1]` shows all lines from `start_line` to the end of the file.",
-                    "items": {
-                        "type": "integer"
-                    },
-                    "type": "array"
-                }
+                    "items": {"type": "integer"},
+                    "type": "array",
+                },
             },
-            "required": ["command", "path"]
-        }
+            "required": ["command", "path"],
+        },
     }

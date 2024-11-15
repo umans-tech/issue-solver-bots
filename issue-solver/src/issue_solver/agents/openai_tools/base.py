@@ -5,7 +5,7 @@ from typing import Any
 from anthropic.types.beta import BetaToolUnionParam
 
 
-class BaseAnthropicTool(metaclass=ABCMeta):
+class BaseTool(metaclass=ABCMeta):
     """Abstract base class for Anthropic-defined tools."""
 
     @abstractmethod
@@ -15,7 +15,7 @@ class BaseAnthropicTool(metaclass=ABCMeta):
 
     @abstractmethod
     def to_params(
-            self,
+        self,
     ) -> BetaToolUnionParam:
         raise NotImplementedError
 
@@ -34,7 +34,7 @@ class ToolResult:
 
     def __add__(self, other: "ToolResult"):
         def combine_fields(
-                field: str | None, other_field: str | None, concatenate: bool = True
+            field: str | None, other_field: str | None, concatenate: bool = True
         ):
             if field and other_field:
                 if concatenate:
