@@ -3,7 +3,7 @@ from typing import cast, Any
 import anthropic
 
 from issue_solver import AgentModel
-from issue_solver.agents.anthropic_tools.base import ToolResult
+from issue_solver.agents.anthropic_tools.base import ToolError, ToolFailure, ToolResult
 from issue_solver.agents.anthropic_tools.bash import BashTool
 from issue_solver.agents.anthropic_tools.edit import EditTool
 from issue_solver.agents.anthropic_tools.tool_schema import bash_tool, edit_tool
@@ -58,7 +58,7 @@ class AnthropicAgent(CodingAgent):
 
             tool_result = await self.process_tool_call(tool_name, tool_input)
 
-            tool_result_content = _make_api_tool_result(await tool_result, tool_use.id)
+            tool_result_content = _make_api_tool_result(tool_result, tool_use.id)
 
             messages.append(
                 {
@@ -70,12 +70,15 @@ class AnthropicAgent(CodingAgent):
         return AnthropicTurnOutput(reasoning_response, messages)
 
     async def process_tool_call(self, tool_name, tool_input):
-        if tool_name == "str_replace_editor":
-            return EditTool()(**tool_input)
-        elif tool_name == "bash":
-            return BashTool()(**tool_input)
-        else:
-            raise ValueError(f"Unknown tool: {tool_name}")
+        try:
+            if tool_name == "str_replace_editor":
+                return await EditTool()(**tool_input)
+            elif tool_name == "bash":
+                return await BashTool()(**tool_input)
+            else:
+                return ToolFailure(error=f"Tool {tool_name} is invalid")
+        except ToolError as e:
+            return ToolFailure(error=e.message)
 
 
 def _make_api_tool_result(result: ToolResult, tool_use_id: str):

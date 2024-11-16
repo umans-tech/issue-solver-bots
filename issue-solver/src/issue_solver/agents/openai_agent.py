@@ -6,6 +6,7 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from issue_solver import AgentModel
 from issue_solver.agents.coding_agent import TurnOutput, CodingAgent
+from issue_solver.agents.openai_tools.base import ToolError, ToolFailure
 from issue_solver.agents.openai_tools.bash import BashTool
 from issue_solver.agents.openai_tools.edit import EditTool
 from issue_solver.agents.openai_tools.tool_schema import (
@@ -65,12 +66,15 @@ class OpenAIAgent(CodingAgent):
 
     async def process_tool_call(self, tool_name, tool_input):
         """Détermine et exécute le bon outil en fonction du nom."""
-        if tool_name == "bash_command":
-            return await self.bash_tool(**tool_input)
-        elif tool_name == "edit_file":
-            return await self.edit_tool(**tool_input)
-        else:
-            raise ValueError(f"Unknown tool: {tool_name}")
+        try:
+            if tool_name == "str_replace_editor":
+                return await EditTool()(**tool_input)
+            elif tool_name == "bash":
+                return await BashTool()(**tool_input)
+            else:
+                return ToolFailure(error=f"Tool {tool_name} is invalid")
+        except ToolError as e:
+            return ToolFailure(error=e.message)
 
 
 class OpenAITurnOutput(TurnOutput):
