@@ -8,7 +8,7 @@ from typing import Any
 def bash_tool_schema() -> dict[str, Any]:
     """Creates JSON schema for bash tool compatible with OpenAI functions."""
     return {
-        "name": "bash_command",
+        "name": "bash",
         "description": "Executes bash commands to inspect and modify files in the repository.",
         "parameters": {
             "type": "object",
@@ -26,7 +26,7 @@ def bash_tool_schema() -> dict[str, Any]:
 def edit_tool_schema() -> dict[str, Any]:
     """Creates JSON schema for edit tool compatible with OpenAI functions."""
     return {
-        "name": "edit_file",
+        "name": "str_replace_editor",
         "description": "Allows the agent to view, edit, and manipulate files in the repository.",
         "parameters": {
             "type": "object",
