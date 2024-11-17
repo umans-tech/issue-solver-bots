@@ -11,7 +11,7 @@ from .base import (
 
 
 class ToolCollection:
-    """A collection of anthropic-defined tools."""
+    """A collection of defined tools."""
 
     def __init__(self, *tools: BaseTool):
         self.tools = tools

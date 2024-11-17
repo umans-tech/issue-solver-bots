@@ -104,7 +104,6 @@ class _BashSession:
 class BashTool(BaseTool):
     """
     A tool that allows the agent to run bash commands.
-    The tool parameters are defined by Anthropic and are not editable.
     """
 
     _session: _BashSession | None

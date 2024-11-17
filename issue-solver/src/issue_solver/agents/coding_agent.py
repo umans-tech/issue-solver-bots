@@ -19,8 +19,3 @@ class CodingAgent(ABC):
         self, system_message, messages, model: AgentModel | None = None
     ) -> TurnOutput:
         pass
-
-    @abstractmethod
-    async def process_tool_call(self, tool_name, tool_input):
-        """Détermine et exécute le bon outil en fonction du nom."""
-        pass

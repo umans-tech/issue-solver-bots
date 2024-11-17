@@ -6,10 +6,10 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from issue_solver import AgentModel
 from issue_solver.agents.coding_agent import TurnOutput, CodingAgent
-from issue_solver.agents.openai_tools.base import ToolError, ToolFailure
-from issue_solver.agents.openai_tools.bash import BashTool
-from issue_solver.agents.openai_tools.edit import EditTool
-from issue_solver.agents.openai_tools.tool_schema import (
+from issue_solver.agents.tools.bash import BashTool
+from issue_solver.agents.tools.collection import ToolCollection
+from issue_solver.agents.tools.edit import EditTool
+from issue_solver.agents.tools.openai_tools_schema import (
     bash_tool_schema,
     edit_tool_schema,
 )
@@ -17,20 +17,18 @@ from issue_solver.agents.openai_tools.tool_schema import (
 
 class OpenAIAgent(CodingAgent):
     def __init__(
-            self,
-            api_key: str,
-            default_model: AgentModel = AgentModel.GPT4O_MINI,
-            base_url: str = "https://api.openai.com/v1",
+        self,
+        api_key: str,
+        default_model: AgentModel = AgentModel.GPT4O_MINI,
+        base_url: str | None = None,
     ):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.default_model = default_model
-        # Convert tools to schema
         self.tools = [
             {"type": "function", "function": bash_tool_schema()},
             {"type": "function", "function": edit_tool_schema()},
         ]
-        self.bash_tool = BashTool()
-        self.edit_tool = EditTool()
+        self.tool_collection = ToolCollection(BashTool(), EditTool())
 
     async def run_full_turn(self, system_message, messages, model=None) -> TurnOutput:
         response = self.client.chat.completions.create(
@@ -41,18 +39,17 @@ class OpenAIAgent(CodingAgent):
         chat_completion_message: ChatCompletionMessage = response.choices[0].message
         messages.append(chat_completion_message)
 
-        # Vérifie si le modèle demande un appel de fonction
         if chat_completion_message.tool_calls:
             function_call = chat_completion_message.tool_calls[0]
             function_name = function_call.function.name
             arguments = json.loads(function_call.function.arguments)
             tool_id = function_call.id
 
-            # Exécute la commande appropriée avec process_tool_call
-            tool_result = await self.process_tool_call(function_name, arguments)
+            tool_result = await self.tool_collection.run(
+                name=function_name, tool_input=arguments
+            )
             result_output = tool_result.output
 
-            # Ajoute le résultat de l'outil dans les messages
             messages.append(
                 {
                     "role": "tool",
@@ -63,18 +60,6 @@ class OpenAIAgent(CodingAgent):
             )
 
         return OpenAITurnOutput(response.choices[0], messages)
-
-    async def process_tool_call(self, tool_name, tool_input):
-        """Détermine et exécute le bon outil en fonction du nom."""
-        try:
-            if tool_name == "str_replace_editor":
-                return await EditTool()(**tool_input)
-            elif tool_name == "bash":
-                return await BashTool()(**tool_input)
-            else:
-                return ToolFailure(error=f"Tool {tool_name} is invalid")
-        except ToolError as e:
-            return ToolFailure(error=e.message)
 
 
 class OpenAITurnOutput(TurnOutput):

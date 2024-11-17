@@ -1,7 +1,6 @@
 import os
 from typing import Callable
 
-from issue_solver.agents import anthropic_tools
 from issue_solver.start_resolution import (
     SolveIssueCommand,
     AgentModel,
@@ -15,7 +14,7 @@ async def main() -> None:
 
 
 def prepare_solve_issue(
-        generate_patch: Callable[[SolveIssueCommand], None],
+    generate_patch: Callable[[SolveIssueCommand], None],
 ) -> Callable[[], None]:
     return lambda: generate_patch(
         SolveIssueCommand(

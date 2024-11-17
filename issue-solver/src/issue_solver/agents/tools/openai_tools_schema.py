@@ -1,7 +1,5 @@
 import inspect
 
-# issue_solver/agents/openai_with_tools/tools/tool_schema.py
-
 from typing import Any
 
 
@@ -132,6 +130,7 @@ def bash_tool() -> dict:
     return {
         "name": "bash",
         "description": bash_description(),
+        "strict": True,
         "parameters": {
             "type": "object",
             "properties": {
@@ -165,6 +164,7 @@ def edit_tool() -> dict:
     return {
         "name": "str_replace_editor",
         "description": edit_description(),
+        "strict": True,
         "parameters": {
             "type": "object",
             "properties": {
