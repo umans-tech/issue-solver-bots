@@ -23,10 +23,10 @@ claude_agent = AnthropicAgent(
 
 @app.post("/resolutions/iterate")
 async def iterate_issue_resolution(
-        repo_location: str,
-        issue_description: str,
-        model: AgentModel = AgentModel.GPT4O_MINI,
-        messages: Optional[List[ChatCompletionMessageParam]] = None,
+    repo_location: str,
+    issue_description: str,
+    model: AgentModel = AgentModel.GPT4O_MINI,
+    messages: Optional[List[ChatCompletionMessageParam]] = None,
 ):
     """Perform one iteration of issue resolution."""
     system_message = resolution_approach_prompt(
@@ -44,10 +44,10 @@ async def iterate_issue_resolution(
 
 @app.post("/resolutions/complete")
 async def complete_issue_resolution(
-        repo_location: str,
-        issue_description: str,
-        model: AgentModel = AgentModel.GPT4O_MINI,
-        max_iter: int = 10,
+    repo_location: str,
+    issue_description: str,
+    model: AgentModel = AgentModel.GPT4O_MINI,
+    max_iter: int = 10,
 ):
     """Continue resolving until the issue is complete or max iterations are reached."""
     system_message = resolution_approach_prompt(
@@ -62,7 +62,7 @@ async def complete_issue_resolution(
             )
             messages = response.messages_history()
             if response.has_finished():
-                return {"status": "complete", "response": response}
+                return {"status": "complete", "response": messages}
         return {"status": "incomplete", "messages": messages}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

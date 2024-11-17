@@ -3,19 +3,20 @@ from typing import cast, Any
 import anthropic
 
 from issue_solver import AgentModel
-from issue_solver.agents.anthropic_tools.base import ToolError, ToolFailure, ToolResult
-from issue_solver.agents.anthropic_tools.bash import BashTool
-from issue_solver.agents.anthropic_tools.edit import EditTool
-from issue_solver.agents.anthropic_tools.tool_schema import bash_tool, edit_tool
 from issue_solver.agents.coding_agent import TurnOutput, CodingAgent
+from issue_solver.agents.tools.anthropic_tools_schema import bash_tool, edit_tool
+from issue_solver.agents.tools.base import ToolResult
+from issue_solver.agents.tools.bash import BashTool
+from issue_solver.agents.tools.collection import ToolCollection
+from issue_solver.agents.tools.edit import EditTool
 
 
 class AnthropicAgent(CodingAgent):
     def __init__(
-            self,
-            api_key: str,
-            default_model=AgentModel.CLAUDE_35_HAIKU,
-            base_url: str | None = None,
+        self,
+        api_key: str,
+        default_model=AgentModel.CLAUDE_35_HAIKU,
+        base_url: str | None = None,
     ):
         super().__init__()
         self.api_key = api_key
@@ -25,23 +26,27 @@ class AnthropicAgent(CodingAgent):
             bash_tool(),
             edit_tool(),
         ]
+        self.tool_collection = ToolCollection(BashTool(), EditTool())
 
     async def run_full_turn(
-            self, system_message, messages, model: AgentModel | None = None
+        self, system_message, messages, model: AgentModel | None = None
     ) -> TurnOutput:
         reasoning_response: anthropic.types.message.Message = (
             self.client.messages.create(
                 model=model or self.default_model,
                 max_tokens=4096,
                 messages=[
-                             {
-                                 "role": "user",
-                                 "content": system_message,
-                             }
-                         ]
-                         + messages,
+                    {
+                        "role": "user",
+                        "content": system_message,
+                    }
+                ]
+                + messages,
                 tools=self.tools,
             )
+        )
+        messages.append(
+            {"role": reasoning_response.role, "content": reasoning_response.content}
         )
         if reasoning_response.stop_reason == "tool_use":
             tool_use = next(
@@ -52,11 +57,9 @@ class AnthropicAgent(CodingAgent):
             tool_name = tool_use.name
             tool_input = cast(dict[str, Any], tool_use.input)
 
-            messages.append(
-                {"role": reasoning_response.role, "content": reasoning_response.content}
+            tool_result = await self.tool_collection.run(
+                name=tool_name, tool_input=tool_input
             )
-
-            tool_result = await self.process_tool_call(tool_name, tool_input)
 
             tool_result_content = _make_api_tool_result(tool_result, tool_use.id)
 
@@ -68,17 +71,6 @@ class AnthropicAgent(CodingAgent):
             )
 
         return AnthropicTurnOutput(reasoning_response, messages)
-
-    async def process_tool_call(self, tool_name, tool_input):
-        try:
-            if tool_name == "str_replace_editor":
-                return await EditTool()(**tool_input)
-            elif tool_name == "bash":
-                return await BashTool()(**tool_input)
-            else:
-                return ToolFailure(error=f"Tool {tool_name} is invalid")
-        except ToolError as e:
-            return ToolFailure(error=e.message)
 
 
 def _make_api_tool_result(result: ToolResult, tool_use_id: str):

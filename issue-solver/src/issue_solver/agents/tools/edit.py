@@ -2,9 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Literal, get_args
 
-from anthropic.types.beta import BetaToolTextEditor20241022Param
-
-from .base import BaseAnthropicTool, CLIResult, ToolError, ToolResult
+from .base import BaseTool, CLIResult, ToolError, ToolResult
 from .run import maybe_truncate, run
 
 Command = Literal[
@@ -17,10 +15,9 @@ Command = Literal[
 SNIPPET_LINES: int = 4
 
 
-class EditTool(BaseAnthropicTool):
+class EditTool(BaseTool):
     """
     An filesystem editor tool that allows the agent to view, create, and edit files.
-    The tool parameters are defined by Anthropic and are not editable.
     """
 
     api_type: Literal["text_editor_20241022"] = "text_editor_20241022"
@@ -32,7 +29,7 @@ class EditTool(BaseAnthropicTool):
         self._file_history = defaultdict(list)
         super().__init__()
 
-    def to_params(self) -> BetaToolTextEditor20241022Param:
+    def to_params(self) -> dict:
         return {
             "name": self.name,
             "type": self.api_type,

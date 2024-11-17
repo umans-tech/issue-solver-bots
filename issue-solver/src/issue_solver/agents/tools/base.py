@@ -2,11 +2,9 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields, replace
 from typing import Any
 
-from anthropic.types.beta import BetaToolUnionParam
 
-
-class BaseAnthropicTool(metaclass=ABCMeta):
-    """Abstract base class for Anthropic-defined tools."""
+class BaseTool(metaclass=ABCMeta):
+    """Abstract base class for defined tools."""
 
     @abstractmethod
     def __call__(self, **kwargs) -> Any:
@@ -16,7 +14,7 @@ class BaseAnthropicTool(metaclass=ABCMeta):
     @abstractmethod
     def to_params(
         self,
-    ) -> BetaToolUnionParam:
+    ) -> dict:
         raise NotImplementedError
 
 
