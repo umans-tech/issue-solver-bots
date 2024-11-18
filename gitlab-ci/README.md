@@ -77,9 +77,17 @@ Set the following environment variables in your GitLab project **Settings > CI/C
 | `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A     |
 | `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt4o` |
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > Ensure that your `CODING_AGENT_ACCESS_TOKEN` has the necessary permissions to commit and push
 > changes to your repository.
+
+> [!TIP]  
+> You can create a token
+>
+via [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user).  
+> [!NOTE]
+> By default, tokens expire in one month. For smoother CI/CD workflows, consider removing the expiration date before
+> creating the token.
 
 ### Project Repository Setup
 
@@ -163,7 +171,7 @@ stages:
 Add or override any necessary environment variables in your project's **Settings > CI/CD > Variables**, as per
 the [Access Tokens and API Keys](#access-tokens-and-api-keys) section.
 
-> [!CAUTION] 
+> [!CAUTION]
 > If you are using self-managed runners, ensure they are configured with Docker-in-Docker support as
 > described in the [GitLab Runner Configuration](#gitlab-runner-configuration) section.
 
@@ -193,7 +201,7 @@ description.
 
     - Upon submission, the `solve-issues` job will be triggered automatically.
 
-> [!TIP] 
+> [!TIP]
 > Use the merge request title to summarize the issue, which will be used in commit messages.
 
 ### Manual Trigger
@@ -223,7 +231,7 @@ At least one of the following variables must be provided when triggering the job
     - In the **Variables** section, add the necessary variables. For example:
 
       | Variable            | Value                                        |
-      |---------------------|----------------------------------------------|
+                  |---------------------|----------------------------------------------|
       | `GITLAB_ISSUE_ID`   | `123`                                        |
       | `ISSUE_URL`         | `https://gitlab.com/your-project/issues/123` |
       | `ISSUE_DESCRIPTION` | `Description of the issue to resolve`        |
@@ -232,7 +240,7 @@ At least one of the following variables must be provided when triggering the job
 
     - Click **Run pipeline** to start the job.
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > Ensure that the `CODING_AGENT_ACCESS_TOKEN` has permissions to access the issue if using
 `GITLAB_ISSUE_ID` or `ISSUE_URL`.
 
@@ -255,7 +263,7 @@ solve-issues:
     MODEL_NAME: gpt-3.5-turbo
 ```
 
-> [!TIP] 
+> [!TIP]
 > Experiment with different agents and models to find the best fit for your project's needs.
 
 ### Docker Configuration
@@ -271,7 +279,7 @@ solve-issues:
     DOCKER_HOST: "tcp://docker:2375"
 ```
 
-> [!CAUTION] 
+> [!CAUTION]
 > Modifying Docker settings may require changes to your runner configuration.
 
 ## Environment Variables
@@ -343,29 +351,36 @@ Below is a summary of all the environment variables used in the `solve-issues` j
 
 - **A**: The token must have API scope and permissions to push to the repository branches where changes will be made.
 
-**Q2: Can I use this setup with self-managed GitLab instances?**
+**Q2: My token expired, and the automation stopped working. What should I do?**
+
+- **A:** GitLab tokens default to a one-month expiration. You can renew the token or, during creation, remove the
+  expiration date
+  from [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user)
+  to avoid interruptions.
+
+**Q3: Can I use this setup with self-managed GitLab instances?**
 
 - **A**: Yes, but you need to ensure that your runners are configured properly with Docker-in-Docker support.
 
-**Q3: What models can I use with this setup?**
+**Q4: What models can I use with this setup?**
 
 - **A**: You can use any model supported by the agent. Common options include `gpt4o` (default), `gpt-3.5-turbo`, or
   models provided by DeepSeek.
 
-**Q4: How do I obtain an OpenAI API key?**
+**Q5: How do I obtain an OpenAI API key?**
 
 - **A**: You can sign up for an API key on the [OpenAI website](https://platform.openai.com/account/api-keys).
 
-**Q5: What happens if the agent cannot resolve the issue?**
+**Q6: What happens if the agent cannot resolve the issue?**
 
 - **A**: The job will complete without pushing any changes. You can check the job logs for details.
 
-**Q6: Is it safe to run Docker-in-Docker on shared runners?**
+**Q7: Is it safe to run Docker-in-Docker on shared runners?**
 
 - **A**: GitLab.com's shared runners are managed securely, and running Docker-in-Docker is supported for jobs that
   require it.
 
-**Q7: Can I trigger the job via the API?**
+**Q8: Can I trigger the job via the API?**
 
 - **A**: Yes, you can trigger the job via GitLab's API by specifying the necessary variables.
 
@@ -376,7 +391,7 @@ enhance your development workflow. Whether you choose the quick integration or c
 allows for flexible and powerful automation using best-in-class agents like SWE-agent and SWE-crafter, with more agents
 coming soon.
 
-> [!TIP] 
+> [!TIP]
 > Start with Option 1 to quickly see the benefits, and then explore customizations as needed.
 
 If you have any questions or need assistance, please open an issue on
