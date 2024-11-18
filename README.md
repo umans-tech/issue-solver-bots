@@ -57,6 +57,15 @@ could be automated.
 - **Personal Access Tokens** and **API Keys** as required by the agents.
 - **Docker** installed on your runner (if self-hosted).
 
+- **Personal Access Tokens**: Required for agents to interact with your repositories.
+
+> [!TIP]  
+> Generate a token directly
+> from [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user).  
+> [!NOTE]
+> Tokens expire in one month by default. To avoid frequent renewals, you can clear the expiration date field before
+> creating the token.
+
 ### Installation
 
 1. **Clone this repository:**
@@ -91,12 +100,17 @@ Integrate with GitLab CI in just a few steps:
    In your project's **Settings > CI/CD > Variables**, add the necessary variables as per
    the [GitLab CI Documentation](gitlab-ci/README).
 
+> [!NOTE]  
+> When creating your token
+> via [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user),
+> the default expiration is one month. You can remove this value to avoid needing to regenerate the token later.
+
 3. **Trigger the Pipeline:**
 
     - Create a new merge request with a detailed description, or
     - Manually trigger the pipeline by specifying issue-related variables.
 
-> [!TIP] 
+> [!TIP]
 > Option 1 is tested and confirmed to work with GitLab.com's managed runners, making it an excellent choice
 > for users who rely on GitLab's shared CI infrastructure.
 
@@ -118,7 +132,7 @@ Integrate with GitHub Actions easily:
     - Open a new pull request with a detailed description, or
     - Manually trigger the workflow via the Actions tab.
 
-> [!TIP] 
+> [!TIP]
 > Start by creating a pull request with a clear description of the issue to see the agent in action!
 
 ## Supported Platforms and Agents
