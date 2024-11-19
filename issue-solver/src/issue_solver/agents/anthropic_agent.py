@@ -29,7 +29,10 @@ class AnthropicAgent(CodingAgent):
         self.tool_collection = ToolCollection(BashTool(), EditTool())
 
     async def run_full_turn(
-        self, system_message, messages, model: AgentModel | None = None
+        self,
+        system_message: str,
+        messages: list[dict[str, Any]],
+        model: AgentModel | None = None,
     ) -> TurnOutput:
         reasoning_response: anthropic.types.message.Message = (
             self.client.messages.create(
@@ -45,9 +48,8 @@ class AnthropicAgent(CodingAgent):
                 tools=self.tools,
             )
         )
-        messages.append(
-            {"role": reasoning_response.role, "content": reasoning_response.content}
-        )
+        turn_output = AnthropicTurnOutput(reasoning_response, messages)
+
         if reasoning_response.stop_reason == "tool_use":
             tool_use = next(
                 block
@@ -63,14 +65,14 @@ class AnthropicAgent(CodingAgent):
 
             tool_result_content = _make_api_tool_result(tool_result, tool_use.id)
 
-            messages.append(
+            turn_output.append(
                 {
                     "role": "user",
                     "content": [tool_result_content],
                 }
             )
 
-        return AnthropicTurnOutput(reasoning_response, messages)
+        return turn_output
 
 
 def _make_api_tool_result(result: ToolResult, tool_use_id: str):
@@ -96,7 +98,7 @@ def _make_api_tool_result(result: ToolResult, tool_use_id: str):
     }
 
 
-def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str):
+def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str) -> str:
     if result.system:
         result_text = f"<system>{result.system}</system>\n{result_text}"
     return result_text
@@ -105,10 +107,25 @@ def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str):
 class AnthropicTurnOutput(TurnOutput):
     def __init__(self, reasoning_response: anthropic.types.message.Message, messages):
         self.reasoning_response = reasoning_response
-        self.messages = messages
+        reasoning_message = {
+            "role": reasoning_response.role,
+            "content": [content.model_dump() for content in reasoning_response.content]
+            if reasoning_response.content
+            else [],
+        }
+        self._messages_history = messages
+        self._messages_history.append(reasoning_message)
+        self._turn_messages = [reasoning_message]
+
+    def append(self, message: dict[str, Any]) -> None:
+        self._turn_messages.append(message)
+        self._messages_history.append(message)
+
+    def turn_messages(self) -> list[dict[str, Any]]:
+        return self._turn_messages
 
     def has_finished(self):
         return self.reasoning_response.stop_reason == "end_turn"
 
     def messages_history(self):
-        return self.messages
+        return self._messages_history

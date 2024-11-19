@@ -1,7 +1,9 @@
+import json
 import os
 from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
 from issue_solver import AgentModel
@@ -66,6 +68,50 @@ async def complete_issue_resolution(
         return {"status": "incomplete", "messages": messages}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/resolutions/stream")
+async def stream_issue_resolution(
+    repo_location: str,
+    issue_description: str,
+    model: AgentModel = AgentModel.GPT4O_MINI,
+    max_iter: int = 10,
+):
+    """Stream issue resolution progress."""
+    system_message = resolution_approach_prompt(
+        location=repo_location, pr_description=issue_description
+    )
+
+    async def stream():
+        messages = []
+        try:
+            for i in range(max_iter):
+                agent = get_agent(model)
+                response = await agent.run_full_turn(
+                    system_message=system_message, messages=messages, model=model
+                )
+                messages = response.messages_history()
+
+                yield (
+                    json.dumps(
+                        {
+                            "iteration": i,
+                            "messages": response.turn_messages(),
+                            "status": "in-progress"
+                            if not response.has_finished()
+                            else "finished",
+                        }
+                    )
+                    + "\n"
+                )
+
+                if response.has_finished():
+                    break
+
+        except Exception as e:
+            yield json.dumps({"error": str(e)}) + "\n"
+
+    return StreamingResponse(stream(), media_type="application/json")
 
 
 def get_agent(model: AgentModel) -> CodingAgent:
