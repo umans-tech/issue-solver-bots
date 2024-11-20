@@ -1,0 +1,34 @@
+name: Continuous Integration for "issue-solver" Python project
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./issue-solver
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Lint the project
+        run: just lint
+
+      - name: Run tests
+        run: just test
