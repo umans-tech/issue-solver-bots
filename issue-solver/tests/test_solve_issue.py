@@ -4,9 +4,11 @@ from unittest.mock import Mock
 from issue_solver import prepare_solve_issue
 from issue_solver.start_resolution import (
     AgentModel,
-    AgentName,
+    SupportedAgent,
     IssueDescription,
     SolveIssueCommand,
+    SupportedOpenAPIModel,
+    SupportedDeepSeekModel,
 )
 
 
@@ -28,8 +30,8 @@ def test_solve_issue():
     # Then
     patch_generator.assert_called_once_with(
         SolveIssueCommand(
-            agent_model=AgentModel.GPT4O,
-            agent_name=AgentName.SWE_AGENT,
+            model=SupportedOpenAPIModel.GPT4O,
+            agent=SupportedAgent.SWE_AGENT,
             issue_description=IssueDescription(issue_description),
         )
     )
@@ -39,8 +41,8 @@ def setup(issue_reader):
     def prepare_solve_issue(generate_patch):
         return lambda: generate_patch(
             SolveIssueCommand(
-                agent_model=AgentModel(os.environ["AGENT_MODEL"]),
-                agent_name=AgentName(os.environ["AGENT_NAME"]),
+                model=AgentModel(os.environ["AGENT_MODEL"]),
+                agent=SupportedAgent(os.environ["AGENT_NAME"]),
                 issue_description=issue_reader(),
             )
         )
@@ -67,8 +69,8 @@ def test_solve_issue_based_on_gitlab_issue_id():
     # Then
     patch_generator.assert_called_once_with(
         SolveIssueCommand(
-            agent_model=AgentModel.DEEPSEEK,
-            agent_name=AgentName.SWE_CRAFTER,
+            model=SupportedDeepSeekModel.DEEPSEEK_Coder,
+            agent=SupportedAgent.SWE_CRAFTER,
             issue_description=IssueDescription(issue_description),
         )
     )

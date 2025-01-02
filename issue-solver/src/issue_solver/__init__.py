@@ -4,7 +4,7 @@ from typing import Callable
 from issue_solver.start_resolution import (
     SolveIssueCommand,
     AgentModel,
-    AgentName,
+    SupportedAgent,
     IssueDescription,
 )
 
@@ -18,8 +18,8 @@ def prepare_solve_issue(
 ) -> Callable[[], None]:
     return lambda: generate_patch(
         SolveIssueCommand(
-            agent_model=AgentModel(os.environ["AGENT_MODEL"]),
-            agent_name=AgentName(os.environ["AGENT_NAME"]),
+            model=AgentModel(os.environ["AGENT_MODEL"]),
+            agent=SupportedAgent(os.environ["AGENT_NAME"]),
             issue_description=IssueDescription(os.environ["ISSUE_DESCRIPTION"]),
         )
     )
