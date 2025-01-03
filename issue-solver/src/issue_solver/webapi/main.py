@@ -6,11 +6,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
-from issue_solver import AgentModel
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.agents.resolution_approaches import resolution_approach_prompt
+from issue_solver.models.supported_models import AgentModel
 
 app = FastAPI()
 

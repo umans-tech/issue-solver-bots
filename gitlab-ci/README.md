@@ -69,13 +69,13 @@ development workflow without compromising security or requiring large-scale migr
 
 Set the following environment variables in your GitLab project **Settings > CI/CD > Variables**:
 
-| Variable Name               | Description                                                                                | Required                    | Default |
-|-----------------------------|--------------------------------------------------------------------------------------------|-----------------------------|---------|
-| `CODING_AGENT_ACCESS_TOKEN` | GitLab personal access token with API scope. Used by the agent to commit and push changes. | **Yes**                     | N/A     |
-| `OPENAI_API_KEY`            | OpenAI API key to access language models. Required if using OpenAI models.                 | **Yes** (if using OpenAI)   | N/A     |
-| `DEEPSEEK_API_BASE_URL`     | Base URL for DeepSeek API. Required if using DeepSeek models.                              | **Yes** (if using DeepSeek) | N/A     |
-| `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A     |
-| `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt4o` |
+| Variable Name               | Description                                                                                | Required                    | Default       |
+|-----------------------------|--------------------------------------------------------------------------------------------|-----------------------------|---------------|
+| `CODING_AGENT_ACCESS_TOKEN` | GitLab personal access token with API scope. Used by the agent to commit and push changes. | **Yes**                     | N/A           |
+| `OPENAI_API_KEY`            | OpenAI API key to access language models. Required if using OpenAI models.                 | **Yes** (if using OpenAI)   | N/A           |
+| `DEEPSEEK_API_BASE_URL`     | Base URL for DeepSeek API. Required if using DeepSeek models.                              | **Yes** (if using DeepSeek) | N/A           |
+| `DEEPSEEK_API_KEY`          | API key for DeepSeek services. Required if using DeepSeek models.                          | **Yes** (if using DeepSeek) | N/A           |
+| `MODEL_NAME`                | Name of the model to use.                                                                  | No                          | `gpt-4o-mini` |
 
 > [!IMPORTANT]
 > Ensure that your `CODING_AGENT_ACCESS_TOKEN` has the necessary permissions to commit and push
@@ -84,7 +84,7 @@ Set the following environment variables in your GitLab project **Settings > CI/C
 > [!TIP]  
 > You can create a token
 >
-via [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user).  
+via [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user).
 > [!NOTE]
 > By default, tokens expire in one month. For smoother CI/CD workflows, consider removing the expiration date before
 > creating the token.
@@ -231,7 +231,7 @@ At least one of the following variables must be provided when triggering the job
     - In the **Variables** section, add the necessary variables. For example:
 
       | Variable            | Value                                        |
-                  |---------------------|----------------------------------------------|
+                        |---------------------|----------------------------------------------|
       | `GITLAB_ISSUE_ID`   | `123`                                        |
       | `ISSUE_URL`         | `https://gitlab.com/your-project/issues/123` |
       | `ISSUE_DESCRIPTION` | `Description of the issue to resolve`        |

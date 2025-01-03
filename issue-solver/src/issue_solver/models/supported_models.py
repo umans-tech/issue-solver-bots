@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from enum import StrEnum
 
 
@@ -35,19 +34,3 @@ SupportedLLMModel = (
     | SupportedDeepSeekModel
     | SupportedQwenModel
 )
-
-
-class SupportedAgent(StrEnum):
-    SWE_AGENT = "swe-agent"
-    SWE_CRAFTER = "swe-crafter"
-
-
-class IssueDescription(str):
-    pass
-
-
-@dataclass(frozen=True, kw_only=True)
-class SolveIssueCommand:
-    model: SupportedLLMModel
-    agent: SupportedAgent
-    issue_description: IssueDescription
