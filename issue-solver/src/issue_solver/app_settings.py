@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import assert_never
 
 from pydantic import Field, AnyUrl
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from issue_solver import SupportedAgent
 from issue_solver.agents.issue_resolving_agent import IssueDescription
@@ -182,7 +182,8 @@ class AppSettings(BaseSettings):
             case _:
                 assert_never(self.model_name)
 
-    class Config:
-        env_prefix = ""  # Read environment vars as is
-        env_file = ".env"  # Optional: load from .env
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_prefix="",  # Read environment vars as is
+        env_file=".env",  # Optional: load from .env
+        env_file_encoding="utf-8",
+    )

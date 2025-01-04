@@ -1,5 +1,6 @@
 from pydantic import Field, AnyUrl
 from pydantic_core import Url
+from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -16,7 +17,8 @@ class TrelloIssueTrackerSettings(ApiBasedIssueTrackerSettings):
 
     board_id: str = Field(description="ID of the board in the issue tracker.")
 
-    class Config:
-        env_prefix = "TRELLO_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_prefix="TRELLO_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
