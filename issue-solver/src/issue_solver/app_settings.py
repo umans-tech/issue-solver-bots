@@ -30,8 +30,9 @@ from issue_solver.models.supported_models import (
 
 
 class AppSettings(BaseSettings):
-    repo_path: Path | None = Field(
-        default=".", description="Path to the repository where the issue is located."
+    repo_path: Path = Field(
+        default=Path("."),
+        description="Path to the repository where the issue is located.",
     )
     ci_merge_request_iid: str | None = Field(
         default=None,
@@ -120,8 +121,17 @@ class AppSettings(BaseSettings):
         description="Commit reference name (branch) used in pipelines.",
     )
 
+    agent_git_user_mail: str = Field(
+        default="",
+        description="The git user email that the agent will use to commit and push changes.",
+    )
+    agent_git_user_name: str = Field(
+        default="",
+        description="The git user name that the agent will use to commit and push changes.",
+    )
+
     @property
-    def selected_issue_tracker(self) -> IssueSourceSettings | None:
+    def selected_issue_tracker(self) -> IssueSourceSettings:
         if self.gitlab_issue_id:
             return GitlabIssueTrackerSettings(
                 base_url=self.issue_tracker_base_url,
@@ -140,7 +150,15 @@ class AppSettings(BaseSettings):
                 base_url=self.issue_tracker_base_url,
                 private_token=self.coding_agent_access_token,
             )
-        return None
+        raise ValueError("No issue tracker selected.")
+
+    @property
+    def issue_id(self) -> str:
+        if self.gitlab_issue_id:
+            return self.gitlab_issue_id
+        if self.ci_merge_request_iid:
+            return self.ci_merge_request_iid
+        raise ValueError("No issue ID found.")
 
     @property
     def git_settings(self) -> "GitSettings":

@@ -1,8 +1,13 @@
 #!/usr/bin/env just --justfile
 
+alias t := test
+alias c := check-typing
+alias l := lint
+alias f := format
+
 # ✅ Run all tests
 test:
-  uv run pytest
+    uv run pytest
 
 # 🧹 Lint the code
 lint:
@@ -12,7 +17,12 @@ lint:
 format:
     uv run ruff format
 
-set dotenv-load
+set dotenv-load := true
+
 # 🚀 Start the API
 api-start:
     uv run fastapi dev src/issue_solver/webapi/main.py
+
+# ❇️ Check typing with mypy
+check-typing:
+    uv run mypy src tests --disable-error-code=import-untyped

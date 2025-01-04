@@ -8,7 +8,7 @@ from issue_solver.issue_trackers.issue_tracker import IssueTracker, IssueInfo
 
 
 class GitlabIssueTracker(IssueTracker):
-    def __init__(self, gitlab_client: gitlab.Gitlab, project_id: str) -> None:
+    def __init__(self, gitlab_client: gitlab.Gitlab, project_id: str | None) -> None:
         self.gitlab_client = gitlab_client
         self.project_id = project_id
 

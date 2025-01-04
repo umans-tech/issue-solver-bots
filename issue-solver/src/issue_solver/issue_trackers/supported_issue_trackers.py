@@ -40,7 +40,7 @@ IssueSourceSettings = (
 
 class SupportedIssueTracker:
     @classmethod
-    def get(cls, issue_tracker_settings: IssueSourceSettings) -> IssueSource | None:
+    def get(cls, issue_tracker_settings: IssueSourceSettings) -> IssueSource:
         match issue_tracker_settings:
             case GitlabIssueTrackerSettings():
                 return GitlabIssueTracker.of(
