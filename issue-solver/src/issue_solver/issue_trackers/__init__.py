@@ -37,7 +37,12 @@ class SupportedIssueTracker(StrEnum):
     def get(cls, issue_tracker: str) -> IssueSource | None:
         match issue_tracker:
             case cls.GITLAB:
-                return GitlabIssueTracker()
+                return GitlabIssueTracker.of(
+                    base_url="https://gitlab.com",
+                    private_token="dummy-token",
+                    api_version="4",
+                    project_id="58400527",
+                )
             case cls.GITHUB:
                 return GithubIssueTracker()
             case cls.JIRA:
