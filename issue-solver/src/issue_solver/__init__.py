@@ -7,7 +7,7 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import AppSettings
 from issue_solver.git_operations.git_helper import GitHelper
-from issue_solver.issue_trackers import SupportedIssueTracker
+from issue_solver.issue_trackers.supported_issue_trackers import SupportedIssueTracker
 from issue_solver.issue_trackers.issue_tracker import IssueInfo
 
 

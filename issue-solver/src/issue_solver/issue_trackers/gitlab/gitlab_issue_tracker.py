@@ -3,6 +3,7 @@ from typing import Self
 
 import gitlab
 
+from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
 from issue_solver.issue_trackers.issue_tracker import IssueTracker, IssueInfo
 
 
@@ -34,9 +35,12 @@ class GitlabIssueTracker(IssueTracker):
 
     @classmethod
     def of(
-        cls, base_url: str, private_token: str, api_version: str, project_id: str
+        cls,
+        settings: GitlabIssueTrackerSettings,
     ) -> Self:
         gitlab_client = gitlab.Gitlab(
-            url=base_url, private_token=private_token, api_version=api_version
+            url=str(settings.base_url),
+            private_token=settings.private_token,
+            api_version=settings.api_version,
         )
-        return cls(gitlab_client, project_id)
+        return cls(gitlab_client, settings.project_id)
