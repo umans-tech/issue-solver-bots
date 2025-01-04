@@ -20,7 +20,7 @@ async def main() -> None:
     issue_tracker = SupportedIssueTracker.get(settings.selected_issue_tracker)
     agent = SupportedAgent.get(settings.agent)
     issue_description = settings.issue_description or to_issue_description(
-        issue_tracker.get_issue_description(settings.issue_id)
+        issue_tracker.describe_issue(settings.issue_id)
     )
     await agent.resolve_issue(
         ResolveIssueCommand(
