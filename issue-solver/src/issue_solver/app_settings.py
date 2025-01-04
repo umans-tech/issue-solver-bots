@@ -7,7 +7,12 @@ from pydantic_settings import BaseSettings
 from issue_solver import SupportedAgent
 from issue_solver.agents.issue_resolving_agent import IssueDescription
 from issue_solver.git_operations.git_helper import GitSettings
-from issue_solver.issue_trackers import SupportedIssueTracker
+from issue_solver.issue_trackers.gitlab.settings import (
+    GitlabIssueTrackerSettings,
+    GitlabObjectType,
+)
+from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
+from issue_solver.issue_trackers.supported_issue_trackers import IssueSourceSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,
@@ -43,6 +48,11 @@ class AppSettings(BaseSettings):
     )
 
     # Issue variables (GitLab/GitHub/Jira/etc.)
+    issue_tracker_base_url: AnyUrl | None = Field(
+        default=None,
+        alias="ISSUE_TRACKER_BASE_URL",
+        description="Base URL for the issue tracker.",
+    )
     gitlab_issue_id: str | None = Field(
         default=None,
         alias="GITLAB_ISSUE_ID",
@@ -111,13 +121,25 @@ class AppSettings(BaseSettings):
     )
 
     @property
-    def selected_issue_tracker(self) -> SupportedIssueTracker | None:
+    def selected_issue_tracker(self) -> IssueSourceSettings | None:
         if self.gitlab_issue_id:
-            return SupportedIssueTracker.GITLAB
+            return GitlabIssueTrackerSettings(
+                base_url=self.issue_tracker_base_url,
+                private_token=self.coding_agent_access_token,
+                project_id=self.ci_project_id,
+            )
         if self.ci_merge_request_iid:
-            return SupportedIssueTracker.GITLAB_MR
+            return GitlabIssueTrackerSettings(
+                base_url=self.issue_tracker_base_url,
+                private_token=self.coding_agent_access_token,
+                project_id=self.ci_project_id,
+                object_type=GitlabObjectType.MR,
+            )
         if self.issue_url:
-            return SupportedIssueTracker.URL_BASED
+            return ApiBasedIssueTrackerSettings(
+                base_url=self.issue_tracker_base_url,
+                private_token=self.coding_agent_access_token,
+            )
         return None
 
     @property

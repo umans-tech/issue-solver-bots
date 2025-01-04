@@ -1,10 +1,12 @@
 from http import HTTPStatus
 
 import pytest
+from pydantic import AnyUrl
 from requests_mock.mocker import Mocker
 
 from issue_solver import IssueInfo
-from issue_solver.issue_trackers import GitlabIssueTracker
+from issue_solver.issue_trackers.gitlab.gitlab_issue_tracker import GitlabIssueTracker
+from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
 
 
 @pytest.fixture
@@ -24,10 +26,12 @@ def gitlab_tracker(gitlab_base_url: str, project_id: str) -> GitlabIssueTracker:
     with dummy credentials and project info.
     """
     return GitlabIssueTracker.of(
-        base_url=gitlab_base_url,
-        private_token="dummy_token",
-        api_version="4",
-        project_id=project_id,
+        settings=GitlabIssueTrackerSettings(
+            base_url=AnyUrl(gitlab_base_url),
+            private_token="dummy_token",
+            api_version="4",
+            project_id=project_id,
+        )
     )
 
 
