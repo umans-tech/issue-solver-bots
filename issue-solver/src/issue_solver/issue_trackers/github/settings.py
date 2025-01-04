@@ -2,6 +2,7 @@ from enum import StrEnum
 
 from pydantic import Field, AnyUrl
 from pydantic_core import Url
+from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -21,8 +22,6 @@ class GithubIssueTrackerSettings(ApiBasedIssueTrackerSettings):
         description="Determines whether we retrieve from an ISSUE or a MR in GitLab.",
     )
 
-
-class Config:
-    env_prefix = "GITHUB_"
-    env_file = ".env"
-    env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_prefix="GITHUB_", env_file=".env", env_file_encoding="utf-8"
+    )
