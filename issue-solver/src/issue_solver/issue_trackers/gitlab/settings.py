@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from pydantic import AnyUrl, Field
+from pydantic_core import Url
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -13,7 +14,7 @@ class GitlabObjectType(StrEnum):
 class GitlabIssueTrackerSettings(ApiBasedIssueTrackerSettings):
     base_url: AnyUrl = Field(
         description="Base URL for the GitLab.",
-        default="https://gitlab.com",
+        default=Url("https://gitlab.com"),
     )
     project_id: str | None = Field(
         description="ID of the project in the issue tracker."

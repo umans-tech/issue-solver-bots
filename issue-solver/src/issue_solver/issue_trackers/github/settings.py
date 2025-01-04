@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from pydantic import Field, AnyUrl
+from pydantic_core import Url
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -13,7 +14,7 @@ class GithubObjectType(StrEnum):
 class GithubIssueTrackerSettings(ApiBasedIssueTrackerSettings):
     base_url: AnyUrl = Field(
         description="Base URL for the GitHub.",
-        default="https://api.github.com",
+        default=Url("https://api.github.com"),
     )
     object_type: GithubObjectType = Field(
         default=GithubObjectType.ISSUE,

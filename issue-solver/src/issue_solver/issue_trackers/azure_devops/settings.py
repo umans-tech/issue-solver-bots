@@ -1,4 +1,5 @@
 from pydantic import Field, AnyUrl
+from pydantic_core import Url
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -6,7 +7,7 @@ from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 class AzureDevOpsIssueTrackerSettings(ApiBasedIssueTrackerSettings):
     base_url: AnyUrl = Field(
         description="Base URL for the Azure DevOps.",
-        default="https://dev.azure.com",
+        default=Url("https://dev.azure.com"),
     )
     project_id: str = Field(description="ID of the project in the issue tracker.")
 

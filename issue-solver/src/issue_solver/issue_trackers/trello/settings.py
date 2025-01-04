@@ -1,4 +1,5 @@
 from pydantic import Field, AnyUrl
+from pydantic_core import Url
 
 from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
@@ -6,7 +7,7 @@ from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 class TrelloIssueTrackerSettings(ApiBasedIssueTrackerSettings):
     base_url: AnyUrl = Field(
         description="Base URL for the Trello.",
-        default="https://api.trello.com",
+        default=Url("https://api.trello.com"),
     )
     api_version: str = Field(
         description="API version for the Trello.",
