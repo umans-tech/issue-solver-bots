@@ -1,10 +1,17 @@
 from http import HTTPStatus
-from typing import Self
+from pathlib import Path
+from typing import Self, assert_never
 
 import gitlab
 
 from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
-from issue_solver.issue_trackers.issue_tracker import IssueTracker, IssueInfo
+from issue_solver.issue_trackers.issue_tracker import (
+    IssueTracker,
+    IssueInfo,
+    IssueReference,
+    IssueInternalId,
+    IssueId,
+)
 
 
 class GitlabIssueTracker(IssueTracker):
@@ -12,10 +19,10 @@ class GitlabIssueTracker(IssueTracker):
         self.gitlab_client = gitlab_client
         self.project_id = project_id
 
-    def describe_issue(self, issue_iid: str) -> IssueInfo | None:
-        get_issue_path = f"/projects/{self.project_id}/issues/{issue_iid}"
+    def describe_issue(self, issue_reference: IssueReference) -> IssueInfo | None:
+        issue_path = self.get_issue_path(issue_reference)
         try:
-            issue_response = self.gitlab_client.http_get(get_issue_path)
+            issue_response = self.gitlab_client.http_get(issue_path)
             return IssueInfo(
                 title=issue_response.get("title", ""),
                 description=issue_response.get("description", ""),
@@ -24,14 +31,42 @@ class GitlabIssueTracker(IssueTracker):
             if e.response_code == HTTPStatus.NOT_FOUND:
                 return None
             if e.response_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}:
-                raise PermissionError(
-                    f"Unauthorized call to {self.gitlab_client.api_url}/{get_issue_path} with status code {e.response_code}",
-                    e,
-                )
+                raise self.permission_error(e, issue_path, e.response_code)
             raise RuntimeError(
-                f"Failed to get issue {issue_iid} from {self.gitlab_client.api_url}/{get_issue_path} with status code {e.response_code}",
+                f"Failed to get issue {issue_reference} from {self.gitlab_client.api_url}/{issue_path} with status code {e.response_code}",
                 e,
             )
+        except gitlab.exceptions.GitlabAuthenticationError as e:
+            raise self.permission_error(e, issue_path, e.response_code)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to get issue {issue_reference} from {self.gitlab_client.api_url}/{issue_path}",
+                e,
+            )
+
+    @staticmethod
+    def get_issue_path(issue_reference: IssueReference) -> str:
+        match issue_reference:
+            case IssueInternalId():
+                issue_path = f"/projects/{issue_reference.project_id}/issues/{issue_reference.iid}"
+            case IssueId():
+                issue_path = f"/issues/{issue_reference.id}"
+            case Path():
+                issue_path = f"/{issue_reference}"
+            case _:
+                assert_never(issue_reference)
+        return issue_path
+
+    def permission_error(
+        self,
+        root_exception: Exception,
+        get_issue_path: str,
+        response_code: int | None = None,
+    ) -> PermissionError:
+        return PermissionError(
+            f"Unauthorized call to {self.gitlab_client.api_url}/{get_issue_path} with status code {response_code}",
+            root_exception,
+        )
 
     @classmethod
     def of(
