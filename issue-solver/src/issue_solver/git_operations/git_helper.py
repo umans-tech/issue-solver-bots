@@ -21,15 +21,14 @@ class GitHelper:
 
 
 class GitSettings(BaseSettings):
-    coding_agent_access_token: str | None = Field(
-        default=None,
+    access_token: str = Field(
         description="Token used for CI/CD runner to push changes to the repository.",
     )
-    agent_git_user_mail: str | None = Field(
-        default=None,
+    user_mail: str = Field(
+        default="ai.agent@umans.tech",
         description="Email address used for Git commits.",
     )
-    agent_git_user_name: str | None = Field(
-        default=None,
+    user_name: str = Field(
+        default="umans-agent",
         description="Username used for Git commits.",
     )

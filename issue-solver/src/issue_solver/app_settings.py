@@ -163,9 +163,9 @@ class AppSettings(BaseSettings):
     @property
     def git_settings(self) -> "GitSettings":
         return GitSettings(
-            coding_agent_access_token=self.coding_agent_access_token,
-            agent_git_user_mail=self.agent_git_user_mail,
-            agent_git_user_name=self.agent_git_user_name,
+            access_token=self.coding_agent_access_token,
+            user_mail=self.agent_git_user_mail,
+            user_name=self.agent_git_user_name,
         )
 
     @property
