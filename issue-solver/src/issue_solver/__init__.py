@@ -14,7 +14,7 @@ from issue_solver.issue_trackers.supported_issue_trackers import SupportedIssueT
 def to_issue_description(issue_info: IssueInfo | None) -> IssueDescription:
     if issue_info is None:
         raise ValueError("Issue info is required.")
-    return IssueDescription(issue_info.title + " \n" + issue_info.description)
+    return IssueDescription(f"{issue_info.title}  \n {issue_info.description}")
 
 
 async def main() -> None:
