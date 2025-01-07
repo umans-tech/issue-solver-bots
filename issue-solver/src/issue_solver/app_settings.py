@@ -21,8 +21,8 @@ from issue_solver.models.model_settings import (
     QwenSettings,
 )
 from issue_solver.models.supported_models import (
-    SupportedOpenAPIModel,
-    SupportedLLMModel,
+    SupportedOpenAIModel,
+    SupportedAIModel,
     SupportedDeepSeekModel,
     SupportedAnthropicModel,
     SupportedQwenModel,
@@ -76,8 +76,8 @@ class AppSettings(BaseSettings):
         alias="AGENT",
         description="Which agent to use: e.g. swe-agent or swe-crafter.",
     )
-    model_name: SupportedLLMModel = Field(
-        default=SupportedOpenAPIModel.GPT4O_MINI,
+    model_name: SupportedAIModel = Field(
+        default=SupportedOpenAIModel.GPT4O_MINI,
         alias="MODEL_NAME",
         description="Which model to use for patch generation.",
     )
@@ -171,7 +171,7 @@ class AppSettings(BaseSettings):
     @property
     def model_settings(self) -> ModelSettings:
         match self.model_name:
-            case SupportedOpenAPIModel():
+            case SupportedOpenAIModel():
                 return OpenAISettings()
             case SupportedDeepSeekModel():
                 return DeepSeekSettings()
