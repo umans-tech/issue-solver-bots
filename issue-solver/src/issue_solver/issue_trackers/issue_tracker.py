@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 @dataclass
 class IssueInfo:
-    title: str
     description: str
+    title: str | None = None
 
 
 class IssueTracker(ABC):
