@@ -20,8 +20,8 @@ from issue_solver.models.model_settings import (
     QwenSettings,
 )
 from issue_solver.models.supported_models import (
-    SupportedLLMModel,
-    SupportedOpenAPIModel,
+    SupportedAIModel,
+    SupportedOpenAIModel,
     SupportedDeepSeekModel,
     SupportedAnthropicModel,
     SupportedQwenModel,
@@ -60,9 +60,13 @@ class AppSettings(BaseSettings):
         default=SupportedAgent.SWE_AGENT,
         description="Which agent to use: e.g. swe-agent or swe-crafter.",
     )
-    model: SupportedLLMModel = Field(
-        default=SupportedOpenAPIModel.GPT4O_MINI,
-        description="Which model to use for patch generation.",
+    ai_model: SupportedAIModel = Field(
+        default=SupportedOpenAIModel.GPT4O_MINI,
+        description="Which model to use for the issue solving.",
+    )
+    ai_model_version: str | None = Field(
+        default=None,
+        description="Which version of the model to use for the issue solving.",
     )
     git: GitSettings = Field(description="Git settings.")
     repo_path: Path = Field(
@@ -78,8 +82,8 @@ class AppSettings(BaseSettings):
 
     @property
     def model_settings(self) -> ModelSettings:
-        match self.model:
-            case SupportedOpenAPIModel():
+        match self.ai_model:
+            case SupportedOpenAIModel():
                 return OpenAISettings()
             case SupportedDeepSeekModel():
                 return DeepSeekSettings()
@@ -88,7 +92,13 @@ class AppSettings(BaseSettings):
             case SupportedQwenModel():
                 return QwenSettings()
             case _:
-                assert_never(self.model)
+                assert_never(self.ai_model)
+
+    @property
+    def selected_ai_model(self) -> str:
+        if self.ai_model_version:
+            return f"{self.ai_model.value}-{self.ai_model_version}"
+        return self.ai_model.value
 
 
 def test_minimal_valid_app_settings_with_default_values() -> None:
@@ -106,7 +116,8 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     # Then
     assert app_settings.issue == IssueInfo(description=issue_description)
     assert app_settings.agent == SupportedAgent.SWE_AGENT
-    assert app_settings.model == SupportedOpenAPIModel.GPT4O_MINI
+    assert app_settings.ai_model == SupportedOpenAIModel.GPT4O_MINI
+    assert app_settings.selected_ai_model == str(SupportedOpenAIModel.GPT4O_MINI)
     assert app_settings.git.access_token == git_access_token
 
 
@@ -119,6 +130,8 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     git_user_mail = "bg@umans.tech"
     git_user_name = "bg"
     selected_agent = "swe-crafter"
+    model = "claude-3-5-sonnet"
+    model_version = "20241022"
     selected_model = "claude-3-5-sonnet-20241022"
     path_to_repo = "/path/to/repo"
     anthropic_api_key = "my-anthropic-api-key"
@@ -129,14 +142,15 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     os.environ["ISSUE__TRACKER__PROJECT_ID"] = gitlab_project_id
     os.environ["ISSUE__REF__PROJECT_ID"] = gitlab_project_id
     os.environ["ISSUE__REF__IID"] = issue_internal_id
-    os.environ["GIT__ACCESS_TOKEN"] = git_access_token
-    os.environ["GIT__USER_MAIL"] = git_user_mail
-    os.environ["GIT__USER_NAME"] = git_user_name
     os.environ["AGENT"] = selected_agent
-    os.environ["MODEL"] = selected_model
+    os.environ["AI_MODEL"] = model
+    os.environ["AI_MODEL_VERSION"] = model_version
     os.environ["REPO_PATH"] = path_to_repo
     os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
     os.environ["ANTHROPIC_BASE_URL"] = anthropic_base_url
+    os.environ["GIT__ACCESS_TOKEN"] = git_access_token
+    os.environ["GIT__USER_MAIL"] = git_user_mail
+    os.environ["GIT__USER_NAME"] = git_user_name
 
     # When
     app_settings = AppSettings()
@@ -153,7 +167,7 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
         project_id=gitlab_project_id, iid=issue_internal_id
     )
     assert app_settings.agent == selected_agent
-    assert app_settings.model == selected_model
+    assert app_settings.selected_ai_model == selected_model
     assert app_settings.git.access_token == git_access_token
     assert app_settings.git.user_mail == git_user_mail
     assert app_settings.git.user_name == git_user_name
