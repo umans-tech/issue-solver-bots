@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import assert_never
 
-from httpcore import URL
 from pydantic import Field
 from pydantic_core import Url
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,6 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from issue_solver import SupportedAgent, IssueInfo
 from issue_solver.git_operations.git_helper import GitSettings
 from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
+from issue_solver.issue_trackers.issue_tracker import IssueInternalId, IssueReference
 from issue_solver.issue_trackers.supported_issue_trackers import IssueSourceSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
@@ -26,20 +26,6 @@ from issue_solver.models.supported_models import (
     SupportedAnthropicModel,
     SupportedQwenModel,
 )
-
-
-@dataclass
-class IssueId:
-    id: str
-
-
-@dataclass
-class IssueInternalId:
-    project_id: str
-    iid: str
-
-
-IssueReference = IssueId | IssueInternalId | URL
 
 
 @dataclass

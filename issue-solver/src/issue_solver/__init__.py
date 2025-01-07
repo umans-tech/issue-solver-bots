@@ -7,7 +7,7 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import AppSettings
 from issue_solver.git_operations.git_helper import GitHelper
-from issue_solver.issue_trackers.issue_tracker import IssueInfo
+from issue_solver.issue_trackers.issue_tracker import IssueInfo, IssueId
 from issue_solver.issue_trackers.supported_issue_trackers import SupportedIssueTracker
 
 
@@ -22,7 +22,7 @@ async def main() -> None:
     issue_tracker = SupportedIssueTracker.get(settings.selected_issue_tracker)
     agent = SupportedAgent.get(settings.agent)
     issue_description = settings.issue_description or to_issue_description(
-        issue_tracker.describe_issue(settings.issue_id)
+        issue_tracker.describe_issue(IssueId(settings.issue_id))
     )
     await agent.resolve_issue(
         ResolveIssueCommand(
