@@ -17,6 +17,9 @@ class GitlabIssueTrackerSettings(ApiBasedIssueTrackerSettings):
         description="Base URL for the GitLab.",
         default=Url("https://gitlab.com"),
     )
+    api_version: str = Field(
+        description="API version for the issue tracker.", default="4"
+    )
     project_id: str | None = Field(
         description="ID of the project in the issue tracker."
     )
@@ -24,7 +27,6 @@ class GitlabIssueTrackerSettings(ApiBasedIssueTrackerSettings):
         default=GitlabObjectType.ISSUE,
         description="Determines whether we retrieve from an ISSUE or a MR in GitLab.",
     )
-
     model_config = SettingsConfigDict(
         env_prefix="GITLAB_", env_file=".env", env_file_encoding="utf-8"
     )
