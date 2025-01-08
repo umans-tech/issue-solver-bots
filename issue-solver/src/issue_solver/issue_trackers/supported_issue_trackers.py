@@ -12,11 +12,13 @@ from issue_solver.issue_trackers.gitlab.gitlab_issue_tracker import GitlabIssueT
 from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
 from issue_solver.issue_trackers.jira.jira_issue_tracker import JiraIssueTracker
 from issue_solver.issue_trackers.jira.settings import JiraIssueTrackerSettings
-from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 from issue_solver.issue_trackers.trello.settings import TrelloIssueTrackerSettings
 from issue_solver.issue_trackers.trello.trello_issue_tracker import TrelloIssueTracker
-from issue_solver.issue_trackers.url_based.url_based_issue_tracker import (
-    UrlBasedIssueTracker,
+from issue_solver.issue_trackers.http_based.settings import (
+    HttpBasedIssueTrackerSettings,
+)
+from issue_solver.issue_trackers.http_based.http_based_issue_tracker import (
+    HttpBasedIssueTracker,
 )
 
 IssueSource = (
@@ -25,7 +27,7 @@ IssueSource = (
     | JiraIssueTracker
     | TrelloIssueTracker
     | AzureDevOpsIssueTracker
-    | UrlBasedIssueTracker
+    | HttpBasedIssueTracker
 )
 
 IssueSourceSettings = (
@@ -34,7 +36,7 @@ IssueSourceSettings = (
     | JiraIssueTrackerSettings
     | TrelloIssueTrackerSettings
     | AzureDevOpsIssueTrackerSettings
-    | ApiBasedIssueTrackerSettings
+    | HttpBasedIssueTrackerSettings
 )
 
 
@@ -54,7 +56,7 @@ class SupportedIssueTracker:
                 return TrelloIssueTracker()
             case AzureDevOpsIssueTrackerSettings():
                 return AzureDevOpsIssueTracker()
-            case ApiBasedIssueTrackerSettings():
-                return UrlBasedIssueTracker()
+            case HttpBasedIssueTrackerSettings():
+                return HttpBasedIssueTracker()
             case _:
                 assert_never(issue_tracker_settings)

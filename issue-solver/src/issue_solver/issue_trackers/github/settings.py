@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import Field, AnyUrl
 from pydantic_core import Url
@@ -13,6 +14,7 @@ class GithubObjectType(StrEnum):
 
 
 class GithubIssueTrackerSettings(ApiBasedIssueTrackerSettings):
+    type: Literal["GITHUB"] = "GITHUB"
     base_url: AnyUrl = Field(
         description="Base URL for the GitHub.",
         default=Url("https://api.github.com"),
