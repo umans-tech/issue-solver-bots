@@ -11,8 +11,8 @@ from issue_solver.agents.issue_resolving_agent import (
     VersionedAIModelWithSettings,
 )
 from issue_solver.git_operations.git_helper import GitSettings
-from issue_solver.issue_trackers.issue_tracker import IssueReference, IssueInfo
-from issue_solver.issue_trackers.supported_issue_trackers import IssueSourceSettings
+from issue_solver.issues.trackers.issue_tracker import IssueReference, IssueInfo
+from issue_solver.issues.supported_issue_trackers import IssueSourceSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,

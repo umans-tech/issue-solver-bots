@@ -8,8 +8,8 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import AppSettings, IssueSettings
 from issue_solver.git_operations.git_helper import GitHelper
-from issue_solver.issue_trackers.issue_tracker import IssueInfo
-from issue_solver.issue_trackers.supported_issue_trackers import SupportedIssueTracker
+from issue_solver.issues.trackers.issue_tracker import IssueInfo
+from issue_solver.issues.supported_issue_trackers import SupportedIssueTracker
 
 
 def to_issue_description(issue_info: IssueInfo | None) -> IssueDescription:
