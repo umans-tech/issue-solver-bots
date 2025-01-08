@@ -5,6 +5,6 @@ from issue_solver.issue_trackers.issue_tracker import (
 )
 
 
-class UrlBasedIssueTracker(IssueTracker):
+class HttpBasedIssueTracker(IssueTracker):
     def describe_issue(self, issue_reference: IssueReference) -> IssueInfo | None:
         pass

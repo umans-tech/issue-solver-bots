@@ -11,8 +11,10 @@ from issue_solver.issue_trackers.gitlab.settings import (
     GitlabIssueTrackerSettings,
     GitlabObjectType,
 )
-from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 from issue_solver.issue_trackers.supported_issue_trackers import IssueSourceSettings
+from issue_solver.issue_trackers.http_based.settings import (
+    HttpBasedIssueTrackerSettings,
+)
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,
@@ -136,17 +138,15 @@ class AppSettings(BaseSettings):
             return GitlabIssueTrackerSettings(
                 base_url=self.issue_tracker_base_url,
                 private_token=self.coding_agent_access_token,
-                project_id=self.ci_project_id,
             )
         if self.ci_merge_request_iid:
             return GitlabIssueTrackerSettings(
                 base_url=self.issue_tracker_base_url,
                 private_token=self.coding_agent_access_token,
-                project_id=self.ci_project_id,
                 object_type=GitlabObjectType.MR,
             )
         if self.issue_url:
-            return ApiBasedIssueTrackerSettings(
+            return HttpBasedIssueTrackerSettings(
                 base_url=self.issue_tracker_base_url,
                 private_token=self.coding_agent_access_token,
             )

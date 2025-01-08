@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field, AnyUrl
 from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
@@ -6,6 +8,7 @@ from issue_solver.issue_trackers.settings import ApiBasedIssueTrackerSettings
 
 
 class TrelloIssueTrackerSettings(ApiBasedIssueTrackerSettings):
+    type: Literal["TRELLO"] = "TRELLO"
     base_url: AnyUrl = Field(
         description="Base URL for the Trello.",
         default=Url("https://api.trello.com"),

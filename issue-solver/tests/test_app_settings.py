@@ -124,8 +124,8 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     anthropic_base_url = "https://api.antropic.mycorp.com"
 
     os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "GITLAB"
     os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = gitlab_private_token
-    os.environ["ISSUE__TRACKER__PROJECT_ID"] = gitlab_project_id
     os.environ["ISSUE__REF__PROJECT_ID"] = gitlab_project_id
     os.environ["ISSUE__REF__IID"] = issue_internal_id
     os.environ["AGENT"] = selected_agent
@@ -145,7 +145,6 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     selected_issue_tracker = app_settings.selected_issue_tracker
     assert type(selected_issue_tracker) is GitlabIssueTrackerSettings
     assert selected_issue_tracker.private_token == gitlab_private_token
-    assert selected_issue_tracker.project_id == gitlab_project_id
     assert selected_issue_tracker.base_url == Url("https://gitlab.com")
 
     assert type(app_settings.issue) is IssueSettings

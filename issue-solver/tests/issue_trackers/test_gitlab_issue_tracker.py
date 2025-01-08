@@ -27,7 +27,6 @@ def gitlab_tracker(gitlab_base_url: str) -> GitlabIssueTracker:
             base_url=AnyUrl(gitlab_base_url),
             private_token="dummy_token",
             api_version="4",
-            project_id="",
         )
     )
 

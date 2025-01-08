@@ -15,9 +15,8 @@ from issue_solver.issue_trackers.issue_tracker import (
 
 
 class GitlabIssueTracker(IssueTracker):
-    def __init__(self, gitlab_client: gitlab.Gitlab, project_id: str | None) -> None:
+    def __init__(self, gitlab_client: gitlab.Gitlab) -> None:
         self.gitlab_client = gitlab_client
-        self.project_id = project_id
 
     def describe_issue(self, issue_reference: IssueReference) -> IssueInfo | None:
         issue_path = self.get_issue_path(issue_reference)
@@ -78,4 +77,4 @@ class GitlabIssueTracker(IssueTracker):
             private_token=settings.private_token,
             api_version=settings.api_version,
         )
-        return cls(gitlab_client, settings.project_id)
+        return cls(gitlab_client)
