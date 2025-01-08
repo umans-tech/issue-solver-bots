@@ -4,6 +4,7 @@ from typing import Self
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
+from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
 
 
@@ -16,7 +17,7 @@ class GitHelper:
     def of(cls, git_settings: "GitSettings", model_settings: ModelSettings) -> Self:
         return cls(git_settings)
 
-    def commit_and_push(self, issue_description: str, repo_path: Path) -> None:
+    def commit_and_push(self, issue_description: IssueInfo, repo_path: Path) -> None:
         pass
 
 

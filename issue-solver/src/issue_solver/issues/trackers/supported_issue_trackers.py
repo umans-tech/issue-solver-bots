@@ -4,12 +4,8 @@ from issue_solver.issues.trackers.azure_devops_issue_tracker import (
     AzureDevOpsIssueTracker,
 )
 from issue_solver.issues.trackers.github_issue_tracker import GithubIssueTracker
-from issue_solver.issues.trackers.gitlab_issue_tracker import (
-    GitlabIssueTracker,
-)
-from issue_solver.issues.trackers.http_based_issue_tracker import (
-    HttpBasedIssueTracker,
-)
+from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
+from issue_solver.issues.trackers.http_based_issue_tracker import HttpBasedIssueTracker
 from issue_solver.issues.trackers.jira_issue_tracker import JiraIssueTracker
 from issue_solver.issues.trackers.trello_issue_tracker import TrelloIssueTracker
 
