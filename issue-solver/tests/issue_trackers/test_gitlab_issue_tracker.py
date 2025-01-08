@@ -6,10 +6,10 @@ from pydantic import AnyUrl
 from requests_mock.mocker import Mocker
 
 from issue_solver import IssueInfo
+from issue_solver.issues.issue import IssueId, IssueInternalId
 from issue_solver.issues.trackers.gitlab_issue_tracker import (
     GitlabIssueTracker,
 )
-from issue_solver.issues.trackers.issue_tracker import IssueInternalId, IssueId
 
 
 @pytest.fixture

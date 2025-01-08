@@ -5,14 +5,14 @@ from typing import assert_never
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from issue_solver import SupportedAgent
 from issue_solver.agents.issue_resolving_agent import (
     VersionedAIModel,
     VersionedAIModelWithSettings,
 )
+from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.git_operations.git_helper import GitSettings
-from issue_solver.issues.trackers.issue_tracker import IssueReference, IssueInfo
-from issue_solver.issues.supported_issue_trackers import IssueSourceSettings
+from issue_solver.issues.issue import IssueReference, IssueInfo
+from issue_solver.issues.trackers.supported_issue_trackers import IssueSourceSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,

@@ -4,12 +4,11 @@ from pydantic import AnyUrl, Field
 from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
+from issue_solver.issues.issue import IssueReference, IssueInfo
 from issue_solver.issues.trackers.issue_tracker import (
     IssueTracker,
-    IssueInfo,
-    IssueReference,
 )
-from issue_solver.issues.settings import ApiBasedIssueTrackerSettings
+from issue_solver.issues.trackers.settings import ApiBasedIssueTrackerSettings
 
 
 class AzureDevOpsIssueTracker(IssueTracker):

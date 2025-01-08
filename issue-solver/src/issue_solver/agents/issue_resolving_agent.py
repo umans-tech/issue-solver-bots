@@ -2,12 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
+from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
 from issue_solver.models.supported_models import SupportedAIModel
-
-
-class IssueDescription(str):
-    pass
 
 
 @dataclass(frozen=True)
@@ -30,7 +27,7 @@ class VersionedAIModelWithSettings:
 @dataclass(frozen=True, kw_only=True)
 class ResolveIssueCommand:
     model: VersionedAIModel
-    issue_description: IssueDescription
+    issue: IssueInfo
     repo_path: Path
 
 

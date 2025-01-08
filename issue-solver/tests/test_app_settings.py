@@ -5,8 +5,8 @@ from pydantic_core import Url
 
 from issue_solver import SupportedAgent, IssueInfo
 from issue_solver.app_settings import IssueSettings, AppSettings
+from issue_solver.issues.issue import IssueInternalId
 from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
-from issue_solver.issues.trackers.issue_tracker import IssueInternalId
 from issue_solver.models.model_settings import (
     AnthropicSettings,
 )
