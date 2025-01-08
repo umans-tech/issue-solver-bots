@@ -1,90 +1,18 @@
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import assert_never
 
-from pydantic import Field
 from pydantic_core import Url
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from issue_solver import SupportedAgent, IssueInfo
-from issue_solver.git_operations.git_helper import GitSettings
+from issue_solver.app_settings import IssueSettings, AppSettings
 from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
-from issue_solver.issue_trackers.issue_tracker import IssueInternalId, IssueReference
-from issue_solver.issue_trackers.supported_issue_trackers import IssueSourceSettings
+from issue_solver.issue_trackers.issue_tracker import IssueInternalId
 from issue_solver.models.model_settings import (
-    ModelSettings,
     AnthropicSettings,
-    OpenAISettings,
-    DeepSeekSettings,
-    QwenSettings,
 )
 from issue_solver.models.supported_models import (
-    SupportedAIModel,
     SupportedOpenAIModel,
-    SupportedDeepSeekModel,
-    SupportedAnthropicModel,
-    SupportedQwenModel,
 )
-
-
-@dataclass
-class IssueSettings:
-    tracker: IssueSourceSettings
-    ref: IssueReference
-
-
-class AppSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_nested_delimiter="__")
-
-    issue: IssueInfo | IssueSettings = Field(
-        description="Reference to the issue "
-        "(url, id, iid+project_id or anything that allow the issue tracker to find the issue) "
-        "or actual Content describing the issue"
-    )
-    agent: SupportedAgent = Field(
-        default=SupportedAgent.SWE_AGENT,
-        description="Which agent to use: e.g. swe-agent or swe-crafter.",
-    )
-    ai_model: SupportedAIModel = Field(
-        default=SupportedOpenAIModel.GPT4O_MINI,
-        description="Which model to use for the issue solving.",
-    )
-    ai_model_version: str | None = Field(
-        default=None,
-        description="Which version of the model to use for the issue solving.",
-    )
-    git: GitSettings = Field(description="Git settings.")
-    repo_path: Path = Field(
-        default=Path("."),
-        description="Path to the repository where the issue is located.",
-    )
-
-    @property
-    def selected_issue_tracker(self) -> IssueSourceSettings | None:
-        if isinstance(self.issue, IssueSettings):
-            return self.issue.tracker
-        return None
-
-    @property
-    def model_settings(self) -> ModelSettings:
-        match self.ai_model:
-            case SupportedOpenAIModel():
-                return OpenAISettings()
-            case SupportedDeepSeekModel():
-                return DeepSeekSettings()
-            case SupportedAnthropicModel():
-                return AnthropicSettings()
-            case SupportedQwenModel():
-                return QwenSettings()
-            case _:
-                assert_never(self.ai_model)
-
-    @property
-    def selected_ai_model(self) -> str:
-        if self.ai_model_version:
-            return f"{self.ai_model.value}-{self.ai_model_version}"
-        return self.ai_model.value
 
 
 def test_minimal_valid_app_settings_with_default_values() -> None:
