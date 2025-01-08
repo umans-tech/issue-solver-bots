@@ -2,9 +2,9 @@ import os
 
 from pydantic_core import Url
 
-from issue_solver.issue_trackers.gitlab.settings import (
-    GitlabIssueTrackerSettings,
+from issue_solver.issues.trackers.gitlab_issue_tracker import (
     GitlabObjectType,
+    GitlabIssueTracker,
 )
 
 
@@ -15,7 +15,7 @@ def test_gitlab_issue_tracker_minimal_valid_settings_with_default_values() -> No
     os.environ["GITLAB_PRIVATE_TOKEN"] = private_tocken
 
     # When
-    issue_tracker_settings = GitlabIssueTrackerSettings()
+    issue_tracker_settings = GitlabIssueTracker.Settings()
 
     # Then
     assert issue_tracker_settings.private_token == private_tocken
@@ -36,7 +36,7 @@ def test_gitlab_issue_tracker_full_valid_settings() -> None:
     os.environ["GITLAB_OBJECT_TYPE"] = "MR"
 
     # When
-    issue_tracker_settings = GitlabIssueTrackerSettings()
+    issue_tracker_settings = GitlabIssueTracker.Settings()
 
     # Then
     assert issue_tracker_settings.private_token == private_token

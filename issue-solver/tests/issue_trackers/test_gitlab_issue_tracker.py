@@ -6,9 +6,10 @@ from pydantic import AnyUrl
 from requests_mock.mocker import Mocker
 
 from issue_solver import IssueInfo
-from issue_solver.issue_trackers.gitlab.gitlab_issue_tracker import GitlabIssueTracker
-from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
-from issue_solver.issue_trackers.issue_tracker import IssueInternalId, IssueId
+from issue_solver.issues.trackers.gitlab_issue_tracker import (
+    GitlabIssueTracker,
+)
+from issue_solver.issues.trackers.issue_tracker import IssueInternalId, IssueId
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ def gitlab_tracker(gitlab_base_url: str) -> GitlabIssueTracker:
     with dummy credentials and project info.
     """
     return GitlabIssueTracker.of(
-        settings=GitlabIssueTrackerSettings(
+        settings=GitlabIssueTracker.Settings(
             base_url=AnyUrl(gitlab_base_url),
             private_token="dummy_token",
             api_version="4",

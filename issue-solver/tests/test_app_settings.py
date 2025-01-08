@@ -5,8 +5,8 @@ from pydantic_core import Url
 
 from issue_solver import SupportedAgent, IssueInfo
 from issue_solver.app_settings import IssueSettings, AppSettings
-from issue_solver.issue_trackers.gitlab.settings import GitlabIssueTrackerSettings
-from issue_solver.issue_trackers.issue_tracker import IssueInternalId
+from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
+from issue_solver.issues.trackers.issue_tracker import IssueInternalId
 from issue_solver.models.model_settings import (
     AnthropicSettings,
 )
@@ -71,7 +71,7 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
 
     # Then
     selected_issue_tracker = app_settings.selected_issue_tracker
-    assert type(selected_issue_tracker) is GitlabIssueTrackerSettings
+    assert type(selected_issue_tracker) is GitlabIssueTracker.Settings
     assert selected_issue_tracker.private_token == gitlab_private_token
     assert selected_issue_tracker.base_url == Url("https://gitlab.com")
 
