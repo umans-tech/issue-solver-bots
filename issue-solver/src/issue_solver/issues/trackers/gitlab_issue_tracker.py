@@ -25,6 +25,10 @@ class GitlabObjectType(StrEnum):
     MR = "MR"
 
 
+class MergeRequestInternalId(IssueInternalId):
+    type: Literal["MR"] = "MR"
+
+
 class GitlabIssueTracker(IssueTracker):
     def __init__(self, gitlab_client: gitlab.Gitlab) -> None:
         self.gitlab_client = gitlab_client
@@ -57,6 +61,8 @@ class GitlabIssueTracker(IssueTracker):
     @staticmethod
     def get_issue_path(issue_reference: IssueReference) -> str:
         match issue_reference:
+            case MergeRequestInternalId():
+                issue_path = f"/projects/{issue_reference.project_id}/merge_requests/{issue_reference.iid}"
             case IssueInternalId():
                 issue_path = f"/projects/{issue_reference.project_id}/issues/{issue_reference.iid}"
             case IssueId():
