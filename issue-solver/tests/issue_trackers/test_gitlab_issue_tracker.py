@@ -9,6 +9,7 @@ from issue_solver import IssueInfo
 from issue_solver.issues.issue import IssueId, IssueInternalId
 from issue_solver.issues.trackers.gitlab_issue_tracker import (
     GitlabIssueTracker,
+    MergeRequestInternalId,
 )
 
 
@@ -337,3 +338,39 @@ def test_describe_issue_by_id_server_error(
     # When, Then
     with pytest.raises(RuntimeError):
         gitlab_tracker.describe_issue(issue_ref)
+
+
+def test_describe_issue_by_mrid_success(
+    gitlab_tracker: GitlabIssueTracker,
+    requests_mock: Mocker,
+    gitlab_base_url: str,
+):
+    # Given
+    mr_iid = "42"
+    project_id = "1234"
+    issue_ref = MergeRequestInternalId(project_id=project_id, iid=mr_iid)
+    issue_title = "Something Is Wrong"
+    issue_description = "Hi there! there is an issue"
+    gitlab_mr_payload = {
+        "id": 147307487,
+        "iid": int(mr_iid),
+        "project_id": int(project_id),
+        "title": issue_title,
+        "description": issue_description,
+    }
+
+    requests_mock.get(
+        f"{gitlab_base_url}/api/v4/projects/{project_id}/merge_requests/{mr_iid}",
+        json=gitlab_mr_payload,
+        status_code=HTTPStatus.OK,
+        headers={"Content-Type": "application/json"},
+    )
+
+    # When
+    issue_info = gitlab_tracker.describe_issue(issue_ref)
+
+    # Then
+    assert issue_info == IssueInfo(
+        title=issue_title,
+        description=issue_description,
+    )
