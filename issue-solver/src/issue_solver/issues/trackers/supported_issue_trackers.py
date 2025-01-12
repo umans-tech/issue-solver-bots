@@ -37,7 +37,7 @@ class SupportedIssueTracker:
                     settings=issue_tracker_settings,
                 )
             case GithubIssueTracker.Settings():
-                return GithubIssueTracker()
+                return GithubIssueTracker(settings=issue_tracker_settings)
             case JiraIssueTracker.Settings():
                 return JiraIssueTracker()
             case TrelloIssueTracker.Settings():
