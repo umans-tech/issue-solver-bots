@@ -23,7 +23,6 @@ class JiraIssueTracker(IssueTracker):
             description="Base URL for the Jira.",
             default=Url("https://jira.atlassian.com"),
         )
-        project_id: str = Field(description="ID of the project in the issue tracker.")
 
         model_config = SettingsConfigDict(
             env_prefix="JIRA_",

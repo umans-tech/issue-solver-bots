@@ -1,17 +1,32 @@
 import os
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
 from pydantic_core import Url
 
 from issue_solver import SupportedAgent, IssueInfo
 from issue_solver.app_settings import IssueSettings, AppSettings
 from issue_solver.issues.issue import IssueInternalId
+from issue_solver.issues.trackers.azure_devops_issue_tracker import (
+    AzureDevOpsIssueTracker,
+)
+from issue_solver.issues.trackers.github_issue_tracker import GithubIssueTracker
 from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
+from issue_solver.issues.trackers.http_based_issue_tracker import HttpBasedIssueTracker
+from issue_solver.issues.trackers.jira_issue_tracker import JiraIssueTracker
+from issue_solver.issues.trackers.trello_issue_tracker import TrelloIssueTracker
 from issue_solver.models.model_settings import (
     AnthropicSettings,
+    DeepSeekSettings,
+    QwenSettings,
+    OpenAISettings,
 )
 from issue_solver.models.supported_models import (
     SupportedOpenAIModel,
+    SupportedDeepSeekModel,
+    SupportedQwenModel,
+    SupportedAnthropicModel,
 )
 
 
@@ -20,7 +35,7 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     os.environ.clear()
 
     git_access_token = "s3cr3t-t0k3n-for-git-ops"
-    issue_description = "This is an actual description of the issue to be solved"
+    issue_description = issue_description_example()
     os.environ["GIT__ACCESS_TOKEN"] = git_access_token
     os.environ["ISSUE__DESCRIPTION"] = issue_description
 
@@ -33,6 +48,10 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     assert app_settings.ai_model == SupportedOpenAIModel.GPT4O_MINI
     assert app_settings.selected_ai_model == str(SupportedOpenAIModel.GPT4O_MINI)
     assert app_settings.git.access_token == git_access_token
+
+
+def issue_description_example() -> str:
+    return "This is an actual description of the issue to be solved"
 
 
 def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None:
@@ -88,3 +107,276 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     assert app_settings.model_settings == AnthropicSettings(
         api_key=anthropic_api_key, base_url=Url(anthropic_base_url)
     )
+
+
+def test_openai_model_with_required_fields() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "OpenAI model usage"
+    os.environ["OPENAI_API_KEY"] = "openai-test-key"
+    os.environ["AI_MODEL"] = SupportedOpenAIModel.GPT4O
+
+    # When
+    app_settings = AppSettings()
+    model_settings = app_settings.model_settings
+
+    # Then
+    assert app_settings.ai_model == SupportedOpenAIModel.GPT4O
+    assert isinstance(model_settings, OpenAISettings)
+    assert model_settings.api_key == "openai-test-key"
+
+
+def test_deepseek_model_with_required_fields() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "DeepSeek model usage"
+    os.environ["AI_MODEL"] = SupportedDeepSeekModel.DEEPSEEK_Coder
+    os.environ["DEEPSEEK_API_KEY"] = "deepseek-key"
+
+    # When
+    app_settings = AppSettings()
+    model_settings = app_settings.model_settings
+
+    # Then
+    assert isinstance(app_settings.ai_model, SupportedDeepSeekModel)
+    assert isinstance(model_settings, DeepSeekSettings)
+    assert model_settings.api_key == "deepseek-key"
+
+
+def test_anthropic_model_with_required_fields() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Anthropic model usage"
+    os.environ["AI_MODEL"] = SupportedAnthropicModel.CLAUDE_35_HAIKU
+    os.environ["AI_MODEL_VERSION"] = "20250110"
+    os.environ["ANTHROPIC_API_KEY"] = "anthropic-test-key"
+    os.environ["ANTHROPIC_BASE_URL"] = "https://api.anthropic.example.org"
+
+    # When
+    app_settings = AppSettings()
+    model_settings = app_settings.model_settings
+
+    # Then
+    assert app_settings.ai_model == SupportedAnthropicModel.CLAUDE_35_HAIKU
+    assert isinstance(model_settings, AnthropicSettings)
+    assert model_settings.api_key == "anthropic-test-key"
+    assert model_settings.base_url == Url("https://api.anthropic.example.org")
+
+
+def test_qwen_model_with_required_fields() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Qwen model usage"
+    os.environ["AI_MODEL"] = SupportedQwenModel.QWEN25_CODER
+    os.environ["QWEN_API_KEY"] = "qwen-test-key"
+
+    # When
+    app_settings = AppSettings()
+    model_settings = app_settings.model_settings
+
+    # Then
+    assert isinstance(app_settings.ai_model, SupportedQwenModel)
+    assert isinstance(model_settings, QwenSettings)
+    assert model_settings.api_key == "qwen-test-key"
+
+
+def test_issue_settings_gitlab_tracker() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__TRACKER__TYPE"] = "GITLAB"
+    os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-gitlab-private-token"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "999"
+    os.environ["ISSUE__REF__IID"] = "888"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    assert isinstance(app_settings.selected_issue_tracker, GitlabIssueTracker.Settings)
+    assert (
+        app_settings.selected_issue_tracker.private_token == "my-gitlab-private-token"
+    )
+    assert isinstance(app_settings.issue.ref, IssueInternalId)
+    assert app_settings.issue.ref.project_id == "999"
+    assert app_settings.issue.ref.iid == "888"
+
+
+def test_issue_info_no_tracker() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Some plain description"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueInfo)
+    assert app_settings.issue.description == "Some plain description"
+    assert app_settings.selected_issue_tracker is None
+
+
+def test_custom_repo_path() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Check custom repo path"
+    os.environ["REPO_PATH"] = "/custom/repo/path"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert app_settings.repo_path == Path("/custom/repo/path")
+
+
+def test_invalid_model_raises_validation_error() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "test-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Invalid model usage"
+    os.environ["AI_MODEL"] = "some-nonexistent-model"
+
+    # When / Then
+    with pytest.raises(ValidationError):
+        _ = AppSettings()
+
+
+def test_incomplete_tracker_info_raises_error() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "test-token"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "999"
+    os.environ["ISSUE__REF__IID"] = "888"
+
+    # When / Then
+    with pytest.raises(ValidationError):
+        _ = AppSettings()
+
+
+def test_selected_model_with_settings() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["GIT__ACCESS_TOKEN"] = "test-token"
+    os.environ["ISSUE__DESCRIPTION"] = "Check selected model with settings"
+    os.environ["AI_MODEL"] = SupportedAnthropicModel.CLAUDE_35_SONNET
+    os.environ["AI_MODEL_VERSION"] = "20250110"
+    os.environ["ANTHROPIC_API_KEY"] = "anthropic-test-key"
+    os.environ["ANTHROPIC_BASE_URL"] = "https://api.anthropic.example.org"
+
+    # When
+    app_settings = AppSettings()
+    model_with_settings = app_settings.selected_model_with_settings
+
+    # Then
+    assert (
+        model_with_settings.model.ai_model == SupportedAnthropicModel.CLAUDE_35_SONNET
+    )
+    assert model_with_settings.model.version == "20250110"
+    assert isinstance(model_with_settings.settings, AnthropicSettings)
+    assert model_with_settings.settings.api_key == "anthropic-test-key"
+    assert model_with_settings.settings.base_url == Url(
+        "https://api.anthropic.example.org"
+    )
+
+
+def test_github_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "GITHUB"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "octocat/Hello-World"
+    os.environ["ISSUE__REF__IID"] = "101"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, GithubIssueTracker.Settings)
+    assert tracker.type == "GITHUB"
+    assert tracker.base_url == Url("https://api.github.com")
+    assert isinstance(app_settings.issue.ref, IssueInternalId)
+    assert app_settings.issue.ref.project_id == "octocat/Hello-World"
+    assert app_settings.issue.ref.iid == "101"
+
+
+def test_jira_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "JIRA"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "JIR"
+    os.environ["ISSUE__REF__IID"] = "2023"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, JiraIssueTracker.Settings)
+    assert tracker.type == "JIRA"
+
+
+def test_trello_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "TRELLO"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "my-trello-board"
+    os.environ["ISSUE__REF__IID"] = "42"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, TrelloIssueTracker.Settings)
+    assert tracker.type == "TRELLO"
+
+
+def test_azure_devops_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "AZURE_DEVOPS"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "my-azure-org/my-azure-project"
+    os.environ["ISSUE__REF__IID"] = "987"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, AzureDevOpsIssueTracker.Settings)
+    assert tracker.type == "AZURE_DEVOPS"
+
+
+def test_http_based_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "HTTP"
+    os.environ["ISSUE__TRACKER__BASE_URL"] = "https://my-http-service.example.org"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "my-http-service"
+    os.environ["ISSUE__REF__IID"] = "42"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, HttpBasedIssueTracker.Settings)
+    assert tracker.type == "HTTP"
+    assert tracker.base_url == Url("https://my-http-service.example.org")
