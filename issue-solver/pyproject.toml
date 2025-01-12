@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.39.0",
+    "docker>=7.1.0",
     "fastapi[standard]>=0.115.4",
     "openai>=1.54.3",
     "pydantic-settings>=2.7.1",
@@ -24,6 +25,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mypy>=1.14.1",
+    "pytest-asyncio>=0.25.2",
     "pytest>=8.3.3",
     "requests-mock>=1.12.1",
     "ruff>=0.7.3",
