@@ -18,12 +18,11 @@ class AzureDevOpsIssueTracker(IssueTracker):
         )
 
     class Settings(ApiBasedIssueTrackerSettings):
-        type: Literal["AZURE"] = "AZURE"
+        type: Literal["AZURE_DEVOPS"] = "AZURE_DEVOPS"
         base_url: AnyUrl = Field(
             description="Base URL for the Azure DevOps.",
             default=Url("https://dev.azure.com"),
         )
-        project_id: str = Field(description="ID of the project in the issue tracker.")
 
         model_config = SettingsConfigDict(
             env_prefix="AZURE_DEVOPS_",

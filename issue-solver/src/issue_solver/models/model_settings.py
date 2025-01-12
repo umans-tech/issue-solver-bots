@@ -1,4 +1,5 @@
 from pydantic import AnyUrl, Field
+from pydantic_core import Url
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +9,9 @@ class ModelSettings(BaseSettings):
 
 
 class OpenAISettings(ModelSettings):
-    pass
+    base_url: AnyUrl | None = Field(
+        description="Base URL for the model.", default=Url("https://api.openai.com")
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="OPENAI_",
@@ -19,7 +22,9 @@ class OpenAISettings(ModelSettings):
 
 
 class DeepSeekSettings(ModelSettings):
-    pass
+    base_url: AnyUrl | None = Field(
+        description="Base URL for the model.", default=Url("https://api.deepseek.ai")
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="DEEPSEEK_",
@@ -30,7 +35,9 @@ class DeepSeekSettings(ModelSettings):
 
 
 class AnthropicSettings(ModelSettings):
-    pass
+    base_url: AnyUrl | None = Field(
+        description="Base URL for the model.", default=Url("https://api.anthropic.com")
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="ANTHROPIC_",
@@ -41,7 +48,9 @@ class AnthropicSettings(ModelSettings):
 
 
 class QwenSettings(ModelSettings):
-    pass
+    base_url: AnyUrl | None = Field(
+        description="Base URL for the model.", default=Url("https://api.qwen.ai")
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="QWEN_",

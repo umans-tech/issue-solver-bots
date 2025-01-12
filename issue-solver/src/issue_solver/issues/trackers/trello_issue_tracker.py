@@ -28,8 +28,6 @@ class TrelloIssueTracker(IssueTracker):
             default="1",
         )
 
-        board_id: str = Field(description="ID of the board in the issue tracker.")
-
         model_config = SettingsConfigDict(
             env_prefix="TRELLO_",
             env_file=".env",
