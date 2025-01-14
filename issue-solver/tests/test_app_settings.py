@@ -38,6 +38,7 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     issue_description = issue_description_example()
     os.environ["GIT__ACCESS_TOKEN"] = git_access_token
     os.environ["ISSUE__DESCRIPTION"] = issue_description
+    os.environ["OPENAI_API_KEY"] = "openai-test-key"
 
     # When
     app_settings = AppSettings()
@@ -48,6 +49,9 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     assert app_settings.ai_model == SupportedOpenAIModel.GPT4O_MINI
     assert app_settings.selected_ai_model == str(SupportedOpenAIModel.GPT4O_MINI)
     assert app_settings.git.access_token == git_access_token
+    assert app_settings.model_settings == OpenAISettings(
+        api_key="openai-test-key",
+    )
 
 
 def issue_description_example() -> str:

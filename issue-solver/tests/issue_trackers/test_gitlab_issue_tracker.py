@@ -192,8 +192,8 @@ def test_describe_issue_by_id_success(
     issue_ref = IssueId("42")
     url = f"{gitlab_base_url}/api/v4/issues/42"
     payload = {
-        "id": 123,
-        "iid": 42,
+        "id": 42,
+        "iid": 123,
         "title": "Some Issue",
         "description": "Details here",
     }
