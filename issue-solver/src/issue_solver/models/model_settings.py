@@ -10,7 +10,7 @@ class ModelSettings(BaseSettings):
 
 class OpenAISettings(ModelSettings):
     base_url: AnyUrl | None = Field(
-        description="Base URL for the model.", default=Url("https://api.openai.com")
+        description="Base URL for the model.", default=Url("https://api.openai.com/v1")
     )
 
     model_config = SettingsConfigDict(
@@ -23,7 +23,8 @@ class OpenAISettings(ModelSettings):
 
 class DeepSeekSettings(ModelSettings):
     base_url: AnyUrl | None = Field(
-        description="Base URL for the model.", default=Url("https://api.deepseek.ai")
+        description="Base URL for the model.",
+        default=Url("https://api.deepseek.com/v1"),
     )
 
     model_config = SettingsConfigDict(
@@ -36,7 +37,8 @@ class DeepSeekSettings(ModelSettings):
 
 class AnthropicSettings(ModelSettings):
     base_url: AnyUrl | None = Field(
-        description="Base URL for the model.", default=Url("https://api.anthropic.com")
+        description="Base URL for the model.",
+        default=Url("https://api.anthropic.com/v1"),
     )
 
     model_config = SettingsConfigDict(
@@ -49,7 +51,7 @@ class AnthropicSettings(ModelSettings):
 
 class QwenSettings(ModelSettings):
     base_url: AnyUrl | None = Field(
-        description="Base URL for the model.", default=Url("https://api.qwen.ai")
+        description="Base URL for the model.", default=Url("https://api.aimlapi.com/v1")
     )
 
     model_config = SettingsConfigDict(
