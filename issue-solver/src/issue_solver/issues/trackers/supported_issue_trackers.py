@@ -41,7 +41,7 @@ class SupportedIssueTracker:
             case JiraIssueTracker.Settings():
                 return JiraIssueTracker()
             case TrelloIssueTracker.Settings():
-                return TrelloIssueTracker()
+                return TrelloIssueTracker.of(settings=issue_tracker_settings)
             case AzureDevOpsIssueTracker.Settings():
                 return AzureDevOpsIssueTracker()
             case HttpBasedIssueTracker.Settings():
