@@ -14,3 +14,7 @@ class ApiBasedIssueTrackerSettings(BaseSettings, ABC):
     )
 
     model_config = SettingsConfigDict(extra="ignore")
+
+    @property
+    def versioned_base_url(self) -> str:
+        return f"{self.base_url}{self.api_version or ''}".rstrip("/")

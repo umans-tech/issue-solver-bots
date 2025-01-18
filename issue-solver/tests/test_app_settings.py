@@ -334,6 +334,8 @@ def test_trello_tracker_is_interpreted_correctly() -> None:
     # Given
     os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "TRELLO"
+    os.environ["ISSUE__TRACKER__API_KEY"] = "my-trello-api-key"
+    os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-trello-private-token"
     os.environ["ISSUE__REF__PROJECT_ID"] = "my-trello-board"
     os.environ["ISSUE__REF__IID"] = "42"
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
