@@ -7,6 +7,7 @@ from issue_solver.issues.trackers.github_issue_tracker import GithubIssueTracker
 from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
 from issue_solver.issues.trackers.http_based_issue_tracker import HttpBasedIssueTracker
 from issue_solver.issues.trackers.jira_issue_tracker import JiraIssueTracker
+from issue_solver.issues.trackers.notion_issue_tracker import NotionIssueTracker
 from issue_solver.issues.trackers.trello_issue_tracker import TrelloIssueTracker
 
 IssueSource = (
@@ -16,6 +17,7 @@ IssueSource = (
     | TrelloIssueTracker
     | AzureDevOpsIssueTracker
     | HttpBasedIssueTracker
+    | NotionIssueTracker
 )
 
 IssueSourceSettings = (
@@ -25,6 +27,7 @@ IssueSourceSettings = (
     | TrelloIssueTracker.Settings
     | AzureDevOpsIssueTracker.Settings
     | HttpBasedIssueTracker.Settings
+    | NotionIssueTracker.Settings
 )
 
 
@@ -46,5 +49,7 @@ class SupportedIssueTracker:
                 return AzureDevOpsIssueTracker()
             case HttpBasedIssueTracker.Settings():
                 return HttpBasedIssueTracker()
+            case NotionIssueTracker.Settings():
+                return NotionIssueTracker.of(settings=issue_tracker_settings)
             case _:
                 assert_never(issue_tracker_settings)

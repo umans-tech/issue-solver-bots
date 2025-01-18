@@ -15,6 +15,7 @@ from issue_solver.issues.trackers.github_issue_tracker import GithubIssueTracker
 from issue_solver.issues.trackers.gitlab_issue_tracker import GitlabIssueTracker
 from issue_solver.issues.trackers.http_based_issue_tracker import HttpBasedIssueTracker
 from issue_solver.issues.trackers.jira_issue_tracker import JiraIssueTracker
+from issue_solver.issues.trackers.notion_issue_tracker import NotionIssueTracker
 from issue_solver.issues.trackers.trello_issue_tracker import TrelloIssueTracker
 from issue_solver.models.model_settings import (
     AnthropicSettings,
@@ -386,3 +387,23 @@ def test_http_based_tracker_is_interpreted_correctly() -> None:
     assert isinstance(tracker, HttpBasedIssueTracker.Settings)
     assert tracker.type == "HTTP"
     assert tracker.base_url == Url("https://my-http-service.example.org")
+
+
+def test_notion_tracker_is_interpreted_correctly() -> None:
+    # Given
+    os.environ.clear()
+    os.environ["ISSUE__TRACKER__TYPE"] = "NOTION"
+    os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-notion-private-token"
+    os.environ["ISSUE__REF__PROJECT_ID"] = "someWorkspace"
+    os.environ["ISSUE__REF__IID"] = "notion-page-id"
+    os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
+
+    # When
+    app_settings = AppSettings()
+
+    # Then
+    assert isinstance(app_settings.issue, IssueSettings)
+    tracker = app_settings.selected_issue_tracker
+    assert isinstance(tracker, NotionIssueTracker.Settings)
+    assert tracker.type == "NOTION"
+    assert tracker.base_url == Url("https://api.notion.com/v1")
