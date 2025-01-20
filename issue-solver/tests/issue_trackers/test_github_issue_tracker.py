@@ -5,8 +5,7 @@ import pytest
 from pydantic_core import Url
 from requests_mock import Mocker
 
-from issue_solver import IssueInfo
-from issue_solver.issues.issue import IssueId, IssueInternalId
+from issue_solver.issues.issue import IssueId, IssueInternalId, IssueInfo
 from issue_solver.issues.trackers.github_issue_tracker import (
     GithubIssueTracker,
     PullRequestInternalId,

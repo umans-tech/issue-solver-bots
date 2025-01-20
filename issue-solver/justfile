@@ -17,12 +17,16 @@ lint:
 format:
     uv run ruff format
 
+# ❇️ Check typing with mypy
+check-typing:
+    uv run mypy src tests --disable-error-code=import-untyped
+
 set dotenv-load := true
 
 # 🚀 Start the API
 api-start:
     uv run fastapi dev src/issue_solver/webapi/main.py
 
-# ❇️ Check typing with mypy
-check-typing:
-    uv run mypy src tests --disable-error-code=import-untyped
+# ▶️ Run standalone issue solver
+run:
+    sudo uv run issue-solver
