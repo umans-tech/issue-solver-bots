@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-issue-solver = "issue_solver:run_main"
+issue-solver = "issue_solver.standalone.__main__:run_main"
 
 [build-system]
 requires = ["hatchling"]

@@ -5,8 +5,7 @@ import pytest
 from pydantic_core import Url
 from requests_mock import Mocker
 
-from issue_solver import IssueInfo
-from issue_solver.issues.issue import IssueId
+from issue_solver.issues.issue import IssueId, IssueInfo
 from issue_solver.issues.trackers.notion_issue_tracker import (
     NotionIssueTracker,
     NotionPageInternalId,

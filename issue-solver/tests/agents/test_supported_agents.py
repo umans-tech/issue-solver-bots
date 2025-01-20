@@ -1,4 +1,4 @@
-from issue_solver import SupportedAgent
+from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.agents.swe_agents_on_docker import (
     SweAgentOnDocker,
     SweCrafterOnDocker,

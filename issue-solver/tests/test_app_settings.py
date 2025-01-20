@@ -5,9 +5,9 @@ import pytest
 from pydantic import ValidationError
 from pydantic_core import Url
 
-from issue_solver import SupportedAgent, IssueInfo
+from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import IssueSettings, AppSettings
-from issue_solver.issues.issue import IssueInternalId
+from issue_solver.issues.issue import IssueInternalId, IssueInfo
 from issue_solver.issues.trackers.azure_devops_issue_tracker import (
     AzureDevOpsIssueTracker,
 )
@@ -31,10 +31,15 @@ from issue_solver.models.supported_models import (
 )
 
 
-def test_minimal_valid_app_settings_with_default_values() -> None:
-    # Given
+@pytest.fixture
+def clean_env() -> None:
+    # to test in isolation and avoid side effects due to local env vars
+    AppSettings.model_config["env_file"] = ""
     os.environ.clear()
 
+
+def test_minimal_valid_app_settings_with_default_values(clean_env: None) -> None:
+    # Given
     git_access_token = "s3cr3t-t0k3n-for-git-ops"
     issue_description = issue_description_example()
     os.environ["GIT__ACCESS_TOKEN"] = git_access_token
@@ -55,11 +60,9 @@ def test_minimal_valid_app_settings_with_default_values() -> None:
     )
 
 
-def issue_description_example() -> str:
-    return "This is an actual description of the issue to be solved"
-
-
-def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None:
+def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic(
+    clean_env: None,
+) -> None:
     # Given
     gitlab_private_token = "my-s3cr3t-t0k3n"
     gitlab_project_id = "182753"
@@ -75,7 +78,6 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     anthropic_api_key = "my-anthropic-api-key"
     anthropic_base_url = "https://api.antropic.mycorp.com"
 
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "GITLAB"
     os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = gitlab_private_token
     os.environ["ISSUE__REF__PROJECT_ID"] = gitlab_project_id
@@ -114,9 +116,8 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic() -> None
     )
 
 
-def test_openai_model_with_required_fields() -> None:
+def test_openai_model_with_required_fields(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "OpenAI model usage"
     os.environ["OPENAI_API_KEY"] = "openai-test-key"
@@ -132,9 +133,8 @@ def test_openai_model_with_required_fields() -> None:
     assert model_settings.api_key == "openai-test-key"
 
 
-def test_deepseek_model_with_required_fields() -> None:
+def test_deepseek_model_with_required_fields(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "DeepSeek model usage"
     os.environ["AI_MODEL"] = SupportedDeepSeekModel.DEEPSEEK_Coder
@@ -150,9 +150,8 @@ def test_deepseek_model_with_required_fields() -> None:
     assert model_settings.api_key == "deepseek-key"
 
 
-def test_anthropic_model_with_required_fields() -> None:
+def test_anthropic_model_with_required_fields(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "Anthropic model usage"
     os.environ["AI_MODEL"] = SupportedAnthropicModel.CLAUDE_35_HAIKU
@@ -171,9 +170,8 @@ def test_anthropic_model_with_required_fields() -> None:
     assert model_settings.base_url == Url("https://api.anthropic.example.org")
 
 
-def test_qwen_model_with_required_fields() -> None:
+def test_qwen_model_with_required_fields(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "Qwen model usage"
     os.environ["AI_MODEL"] = SupportedQwenModel.QWEN25_CODER
@@ -189,9 +187,8 @@ def test_qwen_model_with_required_fields() -> None:
     assert model_settings.api_key == "qwen-test-key"
 
 
-def test_issue_settings_gitlab_tracker() -> None:
+def test_issue_settings_gitlab_tracker(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__TRACKER__TYPE"] = "GITLAB"
     os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-gitlab-private-token"
@@ -212,9 +209,8 @@ def test_issue_settings_gitlab_tracker() -> None:
     assert app_settings.issue.ref.iid == "888"
 
 
-def test_issue_info_no_tracker() -> None:
+def test_issue_info_no_tracker(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "Some plain description"
 
@@ -227,9 +223,8 @@ def test_issue_info_no_tracker() -> None:
     assert app_settings.selected_issue_tracker is None
 
 
-def test_custom_repo_path() -> None:
+def test_custom_repo_path(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "my-git-token"
     os.environ["ISSUE__DESCRIPTION"] = "Check custom repo path"
     os.environ["REPO_PATH"] = "/custom/repo/path"
@@ -241,9 +236,8 @@ def test_custom_repo_path() -> None:
     assert app_settings.repo_path == Path("/custom/repo/path")
 
 
-def test_invalid_model_raises_validation_error() -> None:
+def test_invalid_model_raises_validation_error(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "test-token"
     os.environ["ISSUE__DESCRIPTION"] = "Invalid model usage"
     os.environ["AI_MODEL"] = "some-nonexistent-model"
@@ -253,9 +247,8 @@ def test_invalid_model_raises_validation_error() -> None:
         _ = AppSettings()
 
 
-def test_incomplete_tracker_info_raises_error() -> None:
+def test_incomplete_tracker_info_raises_error(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "test-token"
     os.environ["ISSUE__REF__PROJECT_ID"] = "999"
     os.environ["ISSUE__REF__IID"] = "888"
@@ -265,9 +258,8 @@ def test_incomplete_tracker_info_raises_error() -> None:
         _ = AppSettings()
 
 
-def test_selected_model_with_settings() -> None:
+def test_selected_model_with_settings(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["GIT__ACCESS_TOKEN"] = "test-token"
     os.environ["ISSUE__DESCRIPTION"] = "Check selected model with settings"
     os.environ["AI_MODEL"] = SupportedAnthropicModel.CLAUDE_35_SONNET
@@ -291,9 +283,8 @@ def test_selected_model_with_settings() -> None:
     )
 
 
-def test_github_tracker_is_interpreted_correctly() -> None:
+def test_github_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "GITHUB"
     os.environ["ISSUE__REF__PROJECT_ID"] = "octocat/Hello-World"
     os.environ["ISSUE__REF__IID"] = "101"
@@ -313,9 +304,8 @@ def test_github_tracker_is_interpreted_correctly() -> None:
     assert app_settings.issue.ref.iid == "101"
 
 
-def test_jira_tracker_is_interpreted_correctly() -> None:
+def test_jira_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "JIRA"
     os.environ["ISSUE__REF__PROJECT_ID"] = "JIR"
     os.environ["ISSUE__REF__IID"] = "2023"
@@ -331,9 +321,8 @@ def test_jira_tracker_is_interpreted_correctly() -> None:
     assert tracker.type == "JIRA"
 
 
-def test_trello_tracker_is_interpreted_correctly() -> None:
+def test_trello_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "TRELLO"
     os.environ["ISSUE__TRACKER__API_KEY"] = "my-trello-api-key"
     os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-trello-private-token"
@@ -351,9 +340,8 @@ def test_trello_tracker_is_interpreted_correctly() -> None:
     assert tracker.type == "TRELLO"
 
 
-def test_azure_devops_tracker_is_interpreted_correctly() -> None:
+def test_azure_devops_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "AZURE_DEVOPS"
     os.environ["ISSUE__REF__PROJECT_ID"] = "my-azure-org/my-azure-project"
     os.environ["ISSUE__REF__IID"] = "987"
@@ -369,9 +357,8 @@ def test_azure_devops_tracker_is_interpreted_correctly() -> None:
     assert tracker.type == "AZURE_DEVOPS"
 
 
-def test_http_based_tracker_is_interpreted_correctly() -> None:
+def test_http_based_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "HTTP"
     os.environ["ISSUE__TRACKER__BASE_URL"] = "https://my-http-service.example.org"
     os.environ["ISSUE__REF__PROJECT_ID"] = "my-http-service"
@@ -389,9 +376,8 @@ def test_http_based_tracker_is_interpreted_correctly() -> None:
     assert tracker.base_url == Url("https://my-http-service.example.org")
 
 
-def test_notion_tracker_is_interpreted_correctly() -> None:
+def test_notion_tracker_is_interpreted_correctly(clean_env: None) -> None:
     # Given
-    os.environ.clear()
     os.environ["ISSUE__TRACKER__TYPE"] = "NOTION"
     os.environ["ISSUE__TRACKER__PRIVATE_TOKEN"] = "my-notion-private-token"
     os.environ["ISSUE__REF__PROJECT_ID"] = "someWorkspace"
@@ -407,3 +393,7 @@ def test_notion_tracker_is_interpreted_correctly() -> None:
     assert isinstance(tracker, NotionIssueTracker.Settings)
     assert tracker.type == "NOTION"
     assert tracker.base_url == Url("https://api.notion.com/v1")
+
+
+def issue_description_example() -> str:
+    return "This is an actual description of the issue to be solved"
