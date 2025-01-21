@@ -1,6 +1,9 @@
 # issue-solver-bots
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/umans-tech/issue-solver-bots/ci.yml)
+![Build Status](https://github.com/umans-tech/issue-solver-bots/actions/workflows/ci-python-project.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
+![Ruff](https://img.shields.io/badge/code%20style-ruff-f7df1e.svg)
+![Mypy](https://img.shields.io/badge/type%20checked-mypy-2f72bc.svg)
 ![License](https://img.shields.io/github/license/umans-tech/issue-solver-bots)
 ![GitHub Stars](https://img.shields.io/github/stars/umans-tech/issue-solver-bots?style=social)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/wBeQhw9v)
