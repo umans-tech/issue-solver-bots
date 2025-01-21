@@ -18,21 +18,81 @@ class GitHelper:
     def of(cls, git_settings: "GitSettings", model_settings: ModelSettings) -> Self:
         return cls(git_settings)
 
-    def commit_and_push(self, issue_description: IssueInfo, repo_path: Path) -> None:
-        repo = Repo(path=repo_path)
+    def commit_and_push(self, issue_info: IssueInfo, repo_path: Path) -> None:
+        """Commit changes and push them to a remote repository."""
+
+        repo = self._initialize_git_repo(repo_path)
+        remote_url = self._resolve_remote_url(repo)
+
+        if remote_url:
+            authenticated_url = self._inject_access_token(remote_url)
+            self._ensure_repo_origin(repo, authenticated_url)
+
+        self._commit_changes(repo, issue_info)
+        self._push_changes(repo)
+
+    def _initialize_git_repo(self, repo_path: Path) -> Repo:
+        """Initialize local git repo and set the configured user name/email."""
+        repo = Repo(repo_path)
         repo.git.config("user.email", self.settings.user_mail)
         repo.git.config("user.name", self.settings.user_name)
+        return repo
+
+    def _resolve_remote_url(self, repo: Repo) -> str | None:
+        """
+        Return the `repository_url` from settings if present,
+        otherwise try to fetch the URL from the 'origin' remote if it exists.
+        """
         if self.settings.repository_url:
-            repo.git.remote(
-                "add",
-                "repo_origin",
-                f"https://oauth2:{self.settings.access_token}@{self.settings.repository_url.lstrip('https://')}",
+            return self.settings.repository_url
+
+        if "origin" in repo.remotes:
+            return repo.remotes.origin.url
+
+        return None
+
+    def _inject_access_token(self, base_url: str) -> str:
+        """
+        Insert the token into the URL if available, forming:
+            https://oauth2:<token>@your.git.server/...
+        Otherwise, ensure the URL has https://.
+        """
+        stripped_url = base_url.removeprefix("https://")
+        if self.settings.access_token:
+            return f"https://oauth2:{self.settings.access_token}@{stripped_url}"
+        return f"https://{stripped_url}"
+
+    def _ensure_repo_origin(self, repo: Repo, url: str) -> None:
+        """
+        Ensure the remote named 'repo_origin' exists and is set to the given URL.
+        If it already exists, update its URL instead of adding it again.
+        """
+        if "repo_origin" not in repo.remotes:
+            repo.git.remote("add", "repo_origin", url)
+        else:
+            repo.git.remote("set-url", "repo_origin", url)
+
+    def _commit_changes(self, repo: Repo, issue_info: IssueInfo) -> None:
+        """
+        Stage all changes and commit only if there are actual modifications.
+        """
+        repo.git.add(A=True)  # Equivalent to `git add --all`
+        if repo.is_dirty(untracked_files=True):
+            commit_message = (
+                f"Automated resolution of '{issue_info.title}' "
+                "(automated change 🤖✨)"
             )
-        repo.git.add(".")
-        repo.index.commit(
-            f"automated resolution of {issue_description.title} (automated change 🤖✨)"
-        )
-        repo.git.push("repo_origin", f"HEAD:{repo.active_branch.name}")
+            repo.index.commit(commit_message)
+
+    def _push_changes(self, repo: Repo) -> None:
+        """
+        Push changes to 'repo_origin' if it exists, otherwise warn the user.
+        """
+        if "repo_origin" in repo.remotes:
+            branch_name = repo.active_branch.name
+            repo.git.push("repo_origin", f"HEAD:{branch_name}")
+        else:
+            print("No 'repo_origin' remote found. Cannot push changes.")
 
 
 class GitSettings(BaseSettings):
