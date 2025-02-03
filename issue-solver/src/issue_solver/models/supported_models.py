@@ -1,13 +1,6 @@
+from dataclasses import dataclass
 from enum import StrEnum
-
-
-class AgentModel(StrEnum):
-    GPT4O = "gpt-4o"
-    GPT4O_MINI = "gpt-4o-mini"
-    DEEPSEEK = "deepseek-coder"
-    CLAUDE_35_SONNET = "claude-3-5-sonnet"
-    CLAUDE_35_HAIKU = "claude-3-5-haiku"
-    QWEN25_CODER = "qwen2.5-coder"
+from typing import TypeVar, Generic
 
 
 class SupportedOpenAIModel(StrEnum):
@@ -34,3 +27,19 @@ SupportedAIModel = (
     | SupportedDeepSeekModel
     | SupportedQwenModel
 )
+
+ModelT = TypeVar("ModelT", bound=SupportedAIModel)
+
+
+@dataclass(frozen=True)
+class QualifiedAIModel(Generic[ModelT]):
+    ai_model: ModelT
+    version: str | None = None
+
+    def __repr__(self):
+        if self.version:
+            return f"{self.ai_model.value}-{self.version}"
+        return self.ai_model.value
+
+
+VersionedAIModel = QualifiedAIModel[SupportedAIModel]

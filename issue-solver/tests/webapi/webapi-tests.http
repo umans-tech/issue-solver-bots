@@ -1,0 +1,61 @@
+### Solve an issue with gpt-4o-mini model
+# curl -X 'POST'
+#  'http://127.0.0.1:8000/resolutions/complete'
+#  -H 'accept: application/json'
+#  -H 'Content-Type: application/json'
+#  -d '{
+#  "repo_location": "/Users/wasselalazhar/Umans/marshmallow",
+#  "issue_description": "Hi there!\r\n\r\nI just found quite strange behaviour of TimeDelta field serialization\r\n\r\nfrom marshmallow.fields import TimeDelta\r\nfrom datetime import timedelta\r\n\r\ntd_field = TimeDelta(precision=\"milliseconds\")\r\n\r\nobj = dict()\r\nobj[\"td_field\"] = timedelta(milliseconds=345)\r\n\r\nprint(td_field.serialize(\"td_field\", obj))\r\nOutput of this snippet is 344, but it seems that 345 is correct.\r\n\r\nLooks like a rounding issue here: https:\/\/github.com\/marshmallow-code\/marshmallow\/blob\/dev\/src\/marshmallow\/fields.py#L1474",
+#  "settings": {
+#    "model": "gpt-4o-mini"
+#  },
+#  "max_iter": 10
+#}'
+POST {{BASE_URL}}/resolutions/complete
+accept: application/json
+Content-Type: application/json
+
+{
+  "repo_location": "{{REPO_PATH}}",
+  "issue_description": "Hi there!\r\n\r\nI just found quite strange behaviour of TimeDelta field serialization\r\n\r\nfrom marshmallow.fields import TimeDelta\r\nfrom datetime import timedelta\r\n\r\ntd_field = TimeDelta(precision=\"milliseconds\")\r\n\r\nobj = dict()\r\nobj[\"td_field\"] = timedelta(milliseconds=345)\r\n\r\nprint(td_field.serialize(\"td_field\", obj))\r\nOutput of this snippet is 344, but it seems that 345 is correct.\r\n\r\nLooks like a rounding issue here: https:\/\/github.com\/marshmallow-code\/marshmallow\/blob\/dev\/src\/marshmallow\/fields.py#L1474",
+  "settings": {
+    "agent": "openai-tools",
+    "model": {
+      "ai_model": "gpt-4o-mini"
+    }
+  },
+  "max_iter": 25
+}
+
+### Solve an issue with claude-haiku model
+POST {{BASE_URL}}/resolutions/complete
+accept: application/json
+Content-Type: application/json
+
+{
+  "repo_location": "{{REPO_PATH}}",
+  "issue_description": "Hi there!\r\n\r\nI just found quite strange behaviour of TimeDelta field serialization\r\n\r\nfrom marshmallow.fields import TimeDelta\r\nfrom datetime import timedelta\r\n\r\ntd_field = TimeDelta(precision=\"milliseconds\")\r\n\r\nobj = dict()\r\nobj[\"td_field\"] = timedelta(milliseconds=345)\r\n\r\nprint(td_field.serialize(\"td_field\", obj))\r\nOutput of this snippet is 344, but it seems that 345 is correct.\r\n\r\nLooks like a rounding issue here: https:\/\/github.com\/marshmallow-code\/marshmallow\/blob\/dev\/src\/marshmallow\/fields.py#L1474",
+  "settings": {
+    "agent": "anthropic-tools"
+  },
+  "max_iter": 25
+}
+
+
+### Stream issue resolution with gpt-4o-mini model
+
+POST {{BASE_URL}}/resolutions/stream
+accept: application/json
+Content-Type: application/json
+
+{
+  "repo_location": "{{REPO_PATH}}",
+  "issue_description": "Hi there!\r\n\r\nI just found quite strange behaviour of TimeDelta field serialization\r\n\r\nfrom marshmallow.fields import TimeDelta\r\nfrom datetime import timedelta\r\n\r\ntd_field = TimeDelta(precision=\"milliseconds\")\r\n\r\nobj = dict()\r\nobj[\"td_field\"] = timedelta(milliseconds=345)\r\n\r\nprint(td_field.serialize(\"td_field\", obj))\r\nOutput of this snippet is 344, but it seems that 345 is correct.\r\n\r\nLooks like a rounding issue here: https:\/\/github.com\/marshmallow-code\/marshmallow\/blob\/dev\/src\/marshmallow\/fields.py#L1474",
+  "settings": {
+    "agent": "openai-tools",
+    "model": {
+      "ai_model": "gpt-4o-mini"
+    }
+  },
+  "max_iter": 25
+}

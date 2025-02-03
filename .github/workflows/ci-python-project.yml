@@ -30,5 +30,8 @@ jobs:
       - name: Lint the project
         run: just lint
 
+      - name : Check the typing
+        run: just check-typing
+
       - name: Run tests
         run: just test

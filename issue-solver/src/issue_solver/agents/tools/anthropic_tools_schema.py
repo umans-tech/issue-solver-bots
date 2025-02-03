@@ -1,3 +1,6 @@
+from anthropic.types import ToolParam
+
+
 def bash_description() -> str:
     return """
             Run commands in a bash shell\n
@@ -11,11 +14,11 @@ def bash_description() -> str:
     """
 
 
-def bash_tool() -> dict:
-    return {
-        "name": "bash",
-        "description": bash_description(),
-        "input_schema": {
+def bash_tool() -> ToolParam:
+    return ToolParam(
+        name="bash",
+        description=bash_description(),
+        input_schema={
             "type": "object",
             "properties": {
                 "command": {
@@ -25,7 +28,7 @@ def bash_tool() -> dict:
             },
             "required": ["command"],
         },
-    }
+    )
 
 
 def edit_description() -> str:
@@ -44,11 +47,11 @@ def edit_description() -> str:
     """
 
 
-def edit_tool() -> dict:
-    return {
-        "name": "str_replace_editor",
-        "description": edit_description(),
-        "input_schema": {
+def edit_tool() -> ToolParam:
+    return ToolParam(
+        name="str_replace_editor",
+        description=edit_description(),
+        input_schema={
             "type": "object",
             "properties": {
                 "command": {
@@ -84,4 +87,4 @@ def edit_tool() -> dict:
             },
             "required": ["command", "path"],
         },
-    }
+    )

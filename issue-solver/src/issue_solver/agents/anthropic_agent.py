@@ -1,21 +1,27 @@
 from typing import cast, Any
 
 import anthropic
+from anthropic.types import MessageParam, TextBlockParam, ToolResultBlockParam
 
-from issue_solver import AgentModel
-from issue_solver.agents.coding_agent import TurnOutput, CodingAgent
+from issue_solver.agents.coding_agent import TurnOutput, CodingAgent, Message
 from issue_solver.agents.tools.anthropic_tools_schema import bash_tool, edit_tool
 from issue_solver.agents.tools.base import ToolResult
 from issue_solver.agents.tools.bash import BashTool
 from issue_solver.agents.tools.collection import ToolCollection
 from issue_solver.agents.tools.edit import EditTool
+from issue_solver.models.supported_models import (
+    SupportedAnthropicModel,
+    QualifiedAIModel,
+)
 
 
-class AnthropicAgent(CodingAgent):
+class AnthropicAgent(CodingAgent[SupportedAnthropicModel, MessageParam]):
     def __init__(
         self,
         api_key: str,
-        default_model=AgentModel.CLAUDE_35_HAIKU,
+        default_model: QualifiedAIModel[SupportedAnthropicModel] = QualifiedAIModel(
+            ai_model=SupportedAnthropicModel.CLAUDE_35_HAIKU, version="latest"
+        ),
         base_url: str | None = None,
     ):
         super().__init__()
@@ -31,24 +37,17 @@ class AnthropicAgent(CodingAgent):
     async def run_full_turn(
         self,
         system_message: str,
-        messages: list[dict[str, Any]],
-        model: AgentModel | None = None,
-    ) -> TurnOutput:
-        reasoning_response: anthropic.types.message.Message = (
-            self.client.messages.create(
-                model=model or self.default_model,
-                max_tokens=4096,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": system_message,
-                    }
-                ]
-                + messages,
-                tools=self.tools,
-            )
+        messages: list[MessageParam | Message],
+        model: QualifiedAIModel[SupportedAnthropicModel] | None = None,
+    ) -> TurnOutput[MessageParam]:
+        history = [to_agent_message(one_message) for one_message in messages]
+        reasoning_response = self.client.messages.create(
+            model=str(model) or str(self.default_model),
+            max_tokens=4096,
+            messages=[MessageParam(role="user", content=system_message)] + history,
+            tools=self.tools,
         )
-        turn_output = AnthropicTurnOutput(reasoning_response, messages)
+        turn_output = AnthropicTurnOutput(reasoning_response, history)
 
         if reasoning_response.stop_reason == "tool_use":
             tool_use = next(
@@ -66,36 +65,39 @@ class AnthropicAgent(CodingAgent):
             tool_result_content = _make_api_tool_result(tool_result, tool_use.id)
 
             turn_output.append(
-                {
-                    "role": "user",
-                    "content": [tool_result_content],
-                }
+                MessageParam(
+                    role="user",
+                    content=[tool_result_content],
+                )
             )
 
         return turn_output
 
 
-def _make_api_tool_result(result: ToolResult, tool_use_id: str):
+def _make_api_tool_result(result: ToolResult, tool_use_id: str) -> ToolResultBlockParam:
     """Convert an agent ToolResult to an API ToolResultBlockParam."""
-    tool_result_content = []
-    is_error = False
     if result.error:
-        is_error = True
-        tool_result_content = _maybe_prepend_system_tool_result(result, result.error)
-    else:
-        if result.output:
-            tool_result_content.append(
-                {
-                    "type": "text",
-                    "text": _maybe_prepend_system_tool_result(result, result.output),
-                }
+        return ToolResultBlockParam(
+            type="tool_result",
+            content=_maybe_prepend_system_tool_result(result, result.error),
+            tool_use_id=tool_use_id,
+            is_error=True,
+        )
+
+    tool_result_content: list[TextBlockParam] = []
+    if result.output:
+        tool_result_content.append(
+            TextBlockParam(
+                type="text",
+                text=_maybe_prepend_system_tool_result(result, result.output),
             )
-    return {
-        "type": "tool_result",
-        "content": tool_result_content,
-        "tool_use_id": tool_use_id,
-        "is_error": is_error,
-    }
+        )
+    return ToolResultBlockParam(
+        type="tool_result",
+        content=tool_result_content,
+        tool_use_id=tool_use_id,
+        is_error=False,
+    )
 
 
 def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str) -> str:
@@ -104,28 +106,43 @@ def _maybe_prepend_system_tool_result(result: ToolResult, result_text: str) -> s
     return result_text
 
 
-class AnthropicTurnOutput(TurnOutput):
-    def __init__(self, reasoning_response: anthropic.types.message.Message, messages):
+class AnthropicTurnOutput(TurnOutput[MessageParam]):
+    def __init__(
+        self,
+        reasoning_response: anthropic.types.message.Message,
+        messages: list[MessageParam],
+    ):
         self.reasoning_response = reasoning_response
-        reasoning_message = {
-            "role": reasoning_response.role,
-            "content": [content.model_dump() for content in reasoning_response.content]
-            if reasoning_response.content
-            else [],
-        }
+
+        reasoning_message = MessageParam(
+            role=reasoning_response.role,
+            content=reasoning_response.content,
+        )
         self._messages_history = messages
         self._messages_history.append(reasoning_message)
         self._turn_messages = [reasoning_message]
 
-    def append(self, message: dict[str, Any]) -> None:
+    def append(self, message: MessageParam) -> None:
         self._turn_messages.append(message)
         self._messages_history.append(message)
 
-    def turn_messages(self) -> list[dict[str, Any]]:
+    def turn_messages(self) -> list[MessageParam]:
         return self._turn_messages
 
-    def has_finished(self):
+    def has_finished(self) -> bool:
         return self.reasoning_response.stop_reason == "end_turn"
 
-    def messages_history(self):
+    def messages_history(self) -> list[MessageParam]:
         return self._messages_history
+
+
+def to_agent_message(
+    one_message: MessageParam | Message,
+) -> MessageParam:
+    if isinstance(one_message, Message):
+        return MessageParam(
+            role="user" if one_message.role == "user" else "assistant",
+            content=one_message.content,
+        )
+    else:
+        return one_message

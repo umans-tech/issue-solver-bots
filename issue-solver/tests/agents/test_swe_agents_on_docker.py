@@ -7,7 +7,6 @@ from docker.models.images import ImageCollection
 
 from issue_solver.agents.issue_resolving_agent import (
     ResolveIssueCommand,
-    VersionedAIModel,
 )
 from issue_solver.agents.swe_agents_on_docker import (
     SweAgentOnDocker,
@@ -15,7 +14,7 @@ from issue_solver.agents.swe_agents_on_docker import (
 )
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import OpenAISettings
-from issue_solver.models.supported_models import SupportedOpenAIModel
+from issue_solver.models.supported_models import SupportedOpenAIModel, VersionedAIModel
 
 
 @pytest.fixture
