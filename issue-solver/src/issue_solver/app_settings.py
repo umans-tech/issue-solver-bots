@@ -6,7 +6,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from issue_solver.agents.issue_resolving_agent import (
-    VersionedAIModel,
     VersionedAIModelWithSettings,
 )
 from issue_solver.agents.supported_agents import SupportedAgent
@@ -26,6 +25,7 @@ from issue_solver.models.supported_models import (
     SupportedDeepSeekModel,
     SupportedAnthropicModel,
     SupportedQwenModel,
+    VersionedAIModel,
 )
 
 

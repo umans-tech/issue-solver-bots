@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import ClassVar, Literal
+from typing import Any, ClassVar, Literal, cast
 
 from .base import BaseTool, CLIResult, ToolError, ToolResult
 
@@ -74,9 +74,10 @@ class _BashSession:
             async with asyncio.timeout(self._timeout):
                 while True:
                     await asyncio.sleep(self._output_delay)
-                    # if we read directly from stdout/stderr, it will wait forever for
-                    # EOF. use the StreamReader buffer directly instead.
-                    output = self._process.stdout._buffer.decode()  # pyright: ignore[reportAttributeAccessIssue]
+                    # Access the underlying buffer by casting to Any.
+                    # We know that _buffer is a bytearray.
+                    stdout_buffer = cast(Any, self._process.stdout)._buffer
+                    output = stdout_buffer.decode()
                     if self._sentinel in output:
                         # strip the sentinel and break
                         output = output[: output.index(self._sentinel)]
@@ -90,13 +91,14 @@ class _BashSession:
         if output.endswith("\n"):
             output = output[:-1]
 
-        error = self._process.stderr._buffer.decode()  # pyright: ignore[reportAttributeAccessIssue]
+        stderr_buffer = cast(Any, self._process.stderr)._buffer
+        error = stderr_buffer.decode()
         if error.endswith("\n"):
             error = error[:-1]
 
         # clear the buffers so that the next output can be read correctly
-        self._process.stdout._buffer.clear()  # pyright: ignore[reportAttributeAccessIssue]
-        self._process.stderr._buffer.clear()  # pyright: ignore[reportAttributeAccessIssue]
+        stdout_buffer.clear()
+        stderr_buffer.clear()
 
         return CLIResult(output=output, error=error)
 

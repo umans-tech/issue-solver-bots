@@ -1,14 +1,14 @@
 import inspect
 
-from typing import Any
+from openai.types.shared_params import FunctionDefinition
 
 
-def bash_tool_schema() -> dict[str, Any]:
+def bash_tool_schema() -> FunctionDefinition:
     """Creates JSON schema for bash tool compatible with OpenAI functions."""
-    return {
-        "name": "bash",
-        "description": "Executes bash commands to inspect and modify files in the repository.",
-        "parameters": {
+    return FunctionDefinition(
+        name="bash",
+        description="Executes bash commands to inspect and modify files in the repository.",
+        parameters={
             "type": "object",
             "properties": {
                 "command": {
@@ -18,20 +18,26 @@ def bash_tool_schema() -> dict[str, Any]:
             },
             "required": ["command"],
         },
-    }
+    )
 
 
-def edit_tool_schema() -> dict[str, Any]:
+def edit_tool_schema() -> FunctionDefinition:
     """Creates JSON schema for edit tool compatible with OpenAI functions."""
-    return {
-        "name": "str_replace_editor",
-        "description": "Allows the agent to view, edit, and manipulate files in the repository.",
-        "parameters": {
+    return FunctionDefinition(
+        name="str_replace_editor",
+        description="Allows the agent to view, edit, and manipulate files in the repository.",
+        parameters={
             "type": "object",
             "properties": {
                 "command": {
                     "type": "string",
-                    "enum": ["view", "create", "str_replace", "insert", "undo_edit"],
+                    "enum": [
+                        "view",
+                        "create",
+                        "str_replace",
+                        "insert",
+                        "undo_edit",
+                    ],
                     "description": "The editing command to execute. Options: 'view', 'create', 'str_replace', 'insert', 'undo_edit'.",
                 },
                 "file_text": {
@@ -62,7 +68,7 @@ def edit_tool_schema() -> dict[str, Any]:
             },
             "required": ["command", "path"],
         },
-    }
+    )
 
 
 def function_to_schema(func) -> dict:

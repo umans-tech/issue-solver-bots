@@ -1,6 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Literal, get_args, Any
 
 from .base import BaseTool, CLIResult, ToolError, ToolResult
 from .run import maybe_truncate, run
@@ -38,15 +38,15 @@ class EditTool(BaseTool):
     async def __call__(
         self,
         *,
-        command: Command,
-        path: str,
+        command: Command | None = None,
+        path: str = "",
         file_text: str | None = None,
         view_range: list[int] | None = None,
         old_str: str | None = None,
         new_str: str | None = None,
         insert_line: int | None = None,
         **kwargs,
-    ):
+    ) -> Any:
         _path = Path(path)
         self.validate_path(command, _path)
         if command == "view":
@@ -77,7 +77,8 @@ class EditTool(BaseTool):
             f'Unrecognized command {command}. The allowed commands for the {self.name} tool are: {", ".join(get_args(Command))}'
         )
 
-    def validate_path(self, command: str, path: Path):
+    @staticmethod
+    def validate_path(command: str | None, path: Path):
         """
         Check that the path/command combination is valid.
         """

@@ -7,7 +7,7 @@ class BaseTool(metaclass=ABCMeta):
     """Abstract base class for defined tools."""
 
     @abstractmethod
-    def __call__(self, **kwargs) -> Any:
+    async def __call__(self, **kwargs) -> Any:
         """Executes the tool with the given arguments."""
         ...
 

@@ -4,18 +4,7 @@ from pathlib import Path
 
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
-from issue_solver.models.supported_models import SupportedAIModel
-
-
-@dataclass(frozen=True)
-class VersionedAIModel:
-    ai_model: SupportedAIModel
-    version: str | None = None
-
-    def __repr__(self):
-        if self.version:
-            return f"{self.ai_model.value}-{self.version}"
-        return self.ai_model.value
+from issue_solver.models.supported_models import VersionedAIModel
 
 
 @dataclass(frozen=True)
