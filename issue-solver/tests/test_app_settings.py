@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from pydantic_core import Url
 
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.app_settings import IssueSettings, AppSettings
+from issue_solver.app_settings import IssueSettings, SolveCommandSettings
 from issue_solver.issues.issue import IssueInternalId, IssueInfo
 from issue_solver.issues.trackers.azure_devops_issue_tracker import (
     AzureDevOpsIssueTracker,
@@ -34,7 +34,7 @@ from issue_solver.models.supported_models import (
 @pytest.fixture
 def clean_env() -> None:
     # to test in isolation and avoid side effects due to local env vars
-    AppSettings.model_config["env_file"] = ""
+    SolveCommandSettings.model_config["env_file"] = ""
     os.environ.clear()
 
 
@@ -47,7 +47,7 @@ def test_minimal_valid_app_settings_with_default_values(clean_env: None) -> None
     os.environ["OPENAI_API_KEY"] = "openai-test-key"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert app_settings.issue == IssueInfo(description=issue_description)
@@ -93,7 +93,7 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic(
     os.environ["GIT__USER_NAME"] = git_user_name
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     selected_issue_tracker = app_settings.selected_issue_tracker
@@ -124,7 +124,7 @@ def test_openai_model_with_required_fields(clean_env: None) -> None:
     os.environ["AI_MODEL"] = SupportedOpenAIModel.GPT4O
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
     model_settings = app_settings.model_settings
 
     # Then
@@ -141,7 +141,7 @@ def test_deepseek_model_with_required_fields(clean_env: None) -> None:
     os.environ["DEEPSEEK_API_KEY"] = "deepseek-key"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
     model_settings = app_settings.model_settings
 
     # Then
@@ -160,7 +160,7 @@ def test_anthropic_model_with_required_fields(clean_env: None) -> None:
     os.environ["ANTHROPIC_BASE_URL"] = "https://api.anthropic.example.org"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
     model_settings = app_settings.model_settings
 
     # Then
@@ -178,7 +178,7 @@ def test_qwen_model_with_required_fields(clean_env: None) -> None:
     os.environ["QWEN_API_KEY"] = "qwen-test-key"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
     model_settings = app_settings.model_settings
 
     # Then
@@ -196,7 +196,7 @@ def test_issue_settings_gitlab_tracker(clean_env: None) -> None:
     os.environ["ISSUE__REF__IID"] = "888"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -215,7 +215,7 @@ def test_issue_info_no_tracker(clean_env: None) -> None:
     os.environ["ISSUE__DESCRIPTION"] = "Some plain description"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueInfo)
@@ -230,7 +230,7 @@ def test_custom_repo_path(clean_env: None) -> None:
     os.environ["REPO_PATH"] = "/custom/repo/path"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert app_settings.repo_path == Path("/custom/repo/path")
@@ -244,7 +244,7 @@ def test_invalid_model_raises_validation_error(clean_env: None) -> None:
 
     # When / Then
     with pytest.raises(ValidationError):
-        _ = AppSettings()
+        _ = SolveCommandSettings()
 
 
 def test_incomplete_tracker_info_raises_error(clean_env: None) -> None:
@@ -255,7 +255,7 @@ def test_incomplete_tracker_info_raises_error(clean_env: None) -> None:
 
     # When / Then
     with pytest.raises(ValidationError):
-        _ = AppSettings()
+        _ = SolveCommandSettings()
 
 
 def test_selected_model_with_settings(clean_env: None) -> None:
@@ -268,7 +268,7 @@ def test_selected_model_with_settings(clean_env: None) -> None:
     os.environ["ANTHROPIC_BASE_URL"] = "https://api.anthropic.example.org"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
     model_with_settings = app_settings.selected_model_with_settings
 
     # Then
@@ -291,7 +291,7 @@ def test_github_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -312,7 +312,7 @@ def test_jira_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -331,7 +331,7 @@ def test_trello_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -348,7 +348,7 @@ def test_azure_devops_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -366,7 +366,7 @@ def test_http_based_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)
@@ -385,7 +385,7 @@ def test_notion_tracker_is_interpreted_correctly(clean_env: None) -> None:
     os.environ["GIT__ACCESS_TOKEN"] = "some-git-access-token"
 
     # When
-    app_settings = AppSettings()
+    app_settings = SolveCommandSettings()
 
     # Then
     assert isinstance(app_settings.issue, IssueSettings)

@@ -35,7 +35,7 @@ class IssueSettings:
     ref: IssueReference
 
 
-class AppSettings(BaseSettings):
+class SolveCommandSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
         env_file=".env",
