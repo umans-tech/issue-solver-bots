@@ -1,0 +1,15 @@
+stages:
+  - review
+
+code_review:
+  stage: review
+  image: python:3.9
+  script:
+    # Installation des dépendances si nécessaire
+    - pip install -r requirements.txt || echo "Aucune dépendance n'est définie."
+    # Lancer la revue de code via le justfile (attention à la configuration de l'image)
+    - just review
+  rules:
+    # Le job se déclenche uniquement en contexte de merge request
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: always
