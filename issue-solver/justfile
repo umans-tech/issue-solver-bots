@@ -29,4 +29,8 @@ api-start:
 
 # ▶️ Run standalone issue solver
 run:
-    sudo uv run issue-solver
+    uv run issue-solver help
+
+# 🧩 Run cudu cli to solve issue
+solve:
+    sudo uv run issue-solver solve
