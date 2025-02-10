@@ -1,0 +1,20 @@
+.code_review:
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  before_script:
+    - apt install just
+    # install git
+    - apt install git
+    # git clone git@github.com:umans-tech/issue-solver-bots.git
+    - git clone git@github.com:umans-tech/issue-solver-bots.git
+  script:
+    - just review
+  rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: always
+  variables:
+    UV_VERSION: 0.5
+    PYTHON_VERSION: 3.12
+    BASE_LAYER: bookworm-slim
+    # GitLab CI creates a separate mountpoint for the build directory,
+    # so we need to copy instead of using hard links.
+    UV_LINK_MODE: copy
