@@ -1,0 +1,38 @@
+#!/usr/bin/env just --justfile
+
+set dotenv-load
+
+ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
+    echo "app-$GH_PR_NUMBER"; \
+  else \
+    branch=$(git rev-parse --abbrev-ref HEAD | sed "s/[\\/]/-/g"); \
+    if [ "$branch" = "main" ]; then \
+      echo "prod"; \
+    else \
+      echo "app-$branch"; \
+    fi; \
+  fi'`
+
+branch_name := `bash -c 'git rev-parse --abbrev-ref HEAD'`
+
+# 🎬 Initialize terraform workspace for apps deployment
+init:
+    @echo ">>> Using workspace: {{ws}}"
+    @echo ">>> Using branch name: {{branch_name}}"
+    @terraform workspace select {{ws}} 2>/dev/null || terraform workspace new {{ws}}
+    @terraform init
+
+# 🗺️ Plan changes for apps deployment
+plan: init
+    @terraform plan -var "branch_name={{branch_name}}"
+
+# 🚀 Apply changes for apps deployment
+apply: init
+    @terraform apply -var "branch_name={{branch_name}}" -auto-approve
+    @echo ">>> Amplify App URL:"
+    @terraform output conversational_ui_url
+
+# 💣 Destroy all resources for apps deployment
+destroy: init
+    @terraform destroy -var "branch_name={{branch_name}}" -auto-approve
+    @echo ">>> Destroyed all resources for branch '{{branch_name}}'."
