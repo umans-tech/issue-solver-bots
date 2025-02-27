@@ -48,3 +48,10 @@ variable "anthropic_api_key" {
   sensitive = true
   default   = ""
 }
+
+variable "rds_db_password" {
+  type      = string
+  sensitive = true
+  description = "The password for the RDS PostgreSQL database."
+  default = "s3cr3rtxpassword"
+}

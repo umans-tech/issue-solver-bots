@@ -42,8 +42,9 @@ resource "aws_amplify_app" "conversational_ui" {
 
   environment_variables = {
     AMPLIFY_MONOREPO_APP_ROOT = "conversational-ui"
+    NEXT_AUTH_URL             = "https://feat-ai-chatbot.d1jddlm1zh18l4.amplifyapp.com"
     AUTH_SECRET               = var.auth_secret
-    POSTGRES_URL              = var.ui_db_url
+    POSTGRES_URL = "postgresql://${aws_db_instance.postgres_rds.username}:${var.rds_db_password}@${aws_db_instance.postgres_rds.address}:${aws_db_instance.postgres_rds.port}/${aws_db_instance.postgres_rds.db_name}?sslmode=require"
     BLOB_READ_WRITE_TOKEN     = var.ui_blob_read_write_token
     BLOB_ENDPOINT             = var.ui_blob_endpoint
     OPENAI_BASE_URL           = var.openai_base_url
