@@ -3,13 +3,13 @@
 set dotenv-load
 
 ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
-    echo "app-$GH_PR_NUMBER"; \
+    echo "pr-$GH_PR_NUMBER"; \
   else \
     branch=$(git rev-parse --abbrev-ref HEAD | sed "s/[\\/]/-/g"); \
     if [ "$branch" = "main" ]; then \
-      echo "prod"; \
+      echo "production"; \
     else \
-      echo "app-$branch"; \
+      echo "pr-$branch"; \
     fi; \
   fi'`
 
@@ -29,7 +29,7 @@ plan: init
 # 🚀 Apply changes for apps deployment
 apply: init
     @terraform apply -var "branch_name={{branch_name}}" -auto-approve
-    @echo ">>> Amplify App URL:"
+    @echo ">>> Deployed App URL:"
     @terraform output conversational_ui_url
 
 # 💣 Destroy all resources for apps deployment
