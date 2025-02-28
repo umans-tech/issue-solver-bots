@@ -1,6 +1,6 @@
 #!/usr/bin/env just --justfile
 
-set dotenv-load
+set dotenv-load := true
 
 ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
     echo "pr-$GH_PR_NUMBER"; \
@@ -12,27 +12,33 @@ ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
       echo "pr-$branch"; \
     fi; \
   fi'`
-
 branch_name := `bash -c 'git rev-parse --abbrev-ref HEAD'`
 
 # 🎬 Initialize terraform workspace for apps deployment
 init:
-    @echo ">>> Using workspace: {{ws}}"
-    @echo ">>> Using branch name: {{branch_name}}"
-    @terraform workspace select {{ws}} 2>/dev/null || terraform workspace new {{ws}}
+    @echo ">>> Using workspace: {{ ws }}"
+    @echo ">>> Using branch name: {{ branch_name }}"
+    @terraform workspace select {{ ws }} 2>/dev/null || terraform workspace new {{ ws }}
     @terraform init
 
 # 🗺️ Plan changes for apps deployment
 plan: init
-    @terraform plan -var "branch_name={{branch_name}}"
+    @terraform plan -var "branch_name={{ branch_name }}"
 
 # 🚀 Apply changes for apps deployment
 apply: init
-    @terraform apply -var "branch_name={{branch_name}}" -auto-approve
+    @terraform apply -var "branch_name={{ branch_name }}" -auto-approve
     @echo ">>> Deployed App URL:"
     @terraform output conversational_ui_url
 
+# ▶️ Start first Amplify build for apps deployment
+start:
+    @echo ">>> Starting the first Amplify build..."
+    echo ">>> Starting the first Amplify build for $(terraform output -raw conversational_ui_app_id)..." && \
+    aws amplify start-job --app-id $(terraform output -raw conversational_ui_app_id) --branch-name {{ branch_name }} --job-type RELEASE && \
+    echo ">>> Amplify job started for app ID $(terraform output -raw conversational_ui_app_id) on branch '{{ branch_name }}'."
+
 # 💣 Destroy all resources for apps deployment
 destroy: init
-    @terraform destroy -var "branch_name={{branch_name}}" -auto-approve
-    @echo ">>> Destroyed all resources for branch '{{branch_name}}'."
+    @terraform destroy -var "branch_name={{ branch_name }}" -auto-approve
+    @echo ">>> Destroyed all resources for branch '{{ branch_name }}'."

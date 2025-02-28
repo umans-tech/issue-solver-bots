@@ -1,90 +1,65 @@
-terraform {
-  required_providers {
-    vercel = {
-      source  = "vercel/vercel"
-      version = "~> 2.0"
-    }
+resource "aws_iam_role" "conversational_ui_amplify_role" {
+  name = "umans-conversational-ui-amplify-role-${local.environment_name}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "amplify.eu-west-3.amazonaws.com",
+            "amplify.amazonaws.com",
+            "codebuild.eu-west-3.amazonaws.com",
+            "codebuild.amazonaws.com"
+          ]
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+data "aws_iam_policy" "administrator_access_amplify" {
+  name = "AdministratorAccess-Amplify"
+}
+
+resource "aws_iam_role_policy_attachment" "conversational_ui_amplify_attach" {
+  role       = aws_iam_role.conversational_ui_amplify_role.name
+  policy_arn = data.aws_iam_policy.administrator_access_amplify.arn
+}
+
+resource "aws_amplify_app" "conversational_ui" {
+  name                 = "umans-conversational-ui${local.environment_name_suffix}"
+  platform             = "WEB_COMPUTE"
+  repository           = "https://github.com/umans-tech/issue-solver-bots.git"
+  oauth_token          = var.github_oauth_token
+  iam_service_role_arn = aws_iam_role.conversational_ui_amplify_role.arn
+
+  build_spec = file("${path.module}/conversational-ui-amplify-buildspec.yml")
+  environment_variables = {
+    AMPLIFY_MONOREPO_APP_ROOT = "conversational-ui"
   }
 }
 
-provider "vercel" {
-  api_token = var.vercel_api_token
-  team      = "umans"
-}
-
-resource "vercel_project" "conversational_ui" {
-  name      = local.conversational_ui_project_name
-  framework = "nextjs"
-}
-
-resource "vercel_project_environment_variables" "env_vars" {
-  project_id = vercel_project.conversational_ui.id
-  variables = [
-    {
-      key   = "AUTH_URL"
-      value = local.auth_url
-      target = [local.vercel_deployment_target]
-    },
-    {
-      key   = "NEXT_AUTH_URL"
-      value = local.auth_url
-      target = [local.vercel_deployment_target]
-    },
-    {
-      key       = "AUTH_SECRET"
-      value     = var.auth_secret
-      target = [local.vercel_deployment_target]
-      sensitive = true
-    },
-    {
-      key       = "POSTGRES_URL"
-      value     = var.ui_db_url
-      target = [local.vercel_deployment_target]
-      sensitive = true
-    },
-    {
-      key       = "BLOB_READ_WRITE_TOKEN"
-      value     = var.ui_blob_read_write_token
-      target = [local.vercel_deployment_target]
-      sensitive = true
-    },
-    {
-      key   = "BLOB_ENDPOINT"
-      value = var.ui_blob_endpoint
-      target = [local.vercel_deployment_target]
-    },
-    {
-      key   = "OPENAI_BASE_URL"
-      value = var.openai_base_url
-      target = [local.vercel_deployment_target]
-    },
-    {
-      key       = "OPENAI_API_KEY"
-      value     = var.openai_api_key
-      target = [local.vercel_deployment_target]
-      sensitive = true
-    },
-    {
-      key       = "ANTHROPIC_API_KEY"
-      value     = var.anthropic_api_key
-      target = [local.vercel_deployment_target]
-      sensitive = true
-    },
-    {
-      key   = "ANTHROPIC_BASE_URL"
-      value = var.anthropic_base_url
-      target = [local.vercel_deployment_target]
-    }
-  ]
-}
-
-data "vercel_project_directory" "conversational_ui" {
-  path = "../../conversational-ui"
-}
-
-resource "vercel_deployment" "conversational_ui" {
-  project_id  = vercel_project.conversational_ui.id
-  files       = data.vercel_project_directory.conversational_ui.files
-  path_prefix = data.vercel_project_directory.conversational_ui.path
-  production  = local.vercel_deployment_target == "production"
+resource "aws_amplify_branch" "conversational_ui_branch" {
+  app_id            = aws_amplify_app.conversational_ui.id
+  framework         = "Next.js - SSR"
+  branch_name       = var.branch_name
+  enable_auto_build = true
+  environment_variables = {
+    AMPLIFY_MONOREPO_APP_ROOT = "conversational-ui"
+    AUTH_URL                  = "https://${replace(var.branch_name, "/", "-")}.${aws_amplify_app.conversational_ui.default_domain}/api/auth/session"
+    NEXT_AUTH_URL             = "https://${replace(var.branch_name, "/", "-")}.${aws_amplify_app.conversational_ui.default_domain}/api/auth/session"
+    AUTH_SECRET               = var.auth_secret
+    POSTGRES_URL              = var.ui_db_url
+    BLOB_READ_WRITE_TOKEN     = var.ui_blob_read_write_token
+    BLOB_ENDPOINT             = var.ui_blob_endpoint
+    OPENAI_BASE_URL           = var.openai_base_url
+    OPENAI_API_KEY            = var.openai_api_key
+    ANTHROPIC_API_KEY         = var.anthropic_api_key
+    ANTHROPIC_BASE_URL        = var.anthropic_base_url
+  }
 }
