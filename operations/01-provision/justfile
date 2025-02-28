@@ -1,0 +1,46 @@
+#!/usr/bin/env just --justfile
+
+set dotenv-load := true
+
+ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
+    echo "pr-$GH_PR_NUMBER"; \
+  else \
+    branch=$(git rev-parse --abbrev-ref HEAD | sed "s/[\\/]/-/g"); \
+    if [ "$branch" = "main" ]; then \
+      echo "production"; \
+    else \
+      echo "pr-$branch"; \
+    fi; \
+  fi'`
+branch_name := `bash -c 'git rev-parse --abbrev-ref HEAD'`
+
+# 🎬 Initialize terraform workspace for resources provisionning
+init:
+    @echo ">>> Using workspace: {{ ws }}"
+    @echo ">>> Using branch name: {{ branch_name }}"
+    @terraform workspace select {{ ws }} 2>/dev/null || terraform workspace new {{ ws }}
+    @terraform init
+
+# 🗺️ Plan changes for resources provisionning
+plan: init
+    @terraform plan -var "branch_name={{ branch_name }}"
+
+# 🚀 Apply changes for resources provisionning
+apply: init
+    @terraform apply -var "branch_name={{ branch_name }}" -auto-approve
+    @echo ">>> Transaction Pooler Connection (PostgreSQL):"
+    @terraform output -raw transaction_pooler_connection_string
+    @echo ">>> Transaction Pooler Connection (JDBC):"
+    @terraform output -raw transaction_pooler_jdbc_connection_string
+
+# 👀 Show outputs for resources provisionning
+output:
+    @echo "\n>>> Transaction Pooler Connection (PostgreSQL): ⚡️🔌🐘"
+    @terraform output -raw transaction_pooler_connection_string
+    @echo "\n>>> Transaction Pooler Connection (JDBC): ☕️️🔌🐘"
+    @terraform output -raw transaction_pooler_jdbc_connection_string
+
+# 💣 Destroy all provisionned resources
+destroy: init
+    @terraform destroy -var "branch_name={{ branch_name }}" -auto-approve
+    @echo ">>> Destroyed all resources for branch '{{ branch_name }}'."
