@@ -1,14 +1,4 @@
-variable "github_oauth_token" {
-  type      = string
-  sensitive = true
-}
-
 variable "auth_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "ui_db_url" {
   type      = string
   sensitive = true
 }
