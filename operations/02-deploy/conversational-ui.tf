@@ -38,7 +38,7 @@ resource "vercel_project_environment_variables" "env_vars" {
     },
     {
       key       = "POSTGRES_URL"
-      value     = var.ui_db_url
+      value     = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string
       target = [local.vercel_deployment_target]
       sensitive = true
     },
