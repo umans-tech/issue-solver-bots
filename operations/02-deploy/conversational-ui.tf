@@ -65,6 +65,12 @@ resource "vercel_project_environment_variables" "env_vars" {
       sensitive = true
     },
     {
+      key       = "GOOGLE_GENERATIVE_AI_API_KEY"
+      value     = var.google_generative_ai_api_key
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
       key       = "ANTHROPIC_API_KEY"
       value     = var.anthropic_api_key
       target = [local.vercel_deployment_target]

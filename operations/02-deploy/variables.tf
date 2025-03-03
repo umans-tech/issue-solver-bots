@@ -28,6 +28,12 @@ variable "openai_api_key" {
   default   = ""
 }
 
+variable "google_generative_ai_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "anthropic_base_url" {
   type    = string
   default = ""
