@@ -5,7 +5,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 // Initialize S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || '',
+  region: process.env.S3_AWS_REGION || '',
   endpoint: process.env.AWS_ENDPOINT || '',
   forcePathStyle: true,
   credentials: {

@@ -67,8 +67,8 @@ resource "vercel_project_environment_variables" "env_vars" {
       sensitive = true
     },
     {
-      key       = "AWS_REGION"
-      value     = var.aws_region
+      key       = "S3_AWS_REGION"
+      value     = var.s3_aws_region
       target = [local.vercel_deployment_target]
       sensitive = true
     },

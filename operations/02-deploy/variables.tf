@@ -21,7 +21,7 @@ variable "s3_bucket_name" {
   default   = ""
 }
 
-variable "aws_region" {
+variable "s3_aws_region" {
   type      = string
   sensitive = true
   default   = ""
