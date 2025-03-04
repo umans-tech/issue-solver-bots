@@ -120,6 +120,11 @@ jobs:
           TF_VAR_ui_blob_endpoint: ${{ secrets.TF_VAR_UI_BLOB_ENDPOINT }}
           TF_VAR_openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
+          TF_VAR_aws_access_key_id: ${{ secrets.TF_VAR_AWS_ACCESS_KEY_ID }}
+          TF_VAR_aws_secret_access_key: ${{ secrets.TF_VAR_AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_s3_bucket_name: ${{ secrets.TF_VAR_S3_BUCKET_NAME }}
+          TF_VAR_aws_region: ${{ secrets.TF_VAR_AWS_REGION }}
+          TF_VAR_aws_endpoint: ${{ secrets.TF_VAR_AWS_ENDPOINT }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
 
   cleanup:

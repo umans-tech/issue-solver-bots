@@ -30,6 +30,7 @@
     "@ai-sdk/google": "1.1.17",
     "@ai-sdk/openai": "1.1.15",
     "@ai-sdk/provider": "1.0.9",
+    "@aws-sdk/client-s3": "^3.758.0",
     "@codemirror/lang-javascript": "^6.2.3",
     "@codemirror/lang-python": "^6.1.7",
     "@codemirror/state": "^6.5.2",

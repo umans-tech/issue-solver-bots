@@ -1,93 +1,88 @@
 import { z } from 'zod';
-import { Session } from 'next-auth';
-import { DataStreamWriter, smoothStream, streamText, tool } from 'ai';
-import { generateUUID } from '@/lib/utils';
-import { myProvider } from '../models';
-import fs from 'fs';
-import path from 'path';
+import { tool } from 'ai';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
-interface CodebaseAssistantProps {
-  session: Session;
-  dataStream: DataStreamWriter;
-}
 
-export const codebaseAssistant = ({
-  session,
-  dataStream,
-}: CodebaseAssistantProps) =>
-  tool({
-    description: 'Get help from an AI assistant with knowledge of your codebase or any reference of codebase from the user',
-    parameters: z.object({
-      query: z
-        .string()
-        .describe('The question or task related to the codebase'),
-      codebase: z
-        .string()
-        .optional()
-        .describe('The name of the codebase to use (if multiple are available)'),
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || '',
+  endpoint: process.env.AWS_ENDPOINT || '',
+  forcePathStyle: true,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
+
+// Define the query type enum with detailed descriptions
+const QueryTypeEnum = z.enum([
+  'codebase_full',
+  'adr',
+  'glossary'
+]);
+
+// Descriptions for each query type
+const queryTypeDescriptions = {
+  codebase_full: 'Returns the complete content of the codebase, including all files, directories, and their contents.',
+  adr: 'Returns Architectural Decision Records (ADRs), coding guidelines, and standards that govern the development of the codebase.',
+  glossary: 'Returns the Ubiquitous Language Glossary that maps technical code terms to business concept terms, facilitating consistent understanding across technical and domain contexts.'
+};
+
+// Map query types to their corresponding S3 file keys
+const queryTypeToFileMap = {
+  codebase_full: 'digest_small.txt',
+  adr: 'adrs.txt',
+  glossary: 'glossary.txt'
+};
+
+export const codebaseAssistant = tool({
+  description: 'Retrieve information about the codebase of the current project.',
+  parameters: z.object({
+      query: QueryTypeEnum
+        .describe('The type of codebase information to retrieve: \n' +
+          '- codebase_full: ' + queryTypeDescriptions.codebase_full + '\n' +
+          '- adr: ' + queryTypeDescriptions.adr + '\n' +
+          '- glossary: ' + queryTypeDescriptions.glossary),
     }),
-    execute: async ({ query, codebase }) => {
-      // Get the codebase content from the digest.txt file
-      const codebaseContent = getCodebaseContent();
-      
-      if (!codebaseContent) {
-        return {
-          error: 'Codebase digest file not found or could not be read',
-        };
-      }
-
-      // Create a system prompt that includes the codebase content
-      const systemPrompt = `You are a helpful coding assistant with knowledge of the following codebase. 
-Use this knowledge to answer questions and provide assistance.
-
-CODEBASE CONTENT:
-${codebaseContent}
-
-Answer questions about this codebase in a helpful, accurate, and concise manner.
-Format your response using Markdown for code blocks, headings, and other formatting.
-Use syntax highlighting for code blocks by specifying the language.`;
-
-      // Stream the response from the model
-      let responseContent = '';
-      
-      const { fullStream } = streamText({
-        model: myProvider.languageModel('codebase-model'),
-        system: systemPrompt,
-        messages: [{ role: 'user', content: query }],
-        experimental_generateMessageId: generateUUID,
-        experimental_transform: smoothStream({ chunking: 'word' }),
-      });
-
-      // Process the stream and collect the full response
-      for await (const delta of fullStream) {
-        if (delta.type === 'text-delta') {
-          responseContent += delta.textDelta;
-        }
-      }
-
-      // Return the complete response as a simple string
-      return responseContent || 'No response was generated. Please try again.';
+    execute: async ({ query }) => {
+      const codebaseContent = await getCodebaseContent(query);
+      return codebaseContent || 'No response was generated. Please try again.';
     },
   });
 
-// This function reads the codebase content from the digest.txt file in the same directory
-function getCodebaseContent(): string | null {
+// This function reads the codebase content from the specified file in the S3 bucket
+export async function getCodebaseContent(queryType: z.infer<typeof QueryTypeEnum>): Promise<string | null> {
   try {
-    // Path to the digest.txt file
-    // Using process.cwd() which points to the root of the project
-    const digestPath = path.join(process.cwd(), 'lib', 'ai', 'tools', 'digest.txt');
+    // Get the file key based on the query type
+    const fileKey = queryTypeToFileMap[queryType];
     
-    // Check if the file exists
-    if (!fs.existsSync(digestPath)) {
-      console.error('Digest file not found at:', digestPath);
+    // Try to get the file from S3
+    try {
+      const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: fileKey,
+      });
+      
+      const response = await s3Client.send(command);
+      
+      // Convert the stream to a string
+      if (response.Body) {
+        const streamReader = response.Body.transformToString();
+        return streamReader;
+      }
+      
+      console.error(`S3 response body is empty for ${fileKey}`);
+      return null;
+    } catch (s3Error) {
+      console.error(`Error fetching ${fileKey} from S3:`, s3Error);
+      // No fallback available, return null
+      console.error(`Unable to fetch ${fileKey} from S3`);
       return null;
     }
-    
-    // Read the file
-    const digestContent = fs.readFileSync(digestPath, 'utf-8');
-    return digestContent;
   } catch (error) {
-    console.error('Error reading digest.txt:', error);
+    console.error(`Error reading file for query type ${queryType}:`, error);
     return null;
   }
 } 

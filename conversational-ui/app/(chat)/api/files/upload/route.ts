@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -17,6 +17,19 @@ const FileSchema = z.object({
     }),
 });
 
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || '',
+  endpoint: process.env.AWS_ENDPOINT || '',
+  forcePathStyle: true,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
+const AWS_ENDPOINT = process.env.AWS_ENDPOINT || '';
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -51,12 +64,27 @@ export async function POST(request: Request) {
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const data = await put(`${filename}`, fileBuffer, {
-        access: 'public',
+      // Upload to S3 instead of Vercel Blob
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: filename,
+        Body: Buffer.from(fileBuffer),
+        ContentType: file.type,
       });
+
+      await s3Client.send(command);
+
+      // Return similar data structure to maintain compatibility
+      const data = {
+        url: `${AWS_ENDPOINT}/${BUCKET_NAME}/${filename}`,
+        pathname: filename,
+        contentType: file.type,
+        size: file.size,
+      };
 
       return NextResponse.json(data);
     } catch (error) {
+      console.error('Upload failed:', error);
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
   } catch (error) {

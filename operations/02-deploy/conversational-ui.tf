@@ -49,6 +49,36 @@ resource "vercel_project_environment_variables" "env_vars" {
       sensitive = true
     },
     {
+      key       = "AWS_ACCESS_KEY_ID"
+      value     = var.aws_access_key_id
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key       = "AWS_SECRET_ACCESS_KEY"
+      value     = var.aws_secret_access_key
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key       = "S3_BUCKET_NAME"
+      value     = var.s3_bucket_name
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key       = "AWS_REGION"
+      value     = var.aws_region
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key       = "AWS_ENDPOINT"
+      value     = var.aws_endpoint
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
       key   = "BLOB_ENDPOINT"
       value = var.ui_blob_endpoint
       target = [local.vercel_deployment_target]
