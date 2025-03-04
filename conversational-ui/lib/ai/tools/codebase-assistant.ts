@@ -3,18 +3,6 @@ import { tool } from 'ai';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.S3_AWS_REGION || '',
-  endpoint: process.env.AWS_ENDPOINT || '',
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
-
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
 
 // Define the query type enum with detailed descriptions
 const QueryTypeEnum = z.enum([
@@ -40,20 +28,34 @@ const queryTypeToFileMap = {
 export const codebaseAssistant = tool({
   description: 'Retrieve information about the codebase of the current project.',
   parameters: z.object({
-      query: QueryTypeEnum
-        .describe('The type of codebase information to retrieve: \n' +
-          '- codebase_full: ' + queryTypeDescriptions.codebase_full + '\n' +
-          '- adr: ' + queryTypeDescriptions.adr + '\n' +
-          '- glossary: ' + queryTypeDescriptions.glossary),
+    query: QueryTypeEnum
+    .describe('The type of codebase information to retrieve: \n' +
+      '- codebase_full: ' + queryTypeDescriptions.codebase_full + '\n' +
+      '- adr: ' + queryTypeDescriptions.adr + '\n' +
+      '- glossary: ' + queryTypeDescriptions.glossary),
     }),
     execute: async ({ query }) => {
       const codebaseContent = await getCodebaseContent(query);
       return codebaseContent || 'No response was generated. Please try again.';
     },
   });
-
-// This function reads the codebase content from the specified file in the S3 bucket
-export async function getCodebaseContent(queryType: z.infer<typeof QueryTypeEnum>): Promise<string | null> {
+  
+  // This function reads the codebase content from the specified file in the S3 bucket
+  export async function getCodebaseContent(queryType: z.infer<typeof QueryTypeEnum>): Promise<string | null> {
+  
+    // Initialize S3 client
+  const s3Client = new S3Client({
+    region: process.env.S3_AWS_REGION || '',
+    endpoint: process.env.AWS_ENDPOINT || '',
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+  });
+  
+  const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
+  
   try {
     // Get the file key based on the query type
     const fileKey = queryTypeToFileMap[queryType];

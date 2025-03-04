@@ -17,52 +17,53 @@ const FileSchema = z.object({
     }),
 });
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.S3_AWS_REGION || '',
-  endpoint: process.env.AWS_ENDPOINT || '',
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
-
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
-const AWS_ENDPOINT = process.env.AWS_ENDPOINT || '';
 export async function POST(request: Request) {
   const session = await auth();
-
+  
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
+  
   if (request.body === null) {
     return new Response('Request body is empty', { status: 400 });
   }
-
+  
   try {
     const formData = await request.formData();
     const file = formData.get('file') as Blob;
-
+    
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
-
+    
     const validatedFile = FileSchema.safeParse({ file });
-
+    
     if (!validatedFile.success) {
       const errorMessage = validatedFile.error.errors
-        .map((error) => error.message)
-        .join(', ');
-
+      .map((error) => error.message)
+      .join(', ');
+      
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
-
+    
     // Get filename from formData since Blob doesn't have name property
     const filename = (formData.get('file') as File).name;
     const fileBuffer = await file.arrayBuffer();
-
+    
+    // Initialize S3 client
+    const s3Client = new S3Client({
+      region: process.env.S3_AWS_REGION || '',
+      endpoint: process.env.AWS_ENDPOINT || '',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
+    });
+    
+    const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
+    const AWS_ENDPOINT = process.env.AWS_ENDPOINT || '';
+    
     try {
       // Upload to S3 instead of Vercel Blob
       const command = new PutObjectCommand({
