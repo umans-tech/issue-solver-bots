@@ -3,34 +3,19 @@ variable "auth_secret" {
   sensitive = true
 }
 
-variable "aws_access_key_id" {
+variable "ui_blob_access_key_id" {
   type      = string
   sensitive = true
-  default   = ""
 }
 
-variable "aws_secret_access_key" {
-  type      = string
-  sensitive = true
-  default   = ""
+variable "ui_blob_bucket_name" {
+  type        = string
+  description = "The name of the S3 bucket where the UI assets are stored"
 }
 
-variable "s3_bucket_name" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "s3_aws_region" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "aws_endpoint" {
-  type      = string
-  sensitive = true
-  default   = ""
+variable "ui_blob_region" {
+  type        = string
+  description = "The region of the S3 bucket where the UI assets are stored"
 }
 
 variable "ui_blob_read_write_token" {
@@ -78,5 +63,5 @@ variable "anthropic_api_key" {
 variable "vercel_api_token" {
   description = "Vercel API Token"
   type        = string
-  sensitive = true
+  sensitive   = true
 }

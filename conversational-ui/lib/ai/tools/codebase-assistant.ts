@@ -1,7 +1,6 @@
-import { z } from 'zod';
-import { tool } from 'ai';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-
+import {z} from 'zod';
+import {tool} from 'ai';
+import {GetObjectCommand, S3Client} from '@aws-sdk/client-s3';
 
 
 // Define the query type enum with detailed descriptions
@@ -45,16 +44,16 @@ export const codebaseAssistant = tool({
   
     // Initialize S3 client
   const s3Client = new S3Client({
-    region: process.env.S3_AWS_REGION || '',
-    endpoint: process.env.AWS_ENDPOINT || '',
+    region: process.env.BLOB_REGION || '',
+    endpoint: process.env.BLOB_ENDPOINT || '',
     forcePathStyle: true,
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
     },
   });
   
-  const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
+  const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
   
   try {
     // Get the file key based on the query type
@@ -71,8 +70,7 @@ export const codebaseAssistant = tool({
       
       // Convert the stream to a string
       if (response.Body) {
-        const streamReader = response.Body.transformToString();
-        return streamReader;
+        return response.Body.transformToString();
       }
       
       console.error(`S3 response body is empty for ${fileKey}`);

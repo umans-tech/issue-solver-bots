@@ -52,17 +52,17 @@ export async function POST(request: Request) {
     
     // Initialize S3 client
     const s3Client = new S3Client({
-      region: process.env.S3_AWS_REGION || '',
-      endpoint: process.env.AWS_ENDPOINT || '',
+      region: process.env.BLOB_REGION || '',
+      endpoint: process.env.BLOB_ENDPOINT || '',
       forcePathStyle: true,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
       },
     });
     
-    const BUCKET_NAME = process.env.S3_BUCKET_NAME || '';
-    const AWS_ENDPOINT = process.env.AWS_ENDPOINT || '';
+    const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
+    const AWS_ENDPOINT = process.env.BLOB_ENDPOINT || '';
     
     try {
       // Upload to S3 instead of Vercel Blob
