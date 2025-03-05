@@ -39,6 +39,8 @@ output:
     @terraform output -raw transaction_pooler_connection_string
     @echo "\n>>> Transaction Pooler Connection (JDBC): ☕️️🔌🐘"
     @terraform output -raw transaction_pooler_jdbc_connection_string
+    @echo  "\n>>> All outputs: 🤐"
+    @terraform output
 
 # 💣 Destroy all provisionned resources
 destroy: init

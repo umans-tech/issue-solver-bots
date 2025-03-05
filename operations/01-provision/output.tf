@@ -20,3 +20,21 @@ output "transaction_pooler_jdbc_connection_string" {
   )
   sensitive = true
 }
+
+output "blob_bucket_name" {
+  value = aws_s3_bucket.conversational_ui_blob_storage.bucket
+}
+
+output "blob_region" {
+  value = "eu-west-3"
+}
+
+output "blob_access_key_id" {
+  value = aws_iam_access_key.conversational_ui_blob_access_key.id
+  sensitive = true
+}
+
+output "blob_secret_access_key" {
+  value = aws_iam_access_key.conversational_ui_blob_access_key.secret
+  sensitive = true
+}

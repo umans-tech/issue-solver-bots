@@ -3,30 +3,6 @@ variable "auth_secret" {
   sensitive = true
 }
 
-variable "ui_blob_access_key_id" {
-  type      = string
-  sensitive = true
-}
-
-variable "ui_blob_bucket_name" {
-  type        = string
-  description = "The name of the S3 bucket where the UI assets are stored"
-}
-
-variable "ui_blob_region" {
-  type        = string
-  description = "The region of the S3 bucket where the UI assets are stored"
-}
-
-variable "ui_blob_read_write_token" {
-  type      = string
-  sensitive = true
-}
-
-variable "ui_blob_endpoint" {
-  type = string
-}
-
 variable "branch_name" {
   type    = string
   default = "main"

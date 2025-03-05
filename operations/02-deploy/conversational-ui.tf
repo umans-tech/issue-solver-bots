@@ -44,29 +44,29 @@ resource "vercel_project_environment_variables" "env_vars" {
     },
     {
       key       = "BLOB_READ_WRITE_TOKEN"
-      value     = var.ui_blob_read_write_token
+      value     = data.terraform_remote_state.provision.outputs.blob_secret_access_key
       target = [local.vercel_deployment_target]
       sensitive = true
     },
     {
       key       = "BLOB_ACCESS_KEY_ID"
-      value     = var.ui_blob_access_key_id
+      value     = data.terraform_remote_state.provision.outputs.blob_access_key_id
       target = [local.vercel_deployment_target]
       sensitive = true
     },
     {
-      key       = "BLOB_BUCKET_NAME"
-      value     = var.ui_blob_bucket_name
+      key   = "BLOB_BUCKET_NAME"
+      value = data.terraform_remote_state.provision.outputs.blob_bucket_name
       target = [local.vercel_deployment_target]
     },
     {
-      key       = "BLOB_REGION"
-      value     = var.ui_blob_region
+      key   = "BLOB_REGION"
+      value = data.terraform_remote_state.provision.outputs.blob_region
       target = [local.vercel_deployment_target]
     },
     {
       key   = "BLOB_ENDPOINT"
-      value = var.ui_blob_endpoint
+      value = "https://s3.${data.terraform_remote_state.provision.outputs.blob_region}.amazonaws.com"
       target = [local.vercel_deployment_target]
     },
     {
