@@ -1,0 +1,31 @@
+#!/usr/bin/env just --justfile
+
+# ⬇️ Install dependencies
+install:
+    @echo "Installing dependencies..."
+    @pnpm install
+
+# ⚡️ Start local supabase server
+supabase:
+    @echo "Starting local Supabase server..."
+    supabase start --exclude=vector
+
+# 🔌 start backing services
+start-services:
+    @echo "Starting backing services..."
+    @docker-compose up -d
+
+# 🛑 stop backing services
+stop-services:
+    @echo "Stopping backing services..."
+    @docker-compose down
+
+# ⬆️ Migrate the database
+migrate:
+    @echo "Migrating the database..."
+    @pnpm run db:migrate
+
+# ▶️ Start the development server
+dev: install start-services migrate
+    @echo "Starting the development server..."
+    @pnpm run dev

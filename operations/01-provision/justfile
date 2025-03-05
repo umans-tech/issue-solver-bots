@@ -41,6 +41,12 @@ output:
     @terraform output -raw transaction_pooler_jdbc_connection_string
     @echo  "\n>>> All outputs: 🤐"
     @terraform output
+    @echo  "\n>>> BLOB_ACCESS_KEY_ID"
+    @terraform output -raw blob_access_key_id
+    @echo  "\n>>> BLOB_READ_WRITE_TOKEN"
+    @terraform output -raw blob_secret_access_key
+    @echo  "\n"
+
 
 # 💣 Destroy all provisionned resources
 destroy: init

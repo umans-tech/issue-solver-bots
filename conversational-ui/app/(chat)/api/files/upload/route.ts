@@ -44,14 +44,15 @@ export async function POST(request: Request) {
             return NextResponse.json({error: errorMessage}, {status: 400});
         }
 
-        // Get filename from formData since Blob doesn't have name property
+        // Get filename from formData since Blob doesn't have a name property
         const filename = (formData.get('file') as File).name;
         const fileBuffer = await file.arrayBuffer();
 
-        // Initialize S3 client
+        // Initialize S3 client with custom endpoint if provided
         const s3Client = new S3Client({
             region: process.env.BLOB_REGION || '',
-            // Remove the endpoint for direct S3 access
+            endpoint: process.env.BLOB_ENDPOINT || '',
+            forcePathStyle: !!process.env.BLOB_ENDPOINT,
             credentials: {
                 accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
@@ -71,12 +72,14 @@ export async function POST(request: Request) {
 
             await s3Client.send(command);
 
-            // Construct the URL with the proper S3 URL format
-            const s3Url = `https://${BUCKET_NAME}.s3.${process.env.BLOB_REGION}.amazonaws.com/${filename}`;
+            // Construct URL based on endpoint setting
+            const fileUrl = process.env.BLOB_ENDPOINT
+                ? `${process.env.BLOB_ENDPOINT}/${BUCKET_NAME}/${filename}`
+                : `https://${BUCKET_NAME}.s3.${process.env.BLOB_REGION}.amazonaws.com/${filename}`;
 
             // Return the data structure
             const data = {
-                url: s3Url,
+                url: fileUrl,
                 pathname: filename,
                 contentType: file.type,
                 size: file.size,
