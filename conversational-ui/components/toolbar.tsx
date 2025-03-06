@@ -11,7 +11,7 @@ import {
 import {
   type Dispatch,
   memo,
-  ReactNode,
+  ReactNode, RefObject,
   type SetStateAction,
   useEffect,
   useRef,
@@ -336,12 +336,11 @@ const PureToolbar = ({
   artifactKind: ArtifactKind;
 }) => {
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  useOnClickOutside(toolbarRef, () => {
+  useOnClickOutside(toolbarRef as RefObject<HTMLElement>, () => {
     setIsToolbarVisible(false);
     setSelectedTool(null);
   });
