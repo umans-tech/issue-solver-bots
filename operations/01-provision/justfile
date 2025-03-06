@@ -28,10 +28,6 @@ plan: init
 # 🚀 Apply changes for resources provisionning
 apply: init
     @terraform apply -var "branch_name={{ branch_name }}" -auto-approve
-    @echo ">>> Transaction Pooler Connection (PostgreSQL):"
-    @terraform output -raw transaction_pooler_connection_string
-    @echo ">>> Transaction Pooler Connection (JDBC):"
-    @terraform output -raw transaction_pooler_jdbc_connection_string
 
 # 👀 Show outputs for resources provisionning
 output:
@@ -47,8 +43,13 @@ output:
     @terraform output -raw blob_secret_access_key
     @echo  "\n"
 
+# 🗑️ Empty the S3 blob bucket
+empty-bucket: init
+    @echo ">>> Emptying S3 bucket..."
+    @aws s3 rm s3://$(terraform output -raw blob_bucket_name) --recursive
+    @echo ">>> S3 bucket emptied."
 
-# 💣 Destroy all provisionned resources
-destroy: init
+# 💣 Destroy all provisioned resources
+destroy: init empty-bucket
     @terraform destroy -var "branch_name={{ branch_name }}" -auto-approve
     @echo ">>> Destroyed all resources for branch '{{ branch_name }}'."
