@@ -16,8 +16,9 @@ const queryTypeDescriptions = {
     glossary: 'Returns the Ubiquitous Language Glossary that maps technical code terms to business concept terms, facilitating consistent understanding across technical and domain contexts.'
 };
 
-// Map query types to their corresponding S3 file keys
-const queryTypeToFileMap = {
+// Map query types to their corresponding S3 file keys base names
+// The complete path will be constructed with user-specific space information
+const queryTypeToFileBaseMap = {
     codebase_full: 'digest_small.txt',
     adr: 'adrs.txt',
     glossary: 'glossary.txt'
@@ -32,15 +33,22 @@ export const codebaseAssistant = tool({
             '- adr: ' + queryTypeDescriptions.adr + '\n' +
             '- glossary: ' + queryTypeDescriptions.glossary
         ),
+        userId: z.string().optional().describe('The ID of the user requesting the information. If not provided, will use the authenticated user ID.'),
     }),
-    execute: async ({query}) => {
-        const codebaseContent = await getCodebaseContent(query);
+    execute: async ({query, userId}) => {
+        // Use the provided userId or get it from the authenticated user context
+        const effectiveUserId = userId || 'current-user'; // Replace with actual user ID retrieval logic
+        
+        const codebaseContent = await getCodebaseContent(query, effectiveUserId);
         return codebaseContent || 'No response was generated. Please try again.';
     },
 });
 
 // This function reads the codebase content from the specified file in the S3 bucket
-export async function getCodebaseContent(queryType: z.infer<typeof QueryTypeEnum>): Promise<string | null> {
+export async function getCodebaseContent(
+    queryType: z.infer<typeof QueryTypeEnum>, 
+    userId: string = 'current-user'
+): Promise<string | null> {
 
     // Initialize S3 client with custom endpoint if provided
     const s3Client = new S3Client({
@@ -57,8 +65,12 @@ export async function getCodebaseContent(queryType: z.infer<typeof QueryTypeEnum
     const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
 
     try {
-        // Get the file key based on the query type
-        const fileKey = queryTypeToFileMap[queryType];
+        // Get the base file name based on the query type
+        const baseFileName = queryTypeToFileBaseMap[queryType];
+        
+        // Construct the full file key with user-specific space
+        // Simple and direct mapping of users to spaces
+        const fileKey = `spaces/${userId}/${baseFileName}`;
 
         // Try to get the file from S3
         try {
