@@ -29,3 +29,23 @@ migrate:
 dev: install start-services migrate
     @echo "Starting the development server..."
     @pnpm run dev
+
+# 📐 Lint the code
+lint:
+    @echo "Linting the code..."
+    @pnpm lint
+
+# ✨ Fix linting issues
+lint-fix:
+    @echo "Fixing linting issues..."
+    @pnpm lint:fix
+
+# 🕵️‍♂️ Audit the code
+audit:
+    @echo "Auditing the code..."
+    @pnpm audit
+
+# 🩹 Fix audit issues
+audit-fix:
+    @echo "Fixing audit issues..."
+    @pnpm audit fix
