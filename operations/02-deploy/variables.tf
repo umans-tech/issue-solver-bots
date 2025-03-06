@@ -3,15 +3,6 @@ variable "auth_secret" {
   sensitive = true
 }
 
-variable "ui_blob_read_write_token" {
-  type      = string
-  sensitive = true
-}
-
-variable "ui_blob_endpoint" {
-  type = string
-}
-
 variable "branch_name" {
   type    = string
   default = "main"
@@ -23,6 +14,12 @@ variable "openai_base_url" {
 }
 
 variable "openai_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "google_generative_ai_api_key" {
   type      = string
   sensitive = true
   default   = ""
@@ -42,5 +39,5 @@ variable "anthropic_api_key" {
 variable "vercel_api_token" {
   description = "Vercel API Token"
   type        = string
-  sensitive = true
+  sensitive   = true
 }

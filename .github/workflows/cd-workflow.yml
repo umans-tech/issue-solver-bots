@@ -116,9 +116,9 @@ jobs:
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
           TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
-          TF_VAR_ui_blob_read_write_token: ${{ secrets.TF_VAR_UI_BLOB_READ_WRITE_TOKEN }}
-          TF_VAR_ui_blob_endpoint: ${{ secrets.TF_VAR_UI_BLOB_ENDPOINT }}
           TF_VAR_openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
+          TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
 
   cleanup:
@@ -155,9 +155,9 @@ jobs:
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
           TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
-          TF_VAR_ui_blob_read_write_token: ${{ secrets.TF_VAR_UI_BLOB_READ_WRITE_TOKEN }}
-          TF_VAR_ui_blob_endpoint: ${{ secrets.TF_VAR_UI_BLOB_ENDPOINT }}
           TF_VAR_openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
+          TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
+          TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
 
       - name: Destroy provision

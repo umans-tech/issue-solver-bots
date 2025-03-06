@@ -44,13 +44,29 @@ resource "vercel_project_environment_variables" "env_vars" {
     },
     {
       key       = "BLOB_READ_WRITE_TOKEN"
-      value     = var.ui_blob_read_write_token
+      value     = data.terraform_remote_state.provision.outputs.blob_secret_access_key
       target = [local.vercel_deployment_target]
       sensitive = true
     },
     {
+      key       = "BLOB_ACCESS_KEY_ID"
+      value     = data.terraform_remote_state.provision.outputs.blob_access_key_id
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key   = "BLOB_BUCKET_NAME"
+      value = data.terraform_remote_state.provision.outputs.blob_bucket_name
+      target = [local.vercel_deployment_target]
+    },
+    {
+      key   = "BLOB_REGION"
+      value = data.terraform_remote_state.provision.outputs.blob_region
+      target = [local.vercel_deployment_target]
+    },
+    {
       key   = "BLOB_ENDPOINT"
-      value = var.ui_blob_endpoint
+      value = "https://s3.${data.terraform_remote_state.provision.outputs.blob_region}.amazonaws.com"
       target = [local.vercel_deployment_target]
     },
     {
@@ -61,6 +77,12 @@ resource "vercel_project_environment_variables" "env_vars" {
     {
       key       = "OPENAI_API_KEY"
       value     = var.openai_api_key
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
+      key       = "GOOGLE_GENERATIVE_AI_API_KEY"
+      value     = var.google_generative_ai_api_key
       target = [local.vercel_deployment_target]
       sensitive = true
     },
