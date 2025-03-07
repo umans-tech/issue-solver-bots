@@ -1,6 +1,8 @@
 import {z} from 'zod';
 import {tool} from 'ai';
 import {GetObjectCommand, S3Client} from '@aws-sdk/client-s3';
+import {Session} from 'next-auth';
+import {DataStreamWriter} from 'ai';
 
 // Define the query type enum with detailed descriptions
 const QueryTypeEnum = z.enum([
@@ -24,7 +26,13 @@ const queryTypeToFileBaseMap = {
     glossary: 'glossary.txt'
 };
 
-export const codebaseAssistant = tool({
+// Interface for codebaseAssistant props
+interface CodebaseAssistantProps {
+    session: Session;
+    dataStream: DataStreamWriter;
+}
+
+export const codebaseAssistant = ({session}: CodebaseAssistantProps) => tool({
     description: 'Retrieve information about the codebase of the current project.',
     parameters: z.object({
         query: QueryTypeEnum.describe(
@@ -33,13 +41,12 @@ export const codebaseAssistant = tool({
             '- adr: ' + queryTypeDescriptions.adr + '\n' +
             '- glossary: ' + queryTypeDescriptions.glossary
         ),
-        userId: z.string().optional().describe('The ID of the user requesting the information. If not provided, will use the authenticated user ID.'),
     }),
-    execute: async ({query, userId}) => {
-        // Use the provided userId or get it from the authenticated user context
-        const effectiveUserId = userId || 'current-user'; // Replace with actual user ID retrieval logic
+    execute: async ({query}) => {
+        // Get the user ID from the session
+        const userId = session.user?.id || 'anonymous';
         
-        const codebaseContent = await getCodebaseContent(query, effectiveUserId);
+        const codebaseContent = await getCodebaseContent(query, userId);
         return codebaseContent || 'No response was generated. Please try again.';
     },
 });
@@ -47,7 +54,7 @@ export const codebaseAssistant = tool({
 // This function reads the codebase content from the specified file in the S3 bucket
 export async function getCodebaseContent(
     queryType: z.infer<typeof QueryTypeEnum>, 
-    userId: string = 'current-user'
+    userId: string = 'anonymous'
 ): Promise<string | null> {
 
     // Initialize S3 client with custom endpoint if provided
@@ -69,7 +76,7 @@ export async function getCodebaseContent(
         const baseFileName = queryTypeToFileBaseMap[queryType];
         
         // Construct the full file key with user-specific space
-        // Simple and direct mapping of users to spaces
+        // Each user has their own space in the format: spaces/{userId}/{filename}
         const fileKey = `spaces/${userId}/${baseFileName}`;
 
         // Try to get the file from S3

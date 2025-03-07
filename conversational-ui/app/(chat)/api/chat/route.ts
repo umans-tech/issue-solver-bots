@@ -70,7 +70,10 @@ export async function POST(request: Request) {
                         session,
                         dataStream,
                     }),
-                    codebaseAssistant,
+                    codebaseAssistant: codebaseAssistant({
+                        session,
+                        dataStream,
+                    }),
                 },
                 onFinish: async ({response, reasoning}) => {
                     if (session.user?.id) {
