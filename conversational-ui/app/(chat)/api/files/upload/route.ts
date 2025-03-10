@@ -1,8 +1,9 @@
-import {PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
+import {GetObjectCommand, PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 
 import {auth} from '@/app/(auth)/auth';
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 
 const FileSchema = z.object({
     file: z
@@ -71,11 +72,12 @@ export async function POST(request: Request) {
             });
 
             await s3Client.send(command);
-
-            // Construct URL based on endpoint setting
-            const fileUrl = process.env.BLOB_ENDPOINT
-                ? `${process.env.BLOB_ENDPOINT}/${BUCKET_NAME}/${filename}`
-                : `https://${BUCKET_NAME}.s3.${process.env.BLOB_REGION}.amazonaws.com/${filename}`;
+            // Get the URL for accessing the uploaded file
+            const getObjectCommand = new GetObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: filename,
+            });
+            const fileUrl = await getSignedUrl(s3Client, getObjectCommand, {expiresIn: 3600});
 
             // Return the data structure
             const data = {
