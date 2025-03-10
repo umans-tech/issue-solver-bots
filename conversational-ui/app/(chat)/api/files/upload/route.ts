@@ -1,4 +1,3 @@
-import {PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 
@@ -48,52 +47,23 @@ export async function POST(request: Request) {
         const filename = (formData.get('file') as File).name;
         const fileBuffer = await file.arrayBuffer();
 
-        // Initialize S3 client with custom endpoint if provided
-        const s3Client = new S3Client({
-            region: process.env.BLOB_REGION || '',
-            endpoint: process.env.BLOB_ENDPOINT || '',
-            forcePathStyle: !!process.env.BLOB_ENDPOINT,
-            credentials: {
-                accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
-                secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
-            },
-        });
+        // Convert to base64 data URL for direct model attachment
+        const base64 = Buffer.from(fileBuffer).toString('base64');
+        const dataUrl = `data:${file.type};base64,${base64}`;
+        
+        // Return the data structure
+        const data = {
+            url: dataUrl,
+            pathname: filename,
+            contentType: file.type,
+            size: file.size,
+        };
 
-        const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
-
-        try {
-            // Upload to S3
-            const command = new PutObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: filename,
-                Body: Buffer.from(fileBuffer),
-                ContentType: file.type,
-            });
-
-            await s3Client.send(command);
-
-            // Construct URL based on endpoint setting
-            const fileUrl = process.env.BLOB_ENDPOINT
-                ? `${process.env.BLOB_ENDPOINT}/${BUCKET_NAME}/${filename}`
-                : `https://${BUCKET_NAME}.s3.${process.env.BLOB_REGION}.amazonaws.com/${filename}`;
-
-            // Return the data structure
-            const data = {
-                url: fileUrl,
-                pathname: filename,
-                contentType: file.type,
-                size: file.size,
-            };
-
-            return NextResponse.json(data);
-        } catch (error) {
-            console.error('Upload failed:', error);
-            return NextResponse.json({error: 'Upload failed'}, {status: 500});
-        }
+        return NextResponse.json(data);
     } catch (error) {
         return NextResponse.json(
             {error: 'Failed to process request'},
             {status: 500},
         );
     }
-}
+} 
