@@ -3,17 +3,19 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
+import { useState } from 'react';
 
 import { ModelSelector } from '@/components/model-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, VercelIcon } from './icons';
+import { PlusIcon, GitIcon } from './icons';
 import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { VisibilityType, VisibilitySelector } from './visibility-selector';
 import { ThemeToggle } from './theme-toggle';
 import { IconUmansLogo } from './icons';
+import { RepoConnectionDialog } from './repo-connection-dialog/repo-connection-dialog';
 
 function PureChatHeader({
   chatId,
@@ -28,6 +30,7 @@ function PureChatHeader({
 }) {
   const router = useRouter();
   const { open } = useSidebar();
+  const [showRepoDialog, setShowRepoDialog] = useState(false);
 
   const { width: windowWidth } = useWindowSize();
 
@@ -70,10 +73,28 @@ function PureChatHeader({
       )}
 
       <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowRepoDialog(true)}
+            >
+              <GitIcon />
+              <span className="sr-only">Connect Repository</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Connect Repository</TooltipContent>
+        </Tooltip>
         <ThemeToggle />
         <IconUmansLogo className="h-16 w-16" />
       </div>
 
+      <RepoConnectionDialog 
+        open={showRepoDialog} 
+        onOpenChange={setShowRepoDialog} 
+      />
     </header>
   );
 }
