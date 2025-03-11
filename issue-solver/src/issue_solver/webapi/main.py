@@ -17,12 +17,6 @@ from issue_solver.webapi.payloads import (
 
 app = FastAPI()
 
-open_ai_agent = OpenAIAgent(api_key=os.environ["OPENAI_API_KEY"])
-
-claude_agent = AnthropicAgent(
-    api_key=os.environ["ANTHROPIC_API_KEY"],
-)
-
 
 @app.post("/resolutions/iterate")
 async def iterate_issue_resolution(
@@ -126,8 +120,10 @@ async def stream_issue_resolution(request: SolveIssueRequest):
 def get_agent(setting: ResolutionSettings) -> CodingAgent:
     match setting.agent:
         case "openai-tools":
-            return open_ai_agent
+            return OpenAIAgent(api_key=os.environ["OPENAI_API_KEY"])
         case "anthropic-tools":
-            return claude_agent
+            return AnthropicAgent(
+                api_key=os.environ["ANTHROPIC_API_KEY"],
+            )
         case _:
             assert_never(setting.agent)
