@@ -13,6 +13,7 @@ from issue_solver.webapi.payloads import (
     IterateIssueResolutionRequest,
     SolveIssueRequest,
     ResolutionSettings,
+    ConnectRepositoryRequest,
 )
 
 app = FastAPI()
@@ -115,6 +116,13 @@ async def stream_issue_resolution(request: SolveIssueRequest):
             yield json.dumps({"error": str(e)}) + "\n"
 
     return StreamingResponse(stream(), media_type="application/json")
+
+
+@app.post("/repositories/", status_code=201)
+def connect_repository(connect_repository_request: ConnectRepositoryRequest):
+    url = connect_repository_request.url
+    access_token = connect_repository_request.access_token
+    return {"url": url, "access_token": access_token}
 
 
 def get_agent(setting: ResolutionSettings) -> CodingAgent:

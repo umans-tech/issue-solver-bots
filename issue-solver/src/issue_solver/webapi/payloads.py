@@ -2,7 +2,8 @@ from typing import Literal
 
 from anthropic.types import MessageParam
 from openai.types.chat import ChatCompletionMessageParam
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.coding_agent import Message
 from issue_solver.models.supported_models import (
@@ -50,3 +51,16 @@ class SolveIssueRequest(BaseModel):
     issue_description: str
     settings: ResolutionSettings
     max_iter: int = 10
+
+
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
+
+class ConnectRepositoryRequest(BaseSchema):
+    url: str
+    access_token: str
