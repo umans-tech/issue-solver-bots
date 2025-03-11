@@ -59,3 +59,13 @@ Content-Type: application/json
   },
   "max_iter": 25
 }
+
+### Connect a codebase to issue-solver
+POST {{BASE_URL}}/repositories
+accept: application/json
+Content-Type: application/json
+
+{
+  "url": "https://gitlab.com/smooth5/smooth.git",
+  "accessToken": "thisIsAS3cretAcc3sT0k3n"
+}
