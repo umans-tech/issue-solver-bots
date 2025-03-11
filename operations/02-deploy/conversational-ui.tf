@@ -96,6 +96,11 @@ resource "vercel_project_environment_variables" "env_vars" {
       key   = "ANTHROPIC_BASE_URL"
       value = var.anthropic_base_url
       target = [local.vercel_deployment_target]
+    },
+    {
+      key    = "CUDU_ENDPOINT"
+      value  = aws_apigatewayv2_api.cudu_api.api_endpoint
+      target = [local.vercel_deployment_target]
     }
   ]
 }
