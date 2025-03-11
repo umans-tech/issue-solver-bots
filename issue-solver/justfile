@@ -34,3 +34,16 @@ run:
 # 🧩 Run cudu cli to solve issue
 solve:
     sudo uv run cudu solve
+
+# 📦 Package the webapi for AWS Lambda
+build-lambda-package: clean
+    uv export --frozen --no-dev --no-editable -o requirements.txt
+    uv pip install --no-installer-metadata --no-compile-bytecode --python-platform x86_64-manylinux2014 --python 3.12 --target packages -r requirements.txt
+    (cd packages && zip -r ../package.zip .)
+    (cd src && zip -r ../package.zip issue_solver)
+
+# 🧹 Clean up generated files
+clean:
+    rm -f package.zip
+    rm -rf packages
+    rm -f requirements.txt
