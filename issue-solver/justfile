@@ -4,6 +4,8 @@ alias t := test
 alias c := check-typing
 alias l := lint
 alias f := format
+alias s := start-services
+alias d := dev
 
 # ✅ Run all tests
 test:
@@ -47,3 +49,56 @@ clean:
     rm -f package.zip
     rm -rf packages
     rm -f requirements.txt
+
+# 🔌 Start LocalStack and other backing services
+start-services:
+    @echo "Starting LocalStack and other backing services..."
+    docker-compose up -d
+    @echo "Waiting for LocalStack to be ready..."
+    sleep 2
+    @echo "Checking if LocalStack is accessible..."
+    curl -s http://localhost:4566/_localstack/health || (echo "LocalStack is not accessible. Check docker logs with 'docker logs issue-solver-localstack'" && exit 1)
+    @echo "LocalStack is ready!"
+
+# 🛑 Stop LocalStack and other backing services
+stop-services:
+    @echo "Stopping LocalStack and other backing services..."
+    docker-compose down
+
+# 📋 Get SQS queue URL
+get-queue-url:
+    @echo "Getting SQS queue URL..."
+    aws --endpoint-url=http://localhost:4566 sqs get-queue-url --queue-name process-queue
+
+# 📝 List SQS queues
+list-queues:
+    @echo "Listing SQS queues..."
+    aws --endpoint-url=http://localhost:4566 sqs list-queues
+
+# 📬 Send test message to SQS queue
+send-test-message:
+    @echo "Sending test message to SQS queue..."
+    aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://sqs.eu-west-3.localhost.localstack.cloud:4566/000000000000/process-queue --message-body '{"url": "https://github.com/test/repo", "access_token": "test-token", "user_id": "test-user", "process_id": "test-process"}'
+
+# 📭 Receive messages from SQS queue
+receive-messages:
+    @echo "Receiving messages from SQS queue..."
+    aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.eu-west-3.localhost.localstack.cloud:4566/000000000000/process-queue --max-number-of-messages 10
+
+# 📭 Clear messages from SQS queue
+clear-messages:
+    @echo "Clearing messages from SQS queue..."
+    aws --endpoint-url=http://localhost:4566 sqs purge-queue --queue-url http://sqs.eu-west-3.localhost.localstack.cloud:4566/000000000000/process-queue
+
+# 🚀 Start development environment
+dev: start-services
+    @echo "Starting development environment..."
+    uv run fastapi dev src/issue_solver/webapi/main.py
+
+# 🔍 Check LocalStack status
+check-localstack:
+    @echo "Checking LocalStack status..."
+    docker ps | grep issue-solver-localstack || echo "LocalStack container is not running"
+    curl -s http://localhost:4566/_localstack/health || echo "LocalStack is not accessible"
+
+

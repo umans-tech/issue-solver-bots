@@ -1,7 +1,12 @@
 import json
+import logging
 import os
+import uuid
+from dataclasses import dataclass
 from typing import assert_never
 
+import boto3
+from botocore.exceptions import ClientError
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -15,6 +20,9 @@ from issue_solver.webapi.payloads import (
     ResolutionSettings,
     ConnectRepositoryRequest,
 )
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 app = FastAPI()
 
@@ -118,11 +126,65 @@ async def stream_issue_resolution(request: SolveIssueRequest):
     return StreamingResponse(stream(), media_type="application/json")
 
 
+@dataclass(frozen=True)
+class CodeRepositoryConnected:
+    url: str
+    access_token: str
+    user_id: str
+    knowledge_base_id: str
+    process_id: str
+
+
 @app.post("/repositories/", status_code=201)
 def connect_repository(connect_repository_request: ConnectRepositoryRequest):
-    url = connect_repository_request.url
-    access_token = connect_repository_request.access_token
-    return {"url": url, "access_token": access_token}
+    process_id = str(uuid.uuid4())
+    event = CodeRepositoryConnected(
+        url=connect_repository_request.url,
+        access_token=connect_repository_request.access_token,
+        user_id="Todo: get user id",
+        knowledge_base_id="Todo: get knowledge base id",
+        process_id=process_id,
+    )
+    publish(event)
+    return {
+        "url": event.url,
+        "process_id": event.process_id,
+        "knowledge_base_id": event.knowledge_base_id,
+    }
+
+
+def publish(event: CodeRepositoryConnected) -> None:
+    try:
+        logger.info(f"Publishing {event.process_id}")
+        sqs_client = boto3.client(
+            "sqs", region_name=os.environ.get("AWS_REGION", "eu-west-3")
+        )
+
+        queue_url = os.environ.get("PROCESS_QUEUE_URL")
+        if not queue_url:
+            raise ValueError("PROCESS_QUEUE_URL environment variable not set")
+
+        response = sqs_client.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json.dumps(
+                {
+                    "url": event.url,
+                    "access_token": event.access_token,
+                    "user_id": event.user_id,
+                    "process_id": event.process_id,
+                }
+            ),
+        )
+
+        logger.info(
+            f"Published {event.process_id} successfully with message id {response['MessageId']}"
+        )
+
+    except (ClientError, ValueError) as e:
+        logger.error(f"Failed to publish {event.process_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to send message to SQS: {str(e)}"
+        )
 
 
 def get_agent(setting: ResolutionSettings) -> CodingAgent:

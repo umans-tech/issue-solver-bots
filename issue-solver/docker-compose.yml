@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: issue-solver-localstack
+    environment:
+      - SERVICES=sqs
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack_data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_DEFAULT_REGION=eu-west-3
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - TMPDIR=/tmp/localstack_tmp
+    ports:
+      - "4566:4566"  # LocalStack main endpoint
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack_data:/tmp/localstack_data"
+      - "${TMPDIR:-/tmp}/localstack_tmp:/tmp/localstack_tmp"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  localstack-init:
+    image: amazon/aws-cli:latest
+    container_name: issue-solver-localstack-init
+    depends_on:
+      - localstack
+    environment:
+      - AWS_DEFAULT_REGION=eu-west-3
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for LocalStack to be ready...' &&
+      sleep 10 &&
+      echo 'Creating SQS queue...' &&
+      aws --endpoint-url=http://localstack:4566 sqs create-queue --queue-name process-queue &&
+      echo 'SQS queue created successfully!'
+      "
+    restart: "no"
+
+volumes:
+  localstack_data: 
