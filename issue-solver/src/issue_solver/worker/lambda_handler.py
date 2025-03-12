@@ -7,6 +7,8 @@ import logging
 import sys
 from typing import Any, Dict
 
+from issue_solver.git_operations.git_helper import GitHelper, GitSettings
+
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -31,13 +33,16 @@ def process_repository_message(message: Dict[str, Any]) -> None:
     try:
         # Extract message data
         url = message.get("url")
-        message.get("access_token")
+        access_token = message.get("access_token")
         user_id = message.get("user_id")
         process_id = message.get("process_id")
 
         logger.info(
             f"Processing repository: {url} for user: {user_id}, process: {process_id}"
         )
+        GitHelper.of(
+            GitSettings(repository_url=url, access_token=access_token)
+        ).clone_repository()
 
         logger.info(f"Successfully processed repository: {url}")
 
