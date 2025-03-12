@@ -15,7 +15,9 @@ class GitHelper:
         self.settings = settings
 
     @classmethod
-    def of(cls, git_settings: "GitSettings", model_settings: ModelSettings) -> Self:
+    def of(
+        cls, git_settings: "GitSettings", model_settings: ModelSettings | None = None
+    ) -> Self:
         return cls(git_settings)
 
     def commit_and_push(self, issue_info: IssueInfo, repo_path: Path) -> None:
@@ -94,11 +96,21 @@ class GitHelper:
         else:
             print("No 'repo_origin' remote found. Cannot push changes.")
 
+    def clone_repository(self) -> None:
+        """
+        Clone the repository to the current working directory.
+        """
+        Repo.clone_from(
+            self.settings.repository_url,
+            to_path=".",
+            env={"GIT_TERMINAL_PROMPT": "0"},
+        )
+
 
 class GitSettings(BaseSettings):
-    repository_url: str | None = Field(
+    repository_url: str = Field(
         description="URL of the repository where the changes are pushed.",
-        default=None,
+        default="",
     )
     access_token: str = Field(
         description="Token used for CI/CD runner to push changes to the repository.",
