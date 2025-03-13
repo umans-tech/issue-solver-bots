@@ -96,14 +96,15 @@ class GitHelper:
         else:
             print("No 'repo_origin' remote found. Cannot push changes.")
 
-    def clone_repository(self) -> None:
+    def clone_repository(self, to_path: Path) -> None:
         """
         Clone the repository to the current working directory.
         """
         Repo.clone_from(
             self.settings.repository_url,
-            to_path="/tmp/repo",
+            to_path=to_path,
             env={"GIT_TERMINAL_PROMPT": "0"},
+            depth=1,
         )
 
 
