@@ -102,7 +102,7 @@ class GitHelper:
         """
         Repo.clone_from(
             self.settings.repository_url,
-            to_path=".",
+            to_path="/tmp/repo",
             env={"GIT_TERMINAL_PROMPT": "0"},
         )
 

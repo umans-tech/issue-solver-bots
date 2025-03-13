@@ -25,10 +25,8 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 # Lambda function
 resource "aws_lambda_function" "webapi" {
   function_name = "webapi${local.environment_name_suffix}"
-  filename      = "../../issue-solver/package.zip"
-  source_code_hash = filebase64sha256("../../issue-solver/package.zip")
-  handler       = "issue_solver.webapi.lambda_handler.handler"
-  runtime       = "python3.12"
+  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.webapi_image_tag}"
+  package_type  = "Image"
   role          = aws_iam_role.webapi_lambda_exec.arn
   timeout       = 30
   memory_size   = 256

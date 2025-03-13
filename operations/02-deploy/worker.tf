@@ -1,9 +1,7 @@
 resource "aws_lambda_function" "worker" {
   function_name = "worker${local.environment_name_suffix}"
-  filename      = "../../issue-solver/package.zip"
-  source_code_hash = filebase64sha256("../../issue-solver/package.zip")
-  handler       = "issue_solver.worker.lambda_handler.handler"
-  runtime       = "python3.12"
+  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.worker_image_tag}"
+  package_type  = "Image"
   role          = aws_iam_role.worker_lambda_exec.arn
   timeout = 300  # 5 minutes
   memory_size   = 512

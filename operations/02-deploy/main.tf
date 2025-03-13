@@ -4,7 +4,7 @@ provider "aws" {
 
 # Data source to access the remote state from the 01-provision layer
 data "terraform_remote_state" "provision" {
-  backend = "s3"
+  backend   = "s3"
   workspace = terraform.workspace
   config = {
     bucket = "terraform-state-umans-platform"
@@ -12,6 +12,8 @@ data "terraform_remote_state" "provision" {
     region = "eu-west-3"
   }
 }
+
+data "aws_caller_identity" "current" {}
 
 locals {
   environment_name               = terraform.workspace

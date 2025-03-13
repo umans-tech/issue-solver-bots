@@ -44,6 +44,14 @@ build-lambda-package: clean
     (cd packages && zip -r ../package.zip .)
     (cd src && zip -r ../package.zip issue_solver)
 
+# 🐳 Build WebAPI Container image 🐳🌐📦
+build-webapi-container:
+    DOCKER_BUILDKIT=1 docker build -t umans-platform-webapi -f webapi.Dockerfile .
+
+# 🐳 Build Worker Container image 🐳👷‍♂️📦
+build-worker-container:
+    DOCKER_BUILDKIT=1 docker build -t umans-platform-worker -f worker.Dockerfile .
+
 # 🧹 Clean up generated files
 clean:
     rm -f package.zip
