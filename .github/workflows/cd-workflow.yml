@@ -177,7 +177,13 @@ jobs:
       - name: Install just
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-      
+
+      - name: Download Lambda package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+          path: issue-solver
+
       # Add authentication steps here if needed
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
