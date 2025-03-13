@@ -1,0 +1,15 @@
+#!/usr/bin/env just --justfile
+
+set dotenv-load := true
+
+# 🎬 Initialize terraform workspace for resources provisionning
+init:
+    @terraform init
+
+# 🗺️ Plan changes for resources provisionning
+plan: init
+    @terraform plan
+
+# 🚀 Apply changes for resources provisionning
+apply: init
+    @terraform apply -auto-approve
