@@ -5,6 +5,7 @@ Lambda handler for processing repository connection messages from SQS.
 import json
 import logging
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 from issue_solver.git_operations.git_helper import GitHelper, GitSettings
@@ -40,9 +41,12 @@ def process_repository_message(message: Dict[str, Any]) -> None:
         logger.info(
             f"Processing repository: {url} for user: {user_id}, process: {process_id}"
         )
+
+        to_path = Path(f"/tmp/repo/{process_id}")
+        
         GitHelper.of(
             GitSettings(repository_url=url, access_token=access_token)
-        ).clone_repository()
+        ).clone_repository(to_path)
 
         logger.info(f"Successfully processed repository: {url}")
 
