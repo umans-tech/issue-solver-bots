@@ -41,3 +41,13 @@ variable "vercel_api_token" {
   type        = string
   sensitive   = true
 }
+
+variable "webapi_image_tag" {
+  type        = string
+  description = "The tag of the Docker image to be deployed in the webapi lambda function"
+}
+
+variable "worker_image_tag" {
+  type        = string
+  description = "The tag of the Docker image to be deployed in the worker lambda function"
+}

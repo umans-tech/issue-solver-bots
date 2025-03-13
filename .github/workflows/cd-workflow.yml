@@ -81,7 +81,7 @@ jobs:
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
   package-lambda:
-    needs: [detect-changes]
+    needs: [ detect-changes ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
       (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
@@ -89,6 +89,8 @@ jobs:
     defaults:
       run:
         working-directory: ./issue-solver
+    env:
+      IMAGE_ENV_TAG: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'production' }}
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
@@ -102,6 +104,38 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::034362042699:role/GitHubActionsRole
+          role-session-name: SessionGitHubActions
+          aws-region: eu-west-3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push webapi container image
+        uses: docker/build-push-action@v6
+        with:
+          context: 'issue-solver'
+          file: issue-solver/webapi.Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-webapi-${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-webapi-${{ env.IMAGE_ENV_TAG }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-webapi-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
+
+      - name: Build and push worker container image
+        uses: docker/build-push-action@v6
+        with:
+          context: 'issue-solver'
+          file: issue-solver/worker.Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
+
       - name: Build Lambda package
         run: |
           just build-lambda-package
@@ -114,7 +148,7 @@ jobs:
           retention-days: 1
 
   deploy:
-    needs: [detect-changes, provision, package-lambda]
+    needs: [ detect-changes, provision, package-lambda ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
       (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
@@ -159,6 +193,8 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
+          TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
+          TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
 
   cleanup:
     needs: detect-changes
@@ -204,6 +240,8 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
+          TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
+          TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
 
       - name: Destroy provision
         run: |
