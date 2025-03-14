@@ -80,7 +80,7 @@ jobs:
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
-  package-lambda:
+  package:
     needs: [ detect-changes ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
@@ -136,19 +136,9 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
 
-      - name: Build Lambda package
-        run: |
-          just build-lambda-package
-
-      - name: Upload Lambda package
-        uses: actions/upload-artifact@v4
-        with:
-          name: lambda-package
-          path: issue-solver/package.zip
-          retention-days: 1
 
   deploy:
-    needs: [ detect-changes, provision, package-lambda ]
+    needs: [ detect-changes, provision, package ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
       (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
@@ -166,12 +156,6 @@ jobs:
       - name: Install just
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
-      - name: Download Lambda package
-        uses: actions/download-artifact@v4
-        with:
-          name: lambda-package
-          path: issue-solver
 
       # Add authentication steps here if needed
       - name: Configure AWS credentials
@@ -214,13 +198,6 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
-      - name: Download Lambda package
-        uses: actions/download-artifact@v4
-        with:
-          name: lambda-package
-          path: issue-solver
-
-      # Add authentication steps here if needed
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
