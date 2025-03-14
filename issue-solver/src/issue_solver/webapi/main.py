@@ -9,6 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from openai import OpenAI
 
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
@@ -138,11 +139,13 @@ class CodeRepositoryConnected:
 @app.post("/repositories/", status_code=201)
 def connect_repository(connect_repository_request: ConnectRepositoryRequest):
     process_id = str(uuid.uuid4())
+    client = OpenAI()
+    vector_store = client.vector_stores.create(name=connect_repository_request.space_id)
     event = CodeRepositoryConnected(
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
         user_id="Todo: get user id",
-        knowledge_base_id="Todo: get knowledge base id",
+        knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
     publish(event)

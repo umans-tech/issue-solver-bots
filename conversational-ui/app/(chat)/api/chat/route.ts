@@ -5,13 +5,13 @@ import {myProvider} from '@/lib/ai/models';
 import {systemPrompt} from '@/lib/ai/prompts';
 import {deleteChatById, getChatById, saveChat, saveMessages,} from '@/lib/db/queries';
 import {generateUUID, getMostRecentUserMessage, sanitizeResponseMessages,} from '@/lib/utils';
-
 import {generateTitleFromUserMessage} from '../../actions';
 import {createDocument} from '@/lib/ai/tools/create-document';
 import {updateDocument} from '@/lib/ai/tools/update-document';
 import {requestSuggestions} from '@/lib/ai/tools/request-suggestions';
 import {getWeather} from '@/lib/ai/tools/get-weather';
 import {codebaseAssistant} from '@/lib/ai/tools/codebase-assistant';
+import {codebaseSearch} from '@/lib/ai/tools/codebase-search';
 
 export const maxDuration = 60;
 
@@ -71,6 +71,10 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                     codebaseAssistant: codebaseAssistant({
+                        session,
+                        dataStream,
+                    }),
+                    code_base_search: codebaseSearch({
                         session,
                         dataStream,
                     }),
