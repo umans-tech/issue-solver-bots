@@ -6,14 +6,14 @@ import {DataStreamWriter} from 'ai';
 
 // Define the query type enum with detailed descriptions
 const QueryTypeEnum = z.enum([
-    'codebase_full',
+    'codebase_summary',
     'adr',
     'glossary'
 ]);
 
 // Descriptions for each query type
 const queryTypeDescriptions = {
-    codebase_full: 'Returns the complete content of the codebase, including all files, directories, and their contents.',
+    codebase_summary: 'Returns a summary of the codebase, including the main features, technologies used, and the overall structure.',
     adr: 'Returns Architectural Decision Records (ADRs), coding guidelines, and standards that govern the development of the codebase.',
     glossary: 'Returns the Ubiquitous Language Glossary that maps technical code terms to business concept terms, facilitating consistent understanding across technical and domain contexts.'
 };
@@ -21,7 +21,7 @@ const queryTypeDescriptions = {
 // Map query types to their corresponding S3 file keys base names
 // The complete path will be constructed with user-specific space information
 const queryTypeToFileBaseMap = {
-    codebase_full: 'digest_small.txt',
+    codebase_summary: 'digest_small.txt',
     adr: 'adrs.txt',
     glossary: 'glossary.txt'
 };
@@ -37,7 +37,7 @@ export const codebaseAssistant = ({session}: CodebaseAssistantProps) => tool({
     parameters: z.object({
         query: QueryTypeEnum.describe(
             'The type of codebase information to retrieve: \n' +
-            '- codebase_full: ' + queryTypeDescriptions.codebase_full + '\n' +
+            '- codebase_summary: ' + queryTypeDescriptions.codebase_summary + '\n' +
             '- adr: ' + queryTypeDescriptions.adr + '\n' +
             '- glossary: ' + queryTypeDescriptions.glossary
         ),

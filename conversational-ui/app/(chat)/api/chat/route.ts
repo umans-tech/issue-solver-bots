@@ -5,13 +5,13 @@ import {myProvider} from '@/lib/ai/models';
 import {systemPrompt} from '@/lib/ai/prompts';
 import {deleteChatById, getChatById, saveChat, saveMessages,} from '@/lib/db/queries';
 import {generateUUID, getMostRecentUserMessage, sanitizeResponseMessages,} from '@/lib/utils';
-
 import {generateTitleFromUserMessage} from '../../actions';
 import {createDocument} from '@/lib/ai/tools/create-document';
 import {updateDocument} from '@/lib/ai/tools/update-document';
 import {requestSuggestions} from '@/lib/ai/tools/request-suggestions';
 import {getWeather} from '@/lib/ai/tools/get-weather';
 import {codebaseAssistant} from '@/lib/ai/tools/codebase-assistant';
+import {codebaseSearch} from '@/lib/ai/tools/codebase-search';
 
 export const maxDuration = 60;
 
@@ -20,8 +20,13 @@ export async function POST(request: Request) {
         id,
         messages,
         selectedChatModel,
-    }: { id: string; messages: Array<Message>; selectedChatModel: string } =
-        await request.json();
+        knowledgeBaseId,
+    }: { 
+        id: string; 
+        messages: Array<Message>; 
+        selectedChatModel: string;
+        knowledgeBaseId?: string | null;
+    } = await request.json();
 
     const session = await auth();
 
@@ -59,6 +64,7 @@ export async function POST(request: Request) {
                     'updateDocument',
                     'requestSuggestions',
                     'codebaseAssistant',
+                    'codebaseSearch',
                 ],
                 experimental_transform: smoothStream({chunking: 'word'}),
                 experimental_generateMessageId: generateUUID,
@@ -72,6 +78,10 @@ export async function POST(request: Request) {
                     }),
                     codebaseAssistant: codebaseAssistant({
                         session,
+                        dataStream,
+                    }),
+                    codebaseSearch: codebaseSearch({
+                        session: Object.assign({}, session, { knowledgeBaseId }),
                         dataStream,
                     }),
                 },

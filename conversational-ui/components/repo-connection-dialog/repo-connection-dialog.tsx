@@ -58,9 +58,17 @@ export function RepoConnectionDialog({
         }),
       });
       
+      // Get the response data
+      const data = await response.json();
+      
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to connect repository');
+      }
+      
+      // Directly save the knowledge base ID to localStorage as a raw string
+      if (data.knowledge_base_id) {
+        localStorage.setItem('knowledge_base_id', data.knowledge_base_id);
+        console.log('Knowledge base ID saved:', data.knowledge_base_id);
       }
       
       // Success

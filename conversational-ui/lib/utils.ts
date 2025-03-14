@@ -229,3 +229,38 @@ export function getDocumentTimestampByIndex(
 
   return documents[index].createdAt;
 }
+
+// Local storage keys
+export const STORAGE_KEYS = {
+  KNOWLEDGE_BASE_ID: 'knowledge_base_id',
+};
+
+/**
+ * Save the knowledge base ID to local storage
+ * @param knowledgeBaseId The knowledge base ID to save
+ */
+export function saveKnowledgeBaseId(knowledgeBaseId: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.KNOWLEDGE_BASE_ID, knowledgeBaseId);
+  }
+}
+
+/**
+ * Get the knowledge base ID from local storage
+ * @returns The knowledge base ID or null if not found
+ */
+export function getKnowledgeBaseId(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(STORAGE_KEYS.KNOWLEDGE_BASE_ID);
+  }
+  return null;
+}
+
+/**
+ * Clear the knowledge base ID from local storage
+ */
+export function clearKnowledgeBaseId(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEYS.KNOWLEDGE_BASE_ID);
+  }
+}
