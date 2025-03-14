@@ -3,7 +3,7 @@ resource "aws_lambda_function" "worker" {
   image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.worker_image_tag}"
   package_type  = "Image"
   role          = aws_iam_role.worker_lambda_exec.arn
-  timeout = 300  # 5 minutes
+  timeout = 900  # 15 minutes
   memory_size   = 512
 
   environment {

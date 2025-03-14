@@ -169,6 +169,9 @@ const PurePreviewMessage = ({
                         ) : toolName === 'codebaseAssistant' ? (
                           <div>
                           </div>
+                        ) : toolName === 'codebaseSearch' ? (
+                          <div>
+                          </div>
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
                         )}

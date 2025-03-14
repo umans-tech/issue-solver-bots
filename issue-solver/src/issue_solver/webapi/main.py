@@ -9,6 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from openai import OpenAI
 
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
@@ -21,8 +22,19 @@ from issue_solver.webapi.payloads import (
     ConnectRepositoryRequest,
 )
 
-logger = logging.getLogger()
+# Configure root logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+
+# Get logger for your module
+logger = logging.getLogger("issue_solver.webapi")
 logger.setLevel(logging.INFO)
+
+# Make sure it propagates up to root logger
+logger.propagate = True
 
 app = FastAPI()
 
@@ -138,11 +150,14 @@ class CodeRepositoryConnected:
 @app.post("/repositories/", status_code=201)
 def connect_repository(connect_repository_request: ConnectRepositoryRequest):
     process_id = str(uuid.uuid4())
+    client = OpenAI()
+    repo_name = connect_repository_request.url.split("/")[-1]
+    vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
         user_id="Todo: get user id",
-        knowledge_base_id="Todo: get knowledge base id",
+        knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
     publish(event)
@@ -172,6 +187,7 @@ def publish(event: CodeRepositoryConnected) -> None:
                     "access_token": event.access_token,
                     "user_id": event.user_id,
                     "process_id": event.process_id,
+                    "knowledge_base_id": event.knowledge_base_id,
                 }
             ),
         )

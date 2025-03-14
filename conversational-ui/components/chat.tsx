@@ -2,8 +2,9 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
+import { useLocalStorage } from 'usehooks-ts';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -30,6 +31,33 @@ export function Chat({
   isReadonly: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  
+  // Handle potential corrupt localStorage data
+  const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Safely get the knowledge base ID from localStorage
+    try {
+      const rawValue = localStorage.getItem('knowledge_base_id');
+      // If the value is a raw string (not JSON), use it directly
+      if (rawValue && (rawValue.startsWith('"') || rawValue.startsWith('{'))) {
+        // Attempt to parse JSON
+        try {
+          const parsedValue = JSON.parse(rawValue);
+          setKnowledgeBaseIdState(parsedValue);
+        } catch (e) {
+          console.error('Error parsing knowledge_base_id from localStorage:', e);
+          // Clear invalid data
+          localStorage.removeItem('knowledge_base_id');
+        }
+      } else if (rawValue) {
+        // Treat as a raw string value (not JSON)
+        setKnowledgeBaseIdState(rawValue);
+      }
+    } catch (e) {
+      console.error('Error reading knowledge_base_id from localStorage:', e);
+    }
+  }, []);
 
   const {
     messages,
@@ -43,7 +71,11 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, selectedChatModel: selectedChatModel },
+    body: { 
+      id, 
+      selectedChatModel: selectedChatModel,
+      knowledgeBaseId: knowledgeBaseIdState,
+    },
     initialMessages,
     experimental_throttle: 100,
     sendExtraMessageFields: true,
