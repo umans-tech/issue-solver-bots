@@ -43,7 +43,7 @@ def process_repository_message(message: Dict[str, Any]) -> None:
         )
 
         to_path = Path(f"/tmp/repo/{process_id}")
-        
+
         GitHelper.of(
             GitSettings(repository_url=url, access_token=access_token)
         ).clone_repository(to_path)

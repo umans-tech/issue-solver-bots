@@ -6,6 +6,7 @@ alias l := lint
 alias f := format
 alias s := start-services
 alias d := dev
+alias w := worker-start
 
 # ✅ Run all tests
 test:
@@ -89,6 +90,11 @@ clear-messages:
 dev: start-services
     @echo "Starting development environment..."
     uv run fastapi dev src/issue_solver/webapi/main.py
+
+# 🚀 Start the Worker
+worker-start:
+    PROCESS_QUEUE_URL="http://sqs.eu-west-3.localhost.localstack.cloud:4566/000000000000/process-queue" \
+    uv run src/issue_solver/worker/local_runner.py
 
 # 🔍 Check LocalStack status
 check-localstack:
