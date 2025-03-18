@@ -8,7 +8,6 @@ resource "aws_lambda_function" "worker" {
 
   environment {
     variables = {
-      OPENAI_BASE_URL              = var.openai_base_url,
       OPENAI_API_KEY               = var.openai_api_key,
       ANTHROPIC_BASE_URL           = var.anthropic_base_url,
       ANTHROPIC_API_KEY            = var.anthropic_api_key,
