@@ -1,7 +1,7 @@
 # SQS Queue for repository processing
 resource "aws_sqs_queue" "process_queue" {
   name                       = "process-queue${local.environment_name_suffix}"
-  visibility_timeout_seconds = 300
+  visibility_timeout_seconds = 900
 }
 
 # IAM policy for Lambda to access SQS
