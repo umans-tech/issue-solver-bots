@@ -2,14 +2,16 @@ import json
 import logging
 import os
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import assert_never
+from typing import assert_never, Annotated
 
 import boto3
 from botocore.exceptions import ClientError
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from openai import OpenAI
+from starlette.requests import Request
 
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
@@ -36,7 +38,32 @@ logger.setLevel(logging.INFO)
 # Make sure it propagates up to root logger
 logger.propagate = True
 
-app = FastAPI()
+
+class InMemoryEventStore:
+    def __init__(self):
+        self.events = {}
+
+    def append(self, process_id, event):
+        if process_id not in self.events:
+            self.events[process_id] = []
+        self.events[process_id].append(event)
+
+    def get(self, process_id):
+        return self.events.get(process_id, [])
+
+
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    fastapi_app.state.event_store = InMemoryEventStore()
+    yield
+    del fastapi_app.state.event_store
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def get_event_store(request: Request) -> InMemoryEventStore:
+    return request.app.state.event_store
 
 
 @app.post("/resolutions/iterate")
@@ -148,7 +175,10 @@ class CodeRepositoryConnected:
 
 
 @app.post("/repositories/", status_code=201)
-def connect_repository(connect_repository_request: ConnectRepositoryRequest):
+def connect_repository(
+    connect_repository_request: ConnectRepositoryRequest,
+    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+):
     process_id = str(uuid.uuid4())
     client = OpenAI()
     repo_name = connect_repository_request.url.split("/")[-1]
@@ -160,12 +190,25 @@ def connect_repository(connect_repository_request: ConnectRepositoryRequest):
         knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
+    event_store.append(process_id, event)
     publish(event)
     return {
         "url": event.url,
         "process_id": event.process_id,
         "knowledge_base_id": event.knowledge_base_id,
     }
+
+
+@app.get("/processes/{process_id}")
+def get_process(
+    process_id: str,
+    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+):
+    process_events = event_store.get(process_id)
+    if not process_events:
+        raise HTTPException(status_code=404, detail="Process not found")
+
+    return {"process_id": process_id}
 
 
 def publish(event: CodeRepositoryConnected) -> None:
