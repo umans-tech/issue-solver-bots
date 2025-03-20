@@ -3,7 +3,6 @@ import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from typing import assert_never, Annotated
 
 import boto3
@@ -17,6 +16,8 @@ from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.agents.resolution_approaches import resolution_approach_prompt
+from issue_solver.events.code_repository_connected import CodeRepositoryConnected
+from issue_solver.events.in_memory_event_store import InMemoryEventStore
 from issue_solver.webapi.payloads import (
     IterateIssueResolutionRequest,
     SolveIssueRequest,
@@ -37,19 +38,6 @@ logger.setLevel(logging.INFO)
 
 # Make sure it propagates up to root logger
 logger.propagate = True
-
-
-class InMemoryEventStore:
-    def __init__(self):
-        self.events = {}
-
-    def append(self, process_id, event):
-        if process_id not in self.events:
-            self.events[process_id] = []
-        self.events[process_id].append(event)
-
-    def get(self, process_id):
-        return self.events.get(process_id, [])
 
 
 @asynccontextmanager
@@ -163,15 +151,6 @@ async def stream_issue_resolution(request: SolveIssueRequest):
             yield json.dumps({"error": str(e)}) + "\n"
 
     return StreamingResponse(stream(), media_type="application/json")
-
-
-@dataclass(frozen=True)
-class CodeRepositoryConnected:
-    url: str
-    access_token: str
-    user_id: str
-    knowledge_base_id: str
-    process_id: str
 
 
 @app.post("/repositories/", status_code=201)
