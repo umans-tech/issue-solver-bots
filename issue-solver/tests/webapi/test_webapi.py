@@ -32,3 +32,29 @@ def test_connect_repository_returns_201_and_publishes_code_repository_connected_
     assert message_body["access_token"] == repo_access_token
     assert message_body["process_id"] == data["process_id"]
     assert message_body["knowledge_base_id"] == CREATED_VECTOR_STORE_ID
+
+
+def test_get_process_returns_404_when_process_is_not_found(api_client):
+    # When
+    response = api_client.get("/processes/123")
+
+    # Then
+    assert response.status_code == 404
+
+
+def test_get_process_returns_200_when_the_process_is_found(api_client):
+    # Given
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "test-access-token",
+        },
+    )
+    process_id = connect_repo_response.json()["process_id"]
+
+    # When
+    response = api_client.get(f"/processes/{process_id}")
+
+    # Then
+    assert response.status_code == 200

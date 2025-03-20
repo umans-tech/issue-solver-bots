@@ -95,6 +95,9 @@ def mock_openai(httpserver: HTTPServer) -> Generator[HTTPServer, Any, None]:
 
 
 @pytest.fixture
-def api_client(aws_credentials, sqs_queue, mock_openai) -> TestClient:
+def api_client(
+    aws_credentials, sqs_queue, mock_openai
+) -> Generator[TestClient, Any, None]:
     """Create and return a FastAPI TestClient."""
-    return TestClient(app)
+    with TestClient(app) as client:
+        yield client
