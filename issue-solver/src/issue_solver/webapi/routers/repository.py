@@ -2,21 +2,17 @@ import json
 import logging
 import os
 import uuid
+from typing import Annotated
 
 import boto3
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
-from typing import Annotated
 
 from issue_solver.events.code_repository_connected import CodeRepositoryConnected
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
-from issue_solver.webapi.dependencies import get_event_store
+from issue_solver.webapi.dependencies import get_event_store, get_logger
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
-
-# Get logger for your module
-logger = logging.getLogger("issue_solver.webapi.routers.repository")
-logger.setLevel(logging.INFO)
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
@@ -25,11 +21,19 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 def connect_repository(
     connect_repository_request: ConnectRepositoryRequest,
     event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(lambda: get_logger("issue_solver.webapi.routers.repository.connect")),
+    ],
 ):
     """Connect to a code repository."""
     process_id = str(uuid.uuid4())
+    logger.info(f"Creating new repository connection with process ID: {process_id}")
+
     client = OpenAI()
     repo_name = connect_repository_request.url.split("/")[-1]
+    logger.info(f"Creating vector store for repository: {repo_name}")
+
     vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
         url=connect_repository_request.url,
@@ -39,7 +43,14 @@ def connect_repository(
         process_id=process_id,
     )
     event_store.append(process_id, event)
-    publish(event)
+
+    # Get a logger specifically for the publish function
+    publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
+    publish(event, publish_logger)
+
+    logger.info(
+        f"Repository connection created successfully with process ID: {process_id}"
+    )
     return {
         "url": event.url,
         "process_id": event.process_id,
@@ -47,10 +58,12 @@ def connect_repository(
     }
 
 
-def publish(event: CodeRepositoryConnected) -> None:
+def publish(
+    event: CodeRepositoryConnected, logger: logging.Logger | logging.LoggerAdapter
+) -> None:
     """Publish a CodeRepositoryConnected event to SQS."""
     try:
-        logger.info(f"Publishing {event.process_id}")
+        logger.info(f"Publishing event for process ID: {event.process_id}")
         sqs_client = boto3.client(
             "sqs", region_name=os.environ.get("AWS_REGION", "eu-west-3")
         )
@@ -73,11 +86,11 @@ def publish(event: CodeRepositoryConnected) -> None:
         )
 
         logger.info(
-            f"Published {event.process_id} successfully with message id {response['MessageId']}"
+            f"Published process ID {event.process_id} successfully with message ID {response['MessageId']}"
         )
 
     except (ClientError, ValueError) as e:
-        logger.error(f"Failed to publish {event.process_id}: {e}")
+        logger.error(f"Failed to publish process ID {event.process_id}: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to send message to SQS: {str(e)}"
-        ) 
+        )

@@ -1,29 +1,20 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
+from issue_solver.webapi.dependencies import get_logger
 from issue_solver.webapi.routers import resolutions, repository, processes
-
-# Configure root logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
-
-# Get logger for your module
-logger = logging.getLogger("issue_solver.webapi")
-logger.setLevel(logging.INFO)
-
-# Make sure it propagates up to root logger
-logger.propagate = True
 
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
     """Initialize and cleanup resources during application lifecycle."""
+    # Get the logger directly using the dependency function
+    logger = get_logger("issue_solver.webapi.lifespan")
+
     # Initialize the event store
     fastapi_app.state.event_store = InMemoryEventStore()
     logger.info("Application started, in-memory event store initialized")
@@ -47,8 +38,14 @@ app.include_router(processes.router)
 
 
 @app.get("/")
-async def root():
+async def root(
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(lambda: get_logger("issue_solver.webapi.root")),
+    ],
+):
     """Root endpoint that returns basic API information."""
+    logger.info("Root endpoint accessed")
     return {
         "name": "Issue Solver API",
         "version": "0.1.0",
