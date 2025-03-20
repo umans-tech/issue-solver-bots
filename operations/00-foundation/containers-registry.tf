@@ -30,7 +30,7 @@ resource "aws_ecr_lifecycle_policy" "app_lifecycle_policy" {
             "umans-platform-worker-production"
           ]
           countType     = "imageCountMoreThan"
-          countNumber   = 6
+          countNumber   = 12
         }
         action = {
           type = "expire"
