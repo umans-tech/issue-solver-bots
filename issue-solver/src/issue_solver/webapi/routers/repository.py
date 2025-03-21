@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime
 from typing import Annotated
 
 import boto3
@@ -10,9 +9,10 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
 
+from issue_solver.clock import Clock
 from issue_solver.events.domain import CodeRepositoryConnected
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
-from issue_solver.webapi.dependencies import get_event_store, get_logger
+from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -26,6 +26,7 @@ def connect_repository(
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.connect")),
     ],
+    clock: Annotated[Clock, Depends(get_clock)],
 ):
     """Connect to a code repository."""
     process_id = str(uuid.uuid4())
@@ -37,7 +38,7 @@ def connect_repository(
 
     vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
-        occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+        occurred_at=clock.now(),
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
         user_id="Todo: get user id",
