@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: postgres
+    container_name: postgres-umansuidb
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
