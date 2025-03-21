@@ -1,3 +1,0 @@
-from issue_solver.events.code_repository_connected import CodeRepositoryConnected
-
-AnyDomainEvent = CodeRepositoryConnected

@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
 
-from issue_solver.events.code_repository_connected import CodeRepositoryConnected
+from issue_solver.events.domain import CodeRepositoryConnected
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 from issue_solver.webapi.payloads import ConnectRepositoryRequest

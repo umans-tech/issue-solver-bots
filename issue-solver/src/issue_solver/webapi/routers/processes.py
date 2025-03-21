@@ -5,7 +5,7 @@ from typing import Annotated, Self, Literal
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
-from issue_solver.events.any_domain_event import AnyDomainEvent
+from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 
