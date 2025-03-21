@@ -58,3 +58,20 @@ def test_get_process_returns_200_when_the_process_is_found(api_client):
 
     # Then
     assert response.status_code == 200
+    assert response.json() == {
+        "id": process_id,
+        "type": "code_repository_integration",
+        "status": "connected",
+        "events": [
+            {
+                "type": "repository_connected",
+                "occurred_at": "2021-01-01T00:00:00",
+                "url": "https://github.com/test/repo",
+                "access_token": "***********oken",
+                "user_id": "Todo: get user id",
+                "space_id": "Todo: get space id",
+                "knowledge_base_id": CREATED_VECTOR_STORE_ID,
+                "process_id": process_id,
+            }
+        ],
+    }
