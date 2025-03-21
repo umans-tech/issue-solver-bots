@@ -61,6 +61,11 @@ stop-services:
     @echo "Stopping LocalStack and other backing services..."
     docker-compose down
 
+# ❌ Destroy LocalStack and other backing services. This will remove all data, containers, and volumes.
+destroy-services:
+    @echo "Destroying LocalStack and other backing services..."
+    docker-compose down -v
+
 # 📋 Get SQS queue URL
 get-queue-url:
     @echo "Getting SQS queue URL..."
@@ -102,4 +107,7 @@ check-localstack:
     docker ps | grep issue-solver-localstack || echo "LocalStack container is not running"
     curl -s http://localhost:4566/_localstack/health || echo "LocalStack is not accessible"
 
-
+# ⬆️ Upgrade Database migrations with Alembic 🐍🐘⬆️
+db-upgrade:
+    DB_URL="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb" \
+    uv run alembic upgrade head

@@ -39,6 +39,18 @@ services:
       echo 'SQS queue created successfully!'
       "
     restart: "no"
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres-umansbackenddb
+    environment:
+      POSTGRES_USER: cudu
+      POSTGRES_PASSWORD: s3cr3tPAssw0rd
+      POSTGRES_DB: umansbackenddb
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
+  postgres_data:
   localstack_data: 
