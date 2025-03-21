@@ -25,7 +25,9 @@ class ProcessTimelineView(BaseModel):
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
         event_records = []
         for event in events:
-            event_records.append(CodeRepositoryConnectedRecord.create_from(event))
+            event_records.append(
+                CodeRepositoryConnectedRecord.create_from(event).safe_copy()
+            )
         return cls(
             id=process_id,
             type="code_repository_integration",

@@ -80,7 +80,7 @@ def test_get_process_returns_200_when_the_process_is_found(
                 "type": "repository_connected",
                 "occurred_at": "2021-01-01T00:00:00",
                 "url": "https://github.com/test/repo",
-                "access_token": "***********oken",
+                "access_token": "*************oken",
                 "user_id": "test-user-id",
                 "space_id": "test-space-id",
                 "knowledge_base_id": CREATED_VECTOR_STORE_ID,

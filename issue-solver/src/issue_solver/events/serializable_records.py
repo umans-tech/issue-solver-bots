@@ -16,12 +16,15 @@ class CodeRepositoryConnectedRecord(BaseModel):
     knowledge_base_id: str
     process_id: str
 
+    def safe_copy(self) -> Self:
+        return self.model_copy(update={"access_token": obfuscate(self.access_token)})
+
     @classmethod
     def create_from(cls, event: CodeRepositoryConnected) -> Self:
         return cls(
             occurred_at=event.occurred_at,
             url=event.url,
-            access_token=obfuscate(event.access_token),
+            access_token=event.access_token,
             user_id=event.user_id,
             space_id=event.space_id,
             knowledge_base_id=event.knowledge_base_id,
@@ -33,4 +36,4 @@ ProcessTimelineEventRecords = CodeRepositoryConnectedRecord
 
 
 def obfuscate(secret: str) -> str:
-    return "***********oken"
+    return "*" * (len(secret) - 4) + secret[-4:]
