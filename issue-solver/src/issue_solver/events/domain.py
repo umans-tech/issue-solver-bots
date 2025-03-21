@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import datetime
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -21,9 +21,10 @@ class CodeRepositoryConnected(DomainEvent):
     url: str
     access_token: str
     user_id: str
+    space_id: str
     knowledge_base_id: str
     process_id: str
-    occurred_at: datetime = datetime.now(UTC)
+    occurred_at: datetime
 
 
 AnyDomainEvent = CodeRepositoryConnected

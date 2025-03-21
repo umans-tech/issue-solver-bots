@@ -7,7 +7,7 @@ from issue_solver.events.domain import CodeRepositoryConnected
 
 
 class CodeRepositoryConnectedRecord(BaseModel):
-    type: Literal["repository_connected"]
+    type: Literal["repository_connected"] = "repository_connected"
     occurred_at: datetime
     url: str
     access_token: str
@@ -19,12 +19,11 @@ class CodeRepositoryConnectedRecord(BaseModel):
     @classmethod
     def create_from(cls, event: CodeRepositoryConnected) -> Self:
         return cls(
-            type="repository_connected",
-            occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+            occurred_at=event.occurred_at,
             url=event.url,
             access_token=obfuscate(event.access_token),
             user_id=event.user_id,
-            space_id="Todo: get space id",
+            space_id=event.space_id,
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
         )

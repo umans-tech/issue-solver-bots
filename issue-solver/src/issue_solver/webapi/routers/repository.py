@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 import boto3
@@ -36,9 +37,11 @@ def connect_repository(
 
     vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
+        occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
         user_id="Todo: get user id",
+        space_id="Todo: get space id",
         knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
