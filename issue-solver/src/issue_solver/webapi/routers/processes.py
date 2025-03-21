@@ -1,57 +1,31 @@
 import logging
-from datetime import datetime
-from typing import Annotated, Self, Literal
+from typing import Annotated, Self
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
+from issue_solver.events.serializable_records import (
+    CodeRepositoryConnectedRecord,
+    ProcessTimelineEventRecords,
+)
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 
 router = APIRouter(prefix="/processes", tags=["processes"])
-
-
-class CodeRepositoryConnectedSchema(BaseModel):
-    type: Literal["repository_connected"]
-    occurred_at: datetime
-    url: str
-    access_token: str
-    user_id: str
-    space_id: str
-    knowledge_base_id: str
-    process_id: str
-
-
-ProcessTimelineEventSchema = CodeRepositoryConnectedSchema
-
-
-def obfuscate(secret: str) -> str:
-    return "***********oken"
 
 
 class ProcessTimelineView(BaseModel):
     id: str
     type: str
     status: str
-    events: list[ProcessTimelineEventSchema]
+    events: list[ProcessTimelineEventRecords]
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
         event_records = []
         for event in events:
-            event_records.append(
-                CodeRepositoryConnectedSchema(
-                    type="repository_connected",
-                    occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
-                    url=event.url,
-                    access_token=obfuscate(event.access_token),
-                    user_id=event.user_id,
-                    space_id="Todo: get space id",
-                    knowledge_base_id=event.knowledge_base_id,
-                    process_id=event.process_id,
-                )
-            )
+            event_records.append(CodeRepositoryConnectedRecord.create_from(event))
         return cls(
             id=process_id,
             type="code_repository_integration",
