@@ -42,8 +42,11 @@ def test_get_process_returns_404_when_process_is_not_found(api_client):
     assert response.status_code == 404
 
 
-def test_get_process_returns_200_when_the_process_is_found(api_client):
+def test_get_process_returns_200_when_the_process_is_found(
+    api_client, time_under_control
+):
     # Given
+    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
     connect_repo_response = api_client.post(
         "/repositories/",
         json={

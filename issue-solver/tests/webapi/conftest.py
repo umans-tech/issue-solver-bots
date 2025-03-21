@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Generator, Any
 
 import boto3
@@ -6,10 +7,13 @@ import pytest
 from pytest_httpserver import HTTPServer
 from starlette.testclient import TestClient
 from testcontainers.localstack import LocalStackContainer
+from tests.controllable_clock import ControllableClock
 
+from issue_solver.webapi.dependencies import get_clock
 from issue_solver.webapi.main import app
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
+DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
 
 
 @pytest.fixture(scope="module")
@@ -95,9 +99,15 @@ def mock_openai(httpserver: HTTPServer) -> Generator[HTTPServer, Any, None]:
 
 
 @pytest.fixture
+def time_under_control() -> ControllableClock:
+    return ControllableClock(DEFAULT_CURRENT_TIME)
+
+
+@pytest.fixture
 def api_client(
-    aws_credentials, sqs_queue, mock_openai
+    aws_credentials, sqs_queue, mock_openai, time_under_control
 ) -> Generator[TestClient, Any, None]:
     """Create and return a FastAPI TestClient."""
+    app.dependency_overrides[get_clock] = lambda: time_under_control
     with TestClient(app) as client:
         yield client
