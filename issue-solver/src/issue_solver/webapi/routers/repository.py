@@ -41,8 +41,8 @@ def connect_repository(
         occurred_at=clock.now(),
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
-        user_id="Todo: get user id",
-        space_id="Todo: get space id",
+        user_id=connect_repository_request.user_id,
+        space_id=connect_repository_request.space_id,
         knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
@@ -85,6 +85,8 @@ def publish(
                     "user_id": event.user_id,
                     "process_id": event.process_id,
                     "knowledge_base_id": event.knowledge_base_id,
+                    "occurred_at": event.occurred_at.isoformat(),
+                    "space_id": event.space_id,
                 }
             ),
         )
