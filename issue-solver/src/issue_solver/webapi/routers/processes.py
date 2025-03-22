@@ -37,7 +37,7 @@ class ProcessTimelineView(BaseModel):
 
 
 @router.get("/{process_id}")
-def get_process(
+async def get_process(
     process_id: str,
     event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
     logger: Annotated[
@@ -49,7 +49,7 @@ def get_process(
 ) -> ProcessTimelineView:
     """Get information about a specific process."""
     logger.info(f"Retrieving information for process ID: {process_id}")
-    process_events = event_store.get(process_id)
+    process_events = await event_store.get(process_id)
     if not process_events:
         logger.warning(f"Process ID not found: {process_id}")
         raise HTTPException(status_code=404, detail="Process not found")

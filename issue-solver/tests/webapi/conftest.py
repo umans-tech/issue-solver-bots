@@ -20,7 +20,9 @@ DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
 CURR_PATH = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT_PATH = os.path.join(CURR_PATH, "..", "..")
 ALEMBIC_INI_LOCATION = os.path.join(PROJECT_ROOT_PATH, "alembic.ini")
-MIGRATIONS_PATH = os.path.join(PROJECT_ROOT_PATH, "src/issue_solver/database/migrations")
+MIGRATIONS_PATH = os.path.join(
+    PROJECT_ROOT_PATH, "src/issue_solver/database/migrations"
+)
 
 
 @pytest.fixture(scope="module")
@@ -139,7 +141,7 @@ def time_under_control() -> ControllableClock:
 
 @pytest.fixture
 def api_client(
-        aws_credentials, sqs_queue, mock_openai, time_under_control, run_migrations
+    aws_credentials, sqs_queue, mock_openai, time_under_control, run_migrations
 ) -> Generator[TestClient, Any, None]:
     """Create and return a FastAPI TestClient."""
     app.dependency_overrides[get_clock] = lambda: time_under_control

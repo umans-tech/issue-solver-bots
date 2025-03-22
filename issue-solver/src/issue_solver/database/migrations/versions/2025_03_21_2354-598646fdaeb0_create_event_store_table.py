@@ -1,16 +1,17 @@
 """create event store table
 
 Revision ID: 598646fdaeb0
-Revises: 
+Revises:
 Create Date: 2025-03-21 23:54:23.585324
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '598646fdaeb0'
+revision: str = "598646fdaeb0"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

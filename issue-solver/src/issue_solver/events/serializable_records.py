@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Literal, Self
+from typing import Literal, Self, assert_never
 
 from pydantic import BaseModel
 
-from issue_solver.events.domain import CodeRepositoryConnected
+from issue_solver.events.domain import CodeRepositoryConnected, AnyDomainEvent
 
 
 class CodeRepositoryConnectedRecord(BaseModel):
@@ -18,6 +18,17 @@ class CodeRepositoryConnectedRecord(BaseModel):
 
     def safe_copy(self) -> Self:
         return self.model_copy(update={"access_token": obfuscate(self.access_token)})
+
+    def to_domain_event(self) -> CodeRepositoryConnected:
+        return CodeRepositoryConnected(
+            occurred_at=self.occurred_at,
+            url=self.url,
+            access_token=self.access_token,
+            user_id=self.user_id,
+            space_id=self.space_id,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+        )
 
     @classmethod
     def create_from(cls, event: CodeRepositoryConnected) -> Self:
@@ -37,3 +48,21 @@ ProcessTimelineEventRecords = CodeRepositoryConnectedRecord
 
 def obfuscate(secret: str) -> str:
     return "*" * (len(secret) - 4) + secret[-4:]
+
+
+def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
+    match event:
+        case CodeRepositoryConnected():
+            return CodeRepositoryConnectedRecord.create_from(event)
+        case _:
+            assert_never(event)
+
+
+def deserialize(event_type: str, data: str) -> AnyDomainEvent:
+    match event_type:
+        case "repository_connected":
+            return CodeRepositoryConnectedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case _:
+            raise Exception(f"Unknown event type: {event_type}")
