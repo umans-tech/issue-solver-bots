@@ -4,9 +4,12 @@ from typing import Generator, Any
 
 import boto3
 import pytest
+from alembic.command import upgrade, downgrade
+from alembic.config import Config
 from pytest_httpserver import HTTPServer
 from starlette.testclient import TestClient
 from testcontainers.localstack import LocalStackContainer
+from testcontainers.postgres import PostgresContainer
 from tests.controllable_clock import ControllableClock
 
 from issue_solver.webapi.dependencies import get_clock
@@ -14,6 +17,10 @@ from issue_solver.webapi.main import app
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
+CURR_PATH = os.path.dirname(os.path.realpath(__file__))
+PROJECT_ROOT_PATH = os.path.join(CURR_PATH, "..", "..")
+ALEMBIC_INI_LOCATION = os.path.join(PROJECT_ROOT_PATH, "alembic.ini")
+MIGRATIONS_PATH = os.path.join(PROJECT_ROOT_PATH, "src/issue_solver/database/migrations")
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +79,33 @@ def sqs_queue(sqs_client):
     return {"queue_url": queue_url, "queue_name": queue_name}
 
 
+@pytest.fixture(scope="module")
+def postgres_container() -> Generator[PostgresContainer, None, None]:
+    """Start a PostgreSQL container."""
+    postgres_container = PostgresContainer()
+    postgres_container.start()
+
+    yield postgres_container
+
+    postgres_container.stop()
+
+
+@pytest.fixture
+def run_migrations(postgres_container) -> Generator[None, Any, None]:
+    """Run migrations on a PostgreSQL container."""
+    config = Config(ALEMBIC_INI_LOCATION)
+    db_url = f"postgresql+asyncpg://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
+    os.environ["DB_URL"] = db_url
+    config.set_section_option(
+        section="alembic",
+        name="script_location",
+        value=MIGRATIONS_PATH,
+    )
+    upgrade(config, "head")
+    yield
+    downgrade(config, "base")
+
+
 @pytest.fixture
 def mock_openai(httpserver: HTTPServer) -> Generator[HTTPServer, Any, None]:
     """Mock the OpenAI client and its vector_stores methods."""
@@ -105,7 +139,7 @@ def time_under_control() -> ControllableClock:
 
 @pytest.fixture
 def api_client(
-    aws_credentials, sqs_queue, mock_openai, time_under_control
+        aws_credentials, sqs_queue, mock_openai, time_under_control, run_migrations
 ) -> Generator[TestClient, Any, None]:
     """Create and return a FastAPI TestClient."""
     app.dependency_overrides[get_clock] = lambda: time_under_control
