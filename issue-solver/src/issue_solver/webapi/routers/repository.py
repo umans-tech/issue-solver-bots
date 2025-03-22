@@ -19,7 +19,7 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 
 
 @router.post("/", status_code=201)
-def connect_repository(
+async def connect_repository(
     connect_repository_request: ConnectRepositoryRequest,
     event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
     logger: Annotated[
@@ -46,7 +46,7 @@ def connect_repository(
         knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
-    event_store.append(process_id, event)
+    await event_store.append(process_id, event)
 
     # Get a logger specifically for the publish function
     publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
