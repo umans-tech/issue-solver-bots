@@ -10,8 +10,8 @@ from openai import OpenAI
 
 from issue_solver.clock import Clock
 from issue_solver.events.domain import CodeRepositoryConnected
-from issue_solver.events.in_memory_event_store import InMemoryEventStore
-from issue_solver.events.serializable_records import CodeRepositoryConnectedRecord
+from issue_solver.events.event_store import InMemoryEventStore
+from issue_solver.events.serializable_records import serialize
 from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
 
@@ -78,9 +78,7 @@ def publish(
 
         response = sqs_client.send_message(
             QueueUrl=queue_url,
-            MessageBody=CodeRepositoryConnectedRecord.create_from(
-                event
-            ).model_dump_json(),
+            MessageBody=serialize(event).model_dump_json(),
         )
 
         logger.info(
