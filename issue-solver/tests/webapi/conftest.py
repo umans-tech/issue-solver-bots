@@ -97,7 +97,7 @@ def run_migrations(postgres_container) -> Generator[None, Any, None]:
     """Run migrations on a PostgreSQL container."""
     config = Config(ALEMBIC_INI_LOCATION)
     db_url = f"postgresql+asyncpg://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
-    os.environ["DB_URL"] = db_url
+    os.environ["DATABASE_URL"] = db_url
     config.set_section_option(
         section="alembic",
         name="script_location",

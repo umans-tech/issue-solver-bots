@@ -109,5 +109,5 @@ check-localstack:
 
 # ⬆️ Upgrade Database migrations with Alembic 🐍🐘⬆️
 db-upgrade:
-    DB_URL="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb" \
+    DATABASE_URL="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb" \
     uv run alembic upgrade head
