@@ -5,10 +5,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from issue_solver.events.domain import AnyDomainEvent
-from issue_solver.events.in_memory_event_store import InMemoryEventStore
+from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
-    CodeRepositoryConnectedRecord,
     ProcessTimelineEventRecords,
+    serialize,
 )
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 
@@ -25,9 +25,7 @@ class ProcessTimelineView(BaseModel):
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
         event_records = []
         for event in events:
-            event_records.append(
-                CodeRepositoryConnectedRecord.create_from(event).safe_copy()
-            )
+            event_records.append(serialize(event).safe_copy())
         return cls(
             id=process_id,
             type="code_repository_integration",

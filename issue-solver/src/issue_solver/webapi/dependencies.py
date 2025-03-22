@@ -8,7 +8,7 @@ from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.clock import Clock, UTCSystemClock
-from issue_solver.events.in_memory_event_store import InMemoryEventStore
+from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.logging_config import default_logging_config
 from issue_solver.webapi.payloads import ResolutionSettings
 

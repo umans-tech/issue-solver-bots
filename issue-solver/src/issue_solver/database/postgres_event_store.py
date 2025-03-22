@@ -2,7 +2,7 @@ import json
 import uuid
 
 from issue_solver.events.domain import AnyDomainEvent
-from issue_solver.events.in_memory_event_store import EventStore
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import serialize, deserialize
 
 
@@ -38,9 +38,9 @@ class PostgresEventStore(EventStore):
             event_id,
             process_id,
             next_position,
-            record.type,  # ex. "CodeRepositoryConnected"
-            record.model_dump_json(),  # dict -> stocké en JSONB
-            json.dumps({}),  # dict -> stocké en JSONB
+            record.type,
+            record.model_dump_json(),
+            json.dumps({}),
             record.occurred_at,
         )
 
