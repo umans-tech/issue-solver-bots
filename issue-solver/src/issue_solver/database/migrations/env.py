@@ -31,7 +31,7 @@ def run_migrations_offline() -> None:
     and not an Engine. By skipping engine creation,
     we do not need a DBAPI to be available.
     """
-    url = os.getenv("DB_URL", config.get_main_option("sqlalchemy.url"))
+    url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -57,7 +57,7 @@ async def run_migrations_online() -> None:
     config_section = config.get_section(config.config_ini_section, {})
     if not config_section:
         raise ValueError("No config section found")
-    db_url = os.getenv("DB_URL", config_section["sqlalchemy.url"])
+    db_url = os.getenv("DATABASE_URL", config_section["sqlalchemy.url"])
 
     # Create async engine
     connectable = create_async_engine(db_url, poolclass=pool.NullPool)

@@ -19,13 +19,13 @@ async def lifespan(fastapi_app: FastAPI):
 
     # Initialize the event store
     fastapi_app.state.event_store = PostgresEventStore(
-        connection=await asyncpg.connect(os.environ["DB_URL"].replace("+asyncpg", ""))
+        connection=await asyncpg.connect(os.environ["DATABASE_URL"].replace("+asyncpg", ""))
     )
-    logger.info("Application started, in-memory event store initialized")
+    logger.info("Application started, event store initialized")
     yield
     # Cleanup
     del fastapi_app.state.event_store
-    logger.info("Application shutdown, in-memory event store cleaned up")
+    logger.info("Application shutdown, event store cleaned up")
 
 
 app = FastAPI(
