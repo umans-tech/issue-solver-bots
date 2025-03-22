@@ -14,29 +14,35 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 
-# File extensions that we support
 SUPPORTED_EXTENSIONS = {
     ".c",
     ".cpp",
-    ".cs",
     ".css",
+    ".csv",
     ".doc",
     ".docx",
+    ".gif",
     ".go",
     ".html",
     ".java",
+    ".jpeg",
+    ".jpg",
     ".js",
     ".json",
     ".md",
     ".pdf",
     ".php",
+    ".pkl",
+    ".png",
     ".pptx",
     ".py",
     ".rb",
-    ".sh",
     ".tex",
     ".ts",
     ".txt",
+    ".webp",
+    ".xlsx",
+    ".xml",
 }
 
 
@@ -109,9 +115,10 @@ def upload_single_file(
         file_response = client.files.create(
             file=open(file_path, "rb"), purpose="assistants"
         )
-        # Store the response but don't assign to a variable since we don't use it
         client.vector_stores.files.create(
-            vector_store_id=vector_store_id, file_id=file_response.id
+            vector_store_id=vector_store_id,
+            file_id=file_response.id,
+            attributes={"file_name": file_name, "file_path": file_path},
         )
         return {"file": file_name, "status": "success"}
     except Exception as e:
