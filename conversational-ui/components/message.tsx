@@ -26,6 +26,61 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 
+// Component to display search animation
+const SearchingAnimation = () => (
+  <div className="mt-2 flex items-center gap-2">
+    <div className="size-4 border-t-2 border-r-2 border-primary rounded-full animate-spin"></div>
+    <span className="text-muted-foreground text-sm">Searching the codebase...</span>
+  </div>
+);
+
+// Component to display codebase search results
+const CodebaseSearchResult = ({ 
+  state, 
+  result 
+}: { 
+  state: string; 
+  result: any;
+}) => {
+  const [showAll, setShowAll] = useState(false);
+  
+  // Parse source files from the XML result
+  const sources = typeof result === 'string' && result.includes('<sources>')
+    ? Array.from(result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g))
+    : [];
+    
+  const displayCount = showAll ? sources.length : Math.min(3, sources.length);
+  
+  return (
+    <div className="rounded-md border border-border p-3 bg-muted/30">
+      <div className="text-xs font-medium text-muted-foreground mb-1">Sources from codebase search:</div>
+      {sources.length > 0 ? (
+        <div className="text-xs space-y-1">
+          {sources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
+            <div key={index} className="flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center bg-primary/10 rounded-full px-2 py-0.5 text-primary">
+                {fileName}
+              </span>
+              <span className="text-muted-foreground truncate">{filePath}</span>
+            </div>
+          ))}
+          
+          {sources.length > 3 && (
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className="text-xs text-primary hover:underline mt-1"
+            >
+              {showAll ? 'Show less' : `See ${sources.length - 3} more sources`}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">No source information available</div>
+      )}
+    </div>
+  );
+};
+
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -141,9 +196,15 @@ const PurePreviewMessage = ({
               <div className="flex flex-col gap-4">
                 {message.toolInvocations.map((toolInvocation) => {
                   const { toolName, toolCallId, state, args } = toolInvocation;
+                  // For TypeScript: explicitly access result via toolInvocation.result
+                  const result = 'result' in toolInvocation ? toolInvocation.result : undefined;
+
+                  // Handle codebase search animation separately
+                  if (toolName === 'codebaseSearch' && state === 'call' && message.content === '') {
+                    return <SearchingAnimation key={toolCallId} />;
+                  }
 
                   if (state === 'result') {
-                    const { result } = toolInvocation;
 
                     return (
                       <div key={toolCallId}>
@@ -170,7 +231,13 @@ const PurePreviewMessage = ({
                           <div>
                           </div>
                         ) : toolName === 'codebaseSearch' ? (
-                          <div>
+                          <div className="mt-3">
+                            {!isLoading && (
+                              <CodebaseSearchResult 
+                                state={state} 
+                                result={result}
+                              />
+                            )}
                           </div>
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
@@ -178,6 +245,7 @@ const PurePreviewMessage = ({
                       </div>
                     );
                   }
+                  // For states other than 'result' or 'running' during codebaseSearch
                   return (
                     <div
                       key={toolCallId}
@@ -201,6 +269,9 @@ const PurePreviewMessage = ({
                           args={args}
                           isReadonly={isReadonly}
                         />
+                      ) : toolName === 'codebaseSearch' ? (
+                        // For codebaseSearch in other states, don't show anything
+                        null
                       ) : null}
                     </div>
                   );
