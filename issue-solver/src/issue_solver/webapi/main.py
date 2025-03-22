@@ -1,10 +1,12 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Annotated
 
+import asyncpg
 from fastapi import FastAPI, Depends
 
-from issue_solver.events.in_memory_event_store import InMemoryEventStore
+from issue_solver.database.postgres_event_store import PostgresEventStore
 from issue_solver.webapi.dependencies import get_logger
 from issue_solver.webapi.routers import resolutions, repository, processes
 
@@ -16,12 +18,16 @@ async def lifespan(fastapi_app: FastAPI):
     logger = get_logger("issue_solver.webapi.lifespan")
 
     # Initialize the event store
-    fastapi_app.state.event_store = InMemoryEventStore()
-    logger.info("Application started, in-memory event store initialized")
+    fastapi_app.state.event_store = PostgresEventStore(
+        connection=await asyncpg.connect(
+            os.environ["DATABASE_URL"].replace("+asyncpg", "")
+        )
+    )
+    logger.info("Application started, event store initialized")
     yield
     # Cleanup
     del fastapi_app.state.event_store
-    logger.info("Application shutdown, in-memory event store cleaned up")
+    logger.info("Application shutdown, event store cleaned up")
 
 
 app = FastAPI(

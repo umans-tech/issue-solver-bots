@@ -157,6 +157,19 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: |
+          cd issue-solver
+          uv python install
+
+      - name: Install the project
+        run: | 
+          cd issue-solver
+          uv sync --all-extras --dev
+
       # Add authentication steps here if needed
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -164,6 +177,21 @@ jobs:
           role-to-assume: arn:aws:iam::034362042699:role/GitHubActionsRole
           role-session-name: SessionGitHubActions
           aws-region: eu-west-3
+
+      - name: Run migrations
+        run: |
+          cd operations/01-provision
+          terraform init -reconfigure
+          just init
+          export DATABASE_URL=$(just backend-database-url)
+          cd ../../issue-solver
+          uv sync
+          just db-upgrade
+        env:
+          GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+          TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
+          TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
+
 
       - name: Apply deploy
         run: |

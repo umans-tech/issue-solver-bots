@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import uuid
@@ -9,22 +8,25 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
 
-from issue_solver.events.code_repository_connected import CodeRepositoryConnected
+from issue_solver.clock import Clock
+from issue_solver.events.domain import CodeRepositoryConnected
 from issue_solver.events.in_memory_event_store import InMemoryEventStore
-from issue_solver.webapi.dependencies import get_event_store, get_logger
+from issue_solver.events.serializable_records import CodeRepositoryConnectedRecord
+from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
 
 @router.post("/", status_code=201)
-def connect_repository(
+async def connect_repository(
     connect_repository_request: ConnectRepositoryRequest,
     event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.connect")),
     ],
+    clock: Annotated[Clock, Depends(get_clock)],
 ):
     """Connect to a code repository."""
     process_id = str(uuid.uuid4())
@@ -36,13 +38,15 @@ def connect_repository(
 
     vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
+        occurred_at=clock.now(),
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
-        user_id="Todo: get user id",
+        user_id=connect_repository_request.user_id,
+        space_id=connect_repository_request.space_id,
         knowledge_base_id=vector_store.id,
         process_id=process_id,
     )
-    event_store.append(process_id, event)
+    await event_store.append(process_id, event)
 
     # Get a logger specifically for the publish function
     publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
@@ -74,15 +78,9 @@ def publish(
 
         response = sqs_client.send_message(
             QueueUrl=queue_url,
-            MessageBody=json.dumps(
-                {
-                    "url": event.url,
-                    "access_token": event.access_token,
-                    "user_id": event.user_id,
-                    "process_id": event.process_id,
-                    "knowledge_base_id": event.knowledge_base_id,
-                }
-            ),
+            MessageBody=CodeRepositoryConnectedRecord.create_from(
+                event
+            ).model_dump_json(),
         )
 
         logger.info(

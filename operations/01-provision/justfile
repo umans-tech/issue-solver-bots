@@ -53,3 +53,7 @@ empty-bucket: init
 destroy: init empty-bucket
     @terraform destroy -var "branch_name={{ branch_name }}" -auto-approve
     @echo ">>> Destroyed all resources for branch '{{ branch_name }}'."
+
+# 👀 Show BACKEND_DATABASE_URL.
+backend-database-url:
+    @echo "$(terraform output -raw transaction_pooler_connection_string | sed 's/postgresql:\/\//postgresql+asyncpg:\/\//g' | sed 's/\?.*//g')"

@@ -64,3 +64,5 @@ class BaseSchema(BaseModel):
 class ConnectRepositoryRequest(BaseSchema):
     url: str
     access_token: str
+    user_id: str = Field(default="")
+    space_id: str = Field(default="")
