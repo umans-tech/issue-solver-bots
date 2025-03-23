@@ -44,16 +44,25 @@ const CodebaseSearchResult = ({
 }) => {
   const [showAll, setShowAll] = useState(false);
   
-  // Parse source files from the XML result
-  const sources = typeof result === 'string' && result.includes('<sources>')
-    ? Array.from(result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g))
-    : [];
+  // Parse source files from the result
+  const sources = useMemo(() => {
+    if (Array.isArray(result)) {
+      return result; // Already processed array
+    }
+    
+    if (typeof result !== 'string') {
+      return [];
+    }
+    
+    // Parse XML result
+    return Array.from(result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g));
+  }, [result]);
     
   // Filter for unique sources based on file_path
   const uniqueSources = useMemo(() => {
     const uniquePaths = new Set();
     return sources.filter(([_, fileName, filePath]) => {
-      if (uniquePaths.has(filePath)) {
+      if (!filePath || uniquePaths.has(filePath)) {
         return false;
       }
       uniquePaths.add(filePath);
@@ -61,34 +70,35 @@ const CodebaseSearchResult = ({
     });
   }, [sources]);
     
+  // If no unique sources, don't render anything
+  if (uniqueSources.length === 0) {
+    return null;
+  }
+  
   const displayCount = showAll ? uniqueSources.length : Math.min(3, uniqueSources.length);
   
   return (
     <div className="rounded-md border border-border p-3 bg-muted/30">
       <div className="text-xs font-medium text-muted-foreground mb-1">Sources from codebase search:</div>
-      {uniqueSources.length > 0 ? (
-        <div className="text-xs space-y-1">
-          {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
-            <div key={index} className="flex items-center gap-1.5">
-              <span className="inline-flex items-center justify-center bg-primary/10 rounded-full px-2 py-0.5 text-primary">
-                {fileName}
-              </span>
-              <span className="text-muted-foreground truncate">{filePath}</span>
-            </div>
-          ))}
-          
-          {uniqueSources.length > 3 && (
-            <button 
-              onClick={() => setShowAll(!showAll)}
-              className="text-xs text-primary hover:underline mt-1"
-            >
-              {showAll ? 'Show less' : `See ${uniqueSources.length - 3} more sources`}
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="text-xs text-muted-foreground">No source information available</div>
-      )}
+      <div className="text-xs space-y-1">
+        {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
+          <div key={index} className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center bg-primary/10 rounded-full px-2 py-0.5 text-primary">
+              {fileName}
+            </span>
+            <span className="text-muted-foreground truncate">{filePath}</span>
+          </div>
+        ))}
+        
+        {uniqueSources.length > 3 && (
+          <button 
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-primary hover:underline mt-1"
+          >
+            {showAll ? 'Show less' : `See ${uniqueSources.length - 3} more sources`}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -115,6 +125,50 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+
+  // Combine all codebase search results
+  const combinedCodebaseSearchResults = useMemo(() => {
+    if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {
+      return null;
+    }
+    
+    // Get all codebase search results
+    const codebaseSearchResults = message.toolInvocations
+      .filter(tool => 
+        tool.toolName === 'codebaseSearch' && 
+        tool.state === 'result' && 
+        'result' in tool
+      )
+      .map(tool => tool.state === 'result' ? tool.result : undefined)
+      .filter(result => result !== undefined);
+    
+    if (codebaseSearchResults.length === 0) {
+      return null;
+    }
+    
+    // Collect all source matches from all results
+    const allMatches = [];
+    
+    for (const result of codebaseSearchResults) {
+      if (typeof result !== 'string') continue;
+      
+      const matches = Array.from(
+        result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g)
+      );
+      
+      allMatches.push(...matches);
+    }
+    
+    return allMatches.length > 0 ? allMatches : null;
+  }, [message.toolInvocations, isLoading]);
+
+  // Check if we should render codebase search results separately or combined
+  const hasMultipleCodebaseSearches = useMemo(() => {
+    if (!message.toolInvocations) return false;
+    return message.toolInvocations.filter(
+      tool => tool.toolName === 'codebaseSearch' && tool.state === 'result'
+    ).length > 1;
+  }, [message.toolInvocations]);
 
   return (
     <AnimatePresence>
@@ -217,6 +271,24 @@ const PurePreviewMessage = ({
                   }
 
                   if (state === 'result') {
+                    // Skip individual codebase search results if we have multiple searches
+                    if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
+                      return null;
+                    }
+
+                    // Show single codebase search result normally
+                    if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
+                      return (
+                        <div key={toolCallId} className="mt-3">
+                          {!isLoading && result && (
+                            <CodebaseSearchResult 
+                              state={state} 
+                              result={result}
+                            />
+                          )}
+                        </div>
+                      );
+                    }
 
                     return (
                       <div key={toolCallId}>
@@ -242,21 +314,13 @@ const PurePreviewMessage = ({
                         ) : toolName === 'codebaseAssistant' ? (
                           <div>
                           </div>
-                        ) : toolName === 'codebaseSearch' ? (
-                          <div className="mt-3">
-                            {!isLoading && (
-                              <CodebaseSearchResult 
-                                state={state} 
-                                result={result}
-                              />
-                            )}
-                          </div>
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
                         )}
                       </div>
                     );
                   }
+                  
                   // For states other than 'result' or 'running' during codebaseSearch
                   return (
                     <div
@@ -288,6 +352,16 @@ const PurePreviewMessage = ({
                     </div>
                   );
                 })}
+
+                {/* Display combined codebase search results at the end ONLY if we have multiple searches */}
+                {combinedCodebaseSearchResults && hasMultipleCodebaseSearches && !isLoading && (
+                  <div className="mt-3">
+                    <CodebaseSearchResult 
+                      state="result" 
+                      result={combinedCodebaseSearchResults}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
