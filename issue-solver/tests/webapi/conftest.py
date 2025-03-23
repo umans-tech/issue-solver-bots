@@ -84,7 +84,7 @@ def sqs_queue(sqs_client):
 @pytest.fixture(scope="module")
 def postgres_container() -> Generator[PostgresContainer, None, None]:
     """Start a PostgreSQL container."""
-    postgres_container = PostgresContainer()
+    postgres_container = PostgresContainer(image="postgres:17.4-alpine")
     postgres_container.start()
 
     yield postgres_container
