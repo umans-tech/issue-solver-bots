@@ -60,11 +60,6 @@ def is_valid_code_file(file_path: str) -> bool:
     Returns:
         bool: True if the file is valid, False otherwise
     """
-    # Check file extension
-    _, ext = os.path.splitext(file_path)
-    if ext.lower() not in SUPPORTED_EXTENSIONS:
-        return False
-
     # Check if file exists
     if not os.path.exists(file_path):
         return False
@@ -78,14 +73,26 @@ def is_valid_code_file(file_path: str) -> bool:
     if file_size == 0:
         return False
 
-    # Check if file is binary
+    # Check if file can be decoded as text
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             f.read(1024)  # Try to read the first 1024 bytes
+
+        # If we got here, the file is decodable as text
+        # We'll accept any Unicode-decodable file, regardless of extension
         return True
+
     except UnicodeDecodeError:
         # File is likely binary
         return False
+
+
+def prepare_file_path_to_upload(file_path: str, is_supported_extension: bool):
+    if is_supported_extension:
+        return file_path
+    else:
+        os.rename(file_path, file_path + ".txt")
+        return file_path + ".txt"
 
 
 def upload_single_file(
@@ -103,7 +110,10 @@ def upload_single_file(
         dict with status information
     """
     file_name = os.path.basename(file_path)
+    file_extension = os.path.splitext(file_name)[1]
+
     try:
+        # Check if the file is valid (can be text-decoded)
         if not is_valid_code_file(file_path):
             return {
                 "file": file_name,
@@ -111,16 +121,30 @@ def upload_single_file(
                 "reason": "Invalid file type or binary file",
             }
 
-        logger.info(f"Uploading file: {file_name}")
-        file_response = client.files.create(
-            file=open(file_path, "rb"), purpose="assistants"
+        # Determine if we need to treat this as a txt file
+        is_supported_extension = file_extension.lower() in SUPPORTED_EXTENSIONS
+
+        logger.info(
+            f"Uploading file: {file_name}{' as text file' if not is_supported_extension else ''}"
         )
+
+        file_path_to_upload = prepare_file_path_to_upload(file_path, is_supported_extension)
+        file_response = client.files.create(file=open(file_path_to_upload, "rb"), purpose="assistants")
         client.vector_stores.files.create(
             vector_store_id=vector_store_id,
             file_id=file_response.id,
-            attributes={"file_name": file_name, "file_path": file_path},
+            attributes={
+                "file_name": file_name,
+                # file_path is prepended by /tmp/repo/{process_id}, so we extract just the relevant part
+                "file_path": f"/{("/").join(file_path.split("/")[4:])}",
+                "file_extension": file_extension,
+            },
         )
-        return {"file": file_name, "status": "success"}
+        return {
+            "file": file_name,
+            "status": "success",
+            "processed_as": "text" if not is_supported_extension else "native",
+        }
     except Exception as e:
         logger.error(f"Error with {file_name}: {str(e)}")
         return {"file": file_name, "status": "failed", "error": str(e)}

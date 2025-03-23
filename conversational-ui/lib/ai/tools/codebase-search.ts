@@ -50,31 +50,59 @@ function formatResults(results: any) {
     return `<sources>${formattedResults}</sources>`;
 }
 
+// Helper function to log search operations
+function logSearchOperation(operation: string, data: any) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] CodebaseSearch ${operation}:`, JSON.stringify(data, null, 2));
+}
+
 export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
   description: 'Search the codebase using hybrid semantic search to find relevant code snippets.',
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
-    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes.'),
+    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes. Available attributes to filter on are: "file_name" (string) and "file_path" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }] }'),
   }),
   execute: async ({ query, filters }) => {
     try {
+      // Log the search request
+      logSearchOperation('REQUEST', { query, filters });
+      
       // Get the knowledge base ID from the session object
       // @ts-ignore - Accessing a property that TypeScript doesn't know about
       const knowledgeBaseId = session.knowledgeBaseId || getKnowledgeBaseId();
       
       if (!knowledgeBaseId) {
+        logSearchOperation('ERROR', 'No knowledge base found');
         return 'No knowledge base found for this user. Please connect a repository first.';
       }
       
+      logSearchOperation('KNOWLEDGE_BASE', { knowledgeBaseId });
+      
+      console.time('codebaseSearch:execution');
       const searchResults = await client.vectorStores.search(knowledgeBaseId, {
         query: query,
         rewrite_query: true,
         filters: filters,
       });
+      console.timeEnd('codebaseSearch:execution');
+      
+      // Log search results summary (not the full results to avoid logging sensitive information)
+      logSearchOperation('RESULTS_SUMMARY', { 
+        resultCount: searchResults.data?.length || 0,
+        knowledgeBaseId,
+        query
+      });
       
       // Format the results in XML
-      return formatResults(searchResults);
+      const formattedResult = formatResults(searchResults);
+      return formattedResult;
     } catch (error) {
+      // Log error
+      logSearchOperation('ERROR', { 
+        error: error instanceof Error ? error.message : String(error),
+        query,
+        filters
+      });
       console.error('Error searching codebase:', error);
       return `Error searching codebase: ${error instanceof Error ? error.message : String(error)}`;
     }
