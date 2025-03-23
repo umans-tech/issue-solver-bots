@@ -49,14 +49,26 @@ const CodebaseSearchResult = ({
     ? Array.from(result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g))
     : [];
     
-  const displayCount = showAll ? sources.length : Math.min(3, sources.length);
+  // Filter for unique sources based on file_path
+  const uniqueSources = useMemo(() => {
+    const uniquePaths = new Set();
+    return sources.filter(([_, fileName, filePath]) => {
+      if (uniquePaths.has(filePath)) {
+        return false;
+      }
+      uniquePaths.add(filePath);
+      return true;
+    });
+  }, [sources]);
+    
+  const displayCount = showAll ? uniqueSources.length : Math.min(3, uniqueSources.length);
   
   return (
     <div className="rounded-md border border-border p-3 bg-muted/30">
       <div className="text-xs font-medium text-muted-foreground mb-1">Sources from codebase search:</div>
-      {sources.length > 0 ? (
+      {uniqueSources.length > 0 ? (
         <div className="text-xs space-y-1">
-          {sources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
+          {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
             <div key={index} className="flex items-center gap-1.5">
               <span className="inline-flex items-center justify-center bg-primary/10 rounded-full px-2 py-0.5 text-primary">
                 {fileName}
@@ -65,12 +77,12 @@ const CodebaseSearchResult = ({
             </div>
           ))}
           
-          {sources.length > 3 && (
+          {uniqueSources.length > 3 && (
             <button 
               onClick={() => setShowAll(!showAll)}
               className="text-xs text-primary hover:underline mt-1"
             >
-              {showAll ? 'Show less' : `See ${sources.length - 3} more sources`}
+              {showAll ? 'Show less' : `See ${uniqueSources.length - 3} more sources`}
             </button>
           )}
         </div>
