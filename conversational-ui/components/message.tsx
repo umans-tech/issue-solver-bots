@@ -28,9 +28,10 @@ import { MessageReasoning } from './message-reasoning';
 
 // Component to display search animation
 const SearchingAnimation = () => (
-  <div className="mt-2 flex items-center gap-2">
-    <div className="size-4 border-t-2 border-r-2 border-primary rounded-full animate-spin"></div>
-    <span className="text-muted-foreground text-sm">Searching the codebase...</span>
+  <div className="flex flex-col w-full">
+    <div className="text-muted-foreground">
+      <span className="animate-pulse">Searching the codebase...</span>
+    </div>
   </div>
 );
 
@@ -79,24 +80,32 @@ const CodebaseSearchResult = ({
   
   return (
     <div className="rounded-md border border-border p-3 bg-muted/30">
-      <div className="text-xs font-medium text-muted-foreground mb-1">Sources from codebase search:</div>
-      <div className="text-xs space-y-1">
+      <div className="text-xs font-medium text-muted-foreground mb-2">Sources from codebase:</div>
+      <div className="flex flex-wrap gap-2">
         {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
-          <div key={index} className="flex items-center gap-1.5">
-            <span className="inline-flex items-center justify-center bg-primary/10 rounded-full px-2 py-0.5 text-primary">
-              {fileName}
-            </span>
-            <span className="text-muted-foreground truncate">{filePath}</span>
-          </div>
+          <Tooltip key={index}>
+            <TooltipTrigger asChild>
+              <div 
+                className="inline-flex h-7 items-center justify-center rounded-md border border-primary/10 bg-primary/5 px-3 text-xs font-medium"
+              >
+                {fileName}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[300px]">
+              <span className="text-xs truncate">{filePath}</span>
+            </TooltipContent>
+          </Tooltip>
         ))}
         
         {uniqueSources.length > 3 && (
-          <button 
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 text-xs text-primary"
             onClick={() => setShowAll(!showAll)}
-            className="text-xs text-primary hover:underline mt-1"
           >
-            {showAll ? 'Show less' : `See ${uniqueSources.length - 3} more sources`}
-          </button>
+            {showAll ? 'Show less' : `+${uniqueSources.length - 3} more`}
+          </Button>
         )}
       </div>
     </div>
@@ -266,8 +275,12 @@ const PurePreviewMessage = ({
                   const result = 'result' in toolInvocation ? toolInvocation.result : undefined;
 
                   // Handle codebase search animation separately
-                  if (toolName === 'codebaseSearch' && state === 'call' && message.content === '') {
-                    return <SearchingAnimation key={toolCallId} />;
+                  if (toolName === 'codebaseSearch' && state === 'call') {
+                    return (
+                      <div className="text-muted-foreground" key={toolCallId}>
+                        <span className="animate-pulse">Searching the codebase...</span>
+                      </div>
+                    );
                   }
 
                   if (state === 'result') {
@@ -425,7 +438,7 @@ export const ThinkingMessage = () => {
 
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-4 text-muted-foreground">
-            Thinking...
+            <span className="animate-pulse">Thinking...</span>
           </div>
         </div>
       </div>

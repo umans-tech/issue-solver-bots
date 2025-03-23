@@ -6,12 +6,12 @@ export const DEFAULT_CHAT_MODEL: string = 'chat-model-small';
 
 export const myProvider = customProvider({
     languageModels: {
-        'chat-model-small': openai.responses('gpt-4o-mini'),
-        'chat-model-large': openai.responses('gpt-4o'),
-        'chat-model-reasoning': openai.responses('o3-mini'),
+        'chat-model-small': openai('gpt-4o-mini'),
+        'chat-model-large': openai('gpt-4o'),
+        'chat-model-reasoning': openai('o3-mini'),
         'coding-model': anthropic('claude-3-7-sonnet-latest'),
-        'title-model': openai.responses('gpt-4o-mini'),
-        'artifact-model': openai.responses('gpt-4o-mini'),
+        'title-model': openai('gpt-4o-mini'),
+        'artifact-model': openai('gpt-4o-mini'),
     },
     imageModels: {
         'small-model': openai.image('dall-e-2'),
