@@ -128,8 +128,12 @@ def upload_single_file(
             f"Uploading file: {file_name}{' as text file' if not is_supported_extension else ''}"
         )
 
-        file_path_to_upload = prepare_file_path_to_upload(file_path, is_supported_extension)
-        file_response = client.files.create(file=open(file_path_to_upload, "rb"), purpose="assistants")
+        file_path_to_upload = prepare_file_path_to_upload(
+            file_path, is_supported_extension
+        )
+        file_response = client.files.create(
+            file=open(file_path_to_upload, "rb"), purpose="assistants"
+        )
         client.vector_stores.files.create(
             vector_store_id=vector_store_id,
             file_id=file_response.id,
