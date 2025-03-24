@@ -87,12 +87,20 @@ def is_valid_code_file(file_path: str) -> bool:
         return False
 
 
-def prepare_file_path_to_upload(file_path: str, is_supported_extension: bool):
+def prepare_file_path_to_upload(file_path: str) -> str:
+    is_supported_extension = file_path.endswith(tuple(SUPPORTED_EXTENSIONS))
     if is_supported_extension:
         return file_path
     else:
         os.rename(file_path, file_path + ".txt")
         return file_path + ".txt"
+
+
+def path_from_repo_root(file_path: str) -> str:
+    repo_root_pattern = "/tmp/repo/{process_id}"
+    position_of_repo_root = len(repo_root_pattern.split("/"))
+    path_slots_from_repo_root = file_path.split("/")[position_of_repo_root:]
+    return f"/{("/").join(path_slots_from_repo_root)}"
 
 
 def upload_single_file(
@@ -121,15 +129,12 @@ def upload_single_file(
                 "reason": "Invalid file type or binary file",
             }
 
-        # Determine if we need to treat this as a txt file
-        is_supported_extension = file_extension.lower() in SUPPORTED_EXTENSIONS
+        file_path_to_upload = prepare_file_path_to_upload(file_path)
+
+        extension_has_changed = file_path_to_upload == file_path
 
         logger.info(
-            f"Uploading file: {file_name}{' as text file' if not is_supported_extension else ''}"
-        )
-
-        file_path_to_upload = prepare_file_path_to_upload(
-            file_path, is_supported_extension
+            f"Uploading file: {file_name}{' as text file' if not extension_has_changed else ''}"
         )
         file_response = client.files.create(
             file=open(file_path_to_upload, "rb"), purpose="assistants"
@@ -139,15 +144,14 @@ def upload_single_file(
             file_id=file_response.id,
             attributes={
                 "file_name": file_name,
-                # file_path is prepended by /tmp/repo/{process_id}, so we extract just the relevant part
-                "file_path": f"/{("/").join(file_path.split("/")[4:])}",
+                "file_path": path_from_repo_root(file_path),
                 "file_extension": file_extension,
             },
         )
         return {
             "file": file_name,
             "status": "success",
-            "processed_as": "text" if not is_supported_extension else "native",
+            "processed_as": "text" if not extension_has_changed else "native",
         }
     except Exception as e:
         logger.error(f"Error with {file_name}: {str(e)}")
