@@ -24,13 +24,13 @@ resource "aws_ecr_lifecycle_policy" "app_lifecycle_policy" {
         rulePriority = 1
         description  = "Retain production tagged images"
         selection = {
-          tagStatus     = "tagged"
+          tagStatus = "tagged"
           tagPrefixList = [
             "umans-platform-webapi-production",
             "umans-platform-worker-production"
           ]
-          countType     = "imageCountMoreThan"
-          countNumber   = 12
+          countType   = "imageCountMoreThan"
+          countNumber = 12
         }
         action = {
           type = "expire"
@@ -38,11 +38,28 @@ resource "aws_ecr_lifecycle_policy" "app_lifecycle_policy" {
       },
       {
         rulePriority = 2
-        description  = "Keep last 10 images"
+        description  = "Keep last 10 images for non-production tagged images"
         selection = {
-          tagStatus     = "any"
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          tagStatus = "tagged"
+          tagPrefixList = [
+            "umans-platform-webapi-pr-",
+            "umans-platform-worker-pr-"
+          ]
+          countType   = "imageCountMoreThan"
+          countNumber = 10
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 3
+        description  = "Expire untagged images older than 7 days"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countNumber = 7
+          countUnit   = "days"
         }
         action = {
           type = "expire"
