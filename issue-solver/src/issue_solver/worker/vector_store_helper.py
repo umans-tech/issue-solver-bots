@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -42,7 +43,6 @@ SUPPORTED_EXTENSIONS = {
     ".txt",
     ".webp",
     ".xlsx",
-    ".xml",
 }
 
 
@@ -102,6 +102,20 @@ def path_from_repo_root(file_path: str) -> str:
     path_slots_from_repo_root = file_path.split("/")[position_of_repo_root:]
     return f"/{("/").join(path_slots_from_repo_root)}"
 
+@retry(wait=wait_random_exponential(min=5, max=70), stop=stop_after_attempt(10))
+def upload_file_with_retry(file_path, vector_store_id, client, file_name, file_extension, file_path_to_upload):
+    file_response = client.files.create(
+            file=open(file_path_to_upload, "rb"), purpose="assistants"
+        )
+    client.vector_stores.files.create(
+            vector_store_id=vector_store_id,
+            file_id=file_response.id,
+            attributes={
+                "file_name": file_name,
+                "file_path": path_from_repo_root(file_path),
+                "file_extension": file_extension,
+            },
+        )
 
 def upload_single_file(
     file_path: str, vector_store_id: str, client: OpenAI
@@ -136,18 +150,10 @@ def upload_single_file(
         logger.info(
             f"Uploading file: {file_name}{' as text file' if not extension_has_changed else ''}"
         )
-        file_response = client.files.create(
-            file=open(file_path_to_upload, "rb"), purpose="assistants"
-        )
-        client.vector_stores.files.create(
-            vector_store_id=vector_store_id,
-            file_id=file_response.id,
-            attributes={
-                "file_name": file_name,
-                "file_path": path_from_repo_root(file_path),
-                "file_extension": file_extension,
-            },
-        )
+
+        upload_file_with_retry(file_path, vector_store_id, client, file_name, file_extension, file_path_to_upload)
+
+        logger.info(f"File {file_name} uploaded successfully")
         return {
             "file": file_name,
             "status": "success",
@@ -156,6 +162,7 @@ def upload_single_file(
     except Exception as e:
         logger.error(f"Error with {file_name}: {str(e)}")
         return {"file": file_name, "status": "failed", "error": str(e)}
+
 
 
 def upload_repository_files_to_vector_store(
