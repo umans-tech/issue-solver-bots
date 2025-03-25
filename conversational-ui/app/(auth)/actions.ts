@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createUser, getUser } from '@/lib/db/queries';
 
 import { signIn } from './auth';
+import { ensureDefaultSpace } from '@/lib/db/queries';
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -66,7 +67,20 @@ export const register = async (
     if (user) {
       return { status: 'user_exists' } as RegisterActionState;
     }
+    
+    // Create the user first
     await createUser(validatedData.email, validatedData.password);
+    
+    // Get the newly created user to access their ID
+    const [newUser] = await getUser(validatedData.email);
+    
+    // Create a default space for the user and set it as selected
+    // This ensures the space is created before the session is initialized
+    if (newUser && newUser.id) {
+      await ensureDefaultSpace(newUser.id);
+    }
+    
+    // Now sign in with the credentials
     await signIn('credentials', {
       email: validatedData.email,
       password: validatedData.password,
