@@ -4,6 +4,7 @@ import Image from 'next/image';
 import type { User } from 'next-auth';
 import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ import {
 
 export function SidebarUserNav({ user }: { user: User }) {
   const { setTheme, theme } = useTheme();
+  const router = useRouter();
 
   return (
     <SidebarMenu>
@@ -53,10 +55,18 @@ export function SidebarUserNav({ user }: { user: User }) {
               <button
                 type="button"
                 className="w-full cursor-pointer"
-                onClick={() => {
-                  signOut({
-                    redirectTo: '/',
-                  });
+                onClick={async () => {
+                  try {
+                    await signOut({
+                      callbackUrl: '/',
+                      redirect: true
+                    });
+                    // Force a page refresh to ensure the session is cleared
+                    router.push('/login');
+                    router.refresh();
+                  } catch (error) {
+                    console.error('Failed to sign out:', error);
+                  }
                 }}
               >
                 Sign out
