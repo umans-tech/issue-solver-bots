@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ export function RepoConnectionDialog({
   open,
   onOpenChange,
 }: RepoConnectionDialogProps) {
+  const { data: session, update: updateSession } = useSession();
   const [repoUrl, setRepoUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -46,29 +48,173 @@ export function RepoConnectionDialog({
     setIsSubmitting(true);
     
     try {
-      // Call our Next.js API route instead of directly calling the CUDU API
+      console.log("Starting repository connection...");
+      
+      // Check if we have a valid session with a selected space
+      if (!session?.user?.id || !session?.user?.selectedSpace?.id) {
+        console.log("Session data incomplete, refreshing session...");
+        // Try to refresh the session to get the latest data
+        await updateSession();
+        // Small delay to ensure session is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // If we still don't have a valid session with space, log and show error
+      if (!session?.user?.id || !session?.user?.selectedSpace?.id) {
+        console.error("Invalid session: Missing user ID or selected space", {
+          userId: session?.user?.id,
+          spaceId: session?.user?.selectedSpace?.id
+        });
+        throw new Error('Session data is incomplete. Please reload the page and try again.');
+      }
+      
+      // Gather data for the API call including user and space info
+      const payload = {
+        repoUrl,
+        accessToken,
+        userId: session.user.id,
+        spaceId: session.user.selectedSpace.id,
+      };
+      
+      console.log("Payload prepared:", payload);
+      
+      // Call our Next.js API route
       const response = await fetch('/api/repo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          repoUrl,
-          accessToken,
-        }),
+        body: JSON.stringify(payload),
       });
       
       // Get the response data
       const data = await response.json();
       
+      console.log("API response received:", data);
+      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to connect repository');
       }
       
-      // Directly save the knowledge base ID to localStorage as a raw string
-      if (data.knowledge_base_id) {
-        localStorage.setItem('knowledge_base_id', data.knowledge_base_id);
-        console.log('Knowledge base ID saved:', data.knowledge_base_id);
+      // Log important fields from response to debug
+      console.log("Critical fields from response:", {
+        knowledge_base_id: data.knowledge_base_id || 'NOT PROVIDED',
+        process_id: data.process_id || 'NOT PROVIDED',
+        status: data.status || 'NOT PROVIDED'
+      });
+      
+      // When we get 'connected' status from the CUDU API, we should make sure process_id is passed to the session
+      if (data.status?.toLowerCase() === 'connected' && !data.process_id && data.events && data.events[0]) {
+        // Try to extract the process_id from events if it's not at the top level
+        console.log("Status is 'connected' but no top-level process_id, looking in events");
+        data.process_id = data.events[0].process_id;
+        console.log("Extracted process_id from events:", data.process_id);
+      }
+      
+      // If we have the space info, update the space with the knowledge base ID
+      if (session?.user?.id && session?.user?.selectedSpace?.id && data.knowledge_base_id) {
+        console.log("Updating space with knowledge base ID:", data.knowledge_base_id);
+        console.log("Process ID being sent:", data.process_id);
+        
+        // Update the space with the knowledge base ID
+        const updateResponse = await fetch('/api/spaces/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            spaceId: session.user.selectedSpace.id,
+            knowledgeBaseId: data.knowledge_base_id,
+            // If there's a process_id, it means indexing is in progress - ensure it's sent
+            processId: data.process_id || null,
+          }),
+        });
+        
+        if (!updateResponse.ok) {
+          console.error('Failed to update space with knowledge base ID');
+        } else {
+          console.log("Space updated successfully, now updating session");
+          
+          // Create the updated space info
+          const updatedSpace = {
+            ...session.user.selectedSpace,
+            knowledgeBaseId: data.knowledge_base_id,
+            processId: data.process_id || null,
+          };
+          
+          console.log("Updated space object:", updatedSpace);
+          
+          try {
+            // First, update the local session with the new data
+            const updatedUser = {
+              ...session.user,
+              selectedSpace: updatedSpace
+            };
+            
+            console.log("Updating local session with user data:", {
+              email: updatedUser.email,
+              id: updatedUser.id,
+              selectedSpace: updatedSpace
+            });
+            
+            // Update the local session first
+            await updateSession({
+              user: updatedUser
+            });
+            console.log("Local session updated successfully");
+            
+            // Then, explicitly trigger a refresh from the server session data
+            // Using POST to ensure it's not cached and to work around any CORS issues
+            console.log("Forcing complete session refresh from server...");
+            const sessionResponse = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+              }
+            });
+            
+            if (sessionResponse.ok) {
+              const freshSession = await sessionResponse.json();
+              console.log("Fresh session data from server:", {
+                knowledgeBaseId: freshSession?.user?.selectedSpace?.knowledgeBaseId,
+                processId: freshSession?.user?.selectedSpace?.processId
+              });
+
+              // Apply the fresh session data
+              await updateSession(freshSession);
+              console.log("Session fully refreshed with server data");
+              
+              // Delay to ensure session updates are processed
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Reload the page with a unique query parameter to force a fresh render
+              const currentPath = window.location.pathname;
+              const timestamp = Date.now();
+              window.location.href = `${currentPath}?refresh=${timestamp}`;
+            } else {
+              console.error("Failed to refresh session from server:", sessionResponse.statusText);
+              
+              // Even if refresh fails, still reload the page to get fresh data
+              const currentPath = window.location.pathname;
+              const timestamp = Date.now();
+              window.location.href = `${currentPath}?refresh=${timestamp}`;
+            }
+          } catch (sessionError) {
+            console.error("Error updating session:", sessionError);
+            
+            // Even if there's an error, reload the page to try to get fresh data
+            const currentPath = window.location.pathname;
+            const timestamp = Date.now();
+            window.location.href = `${currentPath}?refresh=${timestamp}`;
+          }
+        }
+      } else {
+        console.warn("Cannot update space - missing required data:", {
+          userId: session?.user?.id,
+          spaceId: session?.user?.selectedSpace?.id,
+          knowledgeBaseId: data.knowledge_base_id
+        });
       }
       
       // Success
@@ -76,6 +222,7 @@ export function RepoConnectionDialog({
       setAccessToken('');
       onOpenChange(false);
     } catch (err) {
+      console.error("Error in repository connection:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);

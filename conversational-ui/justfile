@@ -20,6 +20,11 @@ stop-services:
     @echo "Stopping backing services..."
     @docker-compose down
 
+# ❌ destroy backing services
+destroy-services:
+    @echo "Destroying backing services..."
+    @docker-compose down -v
+
 # ⬆️ Migrate the database
 migrate:
     @echo "Migrating the database..."
