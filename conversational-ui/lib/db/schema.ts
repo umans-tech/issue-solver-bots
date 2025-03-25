@@ -11,13 +11,41 @@ import {
   boolean,
 } from 'drizzle-orm/pg-core';
 
+export const space = pgTable('Space', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: text('name').notNull(),
+  knowledgeBaseId: text('knowledgeBaseId'),
+  processId: text('processId'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  isDefault: boolean('isDefault').notNull().default(false),
+});
+
+export type Space = InferSelectModel<typeof space>;
+
 export const user = pgTable('User', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
+  selectedSpaceId: uuid('selectedSpaceId').references(() => space.id),
 });
 
 export type User = InferSelectModel<typeof user>;
+
+export const spaceToUser = pgTable('SpaceToUser', {
+  spaceId: uuid('spaceId')
+    .notNull()
+    .references(() => space.id),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.spaceId, table.userId] }),
+  };
+});
+
+export type SpaceToUser = InferSelectModel<typeof spaceToUser>;
 
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
