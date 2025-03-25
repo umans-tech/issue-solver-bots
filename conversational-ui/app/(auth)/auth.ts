@@ -2,12 +2,19 @@ import { compare } from 'bcrypt-ts';
 import NextAuth, { type User, type Session } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
-import { getUser } from '@/lib/db/queries';
+import { getUser, getSelectedSpace } from '@/lib/db/queries';
 
 import { authConfig } from './auth.config';
 
 interface ExtendedSession extends Session {
-  user: User;
+  user: User & {
+    selectedSpace?: {
+      id: string;
+      name: string;
+      knowledgeBaseId?: string | null;
+      processId?: string | null;
+    } | null;
+  };
 }
 
 export const {
@@ -34,6 +41,17 @@ export const {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        
+        // Get the user's selected space
+        const selectedSpace = await getSelectedSpace(user.id as string);
+        if (selectedSpace) {
+          token.selectedSpace = {
+            id: selectedSpace.id,
+            name: selectedSpace.name,
+            knowledgeBaseId: selectedSpace.knowledgeBaseId,
+            processId: selectedSpace.processId,
+          };
+        }
       }
 
       return token;
@@ -47,6 +65,11 @@ export const {
     }) {
       if (session.user) {
         session.user.id = token.id as string;
+        
+        // Add selected space info to the session
+        if (token.selectedSpace) {
+          session.user.selectedSpace = token.selectedSpace;
+        }
       }
 
       return session;
