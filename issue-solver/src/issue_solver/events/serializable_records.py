@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import Literal, Self, assert_never
+from typing import Any, Literal, Self, assert_never
 
+from issue_solver.events.domain import (
+    AnyDomainEvent,
+    CodeRepositoryConnected,
+    CodeRepositoryIndexed,
+)
 from pydantic import BaseModel
-
-from issue_solver.events.domain import CodeRepositoryConnected, AnyDomainEvent
 
 
 class CodeRepositoryConnectedRecord(BaseModel):
@@ -43,7 +46,43 @@ class CodeRepositoryConnectedRecord(BaseModel):
         )
 
 
-ProcessTimelineEventRecords = CodeRepositoryConnectedRecord
+class CodeRepositoryIndexedRecord(BaseModel):
+    type: Literal["repository_indexed"] = "repository_indexed"
+    occurred_at: datetime
+    branch: str
+    commit_sha: str
+    stats: dict[str, Any]
+    knowledge_base_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodeRepositoryIndexed:
+        return CodeRepositoryIndexed(
+            occurred_at=self.occurred_at,
+            branch=self.branch,
+            commit_sha=self.commit_sha,
+            stats=self.stats,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodeRepositoryIndexed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            branch=event.branch,
+            commit_sha=event.commit_sha,
+            stats=event.stats,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+        )
+
+
+ProcessTimelineEventRecords = (
+    CodeRepositoryConnectedRecord | CodeRepositoryIndexedRecord
+)
 
 
 def obfuscate(secret: str) -> str:
@@ -54,6 +93,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
     match event:
         case CodeRepositoryConnected():
             return CodeRepositoryConnectedRecord.create_from(event)
+        case CodeRepositoryIndexed():
+            return CodeRepositoryIndexedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -62,6 +103,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
     match event_type:
         case "repository_connected":
             return CodeRepositoryConnectedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "repository_indexed":
+            return CodeRepositoryIndexedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

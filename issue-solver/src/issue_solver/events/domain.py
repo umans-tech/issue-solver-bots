@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -27,4 +28,14 @@ class CodeRepositoryConnected(DomainEvent):
     occurred_at: datetime
 
 
-AnyDomainEvent = CodeRepositoryConnected
+@dataclass(frozen=True, slots=True)
+class CodeRepositoryIndexed(DomainEvent):
+    branch: str
+    commit_sha: str
+    stats: dict[str, Any]
+    knowledge_base_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+AnyDomainEvent = CodeRepositoryConnected | CodeRepositoryIndexed

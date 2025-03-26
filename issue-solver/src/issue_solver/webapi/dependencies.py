@@ -2,13 +2,15 @@ import logging
 import os
 from typing import assert_never
 
+import asyncpg
 from starlette.requests import Request
 
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.clock import Clock, UTCSystemClock
-from issue_solver.events.event_store import InMemoryEventStore
+from issue_solver.database.postgres_event_store import PostgresEventStore
+from issue_solver.events.event_store import InMemoryEventStore, EventStore
 from issue_solver.logging_config import default_logging_config
 from issue_solver.webapi.payloads import ResolutionSettings
 
@@ -39,3 +41,11 @@ def get_logger(
 
 def get_clock() -> Clock:
     return UTCSystemClock()
+
+
+async def init_event_store() -> EventStore:
+    return PostgresEventStore(
+        connection=await asyncpg.connect(
+            os.environ["DATABASE_URL"].replace("+asyncpg", "")
+        )
+    )

@@ -1,12 +1,12 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
 from git import Repo
-from pydantic import Field
-from pydantic_settings import BaseSettings
-
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class GitHelper:
@@ -96,16 +96,26 @@ class GitHelper:
         else:
             print("No 'repo_origin' remote found. Cannot push changes.")
 
-    def clone_repository(self, to_path: Path) -> None:
+    def clone_repository(self, to_path: Path) -> "CodeVersion":
         """
         Clone the repository to the current working directory.
         """
-        Repo.clone_from(
+        repo = Repo.clone_from(
             self.settings.repository_url,
             to_path=to_path,
             env={"GIT_TERMINAL_PROMPT": "0"},
             depth=1,
         )
+        # return branch name and commit sha
+        return CodeVersion(
+            branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
+        )
+
+
+@dataclass
+class CodeVersion:
+    branch: str
+    commit_sha: str
 
 
 class GitSettings(BaseSettings):

@@ -11,7 +11,6 @@ import os
 import time
 
 import boto3
-
 from issue_solver.worker.lambda_handler import handler
 
 # Configure logging
