@@ -3,7 +3,6 @@ import { tool } from 'ai';
 import { Session } from 'next-auth';
 import { DataStreamWriter } from 'ai';
 import { OpenAI } from 'openai';
-import { getKnowledgeBaseId } from '@/lib/utils';
 
 const client = new OpenAI();
 
@@ -66,18 +65,19 @@ export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
     try {
       // Log the search request
       logSearchOperation('REQUEST', { query, filters });
-      
-      // Get the knowledge base ID from the session object
-      // @ts-ignore - Accessing a property that TypeScript doesn't know about
-      const knowledgeBaseId = session.knowledgeBaseId || getKnowledgeBaseId();
-      
+
+      // Get the knowledge base ID from the session object, checking session locations
+      // @ts-ignore - Accessing properties that TypeScript doesn't know about
+      const knowledgeBaseId = session.knowledgeBaseId ||
+                             session?.user?.selectedSpace?.knowledgeBaseId;
+
       if (!knowledgeBaseId) {
         logSearchOperation('ERROR', 'No knowledge base found');
         return 'No knowledge base found for this user. Please connect a repository first.';
       }
-      
+
       logSearchOperation('KNOWLEDGE_BASE', { knowledgeBaseId });
-      
+
       console.time('codebaseSearch:execution');
       const searchResults = await client.vectorStores.search(knowledgeBaseId, {
         query: query,
@@ -85,20 +85,20 @@ export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
         filters: filters,
       });
       console.timeEnd('codebaseSearch:execution');
-      
+
       // Log search results summary (not the full results to avoid logging sensitive information)
-      logSearchOperation('RESULTS_SUMMARY', { 
+      logSearchOperation('RESULTS_SUMMARY', {
         resultCount: searchResults.data?.length || 0,
         knowledgeBaseId,
         query
       });
-      
+
       // Format the results in XML
       const formattedResult = formatResults(searchResults);
       return formattedResult;
     } catch (error) {
       // Log error
-      logSearchOperation('ERROR', { 
+      logSearchOperation('ERROR', {
         error: error instanceof Error ? error.message : String(error),
         query,
         filters

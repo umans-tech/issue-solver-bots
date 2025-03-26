@@ -60,13 +60,18 @@ export async function POST(request: Request) {
     const data = await response.json();
     console.log("CUDU API response data:", data);
 
-    // Ensure processId and knowledgeBaseId are always clear in the response
-    // In production code, we want to use the actual data from the CUDU API
+    // Ensure both snake_case and camelCase versions of the knowledge base ID are available
+    // This ensures compatibility with different parts of the application
+    const knowledgeBaseId = data.knowledgeBaseId || data.knowledge_base_id;
+    
     const responseData = {
       ...data,
-      // Ensure process_id and knowledge_base_id are available
-      process_id: data.process_id,
-      knowledge_base_id: data.knowledge_base_id
+      // Ensure both formats are available
+      knowledge_base_id: knowledgeBaseId,
+      knowledgeBaseId: knowledgeBaseId,
+      // Ensure process_id is available
+      process_id: data.process_id || data.processId,
+      processId: data.processId || data.process_id
     };
 
     // Return the response from the CUDU API with clearer handling of the IDs
