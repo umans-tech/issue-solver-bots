@@ -101,7 +101,7 @@ class GitHelper:
         Clone the repository to the current working directory.
         """
         repo = Repo.clone_from(
-            self.settings.repository_url,
+            self._inject_access_token(self.settings.repository_url),
             to_path=to_path,
             env={"GIT_TERMINAL_PROMPT": "0"},
             depth=1,
