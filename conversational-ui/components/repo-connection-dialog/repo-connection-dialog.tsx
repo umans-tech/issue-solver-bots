@@ -39,11 +39,6 @@ export function RepoConnectionDialog({
       return;
     }
     
-    if (!accessToken) {
-      setError('Access token is required');
-      return;
-    }
-    
     setError(null);
     setIsSubmitting(true);
     

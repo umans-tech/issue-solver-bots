@@ -22,13 +22,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Access token is required' },
-        { status: 400 }
-      );
-    }
-
     // Get the CUDU API endpoint from environment variables
     const cuduEndpoint = process.env.CUDU_ENDPOINT;
 
