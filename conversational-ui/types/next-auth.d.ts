@@ -9,6 +9,7 @@ declare module "next-auth" {
         name: string;
         knowledgeBaseId?: string | null;
         processId?: string | null;
+        repoUrl?: string | null;
         isDefault?: boolean;
       } | null;
     } & DefaultSession["user"];
@@ -21,6 +22,7 @@ declare module "next-auth" {
       name: string;
       knowledgeBaseId?: string | null;
       processId?: string | null;
+      repoUrl?: string | null;
       isDefault?: boolean;
     } | null;
   }

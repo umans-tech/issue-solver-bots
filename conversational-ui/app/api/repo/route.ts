@@ -22,12 +22,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Access token is required' },
-        { status: 400 }
-      );
-    }
+    // No longer require accessToken - it can be empty for public repos
+    // if (!accessToken) {
+    //   return NextResponse.json(
+    //     { error: 'Access token is required' },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Get the CUDU API endpoint from environment variables
     const cuduEndpoint = process.env.CUDU_ENDPOINT;
@@ -41,14 +42,14 @@ export async function POST(request: Request) {
 
     const requestBody = {
       url: repoUrl,
-      access_token: accessToken,
+      access_token: accessToken, // This can now be an empty string for public repos
       user_id: userId || session.user.id,
       space_id: spaceId || '',
     };
     
     console.log("Sending request to CUDU API:", {
       endpoint: `${cuduEndpoint}/repositories`,
-      body: { ...requestBody, access_token: '***REDACTED***' }
+      body: { ...requestBody, access_token: accessToken ? '***REDACTED***' : '(empty - public repo)' }
     });
 
     // Forward the request to the CUDU API with user and space information

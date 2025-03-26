@@ -19,6 +19,25 @@ import { IconUmansLogo } from './icons';
 import { RepoConnectionDialog } from './repo-connection-dialog/repo-connection-dialog';
 import { useProcessStatus } from '@/hooks/use-process-status';
 
+// Utility function to determine git provider from URL
+const getGitProviderFromUrl = (url: string): 'git' | 'github' | 'gitlab' | 'azure' | 'bitbucket' => {
+  if (!url) return 'git';
+  
+  const lowerUrl = url.toLowerCase();
+  
+  if (lowerUrl.includes('github.com')) {
+    return 'github';
+  } else if (lowerUrl.includes('gitlab.com')) {
+    return 'gitlab';
+  } else if (lowerUrl.includes('dev.azure.com') || lowerUrl.includes('visualstudio.com')) {
+    return 'azure';
+  } else if (lowerUrl.includes('bitbucket.org')) {
+    return 'bitbucket';
+  }
+  
+  return 'git'; // Default fallback
+};
+
 function PureChatHeader({
   chatId,
   selectedModelId,
@@ -81,17 +100,51 @@ function PureChatHeader({
   const knowledgeBaseId = session?.user?.selectedSpace?.knowledgeBaseId;
   const processId = session?.user?.selectedSpace?.processId;
   
+  // We'll store the repository URL from process data
+  const [repoUrl, setRepoUrl] = useState<string>('');
+  
+  // Effect to fetch process details when processId changes
+  useEffect(() => {
+    const fetchProcessDetails = async () => {
+      if (!processId) return;
+      
+      try {
+        const response = await fetch(`/api/processes/${processId}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Extract URL from process data
+          if (data.events && data.events.length > 0) {
+            const repoEvent = data.events.find((e: any) => e.url);
+            if (repoEvent && repoEvent.url) {
+              setRepoUrl(repoEvent.url);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching process details:", error);
+      }
+    };
+    
+    fetchProcessDetails();
+  }, [processId]);
+  
+  // Determine git provider from URL
+  const gitProvider = getGitProviderFromUrl(repoUrl);
+  
   // Log all relevant session data for debugging
   useEffect(() => {
     console.log("Session data in ChatHeader:", {
       knowledgeBaseId,
       processId,
+      repoUrl,
+      gitProvider,
       selectedSpaceId: session?.user?.selectedSpace?.id,
       hasSession: !!session,
       hasUser: !!session?.user,
       hasSelectedSpace: !!session?.user?.selectedSpace
     });
-  }, [session, knowledgeBaseId, processId]);
+  }, [session, knowledgeBaseId, processId, repoUrl, gitProvider]);
 
   // Define initial status based on session data
   let initialStatus: 'none' | 'indexing' | 'indexed' = 'none';
@@ -106,8 +159,8 @@ function PureChatHeader({
   
   // Log status for debugging
   useEffect(() => {
-    console.log(`Git status in ChatHeader: ${gitStatus}, KB: ${knowledgeBaseId}, Process: ${processId}`);
-  }, [gitStatus, knowledgeBaseId, processId]);
+    console.log(`Git status in ChatHeader: ${gitStatus}, Provider: ${gitProvider}, KB: ${knowledgeBaseId}, Process: ${processId}`);
+  }, [gitStatus, knowledgeBaseId, processId, gitProvider]);
 
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
@@ -156,7 +209,7 @@ function PureChatHeader({
               className="h-8 w-8"
               onClick={() => setShowRepoDialog(true)}
             >
-              <GitIcon status={gitStatus} />
+              <GitIcon status={gitStatus} provider={gitProvider} />
               <span className="sr-only">Connect Repository</span>
             </Button>
           </TooltipTrigger>

@@ -358,7 +358,8 @@ export async function createSpace(
   userId: string,
   knowledgeBaseId?: string,
   processId?: string,
-  isDefault: boolean = false
+  isDefault: boolean = false,
+  repoUrl?: string
 ) {
   return db
     .insert(space)
@@ -367,6 +368,7 @@ export async function createSpace(
       knowledgeBaseId,
       processId,
       isDefault,
+      repoUrl,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -394,6 +396,7 @@ export async function getSpacesForUser(userId: string) {
       name: space.name,
       knowledgeBaseId: space.knowledgeBaseId,
       processId: space.processId,
+      repoUrl: space.repoUrl,
       createdAt: space.createdAt,
       updatedAt: space.updatedAt,
       isDefault: space.isDefault,
@@ -425,6 +428,7 @@ export async function updateSpace(
     knowledgeBaseId?: string;
     processId?: string;
     isDefault?: boolean;
+    repoUrl?: string;
   }
 ) {
   return db
@@ -483,7 +487,8 @@ export async function ensureDefaultSpace(userId: string) {
       userId,
       undefined,
       undefined,
-      true
+      true,
+      undefined
     );
     
     // Set this as the selected space

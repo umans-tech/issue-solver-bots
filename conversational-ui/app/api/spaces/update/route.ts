@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     // Parse request body
-    const { spaceId, knowledgeBaseId, processId, name, isDefault } = await request.json();
+    const { spaceId, knowledgeBaseId, processId, name, isDefault, repoUrl } = await request.json();
 
     // Validate required fields
     if (!spaceId) {
@@ -30,12 +30,14 @@ export async function POST(request: Request) {
       processId?: string;
       name?: string;
       isDefault?: boolean;
+      repoUrl?: string;
     } = {};
 
     if (knowledgeBaseId !== undefined) updates.knowledgeBaseId = knowledgeBaseId;
     if (processId !== undefined) updates.processId = processId;
     if (name !== undefined) updates.name = name;
     if (isDefault !== undefined) updates.isDefault = isDefault;
+    if (repoUrl !== undefined) updates.repoUrl = repoUrl;
 
     // Update space in the database
     const updatedSpace = await updateSpace(spaceId, updates);
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
         processId: updates.processId !== undefined ? 'updated' : 'unchanged',
         name: updates.name !== undefined ? 'updated' : 'unchanged',
         isDefault: updates.isDefault !== undefined ? 'updated' : 'unchanged',
+        repoUrl: updates.repoUrl !== undefined ? 'updated' : 'unchanged',
       }
     }, { status: 200 });
   } catch (error) {

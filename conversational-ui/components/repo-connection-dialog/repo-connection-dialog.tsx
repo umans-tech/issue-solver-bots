@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,26 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Checkbox } from '@/components/ui/checkbox';
+
+// Utility function to determine git provider from URL
+const getGitProviderFromUrl = (url: string): 'git' | 'github' | 'gitlab' | 'azure' | 'bitbucket' => {
+  if (!url) return 'git';
+  
+  const lowerUrl = url.toLowerCase();
+  
+  if (lowerUrl.includes('github.com')) {
+    return 'github';
+  } else if (lowerUrl.includes('gitlab.com')) {
+    return 'gitlab';
+  } else if (lowerUrl.includes('dev.azure.com') || lowerUrl.includes('visualstudio.com')) {
+    return 'azure';
+  } else if (lowerUrl.includes('bitbucket.org')) {
+    return 'bitbucket';
+  }
+  
+  return 'git'; // Default fallback
+};
 
 interface RepoConnectionDialogProps {
   open: boolean;
@@ -28,8 +48,15 @@ export function RepoConnectionDialog({
   const [repoUrl, setRepoUrl] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [showToken, setShowToken] = useState(false);
+  const [isPublicRepo, setIsPublicRepo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gitProvider, setGitProvider] = useState<'git' | 'github' | 'gitlab' | 'azure' | 'bitbucket'>('git');
+
+  // Update the git provider when the URL changes
+  useEffect(() => {
+    setGitProvider(getGitProviderFromUrl(repoUrl));
+  }, [repoUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +66,8 @@ export function RepoConnectionDialog({
       return;
     }
     
-    if (!accessToken) {
-      setError('Access token is required');
+    if (!isPublicRepo && !accessToken) {
+      setError('Access token is required for private repositories');
       return;
     }
     
@@ -71,12 +98,16 @@ export function RepoConnectionDialog({
       // Gather data for the API call including user and space info
       const payload = {
         repoUrl,
-        accessToken,
+        // Use empty string for access token if it's a public repo
+        accessToken: isPublicRepo ? "" : accessToken,
         userId: session.user.id,
         spaceId: session.user.selectedSpace.id,
       };
       
-      console.log("Payload prepared:", payload);
+      console.log("Payload prepared:", {
+        ...payload,
+        accessToken: isPublicRepo ? "(empty - public repo)" : "***REDACTED***"
+      });
       
       // Call our Next.js API route
       const response = await fetch('/api/repo', {
@@ -127,6 +158,8 @@ export function RepoConnectionDialog({
             knowledgeBaseId: data.knowledge_base_id,
             // If there's a process_id, it means indexing is in progress - ensure it's sent
             processId: data.process_id || null,
+            // Include the repository URL so we can determine the provider later
+            repoUrl: repoUrl
           }),
         });
         
@@ -140,6 +173,8 @@ export function RepoConnectionDialog({
             ...session.user.selectedSpace,
             knowledgeBaseId: data.knowledge_base_id,
             processId: data.process_id || null,
+            // Add repository URL for provider detection
+            repoUrl: repoUrl
           };
           
           console.log("Updated space object:", updatedSpace);
@@ -154,7 +189,10 @@ export function RepoConnectionDialog({
             console.log("Updating local session with user data:", {
               email: updatedUser.email,
               id: updatedUser.id,
-              selectedSpace: updatedSpace
+              selectedSpace: {
+                ...updatedSpace,
+                repoUrl: repoUrl // Explicitly log this for debugging
+              }
             });
             
             // Update the local session first
@@ -220,6 +258,7 @@ export function RepoConnectionDialog({
       // Success
       setRepoUrl('');
       setAccessToken('');
+      setIsPublicRepo(false);
       onOpenChange(false);
     } catch (err) {
       console.error("Error in repository connection:", err);
@@ -250,15 +289,36 @@ export function RepoConnectionDialog({
             />
           </div>
           
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox 
+              id="isPublicRepo" 
+              checked={isPublicRepo}
+              onCheckedChange={(checked: boolean | 'indeterminate') => {
+                setIsPublicRepo(checked === true);
+                if (checked === true) {
+                  setError(null);
+                }
+              }}
+            />
+            <Label 
+              htmlFor="isPublicRepo" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              This is a public repository (no access token needed)
+            </Label>
+          </div>
+          
           <div className="space-y-2">
-            <Label htmlFor="accessToken">Access Token</Label>
+            <Label htmlFor="accessToken">
+              {isPublicRepo ? 'Access Token (optional)' : 'Access Token'}
+            </Label>
             <div className="relative">
               <Input
                 id="accessToken"
                 type={showToken ? 'text' : 'password'}
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="ghp_xxxxxxxxxxxx"
+                placeholder={isPublicRepo ? "(Optional for public repos)" : "ghp_xxxxxxxxxxxx"}
               />
               <Button
                 type="button"
