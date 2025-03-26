@@ -1,16 +1,19 @@
 import logging
 from typing import Annotated, Self
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-
-from issue_solver.events.domain import AnyDomainEvent
+from fastapi import APIRouter, Depends, HTTPException
+from issue_solver.events.domain import (
+    AnyDomainEvent,
+    CodeRepositoryConnected,
+    CodeRepositoryIndexed,
+)
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
 )
 from issue_solver.webapi.dependencies import get_event_store, get_logger
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/processes", tags=["processes"])
 
@@ -23,15 +26,29 @@ class ProcessTimelineView(BaseModel):
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
+        status = cls.to_status(events)
         event_records = []
-        for event in events:
-            event_records.append(serialize(event).safe_copy())
+        for one_event in events:
+            event_records.append(serialize(one_event).safe_copy())
         return cls(
             id=process_id,
             type="code_repository_integration",
-            status="connected",
+            status=status,
             events=event_records,
         )
+
+    @classmethod
+    def to_status(cls, events: list[AnyDomainEvent]) -> str:
+        events.sort(key=lambda event: event.occurred_at)
+        last_event = events[-1]
+        match last_event:
+            case CodeRepositoryConnected():
+                status = "connected"
+            case CodeRepositoryIndexed():
+                status = "indexed"
+            case _:
+                status = "unknown"
+        return status
 
 
 @router.get("/{process_id}")

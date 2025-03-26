@@ -2,20 +2,16 @@
 Lambda handler for processing repository connection messages from SQS.
 """
 
+import asyncio
 import json
 import logging
 import sys
-from pathlib import Path
 from typing import Any, Dict
 
-from openai import OpenAI
-from issue_solver.git_operations.git_helper import GitHelper, GitSettings
-from issue_solver.worker.vector_store_helper import (
-    upload_repository_files_to_vector_store,
-)
+from issue_solver.events.serializable_records import deserialize
+from issue_solver.worker.messages_processing import logger, process_event_message
 
 # Configure logging
-logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Add a stream handler that sends logs to stdout (which CloudWatch captures)
@@ -26,55 +22,6 @@ logger.addHandler(logging_handler)
 
 # Add a log at startup to verify logging is working
 logger.info("Lambda function initialized")
-
-
-def process_repository_message(message: Dict[str, Any]) -> None:
-    """
-    Process a repository connection message.
-
-    Args:
-        message: The SQS message containing repository information
-    """
-    try:
-        # Extract message data
-        url = message.get("url")
-        access_token = message.get("access_token")
-        user_id = message.get("user_id")
-        process_id = message.get("process_id")
-        knowledge_base_id = message.get("knowledge_base_id")
-
-        logger.info(
-            f"Processing repository: {url} for user: {user_id}, process: {process_id}"
-        )
-
-        to_path = Path(f"/tmp/repo/{process_id}")
-
-        GitHelper.of(
-            GitSettings(repository_url=url, access_token=access_token)
-        ).clone_repository(to_path)
-
-        logger.info(f"Successfully cloned repository: {url}")
-
-        # Upload repository files to vector store if knowledge_base_id is provided
-        if knowledge_base_id:
-            logger.info(
-                f"Uploading repository files to vector store: {knowledge_base_id}"
-            )
-            client = OpenAI()
-            stats = upload_repository_files_to_vector_store(
-                repo_path=to_path, vector_store_id=knowledge_base_id, client=client
-            )
-            logger.info(f"Vector store upload stats: {json.dumps(stats)}")
-        else:
-            logger.warning(
-                "No knowledge_base_id provided, skipping vector store upload"
-            )
-
-        logger.info(f"Successfully processed repository: {url}")
-
-    except Exception as e:
-        logger.error(f"Error processing repository message: {str(e)}")
-        raise
 
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -102,7 +49,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Parse the message body
             try:
                 message = json.loads(message_body)
-                process_repository_message(message)
+                event_record = deserialize(message["type"], message_body)
+                asyncio.run(process_event_message(event_record))
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON in message body: {message_body}")
                 continue
