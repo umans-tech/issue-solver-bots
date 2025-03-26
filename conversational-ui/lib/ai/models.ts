@@ -1,6 +1,7 @@
 import {openai} from '@ai-sdk/openai';
 import {customProvider,} from 'ai';
 import {anthropic} from "@ai-sdk/anthropic";
+import {deepseek} from '@ai-sdk/deepseek';
 
 export const DEFAULT_CHAT_MODEL: string = 'chat-model-small';
 
@@ -9,7 +10,7 @@ export const myProvider = customProvider({
         'chat-model-small': openai('gpt-4o-mini'),
         'chat-model-large': openai('gpt-4o'),
         'chat-model-reasoning': openai('o3-mini'),
-        'coding-model-light': anthropic('claude-3-5-sonnet-latest'),
+        'coding-model-light': deepseek('deepseek-chat'),
         'coding-model': anthropic('claude-3-7-sonnet-latest'),
         'title-model': openai('gpt-4o-mini'),
         'artifact-model': openai('gpt-4o-mini'),
