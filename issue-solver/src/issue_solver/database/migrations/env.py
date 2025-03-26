@@ -60,10 +60,14 @@ async def run_migrations_online() -> None:
     db_url = os.getenv("DATABASE_URL", config_section["sqlalchemy.url"])
 
     # Create async engine
-    connectable = create_async_engine(db_url, poolclass=pool.NullPool)
+    connectable = create_async_engine(
+        db_url, 
+        poolclass=pool.NullPool,
+        connect_args={"statement_cache_size": 0}
+    )
 
     async with connectable.connect() as async_connection:
-        # Alembic’s migration context is synchronous, so we use run_sync.
+        # Alembic's migration context is synchronous, so we use run_sync.
         await async_connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
