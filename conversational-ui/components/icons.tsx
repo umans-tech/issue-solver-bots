@@ -286,8 +286,8 @@ export const GitIcon = ({
   
   // Define status indicator colors
   const statusColors = {
-    indexing: '#10B981', // Green for indexing
-    indexed: '#10B981' // Same green for indexed
+    indexing: '#FA75AA', // Pink color from Umans logo for indexing
+    indexed: '#FA75AA' // Pink color from Umans logo
   };
   
   // Log status changes for debugging
