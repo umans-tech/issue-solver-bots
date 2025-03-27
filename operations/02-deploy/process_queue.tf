@@ -2,6 +2,18 @@
 resource "aws_sqs_queue" "process_queue" {
   name                       = "process-queue${local.environment_name_suffix}"
   visibility_timeout_seconds = 900
+
+  # Configure DLQ for failed messages
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.process_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+# Dead-Letter Queue for failed messages
+resource "aws_sqs_queue" "process_dlq" {
+  name                       = "process-dlq${local.environment_name_suffix}"
+  message_retention_seconds = 1209600  # 14 days
 }
 
 # IAM policy for Lambda to access SQS
@@ -21,7 +33,10 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
           "sqs:GetQueueUrl"
         ]
         Effect   = "Allow"
-        Resource = aws_sqs_queue.process_queue.arn
+        Resource = [
+          aws_sqs_queue.process_queue.arn,
+          aws_sqs_queue.process_dlq.arn
+        ]
       }
     ]
   })
