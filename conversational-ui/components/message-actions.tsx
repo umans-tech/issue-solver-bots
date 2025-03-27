@@ -2,6 +2,7 @@ import type { Message } from 'ai';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
+import { useEffect, useRef } from 'react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -29,6 +30,16 @@ export function PureMessageActions({
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending requests when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   if (isLoading) return null;
   if (message.role === 'user') return null;
@@ -61,6 +72,9 @@ export function PureMessageActions({
               disabled={vote?.isUpvoted}
               variant="outline"
               onClick={async () => {
+                // Create new AbortController for this request
+                abortControllerRef.current = new AbortController();
+
                 const upvote = fetch('/api/vote', {
                   method: 'PATCH',
                   body: JSON.stringify({
@@ -68,6 +82,7 @@ export function PureMessageActions({
                     messageId: message.id,
                     type: 'up',
                   }),
+                  signal: abortControllerRef.current.signal,
                 });
 
                 toast.promise(upvote, {
@@ -113,6 +128,9 @@ export function PureMessageActions({
               variant="outline"
               disabled={vote && !vote.isUpvoted}
               onClick={async () => {
+                // Create new AbortController for this request
+                abortControllerRef.current = new AbortController();
+
                 const downvote = fetch('/api/vote', {
                   method: 'PATCH',
                   body: JSON.stringify({
@@ -120,6 +138,7 @@ export function PureMessageActions({
                     messageId: message.id,
                     type: 'down',
                   }),
+                  signal: abortControllerRef.current.signal,
                 });
 
                 toast.promise(downvote, {
