@@ -5,6 +5,7 @@ import type {
   TextStreamPart,
   ToolInvocation,
   ToolSet,
+  Attachment,
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -119,20 +120,27 @@ export function convertToUIMessages(
       }
     }
 
+    // Create and push the message object directly with safe type casting
     chatMessages.push({
       id: message.id,
       role: message.role as Message['role'],
       content: textContent,
       reasoning,
       toolInvocations,
-    });
+      ...(message.experimental_attachments ? { 
+        experimental_attachments: message.experimental_attachments as Attachment[] 
+      } : {})
+    } as Message);
 
     return chatMessages;
   }, []);
 }
 
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
-type ResponseMessage = ResponseMessageWithoutId & { id: string };
+type ResponseMessage = ResponseMessageWithoutId & { 
+  id: string;
+  experimental_attachments?: any; 
+};
 
 export function sanitizeResponseMessages({
   messages,

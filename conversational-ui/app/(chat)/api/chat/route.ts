@@ -101,6 +101,7 @@ export async function POST(request: Request) {
                                         role: message.role,
                                         content: message.content,
                                         createdAt: new Date(),
+                                        experimental_attachments: message.experimental_attachments,
                                     };
                                 }),
                             });
