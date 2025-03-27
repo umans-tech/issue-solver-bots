@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { Footer } from '@/components/footer';
 
 import './globals.css';
 
@@ -64,7 +65,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased min-h-screen flex flex-col">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -72,7 +73,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Toaster position="top-center" />
-          {children}
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>
