@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {auth} from '@/app/(auth)/auth';
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import {generateUUID} from '@/lib/utils';
 
 const FileSchema = z.object({
     file: z
@@ -18,6 +19,8 @@ const FileSchema = z.object({
 
 export async function POST(request: Request) {
     const session = await auth();
+    const { searchParams } = new URL(request.url);
+    const chatId = searchParams.get('chatId');
 
     if (!session) {
         return NextResponse.json({error: 'Unauthorized'}, {status: 401});
@@ -47,6 +50,11 @@ export async function POST(request: Request) {
 
         // Get filename from formData since Blob doesn't have a name property
         const filename = (formData.get('file') as File).name;
+        
+        // Generate a unique filename with UUID to prevent collisions
+        const pathPrefix = session.user.selectedSpace?.id
+        const uniqueFilename = `${pathPrefix}/${generateUUID()}-${filename}`;
+        
         const fileBuffer = await file.arrayBuffer();
 
         // Initialize S3 client with custom endpoint if provided
@@ -61,28 +69,33 @@ export async function POST(request: Request) {
         });
 
         const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
-
         try {
-            // Upload to S3
+            // Upload to S3 with unique filename
             const command = new PutObjectCommand({
                 Bucket: BUCKET_NAME,
-                Key: filename,
+                Key: uniqueFilename,
                 Body: Buffer.from(fileBuffer),
                 ContentType: file.type,
+                Metadata: {
+                    filename: filename,
+                    userId: session.user.id,
+                    spaceId: session.user.selectedSpace?.id || '',
+                    chatId: chatId || '',
+                },
             });
 
             await s3Client.send(command);
-            // Get the URL for accessing the uploaded file
+            // Get the URL for accessing the uploaded file with extended expiration (1 year)
             const getObjectCommand = new GetObjectCommand({
                 Bucket: BUCKET_NAME,
-                Key: filename,
+                Key: uniqueFilename,
             });
-            const fileUrl = await getSignedUrl(s3Client, getObjectCommand, {expiresIn: 3600});
+            const fileUrl = await getSignedUrl(s3Client, getObjectCommand, {expiresIn: 604800}); // 1 week in seconds
 
             // Return the data structure
             const data = {
                 url: fileUrl,
-                pathname: filename,
+                filename: filename,
                 contentType: file.type,
                 size: file.size,
             };
