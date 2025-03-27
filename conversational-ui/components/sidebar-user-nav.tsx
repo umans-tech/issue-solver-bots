@@ -53,12 +53,12 @@ export function SidebarUserNav({ user }: { user: User }) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/terms" className="cursor-pointer">
+              <Link href="/terms" className="cursor-pointer" target="_blank" rel="noopener noreferrer">
                 Terms of Use
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/privacy" className="cursor-pointer">
+              <Link href="/privacy" className="cursor-pointer" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
               </Link>
             </DropdownMenuItem>
