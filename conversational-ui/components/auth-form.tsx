@@ -63,6 +63,8 @@ export function AuthForm({
           <Link
             href="/terms"
             className="font-semibold text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Terms of Use
           </Link>{' '}
@@ -70,6 +72,8 @@ export function AuthForm({
           <Link
             href="/privacy"
             className="font-semibold text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Privacy Policy
           </Link>
