@@ -1,4 +1,5 @@
 import Form from 'next/form';
+import Link from 'next/link';
 
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -7,12 +8,14 @@ export function AuthForm({
   action,
   children,
   defaultEmail = '',
+  showTerms = false,
 }: {
   action: NonNullable<
     string | ((formData: FormData) => void | Promise<void>) | undefined
   >;
   children: React.ReactNode;
   defaultEmail?: string;
+  showTerms?: boolean;
 }) {
   return (
     <Form action={action} className="flex flex-col gap-4 px-4 sm:px-16">
@@ -53,6 +56,25 @@ export function AuthForm({
           required
         />
       </div>
+
+      {showTerms && (
+        <p className="text-sm text-gray-600 dark:text-zinc-400">
+          By signing up, you agree to our{' '}
+          <Link
+            href="/terms"
+            className="font-semibold text-primary hover:underline"
+          >
+            Terms of Use
+          </Link>{' '}
+          and{' '}
+          <Link
+            href="/privacy"
+            className="font-semibold text-primary hover:underline"
+          >
+            Privacy Policy
+          </Link>
+        </p>
+      )}
 
       {children}
     </Form>
