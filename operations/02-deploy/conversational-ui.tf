@@ -21,17 +21,12 @@ resource "vercel_project_environment_variables" "env_vars" {
   project_id = vercel_project.conversational_ui.id
   variables = [
     {
-      key   = "AUTH_URL"
+      key   = "NEXTAUTH_URL"
       value = local.auth_url
       target = [local.vercel_deployment_target]
     },
     {
-      key   = "NEXT_AUTH_URL"
-      value = local.auth_url
-      target = [local.vercel_deployment_target]
-    },
-    {
-      key       = "AUTH_SECRET"
+      key       = "NEXTAUTH_SECRET"
       value     = var.auth_secret
       target = [local.vercel_deployment_target]
       sensitive = true
