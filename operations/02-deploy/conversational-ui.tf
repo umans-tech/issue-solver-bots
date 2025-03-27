@@ -26,6 +26,11 @@ resource "vercel_project_environment_variables" "env_vars" {
       target = [local.vercel_deployment_target]
     },
     {
+      key   = "NEXTAUTH_URL_INTERNAL"
+      value = "https://${local.conversational_ui_project_name}.vercel.app"
+      target = [local.vercel_deployment_target]
+    },
+    {
       key       = "NEXTAUTH_SECRET"
       value     = var.auth_secret
       target = [local.vercel_deployment_target]

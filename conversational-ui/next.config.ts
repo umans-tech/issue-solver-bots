@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  env: {
+    AUTH_TRUST_HOST: 'true',
+  },
 };
 
 export default nextConfig;
