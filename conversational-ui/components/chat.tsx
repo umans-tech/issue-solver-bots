@@ -84,7 +84,21 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
-      toast.error('An error occured, please try again!');
+      // More detailed error handling
+      console.error('Chat error:', error);
+      if (error.message?.includes('message channel closed')) {
+        // Handle message channel closure gracefully
+        setMessages((messages) => messages.filter(m => !m.id.includes('pending')));
+        toast.error('Connection interrupted. Please try again.');
+      } else {
+        toast.error('An error occurred, please try again!');
+      }
+    },
+    onResponse: (response) => {
+      // Validate response status
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     },
   });
 
