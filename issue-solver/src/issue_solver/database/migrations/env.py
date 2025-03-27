@@ -1,6 +1,7 @@
 import asyncio
 import os
 from logging.config import fileConfig
+from itertools import count
 
 from alembic import context
 from sqlalchemy import pool
@@ -22,6 +23,9 @@ if config.config_file_name is not None:
 # from myapp.db.models import Base
 # target_metadata = Base.metadata
 target_metadata = None
+
+# Counter for generating unique prepared statement names
+_stmt_counter = count()
 
 
 def run_migrations_offline() -> None:
@@ -59,11 +63,19 @@ async def run_migrations_online() -> None:
         raise ValueError("No config section found")
     db_url = os.getenv("DATABASE_URL", config_section["sqlalchemy.url"])
 
-    # Create async engine
+    # Create async engine with proper connection arguments for pgbouncer
     connectable = create_async_engine(
-        db_url, 
+        db_url,
         poolclass=pool.NullPool,
-        connect_args={"statement_cache_size": 0}
+        connect_args={
+            "statement_cache_size": 0,
+            "prepared_statement_cache_size": 0,
+            "prepared_statement_name_func": lambda operation=None: f"ps_{next(_stmt_counter)}",
+            "server_settings": {
+                "statement_timeout": "10000",
+                "idle_in_transaction_session_timeout": "60000",
+            },
+        },
     )
 
     async with connectable.connect() as async_connection:
