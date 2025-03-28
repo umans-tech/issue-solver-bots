@@ -59,7 +59,7 @@ export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
   description: 'Search the codebase using hybrid semantic search to find relevant code snippets.',
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
-    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }] }'),
+    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
   }),
   execute: async ({ query, filters }) => {
     try {
