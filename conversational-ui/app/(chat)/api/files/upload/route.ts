@@ -17,9 +17,11 @@ const FileSchema = z.object({
         }),
 });
 
+const OneWeekInSeconds = 604800;
+
 export async function POST(request: Request) {
     const session = await auth();
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const chatId = searchParams.get('chatId');
 
     if (!session) {
@@ -50,11 +52,11 @@ export async function POST(request: Request) {
 
         // Get filename from formData since Blob doesn't have a name property
         const filename = (formData.get('file') as File).name;
-        
+
         // Generate a unique filename with UUID to prevent collisions
         const pathPrefix = session.user.selectedSpace?.id
         const uniqueFilename = `${pathPrefix}/${generateUUID()}-${filename}`;
-        
+
         const fileBuffer = await file.arrayBuffer();
 
         // Initialize S3 client with custom endpoint if provided
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
                 Bucket: BUCKET_NAME,
                 Key: uniqueFilename,
             });
-            const fileUrl = await getSignedUrl(s3Client, getObjectCommand, {expiresIn: 604800}); // 1 week in seconds
+            const fileUrl = await getSignedUrl(s3Client, getObjectCommand, {expiresIn: OneWeekInSeconds});
 
             // Return the data structure
             const data = {

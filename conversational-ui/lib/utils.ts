@@ -139,7 +139,7 @@ export function convertToUIMessages(
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
 type ResponseMessage = ResponseMessageWithoutId & { 
   id: string;
-  experimental_attachments?: any; 
+  experimental_attachments?: Attachment[]; 
 };
 
 export function sanitizeResponseMessages({
