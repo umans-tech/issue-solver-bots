@@ -106,9 +106,9 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
-export async function saveMessages({ messages }: { messages: Array<Message> }) {
+export async function saveMessages({ messages }: { messages: Partial<Message>[] }) {
   try {
-    return await db.insert(message).values(messages);
+    return await db.insert(message).values(messages as Message[]);
   } catch (error) {
     console.error('Failed to save messages in database', error);
     throw error;

@@ -46,6 +46,7 @@ def get_clock() -> Clock:
 async def init_event_store() -> EventStore:
     return PostgresEventStore(
         connection=await asyncpg.connect(
-            os.environ["DATABASE_URL"].replace("+asyncpg", "")
+            os.environ["DATABASE_URL"].replace("+asyncpg", ""),
+            statement_cache_size=0
         )
     )
