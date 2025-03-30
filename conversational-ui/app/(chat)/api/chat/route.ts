@@ -14,8 +14,8 @@ import {codebaseAssistant} from '@/lib/ai/tools/codebase-assistant';
 import {codebaseSearch} from '@/lib/ai/tools/codebase-search';
 
 export const maxDuration = 60;
-export const maxSteps = 20;
-export const maxRetries = 5;
+const maxSteps = 20;
+const maxRetries = 5;
 
 export async function POST(request: Request) {
     const {
