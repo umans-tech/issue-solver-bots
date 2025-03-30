@@ -13,3 +13,11 @@ plan: init
 # 🚀 Apply changes for resources provisionning
 apply: init
     @terraform apply -auto-approve
+
+# 👀 Show outputs to configure remote dev blob storage for local developpement
+blob-output: init
+    @echo "BLOB_ACCESS_KEY_ID=$(terraform output -raw blob_access_key_id)"
+    @echo "BLOB_READ_WRITE_TOKEN=$(terraform output -raw blob_secret_access_key)"
+    @echo "BLOB_BUCKET_NAME=$(terraform output -raw blob_bucket_name)"
+    @echo "BLOB_ENDPOINT=https://s3.$(terraform output -raw blob_region).amazonaws.com"
+    @echo "BLOB_REGION=$(terraform output -raw blob_region)"
