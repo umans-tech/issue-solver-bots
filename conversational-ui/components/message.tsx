@@ -217,25 +217,36 @@ const PurePreviewMessage = ({
 
             {(message.content || message.reasoning) && mode === 'view' && (
               <div className="flex flex-row gap-2 items-start">
-                {message.role === 'user' && !isReadonly && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                        onClick={() => {
-                          setMode('edit');
-                        }}
-                      >
-                        <PencilEditIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit message</TooltipContent>
-                  </Tooltip>
-                )}
+                <div className="flex flex-col gap-1 mt-1">
+                  {message.role === 'user' && !isReadonly && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                          onClick={() => {
+                            setMode('edit');
+                          }}
+                        >
+                          <PencilEditIcon />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit message</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {!isReadonly && (
+                    <MessageActions
+                      key={`action-${message.id}`}
+                      chatId={chatId}
+                      message={message}
+                      vote={vote}
+                      isLoading={isLoading}
+                    />
+                  )}
+                </div>
 
                 <div
-                  className={cn('flex flex-col gap-4', {
+                  className={cn('flex flex-col gap-4 flex-1', {
                     'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                       message.role === 'user',
                   })}
@@ -368,16 +379,6 @@ const PurePreviewMessage = ({
                   </div>
                 )}
               </div>
-            )}
-
-            {!isReadonly && (
-              <MessageActions
-                key={`action-${message.id}`}
-                chatId={chatId}
-                message={message}
-                vote={vote}
-                isLoading={isLoading}
-              />
             )}
           </div>
         </div>
