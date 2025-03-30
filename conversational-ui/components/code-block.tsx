@@ -14,23 +14,28 @@ export function CodeBlock({
   children,
   ...props
 }: CodeBlockProps) {
-  if (!inline) {
+  // Check if this is a code block with a language specified
+  const isLanguageBlock = /language-(\w+)/.test(className || '');
+  
+  // For inline code or paths
+  if (inline || (!isLanguageBlock && !className)) {
     return (
       <code
-        className={`text-sm w-full block overflow-x-auto dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl dark:text-zinc-50 text-zinc-900 whitespace-pre-wrap break-words`}
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  } else {
-    return (
-      <code
-        className={`${className} text-sm bg-zinc-100 dark:bg-zinc-800 py-0.5 px-1 rounded-md`}
+        className="text-sm bg-zinc-100 dark:bg-zinc-800 py-0.5 px-1 rounded-md"
         {...props}
       >
         {children}
       </code>
     );
   }
+  
+  // For actual code blocks (with triple backticks)
+  return (
+    <code
+      className={`text-sm w-full block overflow-x-auto dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl dark:text-zinc-50 text-zinc-900 whitespace-pre`}
+      {...props}
+    >
+      {children}
+    </code>
+  );
 }
