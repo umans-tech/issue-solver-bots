@@ -12,7 +12,7 @@ export const myProvider = customProvider({
         'coding-model-light': anthropic('claude-3-5-sonnet-latest'),
         'coding-model': anthropic('claude-3-7-sonnet-latest'),
         'title-model': openai('gpt-4o-mini'),
-        'artifact-model': openai('gpt-4o-mini'),
+        'artifact-model': openai('gpt-4o'),
     },
     imageModels: {
         'small-model': openai.image('dall-e-2'),
