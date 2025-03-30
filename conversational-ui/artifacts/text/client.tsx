@@ -13,9 +13,11 @@ import {
 import { Suggestion } from '@/lib/db/schema';
 import { toast } from 'sonner';
 import { getSuggestions } from '../actions';
+import { Markdown } from '@/components/markdown';
 
 interface TextArtifactMetadata {
   suggestions: Array<Suggestion>;
+  hasCodeBlocks?: boolean;
 }
 
 export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
@@ -42,13 +44,24 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
 
     if (streamPart.type === 'text-delta') {
       setArtifact((draftArtifact) => {
+        const newContent = draftArtifact.content + (streamPart.content as string);
+        
+        // When content has code blocks, update metadata
+        const hasCodeBlocks = newContent.includes('```');
+        
+        // Update metadata to indicate code blocks are present
+        setMetadata((metadata) => ({
+          ...metadata,
+          hasCodeBlocks,
+        }));
+        
         return {
           ...draftArtifact,
-          content: draftArtifact.content + (streamPart.content as string),
+          content: newContent,
           isVisible:
             draftArtifact.status === 'streaming' &&
-            draftArtifact.content.length > 400 &&
-            draftArtifact.content.length < 450
+            newContent.length > 400 &&
+            newContent.length < 450
               ? true
               : draftArtifact.isVisible,
           status: 'streaming',
@@ -78,17 +91,29 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
       return <DiffView oldContent={oldContent} newContent={newContent} />;
     }
 
+    // Check if content has code blocks or if metadata indicates code blocks
+    const hasCodeBlocks = (metadata && metadata.hasCodeBlocks) || 
+                          (content && content.includes('```'));
+
     return (
       <>
         <div className="flex flex-row py-8 md:p-20 px-4">
-          <Editor
-            content={content}
-            suggestions={metadata ? metadata.suggestions : []}
-            isCurrentVersion={isCurrentVersion}
-            currentVersionIndex={currentVersionIndex}
-            status={status}
-            onSaveContent={onSaveContent}
-          />
+          {hasCodeBlocks ? (
+            // Use Markdown for content with code blocks
+            <div className="prose dark:prose-invert max-w-none w-full">
+              <Markdown>{content}</Markdown>
+            </div>
+          ) : (
+            // Use regular editor for content without code blocks
+            <Editor
+              content={content}
+              suggestions={metadata ? metadata.suggestions : []}
+              isCurrentVersion={isCurrentVersion}
+              currentVersionIndex={currentVersionIndex}
+              status={status}
+              onSaveContent={onSaveContent}
+            />
+          )}
 
           {metadata &&
           metadata.suggestions &&

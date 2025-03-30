@@ -21,6 +21,7 @@ import { useArtifact } from '@/hooks/use-artifact';
 import equal from 'fast-deep-equal';
 import { SpreadsheetEditor } from './sheet-editor';
 import { ImageEditor } from './image-editor';
+import { Markdown } from './markdown';
 
 interface DocumentPreviewProps {
     isReadonly: boolean;
@@ -237,7 +238,17 @@ const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
 });
 
 const DocumentContent = ({ document }: { document: Document }) => {
-    const { artifact } = useArtifact();
+    const { artifact, metadata } = useArtifact();
+    
+    // Check both content and metadata for code blocks
+    const hasCodeBlocks = (content: string | null) => {
+        // If metadata explicitly indicates code blocks, use that
+        if (metadata && metadata.hasCodeBlocks) {
+            return true;
+        }
+        // Otherwise check content
+        return content ? content.includes('```') : false;
+    };
 
     const containerClassName = cn(
         'h-[257px] overflow-y-scroll border rounded-b-2xl dark:bg-muted border-t-0 dark:border-zinc-700',
@@ -259,7 +270,15 @@ const DocumentContent = ({ document }: { document: Document }) => {
     return (
         <div className={containerClassName}>
             {document.kind === 'text' ? (
-                <Editor {...commonProps} onSaveContent={() => {}} />
+                hasCodeBlocks(document.content) ? (
+                    // Use Markdown component for text with code blocks
+                    <div className="prose dark:prose-invert max-w-none">
+                        <Markdown>{document.content || ''}</Markdown>
+                    </div>
+                ) : (
+                    // Use Editor for text without code blocks
+                    <Editor {...commonProps} onSaveContent={() => {}} />
+                )
             ) : document.kind === 'code' ? (
                 <div className="flex flex-1 relative w-full">
                     <div className="absolute inset-0">
