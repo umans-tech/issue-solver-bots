@@ -14,6 +14,8 @@ import {codebaseAssistant} from '@/lib/ai/tools/codebase-assistant';
 import {codebaseSearch} from '@/lib/ai/tools/codebase-search';
 
 export const maxDuration = 60;
+export const maxSteps = 20;
+export const maxRetries = 5;
 
 export async function POST(request: Request) {
     const {
@@ -57,7 +59,8 @@ export async function POST(request: Request) {
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({selectedChatModel}),
                 messages,
-                maxSteps: 5,
+                maxSteps: maxSteps,
+                maxRetries: maxRetries,
                 experimental_activeTools: [
                     'getWeather',
                     'createDocument',
