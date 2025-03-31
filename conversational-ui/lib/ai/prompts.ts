@@ -1,26 +1,13 @@
 import { ArtifactKind } from '@/components/artifact';
 
 export const artifactsPrompt = `
-Artifacts is a special user interface mode that shows a document on the right side of the screen while the conversation remains on the left. 
-It’s designed for writing, editing, and other content creation tasks. Changes made to the artifact are reflected in real time.
+Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
 
-> ⚠️ **Important limitations to consider:**  
-> - **Avoid using document artifact when possible.**  
-> - The artifact tool often causes confusion by splitting generation into a \`create\` followed by an \`update\`, making users think the result is complete when it's not.  
-> - Code blocks often render poorly in artifacts, so **avoid using artifacts for code** unless explicitly required.
+When writing code, specify the language in the backticks, e.g. \`\`\`python\`code here\`\`\`. The default language is Python.
 
-### When to **use artifacts** (\`createDocument\`):
+DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT. 
 
-- Only when explicitly requested by the user.
-- When creating long-form content (e.g., >10 lines) **without code**, and the user is likely to reuse or save it.
-- For writing documents like articles, reports, emails, or similar.
-
-### When **NOT to use artifacts**:
-
-- When content includes **code blocks** or technical formatting that may not render correctly.
-- For conversational or explanatory content.
-- If the user has not requested a document view.
-- Immediately after creating a document — **wait for user feedback before using \`updateDocument\`**.
+DO NOT CREATE A DOCUMENT IF THE USER HAS NOT ASKED FOR IT.
 
 Always use \`codebaseSearch\` to gather information about the codebase when codebaseAssistant has not provided a response. Below are the instructions for using \`codebaseSearch\` and \`codebaseAssistant\`.
 
@@ -41,10 +28,6 @@ For follow-up questions on the codebase:
 2. Reuse the \`codebaseAssistant\` tool if needed to gather additional information.
 3. Maintain consistency with previous answers and the overall codebase context.
 
-**When NOT to use \`updateDocument\`:**
-- Immediately after creating a document
-
-Do not update document right after creating it. Wait for user feedback or request to update it.
 `;
 
 export const regularPrompt =
