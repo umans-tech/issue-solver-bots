@@ -3,7 +3,7 @@
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { CopyIcon } from './icons';
 import { Button } from './ui/button';
@@ -24,6 +24,21 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<string | undefined>(undefined);
+  
+  // Effect for client-side mounting and theme detection
+  useEffect(() => {
+    setMounted(true);
+    setCurrentTheme(resolvedTheme);
+  }, [resolvedTheme]);
+  
+  // Effect to update theme when it changes
+  useEffect(() => {
+    if (mounted) {
+      setCurrentTheme(resolvedTheme);
+    }
+  }, [resolvedTheme, mounted]);
   
   // Check if this is a code block with a language specified
   const match = /language-(\w+)/.exec(className || '');
@@ -69,7 +84,7 @@ export function CodeBlock({
         </Button>
       )}
       <Highlighter
-        style={resolvedTheme === 'dark' ? vscDarkPlus : vs}
+        style={currentTheme === 'dark' ? vscDarkPlus : vs}
         language={language}
         PreTag="div"
         className="text-sm rounded-xl"
