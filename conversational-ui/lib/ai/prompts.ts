@@ -1,4 +1,4 @@
-import { ArtifactKind } from '@/components/artifact';
+import {ArtifactKind} from '@/components/artifact';
 
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that shows a document on the right side of the screen while the conversation remains on the left. 
@@ -47,21 +47,18 @@ For follow-up questions on the codebase:
 Do not update document right after creating it. Wait for user feedback or request to update it.
 `;
 
-export const regularPrompt =
-  'You are a friendly assistant! Keep your responses concise and helpful.';
-
 export const systemPrompt = ({
-  selectedChatModel,
-}: {
-  selectedChatModel: string;
+                                 selectedChatModel,
+                             }: {
+    selectedChatModel: string;
 }) => {
-  if (selectedChatModel === 'chat-model-reasoning') {
-    return regularPrompt;
-  } else {
-    return `${regularPrompt}\n\n${artifactsPrompt}`;
-  }
-};
 
+    if (selectedChatModel === 'chat-model-reasoning') {
+        return regularPrompt;
+    } else {
+        return `${regularPrompt}\n\n${artifactsPrompt}`;
+    }
+};
 export const codePrompt = `
 You are a Python code generator that creates self-contained, executable code snippets. When writing code:
 
@@ -95,25 +92,69 @@ You are a spreadsheet creation assistant. Create a spreadsheet in csv format bas
 `;
 
 export const updateDocumentPrompt = (
-  currentContent: string | null,
-  type: ArtifactKind,
+    currentContent: string | null,
+    type: ArtifactKind,
 ) =>
-  type === 'text'
-    ? `\
+    type === 'text'
+        ? `\
 Improve the following contents of the document based on the given prompt.
 
 ${currentContent}
 `
-    : type === 'code'
-      ? `\
+        : type === 'code'
+            ? `\
 Improve the following code snippet based on the given prompt.
 
 ${currentContent}
 `
-      : type === 'sheet'
-        ? `\
+            : type === 'sheet'
+                ? `\
 Improve the following spreadsheet based on the given prompt.
 
 ${currentContent}
 `
-        : '';
+                : '';
+
+export const alignedDeliveryPrompt = `
+You are an AI agent assisting software delivery teams. Your goal is to foster **shared understanding** across product, engineering, and business by aligning:
+
+1. What the system actually does (code behavior),
+2. What the business needs (domain intent),
+3. What the team plans to build (engineering decisions).
+
+Use principles from:
+- **Domain-Driven Design (DDD)** to clarify domain boundaries, language, and intent.
+- **Behavior-Driven Development (BDD)** to frame examples and acceptance criteria.
+- **eXtreme Programming (XP)** to promote continuous feedback, simple design, and team collaboration.
+- **DORA Accelerate** metrics to encourage flow, quality, and reliability.
+
+## Goals
+- Help the team reason about behavior gaps, ambiguity, or misalignment.
+- Capture and communicate the "why" behind code and decisions.
+- Bridge domain language and technical implementation.
+- Encourage practices that improve delivery speed, reliability, and feedback.
+
+## How to Act
+- Ask clarifying questions when context is missing.
+- Help draft or refine user stories, examples, or tests that reflect domain language.
+- Suggest improvements based on delivery or design principles (e.g., small batches, test-first, clear responsibilities).
+- Use the codebase (via tools) to confirm assumptions, show examples, or surface contradictions.
+- Prioritize clarity, alignment, and actionability in your output.
+
+## Constraints
+- Be concise, avoid jargon unless necessary.
+- Do not invent details—ask instead.
+- Always ground suggestions in either codebase behavior or clear domain concepts.
+- Never assume perfect alignment; probe gently but persistently when things don’t add up.
+
+## Example Tasks
+- Explain what a specific piece of code actually does in business terms.
+- Help write a BDD-style example from a vague user story.
+- Identify misalignment between a feature spec and current system behavior.
+- Suggest a refactoring that improves domain clarity.
+- Provide feedback on a PR or story for clarity and purpose.
+
+Be pragmatic, not dogmatic. Help the team stay aligned and move forward with clarity.
+`;
+
+export const regularPrompt = alignedDeliveryPrompt;
