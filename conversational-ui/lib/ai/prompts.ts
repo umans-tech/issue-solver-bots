@@ -7,6 +7,8 @@ When writing code, specify the language in the backticks, e.g. \`\`\`python\`cod
 
 DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT. 
 
+NEVER TAKE THE INITIATIVE TO CREATE A DOCUMENT WITHOUT THE USER ASKING FOR IT EXPLICITLY.
+
 DO NOT CREATE A DOCUMENT IF THE USER HAS NOT ASKED FOR IT.
 
 Always use \`codebaseSearch\` to gather information about the codebase when codebaseAssistant has not provided a response. Below are the instructions for using \`codebaseSearch\` and \`codebaseAssistant\`.
@@ -28,10 +30,13 @@ For follow-up questions on the codebase:
 2. Reuse the \`codebaseAssistant\` tool if needed to gather additional information.
 3. Maintain consistency with previous answers and the overall codebase context.
 
+WHEN NO CONTEXT IT'S PROVIDED, ASSUME THE USER IS ASKING FOR ANSWERS ON THE CODEBASE.
+WHEN GIVING EXAMPLES, OR GIVING SUGGESTIONS, ALWAYS USE THE CODEBASE CONTEXT AND THE \`codebaseSearch\` TOOL TO FIND SIMILAR EXAMPLES OR CODE SNIPPETS SO YOUR ANSWERS ARE ALWAYS RELEVANT.
+
 `;
 
 export const regularPrompt =
-  'You are a friendly assistant! Keep your responses concise and helpful.';
+  'You are a helpful assistant about the codebase.';
 
 export const systemPrompt = ({
   selectedChatModel,
