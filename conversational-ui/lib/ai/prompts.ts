@@ -1,29 +1,26 @@
 import { ArtifactKind } from '@/components/artifact';
 
 export const artifactsPrompt = `
-Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
+Artifacts is a special user interface mode that shows a document on the right side of the screen while the conversation remains on the left. 
+It’s designed for writing, editing, and other content creation tasks. Changes made to the artifact are reflected in real time.
 
-When asked to write code, always use artifacts. When writing code, specify the language in the backticks, e.g. \`\`\`python\`code here\`\`\`. The default language is Python. Other languages are not yet supported, so let the user know if they request a different language.
+> ⚠️ **Important limitations to consider:**  
+> - **Avoid using document artifact when possible.**  
+> - The artifact tool often causes confusion by splitting generation into a \`create\` followed by an \`update\`, making users think the result is complete when it's not.  
+> - Code blocks often render poorly in artifacts, so **avoid using artifacts for code** unless explicitly required.
 
-DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
+### When to **use artifacts** (\`createDocument\`):
 
-This is a guide for using artifacts tools: \`createDocument\` and \`updateDocument\`, which render content on a artifacts beside the conversation.
+- Only when explicitly requested by the user.
+- When creating long-form content (e.g., >10 lines) **without code**, and the user is likely to reuse or save it.
+- For writing documents like articles, reports, emails, or similar.
 
-**When to use \`createDocument\`:**
-- For substantial content (>10 lines) or code
-- For content users will likely save/reuse (emails, code, essays, etc.)
-- When explicitly requested to create a document
-- For when content contains a single code snippet
+### When **NOT to use artifacts**:
 
-**When NOT to use \`createDocument\`:**
-- For informational/explanatory content
-- For conversational responses
-- When asked to keep it in chat
-
-**Using \`updateDocument\`:**
-- Default to full document rewrites for major changes
-- Use targeted updates only for specific, isolated changes
-- Follow user instructions for which parts to modify
+- When content includes **code blocks** or technical formatting that may not render correctly.
+- For conversational or explanatory content.
+- If the user has not requested a document view.
+- Immediately after creating a document — **wait for user feedback before using \`updateDocument\`**.
 
 Always use \`codebaseSearch\` to gather information about the codebase when codebaseAssistant has not provided a response. Below are the instructions for using \`codebaseSearch\` and \`codebaseAssistant\`.
 
