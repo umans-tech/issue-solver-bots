@@ -39,14 +39,33 @@ export function CodeBlock({
   // For actual code blocks (with triple backticks)
   const Highlighter = SyntaxHighlighter as any;
   return (
-    <Highlighter
-      style={resolvedTheme === 'dark' ? vscDarkPlus : vs}
-      language={language}
-      PreTag="div"
-      className="text-sm w-full block overflow-x-auto rounded-xl"
-      {...props}
-    >
-      {String(children).replace(/\n$/, '')}
-    </Highlighter>
+    <div className="relative w-full overflow-hidden">
+      <Highlighter
+        style={resolvedTheme === 'dark' ? vscDarkPlus : vs}
+        language={language}
+        PreTag="div"
+        className="text-sm rounded-xl"
+        customStyle={{
+          width: '100%',
+          minWidth: '100%',
+          overflow: 'auto',
+          overflowX: 'auto',
+          whiteSpace: 'pre',
+          wordBreak: 'normal',
+          wordWrap: 'normal'
+        }}
+        codeTagProps={{
+          style: {
+            whiteSpace: 'pre',
+            wordBreak: 'normal',
+            wordWrap: 'normal',
+            overflowWrap: 'normal'
+          }
+        }}
+        {...props}
+      >
+        {String(children).replace(/\n$/, '')}
+      </Highlighter>
+    </div>
   );
 }
