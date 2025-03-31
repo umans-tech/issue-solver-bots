@@ -3,6 +3,10 @@
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useTheme } from 'next-themes';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { CopyIcon } from './icons';
+import { Button } from './ui/button';
 
 interface CodeBlockProps {
   node: any;
@@ -19,6 +23,7 @@ export function CodeBlock({
   ...props
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
+  const [isHovered, setIsHovered] = useState(false);
   
   // Check if this is a code block with a language specified
   const match = /language-(\w+)/.exec(className || '');
@@ -36,10 +41,33 @@ export function CodeBlock({
     );
   }
   
+  const handleCopy = () => {
+    const content = String(children).replace(/\n$/, '');
+    navigator.clipboard.writeText(content);
+    toast.success('Copied to clipboard!');
+  };
+  
   // For actual code blocks (with triple backticks)
   const Highlighter = SyntaxHighlighter as any;
   return (
-    <div className="relative w-full overflow-hidden">
+    <div 
+      className="relative w-full overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {language && (
+        <Button
+          onClick={handleCopy}
+          size="icon"
+          variant="ghost"
+          className={`absolute top-3 right-1.5 z-10 h-8 w-8 p-0 opacity-0 transition-opacity duration-200 ${
+            isHovered ? 'opacity-100' : ''
+          }`}
+          aria-label="Copy code"
+        >
+          <CopyIcon size={16} />
+        </Button>
+      )}
       <Highlighter
         style={resolvedTheme === 'dark' ? vscDarkPlus : vs}
         language={language}
