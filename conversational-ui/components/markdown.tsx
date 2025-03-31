@@ -9,7 +9,7 @@ const components: Partial<Components> = {
   code: CodeBlock,
   pre: ({ children }) => <>{children}</>,
   p: ({ children, ...props }) => {
-    return <div {...props}>{children}</div>;
+    return <div className="w-full overflow-hidden" {...props}>{children}</div>;
   },
   ol: ({ node, children, ...props }) => {
     return (
@@ -100,9 +100,11 @@ const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   return (
-    <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
-      {children}
-    </ReactMarkdown>
+    <div className="w-full overflow-hidden">
+      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 };
 
