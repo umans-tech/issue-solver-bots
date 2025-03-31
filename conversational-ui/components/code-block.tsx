@@ -1,7 +1,8 @@
 'use client';
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { useTheme } from 'next-themes';
 
 interface CodeBlockProps {
   node: any;
@@ -17,6 +18,8 @@ export function CodeBlock({
   children,
   ...props
 }: CodeBlockProps) {
+  const { resolvedTheme } = useTheme();
+  
   // Check if this is a code block with a language specified
   const match = /language-(\w+)/.exec(className || '');
   const language = match?.[1];
@@ -25,7 +28,7 @@ export function CodeBlock({
   if (inline || !language) {
     return (
       <code
-        className="text-sm bg-zinc-100 dark:bg-zinc-800 py-0.5 px-1 rounded-md"
+        className="text-sm bg-muted dark:bg-zinc-800 py-0.5 px-1 rounded-md"
         {...props}
       >
         {children}
@@ -34,10 +37,10 @@ export function CodeBlock({
   }
   
   // For actual code blocks (with triple backticks)
-  const Highlighter = SyntaxHighlighter as any; // Cast to any
+  const Highlighter = SyntaxHighlighter as any;
   return (
     <Highlighter
-      style={vscDarkPlus}
+      style={resolvedTheme === 'dark' ? vscDarkPlus : vs}
       language={language}
       PreTag="div"
       className="text-sm w-full block overflow-x-auto rounded-xl"
