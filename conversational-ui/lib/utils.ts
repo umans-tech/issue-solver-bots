@@ -136,7 +136,7 @@ export function convertToUIMessages(
   }, []);
 }
 
-export const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png'] as const;
+export const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
 
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
 type ResponseMessage = ResponseMessageWithoutId & { 
