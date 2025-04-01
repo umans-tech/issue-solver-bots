@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { Button } from './ui/button';
-import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon } from './icons';
+import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon } from './icons';
 import { toast } from 'sonner';
 import { CodeBlock } from './code-block';
 
@@ -20,6 +20,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('diagram');
+  const [isLoading, setIsLoading] = useState(true);
 
   const isCodeView = viewMode === 'code';
   const isDiagramView = viewMode === 'diagram';
@@ -33,33 +34,48 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       themeVariables: {
         darkMode: document.documentElement.classList.contains('dark'),
       },
+      flowchart: {
+        htmlLabels: true,
+        useMaxWidth: true,
+      }
     });
 
     // Render the diagram
     const renderDiagram = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+
         // Check if the code is incomplete or empty
         if (!code || code.trim() === '') {
-          setError('Diagram code is empty');
-          return;
-        }
-
-        // Basic validation of mermaid syntax
-        if (!code.includes('graph') && !code.includes('sequenceDiagram') && !code.includes('classDiagram')) {
-          setError('Invalid or incomplete diagram code');
-          return;
+          throw new Error('The diagram code is empty. Please provide valid Mermaid syntax.');
         }
 
         // Generate a unique ID that's safe for CSS selectors
         const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
-        const { svg } = await mermaid.render(uniqueId, code);
-        setSvg(svg);
-        setError(null);
-      } catch (error) {
+        
+        try {
+          // First validate the syntax
+          await mermaid.parse(code);
+          
+          // If validation passes, render the diagram
+          const { svg } = await mermaid.render(uniqueId, code);
+          // Remove any error icons or messages from the SVG
+          const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
+          setSvg(cleanedSvg);
+          setError(null);
+        } catch (parseError: any) {
+          console.error('Mermaid parse error:', parseError);
+          const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
+          setError(`Syntax error in diagram: ${errorMessage}`);
+          // Don't automatically switch to code view, let user decide
+        }
+      } catch (error: any) {
         console.error('Error rendering mermaid diagram:', error);
-        setError('Failed to render diagram');
-        // If rendering fails, switch to code view
-        setViewMode('code');
+        setError(error?.message || 'Failed to render the diagram. Please check your syntax.');
+        // Don't automatically switch to code view, let user decide
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -116,10 +132,10 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
     setViewMode(current => current === 'code' ? 'diagram' : 'code');
   };
 
-  if (error && isDiagramView) {
+  if (error) {
     return (
       <div className="w-full">
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-end mb-2 gap-2">
           <Button
             onClick={toggleViewMode}
             variant="ghost"
@@ -129,7 +145,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             {isCodeView ? (
               <>
                 <MermaidDiagramIcon size={16} />
-                Show Diagram
+                Try Diagram
               </>
             ) : (
               <>
@@ -139,9 +155,24 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             )}
           </Button>
         </div>
-        <div className="w-full p-4 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 rounded-lg">
-          {error}
-        </div>
+        {isDiagramView && (
+          <div className="w-full p-4 rounded-lg border border-red-200 dark:border-red-800 bg-background space-y-2">
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              Failed to render diagram
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {error}
+            </p>
+          </div>
+        )}
+        {isCodeView && (
+          <CodeBlock
+            node={null}
+            inline={false}
+            className="language-mermaid"
+            children={code}
+          />
+        )}
       </div>
     );
   }
@@ -167,7 +198,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             </>
           )}
         </Button>
-        {!isCodeView && (
+        {!isCodeView && !error && !isLoading && (
           <Button
             onClick={handleDownloadPNG}
             variant="ghost"
@@ -188,6 +219,19 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             className="language-mermaid"
             children={code}
           />
+        ) : isLoading ? (
+          <div className="w-full p-8 flex items-center justify-center gap-2 text-muted-foreground bg-muted/30 rounded-lg">
+            <div className="animate-spin">
+              <LoaderIcon size={16} />
+            </div>
+            <span>Generating diagram...</span>
+          </div>
+        ) : error ? (
+          <div className="w-full p-4 rounded-lg border border-red-200 dark:border-red-800 bg-background">
+            <p className="text-sm text-red-600 dark:text-red-400">
+              Invalid diagram syntax. Please check your code for errors.
+            </p>
+          </div>
         ) : (
           <div
             className={`${className} p-4 bg-background rounded-lg`}
