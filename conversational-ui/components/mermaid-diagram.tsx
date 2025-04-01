@@ -42,38 +42,32 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
 
     // Render the diagram
     const renderDiagram = async () => {
+      if (!code || code.trim() === '') {
+        setError('The diagram code is empty. Please provide valid Mermaid syntax.');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
-
-        // Check if the code is incomplete or empty
-        if (!code || code.trim() === '') {
-          throw new Error('The diagram code is empty. Please provide valid Mermaid syntax.');
-        }
+        setSvg('');
 
         // Generate a unique ID that's safe for CSS selectors
         const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
         
-        try {
-          // First validate the syntax
-          await mermaid.parse(code);
-          
-          // If validation passes, render the diagram
-          const { svg } = await mermaid.render(uniqueId, code);
-          // Remove any error icons or messages from the SVG
-          const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
-          setSvg(cleanedSvg);
-          setError(null);
-        } catch (parseError: any) {
-          console.error('Mermaid parse error:', parseError);
-          const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
-          setError(`Syntax error in diagram: ${errorMessage}`);
-          // Don't automatically switch to code view, let user decide
-        }
-      } catch (error: any) {
-        console.error('Error rendering mermaid diagram:', error);
-        setError(error?.message || 'Failed to render the diagram. Please check your syntax.');
-        // Don't automatically switch to code view, let user decide
+        // First validate the syntax
+        await mermaid.parse(code);
+        
+        // If validation passes, render the diagram
+        const { svg } = await mermaid.render(uniqueId, code);
+        // Remove any error icons or messages from the SVG
+        const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
+        setSvg(cleanedSvg);
+        setError(null);
+      } catch (parseError: any) {
+        const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
+        setError(`Syntax error in diagram: ${errorMessage}`);
       } finally {
         setIsLoading(false);
       }
@@ -229,7 +223,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         ) : error ? (
           <div className="w-full p-4 rounded-lg border border-red-200 dark:border-red-800 bg-background">
             <p className="text-sm text-red-600 dark:text-red-400">
-              Invalid diagram syntax. Please check your code for errors.
+              {error}
             </p>
           </div>
         ) : (
