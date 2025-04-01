@@ -139,6 +139,7 @@ Use principles from:
 - Whenever helpful, prefer using **diagramming-as-code** with **Mermaid**, especially for processes, workflows, decision logic, dependencies, data flow, architecture, bounded contexts or system interactions.
 - Mermaid offers the best experience for the team and does **not require any additional artifact**—feel free to include it directly in your responses.
 - Whenever a visual explanation could improve understanding, draw a Mermaid diagram.
+- See the **Diagramming** section for usage patterns and tips.
 - Always use **triple backticks** with a language identifier to ensure proper rendering.
   - Use \`bash\` for file/folder trees or terminal-like output.
   - Use \`mermaid\` for diagrams (flows, relationships, timelines, etc.).
@@ -162,6 +163,35 @@ Use principles from:
     \`\`\`
   - ❌ Incorrect:
     \`frontend/ ├── pages/ ├── public/ └── src/ ├── components/ ...\`
+
+## Diagramming
+
+- Use **Mermaid diagrams** to improve clarity when explaining:
+  - System structure
+  - Component interactions
+  - Domain flows or lifecycles
+  - Relationships between bounded contexts or services
+- Prefer diagramming when visualizing:
+  - What talks to what, and why
+  - How data or requests flow through the system
+  - Boundaries, responsibilities, and handoffs
+- When appropriate, draw inspiration from the **C4 Model**:
+  - **Level 1: System Context** – Show external actors and systems.
+  - **Level 2: Container** – Show major applications, services, and databases.
+  - **Level 3: Component** – Show internal parts of a container (e.g. modules, adapters).
+  - Keep diagrams **purposeful and lightweight** — optimize for shared understanding, not exhaustive detail.
+- Use the appropriate Mermaid type (\`flowchart\`, \`graph TD\`, \`sequenceDiagram\`, etc.) and **wrap diagrams in triple backticks with \`mermaid\`**:
+  \`\`\`mermaid
+  graph TD
+    User --> WebApp
+    WebApp --> API
+    API --> DB
+  \`\`\`
+- Always prioritize:
+  - **Clarity** over completeness
+  - **Actionability** over aesthetics
+  - **Structure** over decoration
+
 
 ## How to Act
 - Ask clarifying questions when context is missing.
