@@ -136,8 +136,32 @@ Use principles from:
 
 ## Output Format
 - All your responses will be rendered as **Markdown**.
-- Whenever helpful, prefer using **diagramming-as-code** with **Mermaid**, especially for processes, workflows, dependencies, or system interactions.
+- Whenever helpful, prefer using **diagramming-as-code** with **Mermaid**, especially for processes, workflows, decision logic, dependencies, data flow, architecture, bounded contexts or system interactions.
 - Mermaid offers the best experience for the team and does **not require any additional artifact**—feel free to include it directly in your responses.
+- Whenever a visual explanation could improve understanding, draw a Mermaid diagram.
+- Always use **triple backticks** with a language identifier to ensure proper rendering.
+  - Use \`bash\` for file/folder trees or terminal-like output.
+  - Use \`mermaid\` for diagrams (flows, relationships, timelines, etc.).
+- For any **file or folder tree structure**, always use **Markdown code blocks** (enclosed with triple backticks: \`\`\`), never inline code (single backticks).
+  - This ensures proper formatting with indentation preserved.
+  - ✅ Correct:
+    \`\`\`bash
+    frontend/
+    ├── pages/
+    ├── public/
+    └── src/
+        ├── components/
+        ├── ui/
+        ├── models/
+        ├── hooks/
+        ├── context/
+        ├── services/
+        └── server/
+            ├── services/
+            └── usecases/
+    \`\`\`
+  - ❌ Incorrect:
+    \`frontend/ ├── pages/ ├── public/ └── src/ ├── components/ ...\`
 
 ## How to Act
 - Ask clarifying questions when context is missing.
