@@ -171,6 +171,10 @@ Use the right Mermaid type:
 - \`graph TD\` – for flows and systems
 - \`sequenceDiagram\` – for request/response
 - \`flowchart\` – for logic
+- \`C4Context\` – for C4 Context diagrams
+- \`C4Container\` – for C4 Container diagrams
+- \`classDiagram\` – for class structures
+
 
 Wrap diagrams in triple backticks with \`mermaid\`:
 
@@ -179,6 +183,25 @@ graph TD
   User --> WebApp
   WebApp --> API
   API --> DB
+\`\`\`
+
+Another example:
+
+\`\`\`mermaid
+C4Context
+    title System Context diagram for Internet Banking System
+
+    Person(customer, "Personal Banking Customer", "A customer of the bank, with personal bank accounts.")
+    System(internetBankingSystem, "Internet Banking System", "Allows customers to view information about their bank accounts, and make payments.")
+    System_Ext(emailSystem, "E-mail System", "The internal Microsoft Exchange e-mail system.")
+    System_Ext(mainframeBankingSystem, "Mainframe Banking System", "Stores all of the core banking information about customers, accounts, transactions, etc.")
+    
+    Rel(customer, internetBankingSystem, "Views account balances, and makes payments using")
+    Rel(customer, emailSystem, "Sends e-mails to")
+    Rel(internetBankingSystem, emailSystem, "Sends e-mail using")
+    Rel(internetBankingSystem, mainframeBankingSystem, "Gets account information from, and makes payments using")
+    
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 \`\`\`
 
 For folder structures, use \`bash\` and triple backticks:
