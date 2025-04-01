@@ -3,10 +3,36 @@ import React, { memo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './code-block';
+import { MermaidDiagram } from './mermaid-diagram';
 
 const components: Partial<Components> = {
-  // @ts-expect-error
-  code: CodeBlock,
+  code: ({ node, inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match?.[1] || '';
+    const codeContent = String(children).replace(/\n$/, '');
+
+    // Handle Mermaid diagrams
+    if (language === 'mermaid') {
+      return (
+        <MermaidDiagram
+          code={codeContent}
+          className="w-full overflow-x-auto"
+        />
+      );
+    }
+
+    // Handle regular code blocks
+    return (
+      <CodeBlock
+        node={node}
+        inline={inline}
+        className={className}
+        {...props}
+      >
+        {children}
+      </CodeBlock>
+    );
+  },
   pre: ({ children }) => <>{children}</>,
   p: ({ children, ...props }) => {
     return <div className="w-full overflow-hidden" {...props}>{children}</div>;
