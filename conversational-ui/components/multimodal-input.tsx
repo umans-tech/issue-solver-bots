@@ -114,6 +114,32 @@ function PureMultimodalInput({
     adjustHeight();
   };
 
+  const handlePaste = async (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        setUploadQueue([file.name]);
+        try {
+          const attachment = await uploadFile(file);
+          if (attachment) {
+            setAttachments((currentAttachments) => [...currentAttachments, attachment]);
+          }
+        } catch (error) {
+          console.error('Error uploading clipboard image:', error);
+          toast.error('Failed to upload image from clipboard');
+        } finally {
+          setUploadQueue([]);
+        }
+      }
+    }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
@@ -236,6 +262,7 @@ function PureMultimodalInput({
         placeholder="Send a message..."
         value={input}
         onChange={handleInput}
+        onPaste={handlePaste}
         className={cx(
           'min-h-[24px] max-h-[calc(75dvh)] overflow-y-auto resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
           className,
