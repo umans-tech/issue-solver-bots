@@ -1,6 +1,8 @@
 import type { Attachment } from 'ai';
-
-import { LoaderIcon } from './icons';
+import { useState } from 'react';
+import { LoaderIcon, XIcon } from './icons';
+import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
 
 export const PreviewAttachment = ({
   attachment,
@@ -10,6 +12,7 @@ export const PreviewAttachment = ({
   isUploading?: boolean;
 }) => {
   const { name, url, contentType } = attachment;
+  const [isFullPage, setIsFullPage] = useState(false);
 
   return (
     <div className="flex flex-col gap-2">
@@ -22,7 +25,8 @@ export const PreviewAttachment = ({
               key={url}
               src={url}
               alt={name ?? 'An image attachment'}
-              className="rounded-md size-full object-cover"
+              className="rounded-md size-full object-cover cursor-pointer"
+              onClick={() => setIsFullPage(true)}
             />
           ) : (
             <div className="" />
@@ -38,6 +42,32 @@ export const PreviewAttachment = ({
         )}
       </div>
       <div className="text-xs text-zinc-500 max-w-16 truncate">{name}</div>
+      
+      {isFullPage && contentType?.startsWith('image') && (
+        <div 
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setIsFullPage(false)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img
+              src={url}
+              alt={name ?? 'An image attachment'}
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFullPage(false);
+              }}
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2"
+            >
+              <XIcon size={16} />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

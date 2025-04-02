@@ -1,13 +1,14 @@
+import { cn } from '@/lib/utils';
 import { LoaderIcon } from './icons';
-import cn from 'classnames';
+import { ImagePreview } from './image-preview';
 
 interface ImageEditorProps {
   title: string;
   content: string;
-  isCurrentVersion: boolean;
-  currentVersionIndex: number;
-  status: string;
-  isInline: boolean;
+  status: 'idle' | 'streaming';
+  isInline?: boolean;
+  isCurrentVersion?: boolean;
+  currentVersionIndex?: number;
 }
 
 export function ImageEditor({
@@ -15,6 +16,8 @@ export function ImageEditor({
   content,
   status,
   isInline,
+  isCurrentVersion,
+  currentVersionIndex,
 }: ImageEditorProps) {
   return (
     <div
@@ -33,15 +36,13 @@ export function ImageEditor({
           <div>Generating Image...</div>
         </div>
       ) : (
-        <picture>
-          <img
-            className={cn('w-full h-fit max-w-[800px]', {
-              'p-0 md:p-20': !isInline,
-            })}
-            src={`data:image/png;base64,${content}`}
-            alt={title}
-          />
-        </picture>
+        <ImagePreview
+          src={`data:image/png;base64,${content}`}
+          alt={title}
+          className={cn({
+            'p-0 md:p-20': !isInline,
+          })}
+        />
       )}
     </div>
   );
