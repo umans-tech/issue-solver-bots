@@ -1,6 +1,6 @@
 import type { Attachment } from 'ai';
 import { useState } from 'react';
-import { LoaderIcon, XIcon } from './icons';
+import { FileIcon, LoaderIcon, XIcon } from './icons';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +28,8 @@ export const PreviewAttachment = ({
               className="rounded-md size-full object-cover cursor-pointer"
               onClick={() => setIsFullPage(true)}
             />
+          ) : contentType === 'application/pdf' ? (
+            <FileIcon size={24} />
           ) : (
             <div className="" />
           )
