@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { EyeIcon, CrossIcon, CheckCircleFillIcon } from '@/components/icons';
+import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon } from '@/components/icons';
 import {
   Sheet,
   SheetContent,
@@ -147,6 +148,13 @@ export function RepoConnectionDialog({
   const renderConnectedRepoInfo = () => {
     if (!repoDetails) return null;
     
+    const copyCommitSha = () => {
+      if (repoDetails.commit_sha) {
+        navigator.clipboard.writeText(repoDetails.commit_sha);
+        toast.success('Commit SHA copied to clipboard!');
+      }
+    };
+    
     return (
       <div className="space-y-4 py-4 text-sm">
         <div className="flex flex-col gap-1 border-b pb-3">
@@ -180,7 +188,21 @@ export function RepoConnectionDialog({
             <span>Branch:</span>
             <span>{repoDetails.branch || 'N/A'}</span>
             <span>Commit:</span>
-            <span className="truncate">{repoDetails.commit_sha || 'N/A'}</span>
+            <div className="flex items-center gap-1">
+              <span className="truncate">{repoDetails.commit_sha || 'N/A'}</span>
+              {repoDetails.commit_sha && (
+                <Button
+                  onClick={copyCommitSha}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 p-0.5 hover:bg-muted rounded-sm"
+                >
+                  <CopyIcon size={14} />
+                  <span className="sr-only">Copy commit SHA</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
