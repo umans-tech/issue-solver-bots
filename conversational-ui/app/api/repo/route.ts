@@ -1,6 +1,99 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 
+export async function GET(request: Request) {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      console.error("Authentication failed: No user ID in session");
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get the process ID from the user's session
+    const processId = session?.user?.selectedSpace?.processId;
+    
+    if (!processId) {
+      console.log("No repository connected: No process ID found in session");
+      return NextResponse.json({
+        connected: false,
+        message: 'No repository connected'
+      });
+    }
+    
+    // Get the CUDU API endpoint from environment variables
+    const cuduEndpoint = process.env.CUDU_ENDPOINT;
+
+    if (!cuduEndpoint) {
+      return NextResponse.json(
+        { error: 'CUDU API endpoint is not configured' },
+        { status: 500 }
+      );
+    }
+    
+    // Call the process API endpoint to get repository details
+    const apiUrl = `${cuduEndpoint}/processes/${processId}`;
+    console.log(`Fetching repository details from process: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`Error fetching repository details: ${response.statusText}`);
+      return NextResponse.json(
+        { error: 'Failed to fetch repository details' },
+        { status: response.status }
+      );
+    }
+    
+    // Get the response data
+    const data = await response.json();
+    
+    // Find the repository_connected event if available
+    const repoEvent = data.events?.find((event: { type: string }) => 
+      event.type?.toLowerCase() === 'repository_connected');
+
+    // Find the repository_indexed event if available
+    const indexedEvent = data.events?.find((event: { type: string }) => 
+      event.type?.toLowerCase() === 'repository_indexed');
+      
+    if (!repoEvent) {
+      return NextResponse.json(
+        { error: 'Repository connection details not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Return the repository URL and other details (but mask the access token)
+    return NextResponse.json({
+      connected: true,
+      url: repoEvent.url,
+      status: data.status || 'unknown',
+      knowledge_base_id: repoEvent.knowledge_base_id,
+      process_id: processId,
+      // Add Git information if available
+      branch: indexedEvent?.branch,
+      commit_sha: indexedEvent?.commit_sha,
+      // Add indexation timestamps if available
+      indexing_started: repoEvent?.occurred_at,
+      indexing_completed: indexedEvent?.occurred_at
+    });
+  } catch (error) {
+    console.error('Error retrieving repository details:', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve repository details' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // Check authentication
