@@ -40,7 +40,7 @@ export function PureMessageActions({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+              className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
               variant="ghost"
               onClick={async () => {
                 await copyToClipboard(message.content as string);
@@ -50,7 +50,7 @@ export function PureMessageActions({
               <CopyIcon />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Copy</TooltipContent>
+          <TooltipContent sideOffset={5} side="right">Copy</TooltipContent>
         </Tooltip>
 
         {message.role === 'assistant' && (
@@ -58,7 +58,7 @@ export function PureMessageActions({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
                   disabled={vote?.isUpvoted}
                   variant="ghost"
                   onClick={async () => {
@@ -104,13 +104,13 @@ export function PureMessageActions({
                   <ThumbUpIcon />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Upvote Response</TooltipContent>
+              <TooltipContent sideOffset={5} side="right">Upvote Response</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
                   variant="ghost"
                   disabled={vote && !vote.isUpvoted}
                   onClick={async () => {
@@ -156,7 +156,7 @@ export function PureMessageActions({
                   <ThumbDownIcon />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Downvote Response</TooltipContent>
+              <TooltipContent sideOffset={5} side="right">Downvote Response</TooltipContent>
             </Tooltip>
           </>
         )}
