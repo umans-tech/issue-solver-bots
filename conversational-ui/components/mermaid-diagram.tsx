@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { Button } from './ui/button';
-import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon } from './icons';
+import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon, XIcon } from './icons';
 import { toast } from 'sonner';
 import { CodeBlock } from './code-block';
+import { cn } from '@/lib/utils';
 
 interface MermaidDiagramProps {
   code: string;
@@ -21,6 +22,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('diagram');
   const [isLoading, setIsLoading] = useState(true);
+  const [isFullPage, setIsFullPage] = useState(false);
 
   const isCodeView = viewMode === 'code';
   const isDiagramView = viewMode === 'diagram';
@@ -205,7 +207,14 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         )}
       </div>
       
-      <div className="relative w-full overflow-hidden mb-4" ref={diagramRef}>
+      <div className={cn(
+        "relative w-full overflow-hidden mb-4",
+        isFullPage && "fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-start justify-center p-8 overflow-y-auto"
+      )} ref={diagramRef} onClick={(e) => {
+        if (isFullPage && e.target === e.currentTarget) {
+          setIsFullPage(false);
+        }
+      }}>
         {isCodeView ? (
           <CodeBlock
             node={null}
@@ -228,9 +237,29 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
           </div>
         ) : (
           <div
-            className={`${className} p-4 bg-background rounded-lg`}
+            className={cn(
+              `${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
+              isFullPage && "min-w-[800px] w-fit max-w-[95vw] max-h-[95vh] mx-auto"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isCodeView) setIsFullPage(!isFullPage);
+            }}
             dangerouslySetInnerHTML={{ __html: svg }}
           />
+        )}
+        {isFullPage && (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullPage(false);
+            }}
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 right-4"
+          >
+            <XIcon size={16} />
+          </Button>
         )}
       </div>
     </div>
