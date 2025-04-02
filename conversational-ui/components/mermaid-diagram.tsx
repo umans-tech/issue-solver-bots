@@ -239,8 +239,9 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
           <div
             className={cn(
               `${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
-              isFullPage && "min-w-[800px] w-fit max-w-[95vw] max-h-[95vh] mx-auto"
+              isFullPage && "min-w-[800px] w-auto h-auto mx-auto my-8"
             )}
+            style={isFullPage ? { transform: 'scale(1.5)', transformOrigin: 'top center' } : undefined}
             onClick={(e) => {
               e.stopPropagation();
               if (!isCodeView) setIsFullPage(!isFullPage);
