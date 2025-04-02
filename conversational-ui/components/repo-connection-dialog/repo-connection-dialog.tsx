@@ -31,6 +31,12 @@ const ClockIcon = ({ size = 16 }: { size?: number }) => (
 
 // Status display with proper icons
 const StatusIcon = ({ status }: { status: string }) => {
+  // Define status indicator colors - match with GitIcon's colors
+  const statusColors = {
+    indexing: '#FA75AA', // Pink color from Umans logo for indexing
+    indexed: '#FA75AA' // Pink color from Umans logo
+  };
+  
   if (status === 'indexed') {
     return (
       <span className="text-green-500">
@@ -38,6 +44,20 @@ const StatusIcon = ({ status }: { status: string }) => {
       </span>
     );
   }
+  
+  // Use the same animated indicator as GitIcon for indexing status
+  if (status === 'indexing' || status === 'connected') {
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        <div
+          className="w-[14px] h-[14px] rounded-full animate-pulse"
+          style={{ backgroundColor: statusColors.indexing, opacity: 0.6 }}
+        />
+      </div>
+    );
+  }
+  
+  // Fallback for unknown status
   return (
     <span className="text-amber-500">
       <ClockIcon size={16} />
@@ -168,7 +188,9 @@ export function RepoConnectionDialog({
           <div className="font-semibold">Indexation Status</div>
           <div className="flex items-center gap-2">
             <StatusIcon status={repoDetails.status} />
-            <span className="capitalize">{repoDetails.status}</span>
+            <span className="capitalize">
+              {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
+            </span>
           </div>
         </div>
         
