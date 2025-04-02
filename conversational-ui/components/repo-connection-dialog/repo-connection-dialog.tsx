@@ -404,8 +404,8 @@ export function RepoConnectionDialog({
             </Button>
           ) : (
             <Button
-              type="submit"
-              onClick={isEditing ? handleSubmit : undefined}
+              type="button"
+              onClick={handleSubmit}
               disabled={isSubmitting || isLoading}
             >
               {isSubmitting ? 'Connecting...' : 'Connect Repository'}
