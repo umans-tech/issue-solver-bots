@@ -216,8 +216,8 @@ const PurePreviewMessage = ({
             )}
 
             {(message.content || message.reasoning) && mode === 'view' && (
-              <div className="flex flex-row gap-2 items-start">
-                <div className="flex flex-col gap-1 mt-1">
+              <div className="flex flex-row gap-2 items-start relative">
+                <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0">
                   {message.role === 'user' && !isReadonly && (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -231,7 +231,7 @@ const PurePreviewMessage = ({
                           <PencilEditIcon />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Edit message</TooltipContent>
+                      <TooltipContent sideOffset={5} side="right">Edit message</TooltipContent>
                     </Tooltip>
                   )}
                   {!isReadonly && (
@@ -246,7 +246,7 @@ const PurePreviewMessage = ({
                 </div>
 
                 <div
-                  className={cn('flex flex-col gap-4 flex-1 overflow-hidden', {
+                  className={cn('flex flex-col gap-4 flex-1 overflow-hidden ml-8', {
                     'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                       message.role === 'user',
                   })}
