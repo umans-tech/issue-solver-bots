@@ -176,6 +176,17 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   return (
     <div className="w-full mt-4">
       <div className="flex justify-end mb-4 gap-2">
+       {!isCodeView && !error && !isLoading && (
+          <Button
+            onClick={handleDownloadPNG}
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+          >
+            <DownloadIcon size={16} />
+            Download SVG
+          </Button>
+        )}
         <Button
           onClick={toggleViewMode}
           variant="ghost"
@@ -194,17 +205,6 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             </>
           )}
         </Button>
-        {!isCodeView && !error && !isLoading && (
-          <Button
-            onClick={handleDownloadPNG}
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-          >
-            <DownloadIcon size={16} />
-            Download SVG
-          </Button>
-        )}
       </div>
       
       <div className={cn(
