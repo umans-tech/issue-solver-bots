@@ -1,12 +1,24 @@
 from datetime import datetime
-from typing import Any, Literal, Self, assert_never
+from typing import Any, Literal, Self, Type, assert_never
 
+from issue_solver.events.event_store import T
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
+    RepositoryIndexationRequested,
 )
 from pydantic import BaseModel
+
+event_type_to_record_type = {
+    CodeRepositoryConnected: "repository_connected",
+    CodeRepositoryIndexed: "repository_indexed",
+    RepositoryIndexationRequested: "repository_indexation_requested",
+}
+
+
+def get_record_type(event_type: Type[T]) -> str:
+    return event_type_to_record_type[event_type]
 
 
 class CodeRepositoryConnectedRecord(BaseModel):
@@ -80,8 +92,38 @@ class CodeRepositoryIndexedRecord(BaseModel):
         )
 
 
+class RepositoryIndexationRequestedRecord(BaseModel):
+    type: Literal["repository_indexation_requested"] = "repository_indexation_requested"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> RepositoryIndexationRequested:
+        return RepositoryIndexationRequested(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: RepositoryIndexationRequested) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+        )
+
+
 ProcessTimelineEventRecords = (
-    CodeRepositoryConnectedRecord | CodeRepositoryIndexedRecord
+    CodeRepositoryConnectedRecord
+    | CodeRepositoryIndexedRecord
+    | RepositoryIndexationRequestedRecord
 )
 
 
@@ -95,6 +137,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return CodeRepositoryConnectedRecord.create_from(event)
         case CodeRepositoryIndexed():
             return CodeRepositoryIndexedRecord.create_from(event)
+        case RepositoryIndexationRequested():
+            return RepositoryIndexationRequestedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -107,6 +151,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "repository_indexed":
             return CodeRepositoryIndexedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "repository_indexation_requested":
+            return RepositoryIndexationRequestedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

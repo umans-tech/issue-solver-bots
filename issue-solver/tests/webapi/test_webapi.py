@@ -28,10 +28,7 @@ def test_connect_repository_returns_201_and_publishes_code_repository_connected_
     assert "process_id" in data
     assert data["knowledge_base_id"] == CREATED_VECTOR_STORE_ID
     # Verify message was sent to SQS
-    queue_url = sqs_queue["queue_url"]
-    messages = sqs_client.receive_message(
-        QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=1
-    )
+    messages = receive_event_message(sqs_client, sqs_queue)
     assert "Messages" in messages
     message_body = json.loads(messages["Messages"][0]["Body"])
     assert message_body["url"] == repo_url
@@ -88,3 +85,48 @@ def test_get_process_returns_200_when_the_process_is_found(
             }
         ],
     }
+
+
+def test_post_repositories_index_new_changes(
+    api_client, time_under_control, sqs_client, sqs_queue
+):
+    # Given
+    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "test-access-token",
+            "user_id": "test-user-id",
+            "space_id": "test-space-id",
+        },
+    )
+    connect_repo_response_json = connect_repo_response.json()
+    process_id = connect_repo_response_json["process_id"]
+    knowledge_base_id = connect_repo_response_json["knowledge_base_id"]
+    receive_event_message(sqs_client, sqs_queue)
+
+    # When
+    response = api_client.post(
+        f"/repositories/{knowledge_base_id}",
+        json={
+            "user_id": "second-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 200
+    # Verify message was sent to SQS
+    messages = receive_event_message(sqs_client, sqs_queue)
+    assert "Messages" in messages
+    message_body = json.loads(messages["Messages"][0]["Body"])
+    assert message_body["type"] == "repository_indexation_requested"
+    assert message_body["process_id"] == process_id
+    # assert message_body["user_id"] == "second-user-id"
+    assert message_body["occurred_at"] == "2021-01-01T00:00:00"
+
+
+def receive_event_message(sqs_client, sqs_queue):
+    return sqs_client.receive_message(
+        QueueUrl=sqs_queue["queue_url"], MaxNumberOfMessages=1, WaitTimeSeconds=1
+    )

@@ -9,8 +9,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
 
 from issue_solver.clock import Clock
-from issue_solver.events.domain import CodeRepositoryConnected
-from issue_solver.events.event_store import InMemoryEventStore
+from issue_solver.events.domain import (
+    CodeRepositoryConnected,
+    AnyDomainEvent,
+    RepositoryIndexationRequested,
+)
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import serialize
 from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
@@ -21,13 +25,13 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 @router.post("/", status_code=201)
 async def connect_repository(
     connect_repository_request: ConnectRepositoryRequest,
-    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.connect")),
     ],
     clock: Annotated[Clock, Depends(get_clock)],
-):
+) -> dict[str, str]:
     """Connect to a code repository."""
     process_id = str(uuid.uuid4())
     logger.info(f"Creating new repository connection with process ID: {process_id}")
@@ -62,8 +66,44 @@ async def connect_repository(
     }
 
 
+@router.post("/{knowledge_base_id}", status_code=200)
+async def index_new_changes(
+    knowledge_base_id: str,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(lambda: get_logger("issue_solver.webapi.routers.repository.index")),
+    ],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> dict[str, str]:
+    """Index new changes in the code repository."""
+    logger.info(f"Indexing new changes for knowledge base ID: {knowledge_base_id}")
+    event = RepositoryIndexationRequested(
+        occurred_at=clock.now(),
+        knowledge_base_id=knowledge_base_id,
+        process_id=(
+            await event_store.find(
+                {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+            )
+        )[0].process_id,
+        user_id="unknown",
+    )
+    await event_store.append(event.process_id, event)
+    logger.info(
+        f"New changes indexed successfully for knowledge base ID: {knowledge_base_id}"
+    )
+    # Publish the event to SQS
+    publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
+    publish(event, publish_logger)
+    logger.info(
+        f"Published indexation request for knowledge base ID: {knowledge_base_id}"
+    )
+
+    return {"message": "New changes indexed successfully"}
+
+
 def publish(
-    event: CodeRepositoryConnected, logger: logging.Logger | logging.LoggerAdapter
+    event: AnyDomainEvent, logger: logging.Logger | logging.LoggerAdapter
 ) -> None:
     """Publish a CodeRepositoryConnected event to SQS."""
     try:
