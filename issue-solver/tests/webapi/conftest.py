@@ -12,17 +12,12 @@ from testcontainers.localstack import LocalStackContainer
 from testcontainers.postgres import PostgresContainer
 from tests.controllable_clock import ControllableClock
 
+from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 from issue_solver.webapi.dependencies import get_clock
 from issue_solver.webapi.main import app
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
-CURR_PATH = os.path.dirname(os.path.realpath(__file__))
-PROJECT_ROOT_PATH = os.path.join(CURR_PATH, "..", "..")
-ALEMBIC_INI_LOCATION = os.path.join(PROJECT_ROOT_PATH, "alembic.ini")
-MIGRATIONS_PATH = os.path.join(
-    PROJECT_ROOT_PATH, "src/issue_solver/database/migrations"
-)
 
 
 @pytest.fixture(scope="module")
@@ -58,9 +53,9 @@ def aws_credentials(localstack) -> dict[str, str]:
 
 
 @pytest.fixture
-def sqs_client(localstack, aws_credentials):
+def sqs_client(localstack, aws_credentials) -> Generator[boto3.client, Any, None]:
     """Create and return an SQS client."""
-    return boto3.client(
+    yield boto3.client(
         "sqs",
         endpoint_url=localstack["endpoint_url"],
         region_name=aws_credentials["region"],
@@ -70,7 +65,7 @@ def sqs_client(localstack, aws_credentials):
 
 
 @pytest.fixture
-def sqs_queue(sqs_client):
+def sqs_queue(sqs_client) -> Generator[dict[str, str], Any, None]:
     """Create a test SQS queue."""
     queue_name = "test-repo-queue"
     queue_response = sqs_client.create_queue(QueueName=queue_name)
@@ -78,7 +73,9 @@ def sqs_queue(sqs_client):
 
     os.environ["PROCESS_QUEUE_URL"] = queue_url
 
-    return {"queue_url": queue_url, "queue_name": queue_name}
+    yield {"queue_url": queue_url, "queue_name": queue_name}
+
+    sqs_client.delete_queue(QueueUrl=queue_url)
 
 
 @pytest.fixture(scope="module")

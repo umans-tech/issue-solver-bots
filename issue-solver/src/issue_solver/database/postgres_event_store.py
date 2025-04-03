@@ -1,9 +1,14 @@
 import json
 import uuid
+from typing import Any, Type
 
 from issue_solver.events.domain import AnyDomainEvent
-from issue_solver.events.event_store import EventStore
-from issue_solver.events.serializable_records import serialize, deserialize
+from issue_solver.events.event_store import EventStore, T
+from issue_solver.events.serializable_records import (
+    deserialize,
+    get_record_type,
+    serialize,
+)
 
 
 class PostgresEventStore(EventStore):
@@ -61,5 +66,37 @@ class PostgresEventStore(EventStore):
             data = row["data"]
             domain_event = deserialize(event_type, data)
             events.append(domain_event)
+
+        return events
+
+    async def find(self, criteria: dict[str, Any], event_type: Type[T]) -> list[T]:
+        sql_conditions = [
+            f"data->>${i} = ${i+1}" for i in range(1, len(criteria) * 2, 2)
+        ]
+        sql_conditions.append(f"event_type = ${len(criteria)*2 + 1}")
+
+        query = f"""
+            SELECT event_type, data, metadata, occured_at
+            FROM events_store
+            WHERE {" AND ".join(sql_conditions)}
+        """
+
+        query_params = []
+        for key, value in criteria.items():
+            query_params.extend([key, value])
+        event_record_type = get_record_type(event_type)
+        query_params.append(event_record_type)
+
+        rows = await self.connection.fetch(query, *query_params)
+        events: list[T] = []
+
+        for row in rows:
+            db_event_type = row["event_type"]
+            event = deserialize(db_event_type, row["data"])
+            if not isinstance(event, event_type):
+                raise ValueError(
+                    f"Expected event type {event_record_type}, but got {db_event_type}"
+                )
+            events.append(event)
 
         return events

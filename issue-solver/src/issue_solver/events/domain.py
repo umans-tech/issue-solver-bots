@@ -38,4 +38,14 @@ class CodeRepositoryIndexed(DomainEvent):
     occurred_at: datetime
 
 
-AnyDomainEvent = CodeRepositoryConnected | CodeRepositoryIndexed
+@dataclass(frozen=True, slots=True)
+class RepositoryIndexationRequested(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+AnyDomainEvent = (
+    CodeRepositoryConnected | CodeRepositoryIndexed | RepositoryIndexationRequested
+)
