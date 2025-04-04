@@ -1,6 +1,9 @@
+import asyncio
 import os
+import time
 from typing import Any, Generator
 
+import asyncpg
 import pytest
 import pytest_asyncio
 from alembic.command import downgrade, upgrade
@@ -14,11 +17,27 @@ from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 @pytest.fixture(scope="module")
 def postgres_container() -> Generator[PostgresContainer, None, None]:
     """Start a PostgreSQL container."""
-    postgres_container = PostgresContainer(image="postgres:17.4-alpine")
-    postgres_container.start()
-    yield postgres_container
+    with PostgresContainer(image="postgres:17.4-alpine") as postgres_container:
+        db_url = f"postgresql://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
+        wait_for_postgres(db_url)
+        yield postgres_container
 
-    postgres_container.stop()
+
+def wait_for_postgres(db_url: str, timeout: int = 5) -> None:
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            asyncio.run(_check_connection(db_url))
+            return
+        except Exception:
+            time.sleep(1)
+    raise TimeoutError(f"PostgreSQL n'est pas prêt après {timeout} secondes")
+
+
+async def _check_connection(db_url: str) -> None:
+    conn = await asyncpg.connect(db_url)
+    await conn.execute("SELECT 1")
+    await conn.close()
 
 
 @pytest.fixture
