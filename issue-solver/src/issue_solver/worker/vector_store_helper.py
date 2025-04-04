@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from openai import OpenAI
+from openai.types.shared_params import ComparisonFilter
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 # Configure logging
@@ -203,6 +204,12 @@ def upload_repository_files_to_vector_store(
             file_path = os.path.join(root, file)
             all_files.append(file_path)
 
+    stats = index_new_files(all_files, client, vector_store_id)
+
+    return stats
+
+
+def index_new_files(all_files, client, vector_store_id):
     stats: dict[str, Any] = {
         "total_files": len(all_files),
         "successful_uploads": 0,
@@ -210,9 +217,7 @@ def upload_repository_files_to_vector_store(
         "skipped_files": 0,
         "errors": [],
     }
-
     logger.info(f"{len(all_files)} files found in repository. Uploading in parallel...")
-
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
             executor.submit(
@@ -229,10 +234,59 @@ def upload_repository_files_to_vector_store(
                 stats["errors"].append(result)
             elif result["status"] == "skipped":
                 stats["skipped_files"] += 1
-
     logger.info(
         f"Upload complete. {stats['successful_uploads']} files uploaded successfully, "
         f"{stats['failed_uploads']} failed, {stats['skipped_files']} skipped."
     )
+    return stats
 
+
+def unindex_obsolete_files(
+    path_of_file_to_unindex: list[str], client: OpenAI, knowledge_base_id: str
+) -> dict[str, Any]:
+    """
+    Unindex obsolete files from the vector store.
+
+    Args:
+        path_of_file_to_unindex: List of file paths to unindex
+        client: OpenAI client instance
+        knowledge_base_id: ID of the vector store
+
+    Returns:
+        dict with status information
+    """
+    stats: dict[str, Any] = {
+        "total_files": len(path_of_file_to_unindex),
+        "successful_unindexing": 0,
+        "failed_unindexing": 0,
+        "errors": [],
+    }
+    for file_path in path_of_file_to_unindex:
+        try:
+            relative_file_path = path_from_repo_root(file_path)
+            results = client.vector_stores.search(
+                vector_store_id=knowledge_base_id,
+                query=relative_file_path,
+                filters=ComparisonFilter(
+                    type="eq",
+                    key="file_path",
+                    value=relative_file_path,
+                ),
+                max_num_results=1,
+            )
+            if not results or not results.data or not results.data[0].file_id:
+                logger.info(f"File {relative_file_path} not found in vector store")
+                stats["failed_unindexing"] += 1
+                continue
+            file_id = results.data[0].file_id
+            client.vector_stores.files.delete(
+                vector_store_id=knowledge_base_id,
+                file_id=file_id,
+            )
+            stats["successful_unindexing"] += 1
+            logger.info(f"File {relative_file_path} unindexed successfully")
+        except Exception as e:
+            stats["failed_unindexing"] += 1
+            stats["errors"].append({"file": file_path, "error": str(e)})
+            logger.error(f"Error unindexing {file_path}: {str(e)}")
     return stats

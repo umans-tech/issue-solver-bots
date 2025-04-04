@@ -9,6 +9,35 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+@dataclass
+class RenamedFile:
+    old_file_name: Path
+    new_file_name: Path
+
+
+@dataclass
+class GitDiffFiles:
+    repo_path: Path
+    added_files: list[Path]
+    deleted_files: list[Path]
+    modified_files: list[Path]
+    renamed_files: list[RenamedFile]
+
+    def get_paths_of_all_new_files(self) -> list[str]:
+        all_new_files = self.added_files + self.modified_files
+        all_new_files += [
+            renamed_file.new_file_name for renamed_file in self.renamed_files
+        ]
+        return [str(self.repo_path.joinpath(file)) for file in all_new_files]
+
+    def get_paths_of_all_obsolete_files(self) -> list[str]:
+        all_obsolete_files = self.deleted_files + self.modified_files
+        all_obsolete_files += [
+            renamed_file.old_file_name for renamed_file in self.renamed_files
+        ]
+        return [str(self.repo_path.joinpath(file)) for file in all_obsolete_files]
+
+
 class GitHelper:
     def __init__(self, settings: "GitSettings") -> None:
         super().__init__()
@@ -96,7 +125,7 @@ class GitHelper:
         else:
             print("No 'repo_origin' remote found. Cannot push changes.")
 
-    def clone_repository(self, to_path: Path) -> "CodeVersion":
+    def clone_repository(self, to_path: Path, depth: int | None = 1) -> "CodeVersion":
         """
         Clone the repository to the current working directory.
         """
@@ -104,11 +133,72 @@ class GitHelper:
             self._inject_access_token(self.settings.repository_url),
             to_path=to_path,
             env={"GIT_TERMINAL_PROMPT": "0"},
-            depth=1,
+            depth=depth,
         )
         # return branch name and commit sha
         return CodeVersion(
             branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
+        )
+
+    def pull_repository(self, repo_path: Path) -> "CodeVersion":
+        """
+        Pull changes from the remote repository.
+        """
+        repo = Repo(repo_path)
+        repo.git.pull()
+        return CodeVersion(
+            branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
+        )
+
+    def get_changed_files_commit(
+        self, repo_path: Path, last_indexed_commit_sha: str
+    ) -> GitDiffFiles:
+        """
+        Get files changed between the last indexed commit and HEAD.
+        """
+        repo = Repo(repo_path)
+
+        # Get added, deleted, and modified files by parsing the diff output
+        added_files = []
+        deleted_files = []
+        modified_files = []
+        renamed_files = []
+
+        # Get the diff between commits
+        diff_index = repo.git.diff(
+            "--name-status", last_indexed_commit_sha, "HEAD"
+        ).splitlines()
+
+        for line in diff_index:
+            if not line.strip():
+                continue
+
+            parts = line.split("\t")
+            status = parts[0]
+
+            # A: addition of a file
+            if status.startswith("A"):
+                added_files.append(Path(parts[1]))
+            # D: deletion of a file
+            elif status.startswith("D"):
+                deleted_files.append(Path(parts[1]))
+            # M: modification of file content
+            elif status.startswith("M"):
+                modified_files.append(Path(parts[1]))
+            # R: renaming of a file
+            elif status.startswith("R"):
+                renamed_files.append(
+                    RenamedFile(
+                        old_file_name=Path(parts[1]), new_file_name=Path(parts[2])
+                    )
+                )
+
+        return GitDiffFiles(
+            repo_path=repo_path,
+            added_files=added_files,
+            deleted_files=deleted_files,
+            modified_files=modified_files,
+            renamed_files=renamed_files,
         )
 
 

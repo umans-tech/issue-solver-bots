@@ -1,20 +1,22 @@
+import asyncio
 import os
+import time
 from datetime import datetime
-from typing import Generator, Any
+from typing import Any, Generator
 
+import asyncpg
 import boto3
 import pytest
-from alembic.command import upgrade, downgrade
+from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from issue_solver.webapi.dependencies import get_clock
+from issue_solver.webapi.main import app
 from pytest_httpserver import HTTPServer
 from starlette.testclient import TestClient
 from testcontainers.localstack import LocalStackContainer
 from testcontainers.postgres import PostgresContainer
 from tests.controllable_clock import ControllableClock
-
 from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
-from issue_solver.webapi.dependencies import get_clock
-from issue_solver.webapi.main import app
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
@@ -81,12 +83,27 @@ def sqs_queue(sqs_client) -> Generator[dict[str, str], Any, None]:
 @pytest.fixture(scope="module")
 def postgres_container() -> Generator[PostgresContainer, None, None]:
     """Start a PostgreSQL container."""
-    postgres_container = PostgresContainer(image="postgres:17.4-alpine")
-    postgres_container.start()
+    with PostgresContainer(image="postgres:17.4-alpine") as postgres_container:
+        db_url = f"postgresql://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
+        wait_for_postgres(db_url)
+        yield postgres_container
 
-    yield postgres_container
 
-    postgres_container.stop()
+def wait_for_postgres(db_url: str, timeout: int = 5) -> None:
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            asyncio.run(_check_connection(db_url))
+            return
+        except Exception:
+            time.sleep(1)
+    raise TimeoutError(f"PostgreSQL n'est pas prêt après {timeout} secondes")
+
+
+async def _check_connection(db_url: str) -> None:
+    conn = await asyncpg.connect(db_url)
+    await conn.execute("SELECT 1")
+    await conn.close()
 
 
 @pytest.fixture

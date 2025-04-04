@@ -1,24 +1,26 @@
 from datetime import datetime
 from typing import Any, Literal, Self, Type, assert_never
 
-from issue_solver.events.event_store import T
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    T,
 )
 from pydantic import BaseModel
 
-event_type_to_record_type = {
-    CodeRepositoryConnected: "repository_connected",
-    CodeRepositoryIndexed: "repository_indexed",
-    RepositoryIndexationRequested: "repository_indexation_requested",
-}
-
 
 def get_record_type(event_type: Type[T]) -> str:
-    return event_type_to_record_type[event_type]
+    match event_type:
+        case type() if event_type is CodeRepositoryConnected:
+            return "repository_connected"
+        case type() if event_type is CodeRepositoryIndexed:
+            return "repository_indexed"
+        case type() if event_type is RepositoryIndexationRequested:
+            return "repository_indexation_requested"
+        case _:
+            raise Exception(f"Unknown event type: {event_type}")
 
 
 class CodeRepositoryConnectedRecord(BaseModel):

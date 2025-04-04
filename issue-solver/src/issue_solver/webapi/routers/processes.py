@@ -6,6 +6,7 @@ from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
+    RepositoryIndexationRequested,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -46,6 +47,8 @@ class ProcessTimelineView(BaseModel):
                 status = "connected"
             case CodeRepositoryIndexed():
                 status = "indexed"
+            case RepositoryIndexationRequested():
+                status = "indexing"
             case _:
                 status = "unknown"
         return status
