@@ -1,8 +1,6 @@
 from abc import abstractmethod, ABC
-from typing import Any, TypeVar, Type
-from issue_solver.events.domain import AnyDomainEvent
-
-T = TypeVar("T", bound=AnyDomainEvent)
+from typing import Any, Type
+from issue_solver.events.domain import AnyDomainEvent, T
 
 
 class EventStore(ABC):

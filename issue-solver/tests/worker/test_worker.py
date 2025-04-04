@@ -1,8 +1,9 @@
+import tempfile
+
 from issue_solver.worker.vector_store_helper import (
     path_from_repo_root,
     prepare_file_path_to_upload,
 )
-import tempfile
 
 
 def test_path_from_repo_root():

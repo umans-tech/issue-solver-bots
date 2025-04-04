@@ -2,8 +2,8 @@ import json
 import uuid
 from typing import Any, Type
 
-from issue_solver.events.domain import AnyDomainEvent
-from issue_solver.events.event_store import EventStore, T
+from issue_solver.events.domain import AnyDomainEvent, T
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import (
     deserialize,
     get_record_type,

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Sequence, TypeVar
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -49,3 +49,35 @@ class RepositoryIndexationRequested(DomainEvent):
 AnyDomainEvent = (
     CodeRepositoryConnected | CodeRepositoryIndexed | RepositoryIndexationRequested
 )
+
+T = TypeVar("T", bound=AnyDomainEvent)
+
+
+def most_recent_event(
+    domain_events: Sequence[DomainEvent], event_to_find: type[T]
+) -> T | None:
+    events_of_type = all_events_of_type(domain_events, event_to_find)
+    if not events_of_type:
+        return None
+    return max(events_of_type, key=lambda e: e.occurred_at)
+
+
+def first_event_of_type(
+    domain_events: Sequence[DomainEvent], event_to_find: type[T]
+) -> T | None:
+    for event in domain_events:
+        if isinstance(event, event_to_find):
+            return event
+    return None
+
+
+def all_events_of_type(
+    domain_events: Sequence[DomainEvent], event_to_find: type[T]
+) -> list[T]:
+    events_to_find: list[T] = []
+
+    for event in domain_events:
+        if isinstance(event, event_to_find):
+            events_to_find.append(event)
+
+    return events_to_find
