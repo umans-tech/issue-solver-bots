@@ -6,13 +6,13 @@ import type { Session } from 'next-auth';
  * Hook to poll the process status at regular intervals
  * @param processId The ID of the process to poll
  * @param initialStatus The initial status of the process
- * @param pollInterval The interval in milliseconds between polls (default: 20000ms = 20s)
+ * @param pollInterval The interval in milliseconds between polls (default: 10000ms = 10s)
  * @returns The current status of the process
  */
 export function useProcessStatus(
   processId: string | null | undefined,
   initialStatus: 'none' | 'indexing' | 'indexed' = 'none',
-  pollInterval: number = 20000
+  pollInterval: number = 10000
 ) {
   const { data: session, update } = useSession();
   const [status, setStatus] = useState<'none' | 'indexing' | 'indexed'>(initialStatus);
