@@ -260,6 +260,8 @@ def search_file_id_with_retry(client, knowledge_base_id, relative_file_path):
         ),
         max_num_results=1,
     )
+    if len(results.data) == 0:
+        return None
     file_id = results.data[0].file_id
     return file_id
 
@@ -272,6 +274,13 @@ def get_file_id_from_path(client, knowledge_base_id, file_path):
             client, knowledge_base_id, relative_file_path
         )
         logger.info(f"File {relative_file_path} found in vector store")
+        if file_id is None:
+            return {
+                "file": relative_file_path,
+                "file_id": None,
+                "status": "skipped",
+                "reason": "File not found in vector store",
+            }
         return {
             "file": relative_file_path,
             "file_id": file_id,
@@ -295,6 +304,7 @@ def get_obsolete_files_ids(
         "successful_search": 0,
         "failed_search": 0,
         "errors": [],
+        "skipped_files": 0,
     }
     file_ids_path = []
 
@@ -313,6 +323,8 @@ def get_obsolete_files_ids(
             elif result["status"] == "failed":
                 stats["failed_search"] += 1
                 stats["errors"].append(result)
+            elif result["status"] == "skipped":
+                stats["skipped_files"] += 1
     return ObsoleteFilesStats(stats=stats, file_ids_path=file_ids_path)
 
 
