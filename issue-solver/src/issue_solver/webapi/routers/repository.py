@@ -78,20 +78,20 @@ async def index_new_changes(
 ) -> dict[str, str]:
     """Index new changes in the code repository."""
     logger.info(f"Indexing new changes for knowledge base ID: {knowledge_base_id}")
-    
+
     # Find the repository connection with the given knowledge_base_id
     repository_connections = await event_store.find(
         {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
     )
-    
+
     # Check if any repository was found
     if not repository_connections:
         logger.error(f"No repository found with knowledge base ID: {knowledge_base_id}")
         raise HTTPException(
             status_code=404,
-            detail=f"No repository found with knowledge base ID: {knowledge_base_id}"
+            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
         )
-    
+
     event = RepositoryIndexationRequested(
         occurred_at=clock.now(),
         knowledge_base_id=knowledge_base_id,
