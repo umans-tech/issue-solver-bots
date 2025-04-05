@@ -15,6 +15,7 @@ from issue_solver.worker.vector_store_helper import (
     upload_repository_files_to_vector_store,
     unindex_obsolete_files,
     index_new_files,
+    get_obsolete_files_ids,
 )
 from openai import OpenAI
 
@@ -120,15 +121,21 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
     logger.info(f"Indexing files: {files_to_index}")
 
     client = OpenAI()
-    unindexed_files_stats = unindex_obsolete_files(
+
+    obsolete_files = get_obsolete_files_ids(
         files_to_index.get_paths_of_all_obsolete_files(), client, knowledge_base_id
     )
-    logger.info(f"Vector store unindexing stats: {json.dumps(unindexed_files_stats)}")
+    logger.info(f"Obsolete files stats: {json.dumps(obsolete_files.stats)}")
 
     new_indexed_files_stats = index_new_files(
         files_to_index.get_paths_of_all_new_files(), client, knowledge_base_id
     )
     logger.info(f"Vector store upload stats: {json.dumps(new_indexed_files_stats)}")
+
+    unindexed_files_stats = unindex_obsolete_files(
+        obsolete_files.file_ids_path, client, knowledge_base_id
+    )
+    logger.info(f"Vector store unindexing stats: {json.dumps(unindexed_files_stats)}")
 
     await event_store.append(
         process_id,
