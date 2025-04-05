@@ -300,7 +300,7 @@ def get_obsolete_files_ids(
     path_of_obsolete_files: list[str], client, knowledge_base_id
 ) -> ObsoleteFilesStats:
     stats: dict[str, Any] = {
-        "total_obsolete_files": 0,
+        "total_obsolete_files": len(path_of_obsolete_files),
         "successful_search": 0,
         "failed_search": 0,
         "errors": [],
