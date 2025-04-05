@@ -1,0 +1,28 @@
+[run]
+source = issue_solver
+omit =
+    # Omit __pycache__ directories
+    */__pycache__/*
+    # Omit __init__.py files which typically don't need tests
+    */__init__.py
+    # Omit test files
+    */tests/*
+    # Omit alembic migrations
+    */migrations/*
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Skip any pragma comments
+    pragma: no cover
+    # Skip abstract methods
+    @abc.abstractmethod
+    # Skip defensive assertion code
+    raise NotImplementedError
+    # Skip type checking blocks
+    if TYPE_CHECKING:
+    # Skip main execution block
+    if __name__ == .__main__.:
+
+[html]
+directory = coverage_html_report 
