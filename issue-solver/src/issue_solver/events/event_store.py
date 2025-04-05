@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
-
-from issue_solver.events.domain import AnyDomainEvent
+from typing import Any, Type
+from issue_solver.events.domain import AnyDomainEvent, T
 
 
 class EventStore(ABC):
@@ -10,6 +10,10 @@ class EventStore(ABC):
 
     @abstractmethod
     async def get(self, process_id: str) -> list[AnyDomainEvent]:
+        pass
+
+    @abstractmethod
+    async def find(self, criteria: dict[str, Any], event_type: Type[T]) -> list[T]:
         pass
 
 

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon } from '@/components/icons';
+import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon, RedoIcon, ClockRewind } from '@/components/icons';
 import {
   Sheet,
   SheetContent,
@@ -15,6 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useProcessStatus } from '@/hooks/use-process-status';
 
 // Simple clock icon component
 const ClockIcon = ({ size = 16 }: { size?: number }) => (
@@ -91,23 +92,50 @@ export function RepoConnectionDialog({
   const [showToken, setShowToken] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPrefilled, setIsPrefilled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [repoDetails, setRepoDetails] = useState<RepositoryDetails | null>(null);
+  
+  // Get the process id from session
+  const processId = session?.user?.selectedSpace?.processId;
+  
+  // Use the same hook that the chat header uses to get live status updates
+  const liveProcessStatus = useProcessStatus(processId);
 
-  // Fetch repository details when the dialog opens
+  // Fetch repository details when the dialog opens or session changes
   useEffect(() => {
-    if (open && session?.user?.selectedSpace?.processId) {
+    if (open && processId) {
       fetchRepositoryDetails();
     } else if (!open) {
       // Reset editing state when dialog closes
       setIsEditing(false);
     }
-  }, [open, session?.user?.selectedSpace?.processId]);
+  }, [open, processId]);
+
+  // Update local status when process status changes
+  useEffect(() => {
+    if (open && repoDetails && liveProcessStatus) {
+      // Only update if status actually changed
+      if (liveProcessStatus !== repoDetails.status) {
+        console.log(`Status updated from process hook: ${repoDetails.status} -> ${liveProcessStatus}`);
+        
+        setRepoDetails(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            status: liveProcessStatus
+          };
+        });
+      }
+    }
+  }, [open, repoDetails, liveProcessStatus]);
 
   // Function to fetch repository details
   const fetchRepositoryDetails = async () => {
+    if (!processId) return;
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -124,6 +152,7 @@ export function RepoConnectionDialog({
         setIsPrefilled(true);
         // Start in non-editing mode
         setIsEditing(false);
+        
         // Save comprehensive repo details for display
         setRepoDetails({
           url: data.url,
@@ -165,6 +194,57 @@ export function RepoConnectionDialog({
     return date.toLocaleString();
   };
 
+  // Function to sync repository
+  const handleSyncRepository = async () => {
+    if (!repoDetails?.knowledge_base_id) {
+      toast.error('No repository to sync');
+      return;
+    }
+
+    try {
+      setIsSyncing(true);
+      setError(null);
+      
+      const response = await fetch('/api/repo/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to sync repository');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Set a temporary visual feedback by updating the status locally
+        setRepoDetails(prev => prev ? {
+          ...prev,
+          status: 'indexing'
+        } : null);
+        
+        // First, close the dialog with proper animation
+        onOpenChange(false);
+        
+        // After the dialog closes and a small delay, reload the page
+        // This ensures both proper dialog animation and fresh data on reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 300); // Give dialog time to animate out
+      } else {
+        throw new Error(data.message || 'Failed to sync repository');
+      }
+    } catch (err) {
+      console.error('Error syncing repository:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to sync repository');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const renderConnectedRepoInfo = () => {
     if (!repoDetails) return null;
     
@@ -186,11 +266,27 @@ export function RepoConnectionDialog({
         
         <div className="flex flex-col gap-1 border-b pb-3">
           <div className="font-semibold">Indexation Status</div>
-          <div className="flex items-center gap-2">
-            <StatusIcon status={repoDetails.status} />
-            <span className="capitalize">
-              {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StatusIcon status={repoDetails.status} />
+              <span className="capitalize">
+                {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
+              </span>
+            </div>
+            
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 px-3 flex items-center gap-1"
+              onClick={handleSyncRepository}
+              disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected'}
+            >
+              <div className={isSyncing ? 'animate-spin' : ''}>
+                <ClockRewind size={14} />
+              </div>
+              <span>Sync Latest</span>
+            </Button>
           </div>
         </div>
         

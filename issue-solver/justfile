@@ -7,10 +7,15 @@ alias f := format
 alias s := start-services
 alias d := dev
 alias w := worker-start
+alias tc := test-cov
 
 # ✅ Run all tests
 test:
     uv run pytest
+
+# 📊 Run tests with coverage report
+test-cov:
+    uv run pytest --cov=issue_solver --cov-report=term --cov-report=html
 
 # 🧹 Lint the code
 lint:

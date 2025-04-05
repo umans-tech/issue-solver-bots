@@ -10,14 +10,14 @@ from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.clock import Clock, UTCSystemClock
 from issue_solver.database.postgres_event_store import PostgresEventStore
-from issue_solver.events.event_store import InMemoryEventStore, EventStore
+from issue_solver.events.event_store import EventStore
 from issue_solver.logging_config import default_logging_config
 from issue_solver.webapi.payloads import ResolutionSettings
 
 logger = default_logging_config.get_logger("issue_solver.webapi.dependencies")
 
 
-def get_event_store(request: Request) -> InMemoryEventStore:
+def get_event_store(request: Request) -> EventStore:
     return request.app.state.event_store
 
 
@@ -46,7 +46,6 @@ def get_clock() -> Clock:
 async def init_event_store() -> EventStore:
     return PostgresEventStore(
         connection=await asyncpg.connect(
-            os.environ["DATABASE_URL"].replace("+asyncpg", ""),
-            statement_cache_size=0
+            os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
         )
     )

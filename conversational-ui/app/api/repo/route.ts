@@ -60,9 +60,19 @@ export async function GET(request: Request) {
     const repoEvent = data.events?.find((event: { type: string }) => 
       event.type?.toLowerCase() === 'repository_connected');
 
-    // Find the repository_indexed event if available
-    const indexedEvent = data.events?.find((event: { type: string }) => 
-      event.type?.toLowerCase() === 'repository_indexed');
+    // Find latest (by occurred_at) indexation requested event if available
+    const latestIndexationRequestedEvent = data.events
+      ?.filter((event: { type: string; occurred_at: string }) => 
+        event.type?.toLowerCase() === 'repository_indexation_requested')
+      .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
+        new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
+
+    // Find latest (by occurred_at) repository_indexed event if available
+    const latestRepositoryIndexedEvent = data.events
+      ?.filter((event: { type: string; occurred_at: string }) => 
+        event.type?.toLowerCase() === 'repository_indexed')
+      .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
+        new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
       
     if (!repoEvent) {
       return NextResponse.json(
@@ -71,6 +81,10 @@ export async function GET(request: Request) {
       );
     }
     
+    // Determine the indexing start time: use the latest indexation requested event if available,
+    // otherwise use the repository connected event
+    const indexingStartTime = latestIndexationRequestedEvent?.occurred_at || repoEvent.occurred_at;
+    
     // Return the repository URL and other details (but mask the access token)
     return NextResponse.json({
       connected: true,
@@ -78,12 +92,12 @@ export async function GET(request: Request) {
       status: data.status || 'unknown',
       knowledge_base_id: repoEvent.knowledge_base_id,
       process_id: processId,
-      // Add Git information if available
-      branch: indexedEvent?.branch,
-      commit_sha: indexedEvent?.commit_sha,
-      // Add indexation timestamps if available
-      indexing_started: repoEvent?.occurred_at,
-      indexing_completed: indexedEvent?.occurred_at
+      // Add Git information if available from the latest repository indexed event
+      branch: latestRepositoryIndexedEvent?.branch,
+      commit_sha: latestRepositoryIndexedEvent?.commit_sha,
+      // Add indexation timestamps
+      indexing_started: indexingStartTime,
+      indexing_completed: latestRepositoryIndexedEvent?.occurred_at
     });
   } catch (error) {
     console.error('Error retrieving repository details:', error);

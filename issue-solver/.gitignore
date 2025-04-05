@@ -1,3 +1,7 @@
 packages
 package.zip
 requirements.txt
+.coverage
+htmlcov/
+coverage_html_report/
+coverage.xml
