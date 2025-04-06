@@ -34,18 +34,9 @@ class TestRepositoryRouterErrorHandling:
         store.append = AsyncMock()
         return store
 
-    @pytest.fixture
-    def openai_client_mock(self):
-        """Create a mock OpenAI client for testing."""
-        client = Mock()
-        client.vector_stores.create.return_value = Mock(id="test-vector-store-id")
-        return client
-
     @pytest.mark.asyncio
-    @patch("issue_solver.webapi.routers.repository.OpenAI")
     async def test_connect_repository_authentication_error(
         self,
-        mock_openai,
         mock_validation_service,
         connect_repository_request,
         event_store,
@@ -60,7 +51,6 @@ class TestRepositoryRouterErrorHandling:
             )
         )
 
-        mock_openai.return_value = Mock()
         mock_clock = Mock(now=lambda: "2023-01-01T00:00:00Z")
         mock_logger = Mock()
 
@@ -87,14 +77,10 @@ class TestRepositoryRouterErrorHandling:
 
         # Verify no events were appended (error happened before that)
         event_store.append.assert_not_called()
-        # Verify OpenAI client was not created (error happened before that)
-        mock_openai.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("issue_solver.webapi.routers.repository.OpenAI")
     async def test_connect_repository_not_found_error(
         self,
-        mock_openai,
         mock_validation_service,
         connect_repository_request,
         event_store,
@@ -109,7 +95,6 @@ class TestRepositoryRouterErrorHandling:
             )
         )
 
-        mock_openai.return_value = Mock()
         mock_clock = Mock(now=lambda: "2023-01-01T00:00:00Z")
         mock_logger = Mock()
 
@@ -129,9 +114,8 @@ class TestRepositoryRouterErrorHandling:
 
     # Integration test with the FastAPI app
     @patch("issue_solver.webapi.dependencies.get_validation_service")
-    @patch("issue_solver.webapi.routers.repository.OpenAI")
     def test_connect_repository_endpoint_validation_error(
-        self, mock_openai, mock_get_validation_service, connect_repository_request
+        self, mock_get_validation_service, connect_repository_request
     ):
         """Integration test for the repository connection endpoint with validation error."""
         # Given
