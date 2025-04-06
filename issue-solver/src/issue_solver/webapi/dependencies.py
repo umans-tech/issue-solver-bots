@@ -66,17 +66,15 @@ def get_noop_git_validation_service() -> GitValidationService:
 
 def get_validation_service() -> GitValidationService:
     """
-    Returns the appropriate Git validation service based on the environment.
+    Returns the Git validation service for production.
 
-    In testing environments (TESTING=true), returns the NoopGitValidationService.
-    In production environments, returns the DefaultGitValidationService.
+    By default, this returns the DefaultGitValidationService which performs
+    real validation of Git repositories. For testing environments,
+    this function should be overridden using dependency injection
+    with a NoopGitValidationService.
     """
-    if os.environ.get("TESTING", "").lower() == "true":
-        logger.debug("Using NoopGitValidationService for testing environment")
-        return get_noop_git_validation_service()
-    else:
-        logger.debug("Using DefaultGitValidationService for production environment")
-        return get_git_validation_service()
+    logger.debug("Using DefaultGitValidationService for production environment")
+    return get_git_validation_service()
 
 
 async def init_event_store() -> EventStore:

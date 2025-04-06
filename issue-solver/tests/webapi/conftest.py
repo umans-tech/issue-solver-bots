@@ -20,7 +20,6 @@ from tests.controllable_clock import ControllableClock
 from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 
 # Set testing environment variable to enable test-friendly behavior
-os.environ["TESTING"] = "true"
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
@@ -28,6 +27,9 @@ DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
 
 # Create a function to get a NoopGitValidationService for tests
 def get_test_validation_service():
+    """Returns a NoopGitValidationService for tests.
+    This service doesn't perform actual Git validation and always succeeds,
+    allowing tests to run without real Git repositories."""
     return NoopGitValidationService()
 
 
@@ -166,11 +168,12 @@ def time_under_control() -> ControllableClock:
 def api_client(
     aws_credentials, sqs_queue, mock_openai, time_under_control, run_migrations
 ) -> Generator[TestClient, Any, None]:
-    """Create and return a FastAPI TestClient."""
+    """Create and return a FastAPI TestClient with proper test dependencies."""
     # Override clock dependency
     app.dependency_overrides[get_clock] = lambda: time_under_control
 
-    # Override git validation service dependency - always use NoopGitValidationService for tests
+    # Override git validation service dependency - directly use NoopGitValidationService
+    # instead of relying on environment variables
     app.dependency_overrides[get_validation_service] = get_test_validation_service
 
     with TestClient(app) as client:
