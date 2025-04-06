@@ -57,7 +57,10 @@ class RepositoryIndexationRequested(DomainEvent):
 
 
 AnyDomainEvent = (
-    CodeRepositoryConnected | CodeRepositoryConnectionFailed | CodeRepositoryIndexed | RepositoryIndexationRequested
+    CodeRepositoryConnected
+    | CodeRepositoryConnectionFailed
+    | CodeRepositoryIndexed
+    | RepositoryIndexationRequested
 )
 
 T = TypeVar("T", bound=AnyDomainEvent)
