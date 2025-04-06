@@ -1,10 +1,12 @@
 import json
 import logging
 from pathlib import Path
+import git.exc
 
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
+    CodeRepositoryConnectionFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
     most_recent_event,
@@ -53,33 +55,88 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
         f"Processing repository: {url} for user: {user_id}, process: {process_id}"
     )
     to_path = Path(f"/tmp/repo/{process_id}")
-    code_version = GitHelper.of(
-        GitSettings(repository_url=url, access_token=access_token)
-    ).clone_repository(to_path)
-    logger.info(f"Successfully cloned repository: {url}")
-    # Upload repository files to vector store if knowledge_base_id is provided
-    if knowledge_base_id:
-        logger.info(f"Uploading repository files to vector store: {knowledge_base_id}")
-        client = OpenAI()
-        stats = upload_repository_files_to_vector_store(
-            repo_path=to_path, vector_store_id=knowledge_base_id, client=client
-        )
-        logger.info(f"Vector store upload stats: {json.dumps(stats)}")
+    
+    try:
+        code_version = GitHelper.of(
+            GitSettings(repository_url=url, access_token=access_token)
+        ).clone_repository(to_path)
+        logger.info(f"Successfully cloned repository: {url}")
+        
+        # Upload repository files to vector store if knowledge_base_id is provided
+        if knowledge_base_id:
+            logger.info(f"Uploading repository files to vector store: {knowledge_base_id}")
+            client = OpenAI()
+            stats = upload_repository_files_to_vector_store(
+                repo_path=to_path, vector_store_id=knowledge_base_id, client=client
+            )
+            logger.info(f"Vector store upload stats: {json.dumps(stats)}")
+            event_store = await init_event_store()
+            await event_store.append(
+                process_id,
+                CodeRepositoryIndexed(
+                    branch=code_version.branch,
+                    commit_sha=code_version.commit_sha,
+                    stats=stats,
+                    knowledge_base_id=knowledge_base_id,
+                    process_id=process_id,
+                    occurred_at=get_clock().now(),
+                ),
+            )
+        else:
+            logger.warning("No knowledge_base_id provided, skipping vector store upload")
+        logger.info(f"Successfully processed repository: {url}")
+    
+    except git.exc.GitCommandError as e:
+        logger.error(f"Git command error: {str(e)}")
+        
+        # Determine error type
+        error_type = "unknown"
+        error_message = str(e)
+        
+        # Check for common error patterns in the error message
+        if "Authentication failed" in error_message or "401" in error_message:
+            error_type = "authentication_failed"
+            error_message = "Authentication failed. Please check your access token."
+        elif "not found" in error_message or "404" in error_message:
+            error_type = "repository_not_found"
+            error_message = "Repository not found. Please check the URL."
+        elif "could not resolve host" in error_message or "unable to access" in error_message:
+            error_type = "repository_unavailable"
+            error_message = "Could not access the repository. Please check the URL and your internet connection."
+        elif "Permission denied" in error_message or "403" in error_message:
+            error_type = "permission_denied"
+            error_message = "Permission denied. Check your access rights to this repository."
+        
+        # Record the failure event
         event_store = await init_event_store()
         await event_store.append(
             process_id,
-            CodeRepositoryIndexed(
-                branch=code_version.branch,
-                commit_sha=code_version.commit_sha,
-                stats=stats,
+            CodeRepositoryConnectionFailed(
+                url=url,
+                error_type=error_type,
+                error_message=error_message,
                 knowledge_base_id=knowledge_base_id,
                 process_id=process_id,
                 occurred_at=get_clock().now(),
             ),
         )
-    else:
-        logger.warning("No knowledge_base_id provided, skipping vector store upload")
-    logger.info(f"Successfully processed repository: {url}")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error processing repository: {str(e)}")
+        
+        # Record the failure event with a generic error
+        event_store = await init_event_store()
+        await event_store.append(
+            process_id,
+            CodeRepositoryConnectionFailed(
+                url=url,
+                error_type="unexpected_error",
+                error_message=f"An unexpected error occurred: {str(e)}",
+                knowledge_base_id=knowledge_base_id,
+                process_id=process_id,
+                occurred_at=get_clock().now(),
+            ),
+        )
 
 
 async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> None:
@@ -99,55 +156,107 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
     last_indexed_commit_sha = last_indexed_event.commit_sha
     access_token = code_repository_connected.access_token
     url = code_repository_connected.url
-    git_helper = GitHelper.of(
-        GitSettings(repository_url=url, access_token=access_token)
-    )
-    to_path = Path(f"/tmp/repo/{process_id}")
-    if not to_path.exists():
-        logger.info("Cloning repository")
-        code_version = git_helper.clone_repository(to_path, depth=None)
-    else:
-        logger.info("Pulling repository")
-        code_version = git_helper.pull_repository(to_path)
+    
+    try:
+        git_helper = GitHelper.of(
+            GitSettings(repository_url=url, access_token=access_token)
+        )
+        to_path = Path(f"/tmp/repo/{process_id}")
+        if not to_path.exists():
+            logger.info("Cloning repository")
+            code_version = git_helper.clone_repository(to_path, depth=None)
+        else:
+            logger.info("Pulling repository")
+            code_version = git_helper.pull_repository(to_path)
 
-    files_to_index = git_helper.get_changed_files_commit(
-        to_path, last_indexed_commit_sha
-    )
+        files_to_index = git_helper.get_changed_files_commit(
+            to_path, last_indexed_commit_sha
+        )
 
-    if not files_to_index:
-        logger.info("No new commits found, skipping indexation")
-        return
-    logger.info(f"Indexing commit: {last_indexed_commit_sha}")
-    logger.info(f"Indexing files: {files_to_index}")
+        if not files_to_index:
+            logger.info("No new commits found, skipping indexation")
+            return
+        logger.info(f"Indexing commit: {last_indexed_commit_sha}")
+        logger.info(f"Indexing files: {files_to_index}")
 
-    client = OpenAI()
+        client = OpenAI()
 
-    obsolete_files = get_obsolete_files_ids(
-        files_to_index.get_paths_of_all_obsolete_files(), client, knowledge_base_id
-    )
-    logger.info(f"Obsolete files stats: {json.dumps(obsolete_files.stats)}")
+        obsolete_files = get_obsolete_files_ids(
+            files_to_index.get_paths_of_all_obsolete_files(), client, knowledge_base_id
+        )
+        logger.info(f"Obsolete files stats: {json.dumps(obsolete_files.stats)}")
 
-    new_indexed_files_stats = index_new_files(
-        files_to_index.get_paths_of_all_new_files(), client, knowledge_base_id
-    )
-    logger.info(f"Vector store upload stats: {json.dumps(new_indexed_files_stats)}")
+        new_indexed_files_stats = index_new_files(
+            files_to_index.get_paths_of_all_new_files(), client, knowledge_base_id
+        )
+        logger.info(f"Vector store upload stats: {json.dumps(new_indexed_files_stats)}")
 
-    unindexed_files_stats = unindex_obsolete_files(
-        obsolete_files.file_ids_path, client, knowledge_base_id
-    )
-    logger.info(f"Vector store unindexing stats: {json.dumps(unindexed_files_stats)}")
+        unindexed_files_stats = unindex_obsolete_files(
+            obsolete_files.file_ids_path, client, knowledge_base_id
+        )
+        logger.info(f"Vector store unindexing stats: {json.dumps(unindexed_files_stats)}")
 
-    await event_store.append(
-        process_id,
-        CodeRepositoryIndexed(
-            branch=code_version.branch,
-            commit_sha=code_version.commit_sha,
-            stats={
-                "unindexed_files": unindexed_files_stats,
-                "new_indexed_files": new_indexed_files_stats,
-            },
-            knowledge_base_id=knowledge_base_id,
-            process_id=process_id,
-            occurred_at=get_clock().now(),
-        ),
-    )
+        await event_store.append(
+            process_id,
+            CodeRepositoryIndexed(
+                branch=code_version.branch,
+                commit_sha=code_version.commit_sha,
+                stats={
+                    "unindexed_files": unindexed_files_stats,
+                    "new_indexed_files": new_indexed_files_stats,
+                },
+                knowledge_base_id=knowledge_base_id,
+                process_id=process_id,
+                occurred_at=get_clock().now(),
+            ),
+        )
+    
+    except git.exc.GitCommandError as e:
+        logger.error(f"Git command error during reindexing: {str(e)}")
+        
+        # Determine error type
+        error_type = "unknown"
+        error_message = str(e)
+        
+        # Check for common error patterns in the error message
+        if "Authentication failed" in error_message or "401" in error_message:
+            error_type = "authentication_failed"
+            error_message = "Authentication failed. Please check your access token."
+        elif "not found" in error_message or "404" in error_message:
+            error_type = "repository_not_found"
+            error_message = "Repository not found. Please check the URL."
+        elif "could not resolve host" in error_message or "unable to access" in error_message:
+            error_type = "repository_unavailable"
+            error_message = "Could not access the repository. Please check the URL and your internet connection."
+        elif "Permission denied" in error_message or "403" in error_message:
+            error_type = "permission_denied"
+            error_message = "Permission denied. Check your access rights to this repository."
+        
+        # Record the failure event
+        await event_store.append(
+            process_id,
+            CodeRepositoryConnectionFailed(
+                url=url,
+                error_type=error_type,
+                error_message=error_message,
+                knowledge_base_id=knowledge_base_id,
+                process_id=process_id,
+                occurred_at=get_clock().now(),
+            ),
+        )
+    
+    except Exception as e:
+        logger.error(f"Unexpected error during reindexing: {str(e)}")
+        
+        # Record the failure event with a generic error
+        await event_store.append(
+            process_id,
+            CodeRepositoryConnectionFailed(
+                url=url,
+                error_type="unexpected_error",
+                error_message=f"An unexpected error occurred during reindexing: {str(e)}",
+                knowledge_base_id=knowledge_base_id,
+                process_id=process_id,
+                occurred_at=get_clock().now(),
+            ),
+        )

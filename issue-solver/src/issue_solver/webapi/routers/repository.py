@@ -2,8 +2,11 @@ import logging
 import os
 import uuid
 from typing import Annotated
+from pathlib import Path
+import tempfile
 
 import boto3
+import git.exc
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, HTTPException, Depends
 from openai import OpenAI
@@ -16,10 +19,78 @@ from issue_solver.events.domain import (
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import serialize
+from issue_solver.git_operations.git_helper import GitHelper, GitSettings
 from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
+
+
+async def validate_repository_access(url: str, access_token: str, logger: logging.Logger) -> None:
+    """
+    Validate that the repository can be accessed with the provided URL and token.
+    
+    Args:
+        url: Repository URL
+        access_token: Access token for the repository
+        logger: Logger instance
+        
+    Raises:
+        HTTPException: If the repository cannot be accessed
+    """
+    logger.info(f"Validating repository access: {url}")
+    
+    # Create a temporary directory for validation
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        try:
+            # Try a minimal git operation to validate access
+            git_helper = GitHelper.of(
+                GitSettings(repository_url=url, access_token=access_token)
+            )
+            
+            # Use git ls-remote which doesn't clone the repo but checks access
+            repo = git.cmd.Git()
+            auth_url = git_helper._inject_access_token(url)
+            repo.execute(['git', 'ls-remote', '--quiet', auth_url])
+            
+            logger.info(f"Successfully validated repository access: {url}")
+        except git.exc.GitCommandError as e:
+            logger.error(f"Git command error: {str(e)}")
+            
+            # Determine error type based on error message
+            error_message = str(e)
+            if "Authentication failed" in error_message or "401" in error_message:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication failed. Please check your access token."
+                )
+            elif "not found" in error_message or "404" in error_message:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Repository not found. Please check the URL."
+                )
+            elif "could not resolve host" in error_message or "unable to access" in error_message:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Could not access the repository. Please check the URL and your internet connection."
+                )
+            elif "Permission denied" in error_message or "403" in error_message:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Permission denied. Check your access rights to this repository."
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to access repository: {error_message}"
+                )
+        except Exception as e:
+            logger.error(f"Unexpected error validating repository: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unexpected error validating repository: {str(e)}"
+            )
 
 
 @router.post("/", status_code=201)
@@ -33,6 +104,13 @@ async def connect_repository(
     clock: Annotated[Clock, Depends(get_clock)],
 ) -> dict[str, str]:
     """Connect to a code repository."""
+    # Validate repository access before proceeding
+    await validate_repository_access(
+        connect_repository_request.url, 
+        connect_repository_request.access_token,
+        logger
+    )
+    
     process_id = str(uuid.uuid4())
     logger.info(f"Creating new repository connection with process ID: {process_id}")
 

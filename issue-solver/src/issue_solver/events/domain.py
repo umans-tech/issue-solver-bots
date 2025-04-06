@@ -29,6 +29,16 @@ class CodeRepositoryConnected(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class CodeRepositoryConnectionFailed(DomainEvent):
+    url: str
+    error_type: str
+    error_message: str
+    knowledge_base_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class CodeRepositoryIndexed(DomainEvent):
     branch: str
     commit_sha: str
@@ -47,7 +57,7 @@ class RepositoryIndexationRequested(DomainEvent):
 
 
 AnyDomainEvent = (
-    CodeRepositoryConnected | CodeRepositoryIndexed | RepositoryIndexationRequested
+    CodeRepositoryConnected | CodeRepositoryConnectionFailed | CodeRepositoryIndexed | RepositoryIndexationRequested
 )
 
 T = TypeVar("T", bound=AnyDomainEvent)

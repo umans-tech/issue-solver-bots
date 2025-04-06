@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon, RedoIcon, ClockRewind } from '@/components/icons';
+import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon, RedoIcon, ClockRewind, AlertCircle } from '@/components/icons';
 import {
   Sheet,
   SheetContent,
@@ -80,6 +80,9 @@ interface RepositoryDetails {
   commit_sha?: string;
   indexing_started?: string;
   indexing_completed?: string;
+  error?: boolean;
+  errorType?: string;
+  errorMessage?: string;
 }
 
 export function RepoConnectionDialog({
@@ -143,7 +146,23 @@ export function RepoConnectionDialog({
       const response = await fetch('/api/repo');
       const data = await response.json();
       
-      if (response.ok && data.connected && data.url) {
+      // Check if we received an error response
+      if (response.ok && data.error === true) {
+        console.log(`Repository connection failed: ${data.errorMessage}`);
+        setIsPrefilled(true);
+        setIsEditing(false);
+        
+        // Save error details
+        setRepoDetails({
+          url: data.url || '',
+          status: 'failed',
+          knowledge_base_id: data.knowledge_base_id || '',
+          process_id: data.process_id || processId,
+          error: true,
+          errorType: data.errorType,
+          errorMessage: data.errorMessage
+        });
+      } else if (response.ok && data.connected && data.url) {
         // Prefill the form with the repository URL
         setRepoUrl(data.url);
         // Set placeholder stars for the access token
@@ -255,6 +274,49 @@ export function RepoConnectionDialog({
       }
     };
     
+    // If we have an error, show an error message instead of repository details
+    if (repoDetails.error) {
+      return (
+        <div className="space-y-4 py-4 text-sm">
+          <div className="flex flex-col gap-1 border-b pb-3">
+            <div className="font-semibold">Repository Connection Failed</div>
+            <div className="flex items-center gap-2 text-muted-foreground break-all">
+              <span>{repoDetails.url}</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1 pb-3">
+            <div className="font-semibold">Error Details</div>
+            <div className="flex items-center text-red-500 gap-2">
+              <AlertCircle size={16} />
+              <span>{repoDetails.errorMessage || 'Unknown error occurred'}</span>
+            </div>
+            <div className="text-muted-foreground text-xs mt-2">
+              {repoDetails.errorType === 'authentication_failed' && (
+                <p>Please check your access token and make sure it has the necessary permissions to access this repository.</p>
+              )}
+              {repoDetails.errorType === 'repository_not_found' && (
+                <p>The repository URL could not be found. Please verify that the URL is correct.</p>
+              )}
+              {repoDetails.errorType === 'repository_unavailable' && (
+                <p>Could not connect to the repository. Please check your internet connection and try again.</p>
+              )}
+              {repoDetails.errorType === 'permission_denied' && (
+                <p>You don't have permission to access this repository. Please check your access rights.</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1 border-t pt-3">
+            <div className="font-semibold">Recommendation</div>
+            <div className="text-muted-foreground">
+              <p>Click "Change Repository" below to edit your repository connection settings.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="space-y-4 py-4 text-sm">
         <div className="flex flex-col gap-1 border-b pb-3">
@@ -280,7 +342,7 @@ export function RepoConnectionDialog({
               variant="outline"
               className="h-8 px-3 flex items-center gap-1"
               onClick={handleSyncRepository}
-              disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected'}
+              disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected' || repoDetails.status === 'failed'}
             >
               <div className={isSyncing ? 'animate-spin' : ''}>
                 <ClockRewind size={14} />
@@ -377,6 +439,15 @@ export function RepoConnectionDialog({
       const data = await response.json();
       
       if (!response.ok) {
+        // Check if we have detailed error information
+        if (data.errorType && data.errorMessage) {
+          // Create error object with type information
+          const errorObj = new Error(data.errorMessage);
+          // @ts-ignore - add custom properties
+          errorObj.type = data.errorType;
+          throw errorObj;
+        }
+        
         throw new Error(data.error || 'Failed to connect repository');
       }
       
@@ -436,7 +507,29 @@ export function RepoConnectionDialog({
       onOpenChange(false);
     } catch (err) {
       console.error("Error in repository connection:", err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      
+      // Check if we have a typed error from our API
+      // @ts-ignore - check for custom properties
+      if (err instanceof Error && err.type) {
+        setRepoDetails({
+          // @ts-ignore - we know these properties exist
+          url: repoUrl,
+          status: 'failed',
+          knowledge_base_id: '',
+          process_id: '',
+          error: true,
+          // @ts-ignore - we know these properties exist
+          errorType: err.type,
+          errorMessage: err.message
+        });
+        
+        // Show the error in the error UI section rather than edit mode
+        setIsPrefilled(true);
+        setIsEditing(false);
+      } else {
+        // Standard error handling for other error types
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setIsSubmitting(false);
     }

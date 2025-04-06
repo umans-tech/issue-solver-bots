@@ -4,6 +4,7 @@ from typing import Any, Literal, Self, Type, assert_never
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
+    CodeRepositoryConnectionFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
     T,
@@ -15,6 +16,8 @@ def get_record_type(event_type: Type[T]) -> str:
     match event_type:
         case type() if event_type is CodeRepositoryConnected:
             return "repository_connected"
+        case type() if event_type is CodeRepositoryConnectionFailed:
+            return "repository_connection_failed"
         case type() if event_type is CodeRepositoryIndexed:
             return "repository_indexed"
         case type() if event_type is RepositoryIndexationRequested:
@@ -55,6 +58,40 @@ class CodeRepositoryConnectedRecord(BaseModel):
             access_token=event.access_token,
             user_id=event.user_id,
             space_id=event.space_id,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+        )
+
+
+class CodeRepositoryConnectionFailedRecord(BaseModel):
+    type: Literal["repository_connection_failed"] = "repository_connection_failed"
+    occurred_at: datetime
+    url: str
+    error_type: str
+    error_message: str
+    knowledge_base_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodeRepositoryConnectionFailed:
+        return CodeRepositoryConnectionFailed(
+            occurred_at=self.occurred_at,
+            url=self.url,
+            error_type=self.error_type,
+            error_message=self.error_message,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodeRepositoryConnectionFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            url=event.url,
+            error_type=event.error_type,
+            error_message=event.error_message,
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
         )
@@ -124,6 +161,7 @@ class RepositoryIndexationRequestedRecord(BaseModel):
 
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
+    | CodeRepositoryConnectionFailedRecord
     | CodeRepositoryIndexedRecord
     | RepositoryIndexationRequestedRecord
 )
@@ -137,6 +175,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
     match event:
         case CodeRepositoryConnected():
             return CodeRepositoryConnectedRecord.create_from(event)
+        case CodeRepositoryConnectionFailed():
+            return CodeRepositoryConnectionFailedRecord.create_from(event)
         case CodeRepositoryIndexed():
             return CodeRepositoryIndexedRecord.create_from(event)
         case RepositoryIndexationRequested():
@@ -149,6 +189,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
     match event_type:
         case "repository_connected":
             return CodeRepositoryConnectedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "repository_connection_failed":
+            return CodeRepositoryConnectionFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case "repository_indexed":
