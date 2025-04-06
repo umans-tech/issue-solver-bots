@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock
 
 from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
 from issue_solver.git_operations.git_helper import GitValidationError
 from issue_solver.webapi.routers.repository import connect_repository
