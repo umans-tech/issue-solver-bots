@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
-    CodeRepositoryConnectionFailed,
+    CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
 )
@@ -69,7 +69,7 @@ async def test_index_codebase_git_validation_error():
         assert mock_event_store.append.call_count == 1
         assert mock_event_store.append.call_args[0][0] == process_id
         event = mock_event_store.append.call_args[0][1]
-        assert isinstance(event, CodeRepositoryConnectionFailed)
+        assert isinstance(event, CodeRepositoryIntegrationFailed)
         assert event.error_type == "repository_not_found"
         assert "Repository not found" in event.error_message
         assert event.url == url
@@ -150,7 +150,7 @@ async def test_index_new_changes_codebase_git_validation_error():
         # Then - Verify that CodeRepositoryConnectionFailed event was appended with correct error information
         assert mock_event_store.append.call_count == 1
         event = mock_event_store.append.call_args[0][1]
-        assert isinstance(event, CodeRepositoryConnectionFailed)
+        assert isinstance(event, CodeRepositoryIntegrationFailed)
         assert event.error_type == "permission_denied"
         assert "Permission denied" in event.error_message
         assert event.url == url
@@ -231,7 +231,7 @@ async def test_index_new_changes_codebase_clone_git_validation_error():
         # Then - Verify that CodeRepositoryConnectionFailed event was appended with correct error information
         assert mock_event_store.append.call_count == 1
         event = mock_event_store.append.call_args[0][1]
-        assert isinstance(event, CodeRepositoryConnectionFailed)
+        assert isinstance(event, CodeRepositoryIntegrationFailed)
         assert event.error_type == "repository_unavailable"
         assert "Unable to access repository" in event.error_message
         assert event.url == url

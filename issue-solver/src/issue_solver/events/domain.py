@@ -29,7 +29,7 @@ class CodeRepositoryConnected(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
-class CodeRepositoryConnectionFailed(DomainEvent):
+class CodeRepositoryIntegrationFailed(DomainEvent):
     url: str
     error_type: str
     error_message: str
@@ -58,7 +58,7 @@ class RepositoryIndexationRequested(DomainEvent):
 
 AnyDomainEvent = (
     CodeRepositoryConnected
-    | CodeRepositoryConnectionFailed
+    | CodeRepositoryIntegrationFailed
     | CodeRepositoryIndexed
     | RepositoryIndexationRequested
 )

@@ -60,10 +60,10 @@ export async function GET(request: Request) {
     const repoEvent = data.events?.find((event: { type: string }) => 
       event.type?.toLowerCase() === 'repository_connected');
 
-    // Find latest (by occurred_at) repository_connection_failed event if available
+    // Find latest (by occurred_at) repository_integration_failed event if available
     const connectionFailedEvent = data.events
       ?.filter((event: { type: string; occurred_at: string }) => 
-        event.type?.toLowerCase() === 'repository_connection_failed')
+        event.type?.toLowerCase() === 'repository_integration_failed')
       .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
         new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
       

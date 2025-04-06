@@ -5,7 +5,7 @@ from pathlib import Path
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
-    CodeRepositoryConnectionFailed,
+    CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
     most_recent_event,
@@ -107,7 +107,7 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
         event_store = await init_event_store()
         await event_store.append(
             process_id,
-            CodeRepositoryConnectionFailed(
+            CodeRepositoryIntegrationFailed(
                 url=url,
                 error_type=e.error_type,
                 error_message=e.message,
@@ -124,7 +124,7 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
         event_store = await init_event_store()
         await event_store.append(
             process_id,
-            CodeRepositoryConnectionFailed(
+            CodeRepositoryIntegrationFailed(
                 url=url,
                 error_type="unexpected_error",
                 error_message=f"An unexpected error occurred: {str(e)}",
@@ -222,7 +222,7 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
         # Use the error information from the GitValidationError
         await event_store.append(
             process_id,
-            CodeRepositoryConnectionFailed(
+            CodeRepositoryIntegrationFailed(
                 url=url,
                 error_type=e.error_type,
                 error_message=e.message,
@@ -238,7 +238,7 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
         # Record the failure event with a generic error
         await event_store.append(
             process_id,
-            CodeRepositoryConnectionFailed(
+            CodeRepositoryIntegrationFailed(
                 url=url,
                 error_type="unexpected_error",
                 error_message=f"An unexpected error occurred during reindexing: {str(e)}",
