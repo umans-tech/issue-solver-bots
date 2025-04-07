@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -15,12 +14,6 @@ from tests.fixtures import NoopGitValidationService
 
 
 @pytest.fixture
-def mock_logger():
-    """Create a mock logger for testing."""
-    return Mock(spec=logging.Logger)
-
-
-@pytest.fixture
 def git_settings():
     """Create GitSettings for testing."""
     return GitSettings(
@@ -33,9 +26,7 @@ def git_settings():
 
 class TestGitValidationService:
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
-    def test_default_validation_service_success(
-        self, mock_git_cmd, mock_logger, git_settings
-    ):
+    def test_default_validation_service_success(self, mock_git_cmd, git_settings):
         # Given
         service = DefaultGitValidationService()
         mock_git = MagicMock()
@@ -44,30 +35,16 @@ class TestGitValidationService:
 
         # When
         service.validate_repository_access(
-            git_settings.repository_url, git_settings.access_token, mock_logger
+            git_settings.repository_url, git_settings.access_token
         )
 
         # Then
         mock_git.execute.assert_called_once()
 
-        # Verify that the correct URL format with token was constructed
-        # We can't assert on the exact URL passed to execute() because the test mocks Git()
-        # Instead, let's verify the validation_service was called with the right parameters
-        assert mock_logger.info.call_count == 2
-        assert (
-            f"Validating repository access: {git_settings.repository_url}"
-            in mock_logger.info.call_args_list[0][0][0]
-        )
-        assert (
-            f"Successfully validated repository access: {git_settings.repository_url}"
-            in mock_logger.info.call_args_list[1][0][0]
-        )
-
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
     def test_default_validation_service_authentication_failed(
-        self, mock_git_cmd, mock_logger, git_settings
+        self, mock_git_cmd, git_settings
     ):
-        """Test that DefaultGitValidationService handles authentication errors correctly."""
         # Given
         service = DefaultGitValidationService()
         mock_git = MagicMock()
@@ -81,7 +58,7 @@ class TestGitValidationService:
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
             service.validate_repository_access(
-                git_settings.repository_url, git_settings.access_token, mock_logger
+                git_settings.repository_url, git_settings.access_token
             )
 
         # Verify error details
@@ -89,13 +66,11 @@ class TestGitValidationService:
         assert error.error_type == "authentication_failed"
         assert "Authentication failed" in error.message
         assert error.status_code == 401
-        mock_logger.error.assert_called_once()
 
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
     def test_default_validation_service_repo_not_found(
-        self, mock_git_cmd, mock_logger, git_settings
+        self, mock_git_cmd, git_settings
     ):
-        """Test that DefaultGitValidationService handles repository not found errors correctly."""
         # Given
         service = DefaultGitValidationService()
         mock_git = MagicMock()
@@ -109,7 +84,7 @@ class TestGitValidationService:
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
             service.validate_repository_access(
-                git_settings.repository_url, git_settings.access_token, mock_logger
+                git_settings.repository_url, git_settings.access_token
             )
 
         # Verify error details
@@ -120,7 +95,7 @@ class TestGitValidationService:
 
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
     def test_default_validation_service_repo_unavailable(
-        self, mock_git_cmd, mock_logger, git_settings
+        self, mock_git_cmd, git_settings
     ):
         """Test that DefaultGitValidationService handles repository unavailable errors correctly."""
         # Given
@@ -136,7 +111,7 @@ class TestGitValidationService:
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
             service.validate_repository_access(
-                git_settings.repository_url, git_settings.access_token, mock_logger
+                git_settings.repository_url, git_settings.access_token
             )
 
         # Verify error details
@@ -147,7 +122,7 @@ class TestGitValidationService:
 
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
     def test_default_validation_service_permission_denied(
-        self, mock_git_cmd, mock_logger, git_settings
+        self, mock_git_cmd, git_settings
     ):
         """Test that DefaultGitValidationService handles permission denied errors correctly."""
         # Given
@@ -161,7 +136,7 @@ class TestGitValidationService:
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
             service.validate_repository_access(
-                git_settings.repository_url, git_settings.access_token, mock_logger
+                git_settings.repository_url, git_settings.access_token
             )
 
         # Verify error details
@@ -174,7 +149,7 @@ class TestGitValidationService:
 class TestGitHelperErrorHandling:
     """Tests for the error handling in GitHelper."""
 
-    def test_convert_git_exception_to_validation_error(self, mock_logger):
+    def test_convert_git_exception_to_validation_error(self):
         """Test the convert_git_exception_to_validation_error static method."""
         # Given
         git_exception = git.exc.GitCommandError(
@@ -182,18 +157,15 @@ class TestGitHelperErrorHandling:
         )
 
         # When
-        error = GitHelper.convert_git_exception_to_validation_error(
-            git_exception, mock_logger
-        )
+        error = GitHelper.convert_git_exception_to_validation_error(git_exception)
 
         # Then
         assert isinstance(error, GitValidationError)
         assert error.error_type == "authentication_failed"
         assert error.status_code == 401
-        mock_logger.error.assert_called_once()
 
     @patch("issue_solver.git_operations.git_helper.Repo")
-    def test_clone_repository_success(self, mock_repo_class, git_settings, mock_logger):
+    def test_clone_repository_success(self, mock_repo_class, git_settings):
         """Test successful repository cloning."""
         # Given
         mock_repo = Mock()
@@ -204,7 +176,7 @@ class TestGitHelperErrorHandling:
         git_helper = GitHelper(git_settings)
 
         # When
-        result = git_helper.clone_repository(Path("/tmp/repo"), logger=mock_logger)
+        result = git_helper.clone_repository(Path("/tmp/repo"))
 
         # Then
         assert isinstance(result, CodeVersion)
@@ -213,9 +185,7 @@ class TestGitHelperErrorHandling:
         mock_repo_class.clone_from.assert_called_once()
 
     @patch("issue_solver.git_operations.git_helper.Repo")
-    def test_clone_repository_error_handling(
-        self, mock_repo_class, git_settings, mock_logger
-    ):
+    def test_clone_repository_error_handling(self, mock_repo_class, git_settings):
         """Test error handling during repository cloning."""
         # Given
         mock_repo_class.clone_from.side_effect = git.exc.GitCommandError(
@@ -226,18 +196,15 @@ class TestGitHelperErrorHandling:
 
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
-            git_helper.clone_repository(Path("/tmp/repo"), logger=mock_logger)
+            git_helper.clone_repository(Path("/tmp/repo"))
 
         # Verify error details
         error = exc_info.value
         assert error.error_type == "repository_not_found"
         assert error.status_code == 404
-        mock_logger.error.assert_called_once()
 
     @patch("issue_solver.git_operations.git_helper.Repo")
-    def test_pull_repository_error_handling(
-        self, mock_repo_class, git_settings, mock_logger
-    ):
+    def test_pull_repository_error_handling(self, mock_repo_class, git_settings):
         """Test error handling during repository pulling."""
         # Given
         mock_repo = Mock()
@@ -250,13 +217,12 @@ class TestGitHelperErrorHandling:
 
         # When/Then
         with pytest.raises(GitValidationError) as exc_info:
-            git_helper.pull_repository(Path("/tmp/repo"), logger=mock_logger)
+            git_helper.pull_repository(Path("/tmp/repo"))
 
         # Verify error details
         error = exc_info.value
         assert error.error_type == "permission_denied"
         assert error.status_code == 403
-        mock_logger.error.assert_called_once()
 
     def test_validation_service_injection(self, git_settings):
         """Test that manually injecting a validation service works."""

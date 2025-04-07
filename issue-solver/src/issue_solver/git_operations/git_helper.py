@@ -1,9 +1,7 @@
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from logging import LoggerAdapter
 from pathlib import Path
-from typing import Any, Callable, Optional, Self, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Self, TypeVar, cast
 
 import git
 from git import Repo, cmd
@@ -23,25 +21,12 @@ class GitValidationError(Exception):
 
 class GitValidationService(ABC):
     @abstractmethod
-    def validate_repository_access(
-        self,
-        url: str,
-        access_token: str,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
-    ) -> None:
+    def validate_repository_access(self, url: str, access_token: str) -> None:
         pass
 
 
 class DefaultGitValidationService(GitValidationService):
-    def validate_repository_access(
-        self,
-        url: str,
-        access_token: str,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
-    ) -> None:
-        if logger:
-            logger.info(f"Validating repository access: {url}")
-
+    def validate_repository_access(self, url: str, access_token: str) -> None:
         try:
             stripped_url = url.removeprefix("https://")
             auth_url = (
@@ -53,13 +38,8 @@ class DefaultGitValidationService(GitValidationService):
             repo = cmd.Git()
             repo.execute(["git", "ls-remote", "--quiet", auth_url])
 
-            if logger:
-                logger.info(f"Successfully validated repository access: {url}")
         except git.exc.GitCommandError as e:
             error_message = str(e)
-
-            if logger:
-                logger.error(f"Git command error: {error_message}")
 
             if "Authentication failed" in error_message or "401" in error_message:
                 raise GitValidationError(
@@ -93,8 +73,6 @@ class DefaultGitValidationService(GitValidationService):
                     f"Failed to access repository: {error_message}", "unknown", 500
                 )
         except Exception as e:
-            if logger:
-                logger.error(f"Unexpected error validating repository: {str(e)}")
             raise GitValidationError(
                 f"Unexpected error validating repository: {str(e)}",
                 "unexpected_error",
@@ -155,12 +133,8 @@ class GitHelper:
     @staticmethod
     def convert_git_exception_to_validation_error(
         exception: git.exc.GitCommandError,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> GitValidationError:
         error_message = str(exception)
-
-        if logger:
-            logger.error(f"Git command error: {error_message}")
 
         # Determine error type and status code based on error message
         if "Authentication failed" in error_message or "401" in error_message:
@@ -200,14 +174,8 @@ class GitHelper:
             try:
                 return func(self, *args, **kwargs)
             except git.exc.GitCommandError as e:
-                # Extract logger from kwargs if available, otherwise use None
-                logger = kwargs.get("logger", None)
-                # Convert GitCommandError to GitValidationError
-                raise self.convert_git_exception_to_validation_error(e, logger)
+                raise self.convert_git_exception_to_validation_error(e)
             except Exception as e:
-                logger = kwargs.get("logger", None)
-                if logger:
-                    logger.error(f"Unexpected error in Git operation: {str(e)}")
                 raise GitValidationError(
                     f"Unexpected error: {str(e)}", "unexpected_error", 500
                 )
@@ -216,11 +184,9 @@ class GitHelper:
             Callable[..., T], wrapper
         )  # Cast to help mypy understand the return type
 
-    def validate_repository_access(
-        self, logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None
-    ) -> None:
+    def validate_repository_access(self) -> None:
         self.validation_service.validate_repository_access(
-            self.settings.repository_url, self.settings.access_token, logger
+            self.settings.repository_url, self.settings.access_token
         )
 
     def commit_and_push(self, issue_info: IssueInfo, repo_path: Path) -> None:
@@ -281,7 +247,6 @@ class GitHelper:
         self,
         to_path: Path,
         depth: int | None = 1,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> "CodeVersion":
         try:
             repo = Repo.clone_from(
@@ -294,12 +259,11 @@ class GitHelper:
                 branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
             )
         except git.exc.GitCommandError as e:
-            raise self.convert_git_exception_to_validation_error(e, logger)
+            raise self.convert_git_exception_to_validation_error(e)
 
     def pull_repository(
         self,
         repo_path: Path,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> "CodeVersion":
         try:
             repo = Repo(repo_path)
@@ -308,13 +272,12 @@ class GitHelper:
                 branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
             )
         except git.exc.GitCommandError as e:
-            raise self.convert_git_exception_to_validation_error(e, logger)
+            raise self.convert_git_exception_to_validation_error(e)
 
     def get_changed_files_commit(
         self,
         repo_path: Path,
         last_indexed_commit_sha: str,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> GitDiffFiles:
         try:
             repo = Repo(repo_path)
@@ -362,7 +325,7 @@ class GitHelper:
                 renamed_files=renamed_files,
             )
         except git.exc.GitCommandError as e:
-            raise self.convert_git_exception_to_validation_error(e, logger)
+            raise self.convert_git_exception_to_validation_error(e)
 
 
 @dataclass

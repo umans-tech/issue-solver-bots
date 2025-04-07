@@ -1,11 +1,10 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
-
 from fastapi import HTTPException
-
 from issue_solver.git_operations.git_helper import GitValidationError
-from issue_solver.webapi.routers.repository import connect_repository
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
+from issue_solver.webapi.routers.repository import connect_repository
 
 
 class TestRepositoryRouterErrorHandling:
@@ -69,9 +68,7 @@ class TestRepositoryRouterErrorHandling:
 
         # Verify validation service was called with correct parameters
         mock_validation_service.validate_repository_access.assert_called_once_with(
-            connect_repository_request.url,
-            connect_repository_request.access_token,
-            mock_logger,
+            connect_repository_request.url, connect_repository_request.access_token
         )
 
         # Verify no events were appended (error happened before that)

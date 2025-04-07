@@ -22,8 +22,6 @@ from tests.fixtures import (
     NoopGitValidationService,
 )
 
-# Set testing environment variable to enable test-friendly behavior
-
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
 

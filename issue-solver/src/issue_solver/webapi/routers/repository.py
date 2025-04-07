@@ -82,9 +82,7 @@ async def connect_repository(
 def _validate_repository_access(connect_repository_request, logger, validation_service):
     try:
         validation_service.validate_repository_access(
-            connect_repository_request.url,
-            connect_repository_request.access_token,
-            logger,
+            connect_repository_request.url, connect_repository_request.access_token
         )
     except GitValidationError as e:
         logger.error(f"Repository validation failed: {e.message}")

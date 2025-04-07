@@ -1,7 +1,4 @@
-import logging
 import os
-from logging import LoggerAdapter
-from typing import Any, Optional, Union
 
 from issue_solver.git_operations.git_helper import (
     GitValidationError,
@@ -25,12 +22,7 @@ class NoopGitValidationService(GitValidationService):
     ) -> None:
         self.inaccessible_repositories[url] = (error_type, status_code)
 
-    def validate_repository_access(
-        self,
-        url: str,
-        access_token: str,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
-    ) -> None:
+    def validate_repository_access(self, url: str, access_token: str) -> None:
         if url in self.inaccessible_repositories:
             error_type, status_code = self.inaccessible_repositories[url]
             raise GitValidationError(

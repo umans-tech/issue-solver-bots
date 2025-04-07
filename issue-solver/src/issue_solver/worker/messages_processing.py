@@ -5,8 +5,8 @@ from pathlib import Path
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
-    CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
+    CodeRepositoryIntegrationFailed,
     RepositoryIndexationRequested,
     most_recent_event,
 )
@@ -17,14 +17,14 @@ from issue_solver.git_operations.git_helper import (
 )
 from issue_solver.webapi.dependencies import (
     get_clock,
-    init_event_store,
     get_validation_service,
+    init_event_store,
 )
 from issue_solver.worker.vector_store_helper import (
-    upload_repository_files_to_vector_store,
-    unindex_obsolete_files,
-    index_new_files,
     get_obsolete_files_ids,
+    index_new_files,
+    unindex_obsolete_files,
+    upload_repository_files_to_vector_store,
 )
 from openai import OpenAI
 
@@ -69,7 +69,7 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
             GitSettings(repository_url=url, access_token=access_token),
             validation_service=get_validation_service(),
         )
-        code_version = git_helper.clone_repository(to_path, logger=logger)
+        code_version = git_helper.clone_repository(to_path)
         logger.info(f"Successfully cloned repository: {url}")
 
         # Upload repository files to vector store if knowledge_base_id is provided
@@ -162,15 +162,13 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
         to_path = Path(f"/tmp/repo/{process_id}")
         if not to_path.exists():
             logger.info("Cloning repository")
-            code_version = git_helper.clone_repository(
-                to_path, depth=None, logger=logger
-            )
+            code_version = git_helper.clone_repository(to_path, depth=None)
         else:
             logger.info("Pulling repository")
-            code_version = git_helper.pull_repository(to_path, logger=logger)
+            code_version = git_helper.pull_repository(to_path)
 
         files_to_index = git_helper.get_changed_files_commit(
-            to_path, last_indexed_commit_sha, logger=logger
+            to_path, last_indexed_commit_sha
         )
 
         if not files_to_index:
