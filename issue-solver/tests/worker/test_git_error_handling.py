@@ -1,20 +1,20 @@
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
-    CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
+    CodeRepositoryIntegrationFailed,
     RepositoryIndexationRequested,
 )
 from issue_solver.git_operations.git_helper import (
     GitValidationError,
 )
-from issue_solver.webapi.dependencies import NoopGitValidationService
 from issue_solver.worker.messages_processing import (
     index_codebase,
     index_new_changes_codebase,
 )
+from tests.fixtures import NoopGitValidationService
 
 
 @pytest.mark.asyncio

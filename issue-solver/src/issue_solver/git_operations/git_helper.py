@@ -1,8 +1,10 @@
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Self, Protocol, Optional, Any, Union, TypeVar, Callable, cast
 import logging
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from logging import LoggerAdapter
+from pathlib import Path
+from typing import Any, Callable, Optional, Self, TypeVar, Union, cast
+
 import git
 from git import Repo, cmd
 from issue_solver.issues.issue import IssueInfo
@@ -12,8 +14,6 @@ from pydantic_settings import BaseSettings
 
 
 class GitValidationError(Exception):
-    """Exception raised when repository validation fails."""
-
     def __init__(self, message: str, error_type: str, status_code: int = 500):
         self.message = message
         self.error_type = error_type
@@ -21,54 +21,28 @@ class GitValidationError(Exception):
         super().__init__(message)
 
 
-class GitValidationService(Protocol):
-    """Protocol for Git validation service."""
-
+class GitValidationService(ABC):
+    @abstractmethod
     def validate_repository_access(
         self,
         url: str,
         access_token: str,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> None:
-        """
-        Validate that a repository can be accessed with the given URL and access token.
-
-        Args:
-            url: Repository URL
-            access_token: Access token for the repository
-            logger: Optional logger for logging validation attempts
-
-        Raises:
-            GitValidationError: If the repository cannot be accessed
-        """
-        ...
+        pass
 
 
-class DefaultGitValidationService:
-    """Default implementation of Git validation service."""
-
+class DefaultGitValidationService(GitValidationService):
     def validate_repository_access(
         self,
         url: str,
         access_token: str,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> None:
-        """
-        Validate that a repository can be accessed with the given URL and access token.
-
-        Args:
-            url: Repository URL
-            access_token: Access token for the repository
-            logger: Optional logger for logging validation attempts
-
-        Raises:
-            GitValidationError: If the repository cannot be accessed
-        """
         if logger:
             logger.info(f"Validating repository access: {url}")
 
         try:
-            # Prepare the authenticated URL
             stripped_url = url.removeprefix("https://")
             auth_url = (
                 f"https://oauth2:{access_token}@{stripped_url}"
@@ -76,7 +50,6 @@ class DefaultGitValidationService:
                 else f"https://{stripped_url}"
             )
 
-            # Use git ls-remote which doesn't clone the repo but checks access
             repo = cmd.Git()
             repo.execute(["git", "ls-remote", "--quiet", auth_url])
 
@@ -88,7 +61,6 @@ class DefaultGitValidationService:
             if logger:
                 logger.error(f"Git command error: {error_message}")
 
-            # Determine error type and status code based on error message
             if "Authentication failed" in error_message or "401" in error_message:
                 raise GitValidationError(
                     "Authentication failed. Please check your access token.",
@@ -130,21 +102,6 @@ class DefaultGitValidationService:
             )
 
 
-class NoopGitValidationService:
-    """Validation service that performs no validation (for testing)."""
-
-    def validate_repository_access(
-        self,
-        url: str,
-        access_token: str,
-        logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
-    ) -> None:
-        """No-op validation that always passes."""
-        if logger:
-            logger.info(f"NOOP validation for repository: {url}")
-
-
-# Type variable for generic function return type
 T = TypeVar("T")
 
 
@@ -200,16 +157,6 @@ class GitHelper:
         exception: git.exc.GitCommandError,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> GitValidationError:
-        """
-        Converts a git.exc.GitCommandError to a GitValidationError with appropriate error type and message.
-
-        Args:
-            exception: The GitCommandError to convert
-            logger: Optional logger for logging errors
-
-        Returns:
-            A GitValidationError with appropriate error type and message
-        """
         error_message = str(exception)
 
         if logger:
@@ -249,16 +196,6 @@ class GitHelper:
             )
 
     def handle_git_exceptions(self, func: Callable[..., T]) -> Callable[..., T]:
-        """
-        A decorator method that handles git.exc.GitCommandError exceptions and converts them to GitValidationError
-
-        Args:
-            func: The function to wrap
-
-        Returns:
-            A wrapped function that handles git exceptions
-        """
-
         def wrapper(*args: Any, **kwargs: Any) -> T:
             try:
                 return func(self, *args, **kwargs)
@@ -282,22 +219,11 @@ class GitHelper:
     def validate_repository_access(
         self, logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None
     ) -> None:
-        """
-        Validate that the repository can be accessed with the configured URL and token.
-
-        Args:
-            logger: Optional logger for logging validation attempts
-
-        Raises:
-            GitValidationError: If the repository cannot be accessed
-        """
         self.validation_service.validate_repository_access(
             self.settings.repository_url, self.settings.access_token, logger
         )
 
     def commit_and_push(self, issue_info: IssueInfo, repo_path: Path) -> None:
-        """Commit changes and push them to a remote repository."""
-
         repo = self._initialize_git_repo(repo_path)
         remote_url = self._resolve_remote_url(repo)
 
@@ -309,17 +235,12 @@ class GitHelper:
         self._push_changes(repo)
 
     def _initialize_git_repo(self, repo_path: Path) -> Repo:
-        """Initialize local git repo and set the configured user name/email."""
         repo = Repo(repo_path)
         repo.git.config("user.email", self.settings.user_mail)
         repo.git.config("user.name", self.settings.user_name)
         return repo
 
     def _resolve_remote_url(self, repo: Repo) -> str | None:
-        """
-        Return the `repository_url` from settings if present,
-        otherwise try to fetch the URL from the 'origin' remote if it exists.
-        """
         if self.settings.repository_url:
             return self.settings.repository_url
 
@@ -329,30 +250,18 @@ class GitHelper:
         return None
 
     def _inject_access_token(self, base_url: str) -> str:
-        """
-        Insert the token into the URL if available, forming:
-            https://oauth2:<token>@your.git.server/...
-        Otherwise, ensure the URL has https://.
-        """
         stripped_url = base_url.removeprefix("https://")
         if self.settings.access_token:
             return f"https://oauth2:{self.settings.access_token}@{stripped_url}"
         return f"https://{stripped_url}"
 
     def _ensure_repo_origin(self, repo: Repo, url: str) -> None:
-        """
-        Ensure the remote named 'repo_origin' exists and is set to the given URL.
-        If it already exists, update its URL instead of adding it again.
-        """
         if "repo_origin" not in repo.remotes:
             repo.git.remote("add", "repo_origin", url)
         else:
             repo.git.remote("set-url", "repo_origin", url)
 
     def _commit_changes(self, repo: Repo, issue_info: IssueInfo) -> None:
-        """
-        Stage all changes and commit only if there are actual modifications.
-        """
         repo.git.add(A=True)  # Equivalent to `git add --all`
         if repo.is_dirty(untracked_files=True):
             commit_message = (
@@ -362,9 +271,6 @@ class GitHelper:
             repo.index.commit(commit_message)
 
     def _push_changes(self, repo: Repo) -> None:
-        """
-        Push changes to 'repo_origin' if it exists, otherwise warn the user.
-        """
         if "repo_origin" in repo.remotes:
             branch_name = repo.active_branch.name
             repo.git.push("repo_origin", f"HEAD:{branch_name}")
@@ -377,20 +283,6 @@ class GitHelper:
         depth: int | None = 1,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> "CodeVersion":
-        """
-        Clone the repository to the current working directory.
-
-        Args:
-            to_path: Path where to clone the repository
-            depth: Depth of history to clone, None for complete history
-            logger: Optional logger for error handling
-
-        Returns:
-            CodeVersion with branch and commit SHA
-
-        Raises:
-            GitValidationError: If the repository cannot be cloned
-        """
         try:
             repo = Repo.clone_from(
                 self._inject_access_token(self.settings.repository_url),
@@ -409,19 +301,6 @@ class GitHelper:
         repo_path: Path,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> "CodeVersion":
-        """
-        Pull changes from the remote repository.
-
-        Args:
-            repo_path: Path to the repository
-            logger: Optional logger for error handling
-
-        Returns:
-            CodeVersion with branch and commit SHA
-
-        Raises:
-            GitValidationError: If the repository cannot be pulled
-        """
         try:
             repo = Repo(repo_path)
             repo.git.pull()
@@ -437,20 +316,6 @@ class GitHelper:
         last_indexed_commit_sha: str,
         logger: Optional[Union[logging.Logger, LoggerAdapter[Any]]] = None,
     ) -> GitDiffFiles:
-        """
-        Get files changed between the last indexed commit and HEAD.
-
-        Args:
-            repo_path: Path to the repository
-            last_indexed_commit_sha: SHA of the last indexed commit
-            logger: Optional logger for error handling
-
-        Returns:
-            GitDiffFiles with files changed since the last indexed commit
-
-        Raises:
-            GitValidationError: If the repository cannot be accessed or the diff cannot be obtained
-        """
         try:
             repo = Repo(repo_path)
 

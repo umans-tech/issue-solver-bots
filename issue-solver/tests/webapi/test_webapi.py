@@ -126,6 +126,31 @@ def test_post_repositories_index_new_changes(
     assert message_body["occurred_at"] == "2021-01-01T00:00:00"
 
 
+def test_connect_repository_should_raise_401_when_authentication_fails(
+    api_client, repo_validation_under_control
+):
+    # Given
+    repo_validation_under_control.add_inaccessible_repository(
+        url="https://github.com/test/repo",
+        error_type="authentication_failed",
+        status_code=401,
+    )
+
+    # When
+    response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "test-access-token",
+            "user_id": "test-user-id",
+            "space_id": "test-space-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 401
+
+
 def receive_event_message(sqs_client, sqs_queue):
     return sqs_client.receive_message(
         QueueUrl=sqs_queue["queue_url"], MaxNumberOfMessages=1, WaitTimeSeconds=1

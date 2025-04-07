@@ -205,7 +205,7 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
                 branch=code_version.branch,
                 commit_sha=code_version.commit_sha,
                 stats={
-                    "new_files": new_indexed_files_stats,
+                    "new_indexed_files": new_indexed_files_stats,
                     "obsolete_files": obsolete_files.stats,
                     "unindexed_files": unindexed_files_stats,
                 },

@@ -3,31 +3,29 @@ import os
 import uuid
 from typing import Annotated
 
-
 import boto3
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, HTTPException, Depends
-from openai import OpenAI
-
+from fastapi import APIRouter, Depends, HTTPException
 from issue_solver.clock import Clock
 from issue_solver.events.domain import (
-    CodeRepositoryConnected,
     AnyDomainEvent,
+    CodeRepositoryConnected,
     RepositoryIndexationRequested,
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import serialize
 from issue_solver.git_operations.git_helper import (
-    GitValidationService,
     GitValidationError,
+    GitValidationService,
 )
 from issue_solver.webapi.dependencies import (
+    get_clock,
     get_event_store,
     get_logger,
-    get_clock,
     get_validation_service,
 )
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
+from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
@@ -46,45 +44,48 @@ async def connect_repository(
     ],
 ) -> dict[str, str]:
     """Connect to a code repository."""
+    _validate_repository_access(connect_repository_request, logger, validation_service)
+
+    process_id = str(uuid.uuid4())
+    logger.info(f"Creating new repository connection with process ID: {process_id}")
+
+    client = OpenAI()
+    repo_name = connect_repository_request.url.split("/")[-1]
+    logger.info(f"Creating vector store for repository: {repo_name}")
+
+    vector_store = client.vector_stores.create(name=repo_name)
+    event = CodeRepositoryConnected(
+        occurred_at=clock.now(),
+        url=connect_repository_request.url,
+        access_token=connect_repository_request.access_token,
+        user_id=connect_repository_request.user_id,
+        space_id=connect_repository_request.space_id,
+        knowledge_base_id=vector_store.id,
+        process_id=process_id,
+    )
+    await event_store.append(process_id, event)
+
+    # Get a logger specifically for the publish function
+    publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
+    publish(event, publish_logger)
+
+    logger.info(
+        f"Repository connection created successfully with process ID: {process_id}"
+    )
+    return {
+        "url": event.url,
+        "process_id": event.process_id,
+        "knowledge_base_id": event.knowledge_base_id,
+    }
+
+
+def _validate_repository_access(connect_repository_request, logger, validation_service):
     try:
-        # Validate repository access before proceeding
         validation_service.validate_repository_access(
             connect_repository_request.url,
             connect_repository_request.access_token,
             logger,
         )
-
-        process_id = str(uuid.uuid4())
-        logger.info(f"Creating new repository connection with process ID: {process_id}")
-
-        client = OpenAI()
-        repo_name = connect_repository_request.url.split("/")[-1]
-        logger.info(f"Creating vector store for repository: {repo_name}")
-
-        vector_store = client.vector_stores.create(name=repo_name)
-        event = CodeRepositoryConnected(
-            occurred_at=clock.now(),
-            url=connect_repository_request.url,
-            access_token=connect_repository_request.access_token,
-            user_id=connect_repository_request.user_id,
-            space_id=connect_repository_request.space_id,
-            knowledge_base_id=vector_store.id,
-            process_id=process_id,
-        )
-        await event_store.append(process_id, event)
-
-        # Get a logger specifically for the publish function
-        publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
-        publish(event, publish_logger)
-
-        logger.info(
-            f"Repository connection created successfully with process ID: {process_id}"
-        )
-        return {
-            "url": event.url,
-            "process_id": event.process_id,
-            "knowledge_base_id": event.knowledge_base_id,
-        }
     except GitValidationError as e:
         logger.error(f"Repository validation failed: {e.message}")
         raise HTTPException(status_code=e.status_code, detail=e.message)

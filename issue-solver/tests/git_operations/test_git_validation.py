@@ -1,17 +1,17 @@
-import pytest
 import logging
-from unittest.mock import Mock, patch, MagicMock
-import git
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
+import git
+import pytest
 from issue_solver.git_operations.git_helper import (
+    CodeVersion,
+    DefaultGitValidationService,
     GitHelper,
     GitSettings,
     GitValidationError,
-    DefaultGitValidationService,
-    NoopGitValidationService,
-    CodeVersion,
 )
+from tests.fixtures import NoopGitValidationService
 
 
 @pytest.fixture
@@ -32,27 +32,10 @@ def git_settings():
 
 
 class TestGitValidationService:
-    """Tests for the GitValidationService implementation."""
-
-    def test_noop_validation_service(self, mock_logger):
-        """Test that NoopGitValidationService always passes validation."""
-        # Given
-        service = NoopGitValidationService()
-
-        # When/Then - should not raise any exceptions
-        service.validate_repository_access(
-            "https://github.com/invalid/repo.git", "invalid_token", mock_logger
-        )
-
-        # Verify logger was called
-        mock_logger.info.assert_called_once()
-        assert "NOOP validation" in mock_logger.info.call_args[0][0]
-
     @patch("issue_solver.git_operations.git_helper.cmd.Git")
     def test_default_validation_service_success(
         self, mock_git_cmd, mock_logger, git_settings
     ):
-        """Test that DefaultGitValidationService succeeds when Git command succeeds."""
         # Given
         service = DefaultGitValidationService()
         mock_git = MagicMock()

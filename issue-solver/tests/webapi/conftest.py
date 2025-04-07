@@ -9,7 +9,6 @@ import boto3
 import pytest
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
-from issue_solver.git_operations.git_helper import NoopGitValidationService
 from issue_solver.webapi.dependencies import get_clock, get_validation_service
 from issue_solver.webapi.main import app
 from pytest_httpserver import HTTPServer
@@ -17,20 +16,16 @@ from starlette.testclient import TestClient
 from testcontainers.localstack import LocalStackContainer
 from testcontainers.postgres import PostgresContainer
 from tests.controllable_clock import ControllableClock
-from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
+from tests.fixtures import (
+    ALEMBIC_INI_LOCATION,
+    MIGRATIONS_PATH,
+    NoopGitValidationService,
+)
 
 # Set testing environment variable to enable test-friendly behavior
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
-
-
-# Create a function to get a NoopGitValidationService for tests
-def get_test_validation_service():
-    """Returns a NoopGitValidationService for tests.
-    This service doesn't perform actual Git validation and always succeeds,
-    allowing tests to run without real Git repositories."""
-    return NoopGitValidationService()
 
 
 @pytest.fixture(scope="module")
@@ -165,19 +160,23 @@ def time_under_control() -> ControllableClock:
 
 
 @pytest.fixture
+def repo_validation_under_control() -> NoopGitValidationService:
+    return NoopGitValidationService()
+
+
+@pytest.fixture
 def api_client(
-    aws_credentials, sqs_queue, mock_openai, time_under_control, run_migrations
+    aws_credentials,
+    sqs_queue,
+    mock_openai,
+    time_under_control,
+    run_migrations,
+    repo_validation_under_control,
 ) -> Generator[TestClient, Any, None]:
-    """Create and return a FastAPI TestClient with proper test dependencies."""
-    # Override clock dependency
     app.dependency_overrides[get_clock] = lambda: time_under_control
-
-    # Override git validation service dependency - directly use NoopGitValidationService
-    # instead of relying on environment variables
-    app.dependency_overrides[get_validation_service] = get_test_validation_service
-
+    app.dependency_overrides[get_validation_service] = (
+        lambda: repo_validation_under_control
+    )
     with TestClient(app) as client:
         yield client
-
-    # Clean up overrides after the test
     app.dependency_overrides.clear()
