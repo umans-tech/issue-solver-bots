@@ -60,6 +60,13 @@ export async function GET(request: Request) {
     const repoEvent = data.events?.find((event: { type: string }) => 
       event.type?.toLowerCase() === 'repository_connected');
 
+    // Find latest (by occurred_at) repository_integration_failed event if available
+    const connectionFailedEvent = data.events
+      ?.filter((event: { type: string; occurred_at: string }) => 
+        event.type?.toLowerCase() === 'repository_integration_failed')
+      .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
+        new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
+      
     // Find latest (by occurred_at) indexation requested event if available
     const latestIndexationRequestedEvent = data.events
       ?.filter((event: { type: string; occurred_at: string }) => 
@@ -73,6 +80,28 @@ export async function GET(request: Request) {
         event.type?.toLowerCase() === 'repository_indexed')
       .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
         new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
+      
+    // If we have a connection failed event, check if it's more recent than any successful indexing
+    if (connectionFailedEvent) {
+      const failedEventTime = new Date(connectionFailedEvent.occurred_at).getTime();
+      const lastSuccessTime = latestRepositoryIndexedEvent 
+        ? new Date(latestRepositoryIndexedEvent.occurred_at).getTime()
+        : 0;
+      
+      // If the failure is more recent than the last successful indexing, return the error
+      if (!latestRepositoryIndexedEvent || failedEventTime > lastSuccessTime) {
+        console.log(`Repository connection failed: ${connectionFailedEvent.error_message}`);
+        return NextResponse.json({
+          connected: false,
+          error: true,
+          errorType: connectionFailedEvent.error_type,
+          errorMessage: connectionFailedEvent.error_message,
+          url: connectionFailedEvent.url,
+          status: 'failed',
+          process_id: processId
+        });
+      }
+    }
       
     if (!repoEvent) {
       return NextResponse.json(
@@ -163,6 +192,49 @@ export async function POST(request: Request) {
     // Log the response status
     console.log(`CUDU API response status: ${response.status}`);
     
+    // Handle error responses from the backend with specific error messages
+    if (!response.ok) {
+      const data = await response.json();
+      const errorDetail = data.detail || 'Unknown error';
+      console.error(`Error from CUDU API: ${errorDetail}`);
+      
+      // Map backend error status codes to appropriate error types and messages
+      let errorMessage = errorDetail;
+      let errorType = 'unknown';
+      
+      switch (response.status) {
+        case 401:
+          errorType = 'authentication_failed';
+          errorMessage = 'Authentication failed. Please check your access token.';
+          break;
+        case 403:
+          errorType = 'permission_denied';
+          errorMessage = 'Permission denied. Please check your access rights to this repository.';
+          break;
+        case 404:
+          errorType = 'repository_not_found';
+          errorMessage = 'Repository not found. Please check the URL.';
+          break;
+        case 502:
+          errorType = 'repository_unavailable';
+          errorMessage = 'Could not access the repository. Please check the URL and your internet connection.';
+          break;
+        default:
+          errorType = 'unexpected_error';
+          errorMessage = `Error connecting to repository: ${errorDetail}`;
+      }
+      
+      return NextResponse.json(
+        { 
+          error: errorMessage,
+          errorType,
+          errorMessage,
+          success: false
+        }, 
+        { status: response.status }
+      );
+    }
+    
     // Get the response data
     const data = await response.json();
     console.log("CUDU API response data:", data);
@@ -184,8 +256,13 @@ export async function POST(request: Request) {
     // Return the response from the CUDU API with clearer handling of the IDs
     return NextResponse.json(responseData, { status: response.status });
   } catch (error) {
+    console.error("Error in repository connection:", error);
     return NextResponse.json(
-      { error: 'Failed to connect repository' },
+      { 
+        error: 'Failed to connect repository',
+        errorType: 'unexpected_error',
+        errorMessage: 'An unexpected error occurred while trying to connect to the repository.'
+      },
       { status: 500 }
     );
   }

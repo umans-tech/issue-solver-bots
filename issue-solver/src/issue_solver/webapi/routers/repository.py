@@ -5,19 +5,27 @@ from typing import Annotated
 
 import boto3
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, HTTPException, Depends
-from openai import OpenAI
-
+from fastapi import APIRouter, Depends, HTTPException
 from issue_solver.clock import Clock
 from issue_solver.events.domain import (
-    CodeRepositoryConnected,
     AnyDomainEvent,
+    CodeRepositoryConnected,
     RepositoryIndexationRequested,
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import serialize
-from issue_solver.webapi.dependencies import get_event_store, get_logger, get_clock
+from issue_solver.git_operations.git_helper import (
+    GitValidationError,
+    GitValidationService,
+)
+from issue_solver.webapi.dependencies import (
+    get_clock,
+    get_event_store,
+    get_logger,
+    get_validation_service,
+)
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
+from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
@@ -31,8 +39,13 @@ async def connect_repository(
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.connect")),
     ],
     clock: Annotated[Clock, Depends(get_clock)],
+    validation_service: Annotated[
+        GitValidationService, Depends(get_validation_service)
+    ],
 ) -> dict[str, str]:
     """Connect to a code repository."""
+    _validate_repository_access(connect_repository_request, logger, validation_service)
+
     process_id = str(uuid.uuid4())
     logger.info(f"Creating new repository connection with process ID: {process_id}")
 
@@ -64,6 +77,16 @@ async def connect_repository(
         "process_id": event.process_id,
         "knowledge_base_id": event.knowledge_base_id,
     }
+
+
+def _validate_repository_access(connect_repository_request, logger, validation_service):
+    try:
+        validation_service.validate_repository_access(
+            connect_repository_request.url, connect_repository_request.access_token
+        )
+    except GitValidationError as e:
+        logger.error(f"Repository validation failed: {e.message}")
+        raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
 @router.post("/{knowledge_base_id}", status_code=200)
