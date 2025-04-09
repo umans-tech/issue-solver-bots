@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { SpaceSelector } from '@/components/space-selector';
 import { SpaceRenameDialog } from '@/components/space-rename-dialog';
 import { SpaceCreateDialog } from '@/components/space-create-dialog';
+import { SpaceInviteDialog } from '@/components/space-invite-dialog';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { data: session, update: updateSession } = useSession();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [spaces, setSpaces] = useState<any[]>([]);
 
   const fetchSpaces = async () => {
@@ -71,8 +73,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   };
 
   const handleInviteToSpace = () => {
-    // TODO: Implement invite to space
-    console.log('Invite to space');
+    setIsInviteDialogOpen(true);
   };
 
   const handleRenameSpace = () => {
@@ -172,6 +173,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={handleCreateSuccess}
+      />
+      <SpaceInviteDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        spaceId={session?.user?.selectedSpace?.id || ''}
+        spaceName={session?.user?.selectedSpace?.name || ''}
       />
     </Sidebar>
   );
