@@ -239,3 +239,33 @@ export function getDocumentTimestampByIndex(
 
   return documents[index].createdAt;
 }
+
+export function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function generatePastelColor(text: string) {
+  if (!text || text === 'Default Space') {
+    // Dégradé par défaut plus visible et élégant
+    return 'linear-gradient(135deg, #00DC82 0%, #36E4DA 100%)';
+  }
+
+  // Génère une couleur basée sur le texte pour les autres cas
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const h = hash % 360;
+  // Augmentation de la saturation et ajustement de la luminosité pour plus de contraste
+  const s = 85 + (hash % 15); // Variation de saturation entre 85-100%
+  const l1 = 65 + (hash % 10); // Première couleur
+  const l2 = 45 + (hash % 15); // Deuxième couleur plus foncée pour meilleur contraste
+  
+  return `linear-gradient(135deg, hsl(${h}, ${s}%, ${l1}%) 0%, hsl(${h}, ${s}%, ${l2}%) 100%)`;
+}

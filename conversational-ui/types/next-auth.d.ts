@@ -11,6 +11,13 @@ declare module "next-auth" {
         processId?: string | null;
         isDefault?: boolean;
       } | null;
+      spaces?: Array<{
+        id: string;
+        name: string;
+        knowledgeBaseId?: string | null;
+        processId?: string | null;
+        isDefault?: boolean;
+      }>;
     } & DefaultSession["user"];
   }
 
@@ -23,5 +30,12 @@ declare module "next-auth" {
       processId?: string | null;
       isDefault?: boolean;
     } | null;
+    spaces?: Array<{
+      id: string;
+      name: string;
+      knowledgeBaseId?: string | null;
+      processId?: string | null;
+      isDefault?: boolean;
+    }>;
   }
 } 
