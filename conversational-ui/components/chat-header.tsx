@@ -129,15 +129,7 @@ function PureChatHeader({
         </Tooltip>
       )}
 
-      {!isReadonly && (
-        <VisibilitySelector
-          chatId={chatId}
-          selectedVisibilityType={selectedVisibilityType}
-          className="order-1 md:order-2"
-        />
-      )}
-
-      <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto">
+      <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-1 md:order-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -156,6 +148,16 @@ function PureChatHeader({
             {gitStatus === 'indexed' && 'Repository Indexing - Completed'}
           </TooltipContent>
         </Tooltip>
+        {!isReadonly && (
+          <VisibilitySelector
+            chatId={chatId}
+            selectedVisibilityType={selectedVisibilityType}
+            className="order-1"
+          />
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto">
         <ThemeToggle />
         <IconUmansLogo className="h-16 w-16" />
       </div>
