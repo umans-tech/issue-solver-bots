@@ -153,6 +153,7 @@ export function Chat({
         reload={reload}
         votes={votes}
         isReadonly={isReadonly}
+        selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}
       />
     </>
   );
