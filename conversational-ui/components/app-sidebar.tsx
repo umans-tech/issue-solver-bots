@@ -3,7 +3,7 @@
 import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { IconUmansChat, PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -29,6 +29,42 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { data: session, update: updateSession } = useSession();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [spaces, setSpaces] = useState<any[]>([]);
+
+  const fetchSpaces = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      console.log('Fetching spaces...');
+      const response = await fetch('/api/spaces/list');
+      if (!response.ok) {
+        throw new Error('Failed to fetch spaces');
+      }
+      const fetchedSpaces = await response.json();
+      console.log('Fetched spaces:', fetchedSpaces);
+      
+      setSpaces(fetchedSpaces);
+      
+      // Update session with spaces
+      await updateSession({
+        ...session,
+        user: {
+          ...session.user,
+          spaces: fetchedSpaces,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching spaces:', error);
+    }
+  };
+
+  // Charger la liste des spaces au chargement initial et quand la session change
+  useEffect(() => {
+    if (session?.user?.id) {
+      console.log('Session changed, fetching spaces...');
+      fetchSpaces();
+    }
+  }, [session?.user?.id]);
 
   const handleCreateSpace = () => {
     setIsCreateDialogOpen(true);
@@ -58,12 +94,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       }
 
       const newSpace = await response.json();
+      
+      // Find the space in our local state
+      const selectedSpace = spaces.find(space => space.id === spaceId);
 
-      // Update the session with the new space data
+      // Update the session with the new selected space and all spaces
       await updateSession({
+        ...session,
         user: {
           ...session?.user,
-          selectedSpace: newSpace,
+          selectedSpace: selectedSpace,
+          spaces: spaces,
         },
       });
 
@@ -74,6 +115,15 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
   };
 
+  const handleCreateSuccess = async () => {
+    // Recharger la liste des spaces après la création
+    console.log('Space created, refreshing list...');
+    await fetchSpaces();
+  };
+
+  console.log('Current session:', session);
+  console.log('Current spaces:', spaces);
+
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
       <SidebarHeader>
@@ -82,6 +132,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <SpaceSelector 
               spaceName={session?.user?.selectedSpace?.name || 'Chatbot'}
               spaceId={session?.user?.selectedSpace?.id || ''}
+              spaces={spaces}
               onCreateSpace={handleCreateSpace}
               onInviteToSpace={handleInviteToSpace}
               onRenameSpace={handleRenameSpace}
@@ -120,6 +171,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SpaceCreateDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
       />
     </Sidebar>
   );
