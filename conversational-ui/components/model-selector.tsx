@@ -1,6 +1,7 @@
 'use client';
 
-import { startTransition, useMemo, useOptimistic, useState } from 'react';
+import { startTransition, useMemo, useOptimistic, useState, useEffect } from 'react';
+import { useLocalStorage } from 'usehooks-ts';
 
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,14 @@ export function ModelSelector({
   selectedModelId: string;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
-  const [optimisticModelId, setOptimisticModelId] =
-    useOptimistic(selectedModelId);
+  const [optimisticModelId, setOptimisticModelId] = useOptimistic(selectedModelId);
+  const [storedModelId, setStoredModelId] = useLocalStorage('chat-model', selectedModelId);
+
+  useEffect(() => {
+    if (storedModelId !== selectedModelId) {
+      setOptimisticModelId(storedModelId);
+    }
+  }, [storedModelId, selectedModelId, setOptimisticModelId]);
 
   const selectedChatModel = useMemo(
     () => chatModels.find((chatModel) => chatModel.id === optimisticModelId),
@@ -35,16 +42,19 @@ export function ModelSelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
+          'w-fit data-[state=open]:bg-muted',
           className,
         )}
       >
-        <Button variant="outline" className="md:px-2 md:h-[34px]">
+        <Button 
+          variant="ghost" 
+          className="md:px-2 md:h-[34px] bg-muted hover:bg-muted text-muted-foreground text-sm"
+        >
           {selectedChatModel?.name}
-          <ChevronDownIcon />
+          <ChevronDownIcon size={16} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContent align="start" className="min-w-[300px] bg-muted border-muted">
         {chatModels.map((chatModel) => {
           const { id } = chatModel;
 
@@ -53,23 +63,22 @@ export function ModelSelector({
               key={id}
               onSelect={() => {
                 setOpen(false);
-
                 startTransition(() => {
                   setOptimisticModelId(id);
-                  saveChatModelAsCookie(id);
+                  setStoredModelId(id);
                 });
               }}
-              className="gap-4 group/item flex flex-row justify-between items-center"
+              className="gap-4 group/item flex flex-row justify-between items-center hover:bg-background"
               data-active={id === optimisticModelId}
             >
               <div className="flex flex-col gap-1 items-start">
-                <div>{chatModel.name}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-muted-foreground">{chatModel.name}</div>
+                <div className="text-xs text-muted-foreground/70">
                   {chatModel.description}
                 </div>
               </div>
 
-              <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+              <div className="text-muted-foreground opacity-0 group-data-[active=true]/item:opacity-100">
                 <CheckCircleFillIcon />
               </div>
             </DropdownMenuItem>

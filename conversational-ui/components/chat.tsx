@@ -9,6 +9,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
 import { fetcher, generateUUID } from '@/lib/utils';
+import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
 import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
@@ -31,6 +32,7 @@ export function Chat({
   isReadonly: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
   
   // Handle potential corrupt localStorage data
   const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export function Chat({
     id,
     body: { 
       id, 
-      selectedChatModel: selectedChatModel,
+      selectedChatModel: storedModelId || DEFAULT_CHAT_MODEL,
       knowledgeBaseId: knowledgeBaseIdState,
     },
     initialMessages,
@@ -101,7 +103,6 @@ export function Chat({
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           chatId={id}
-          selectedModelId={selectedChatModel}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
         />
@@ -131,6 +132,7 @@ export function Chat({
               messages={messages}
               setMessages={setMessages}
               append={append}
+              selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}
             />
           )}
         </form>

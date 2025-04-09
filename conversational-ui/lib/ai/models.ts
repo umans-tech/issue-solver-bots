@@ -2,7 +2,7 @@ import {openai} from '@ai-sdk/openai';
 import {customProvider,} from 'ai';
 import {anthropic} from "@ai-sdk/anthropic";
 
-export const DEFAULT_CHAT_MODEL: string = 'chat-model-small';
+export const DEFAULT_CHAT_MODEL: string = 'coding-model';
 
 export const myProvider = customProvider({
     languageModels: {
