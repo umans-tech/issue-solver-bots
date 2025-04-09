@@ -7,12 +7,23 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { getInitials, generatePastelColor } from '@/lib/utils';
+
+interface Space {
+  id: string;
+  name: string;
+  knowledgeBaseId?: string | null;
+  processId?: string | null;
+  isDefault?: boolean;
+}
 
 interface SpaceSelectorProps {
   spaceName: string;
   spaceId: string;
+  spaces: Space[];
   onCreateSpace?: () => void;
   onInviteToSpace?: () => void;
   onRenameSpace?: (newName: string) => void;
@@ -22,12 +33,12 @@ interface SpaceSelectorProps {
 export function SpaceSelector({ 
   spaceName,
   spaceId,
+  spaces,
   onCreateSpace,
   onInviteToSpace,
   onRenameSpace,
   onSwitchSpace
 }: SpaceSelectorProps) {
-  const { data: session } = useSession();
   const initials = getInitials(spaceName || 'Default Space');
   const backgroundImage = generatePastelColor(spaceName);
   
@@ -61,19 +72,27 @@ export function SpaceSelector({
           <span>Create New Space</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {session?.user?.spaces?.map((space) => (
-          <DropdownMenuItem
-            key={space.id}
-            onClick={() => onSwitchSpace?.(space.id)}
-            className={space.id === spaceId ? 'bg-muted' : ''}
-          >
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold text-white mr-2"
-              style={{ backgroundImage: generatePastelColor(space.name) }}>
-              {getInitials(space.name)}
-            </div>
-            <span>{space.name}</span>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Your Spaces</DropdownMenuLabel>
+          {spaces.map((space) => (
+            <DropdownMenuItem
+              key={space.id}
+              onClick={() => onSwitchSpace?.(space.id)}
+              className={`flex items-center ${space.id === spaceId ? 'bg-muted' : ''}`}
+            >
+              <div 
+                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold text-white mr-2"
+                style={{ backgroundImage: generatePastelColor(space.name) }}
+              >
+                {getInitials(space.name)}
+              </div>
+              <span className="flex-1 truncate">{space.name}</span>
+              {space.id === spaceId && (
+                <div className="w-2 h-2 rounded-full bg-primary ml-2" />
+              )}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onInviteToSpace}>
           <div className="mr-2">

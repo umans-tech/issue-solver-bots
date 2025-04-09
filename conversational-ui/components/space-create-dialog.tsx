@@ -14,11 +14,13 @@ import { Label } from '@/components/ui/label';
 interface SpaceCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function SpaceCreateDialog({
   open,
   onOpenChange,
+  onSuccess,
 }: SpaceCreateDialogProps) {
   const { data: session, update: updateSession } = useSession();
   const [name, setName] = useState('');
@@ -32,6 +34,7 @@ export function SpaceCreateDialog({
 
     setIsLoading(true);
     try {
+      console.log('Creating new space:', name);
       const response = await fetch('/api/spaces/create', {
         method: 'POST',
         headers: {
@@ -47,17 +50,23 @@ export function SpaceCreateDialog({
       }
 
       const newSpace = await response.json();
+      console.log('Created space:', newSpace);
 
       // Update the session with the new space data
-      await updateSession({
+      const updatedSession = {
+        ...session,
         user: {
           ...session?.user,
           selectedSpace: newSpace,
         },
-      });
+      };
+      
+      console.log('Updating session with:', updatedSession);
+      await updateSession(updatedSession);
 
       onOpenChange(false);
       setName('');
+      onSuccess?.();
     } catch (error) {
       console.error('Error creating space:', error);
     } finally {
