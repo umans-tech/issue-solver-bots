@@ -3,6 +3,7 @@
 import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 import { IconUmansChat, PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -17,13 +18,15 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { SpaceSelector } from './space-selector';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { SpaceSelector } from '@/components/space-selector';
+import { SpaceRenameDialog } from '@/components/space-rename-dialog';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const { data: session } = useSession();
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 
   const handleCreateSpace = () => {
     // TODO: Implement space creation
@@ -35,6 +38,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     console.log('Invite to space');
   };
 
+  const handleRenameSpace = () => {
+    setIsRenameDialogOpen(true);
+  };
+
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
       <SidebarHeader>
@@ -42,8 +49,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           <div className="flex flex-row justify-between items-center">
             <SpaceSelector 
               spaceName={session?.user?.selectedSpace?.name || 'Chatbot'}
+              spaceId={session?.user?.selectedSpace?.id || ''}
               onCreateSpace={handleCreateSpace}
               onInviteToSpace={handleInviteToSpace}
+              onRenameSpace={handleRenameSpace}
             />
             <Tooltip>
               <TooltipTrigger asChild>
@@ -69,6 +78,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarHistory user={user} />
       </SidebarContent>
       <SidebarFooter>{user && <SidebarUserNav user={user} />}</SidebarFooter>
+      <SpaceRenameDialog
+        open={isRenameDialogOpen}
+        onOpenChange={setIsRenameDialogOpen}
+        currentName={session?.user?.selectedSpace?.name || ''}
+        spaceId={session?.user?.selectedSpace?.id || ''}
+      />
     </Sidebar>
   );
 }
