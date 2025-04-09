@@ -2,10 +2,11 @@ import type { Message } from 'ai';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
+import { useRouter } from 'next/navigation';
 
 import type { Vote } from '@/lib/db/schema';
 
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
+import { CopyIcon, ThumbDownIcon, ThumbUpIcon, BranchIcon } from './icons';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -29,10 +30,45 @@ export function PureMessageActions({
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
+  const router = useRouter();
 
+  // Only hide actions when loading or when there are tool invocations
   if (isLoading) return null;
-  if (message.toolInvocations && message.toolInvocations.length > 0)
-    return null;
+  
+  // Check if message has tool invocations, but don't return null if it does
+  const hasToolInvocations = message.toolInvocations && message.toolInvocations.length > 0;
+
+  const handleBranch = async () => {
+    try {
+      const response = await fetch('/api/branch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceChatId: chatId,
+          messageId: message.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to branch conversation');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.newChatId) {
+        toast.success('Created new branch!');
+        // Navigate to the new chat
+        router.push(`/chat/${data.newChatId}`);
+      } else {
+        throw new Error('Failed to branch conversation');
+      }
+    } catch (error) {
+      console.error('Error branching conversation:', error);
+      toast.error('Failed to branch conversation');
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -53,8 +89,21 @@ export function PureMessageActions({
           <TooltipContent sideOffset={5} side="right">Copy</TooltipContent>
         </Tooltip>
 
-        {message.role === 'assistant' && (
+        {message.role === 'assistant' && !hasToolInvocations && (
           <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
+                  variant="ghost"
+                  onClick={handleBranch}
+                >
+                  <BranchIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent sideOffset={5} side="right">Branch Conversation</TooltipContent>
+            </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

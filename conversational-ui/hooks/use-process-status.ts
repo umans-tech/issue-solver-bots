@@ -33,17 +33,26 @@ export function useProcessStatus(
     isPollingRef.current = true;
     
     try {
-      console.log(`Polling status for process: ${processId}`);
+      // Only log in development environment
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Polling status for process: ${processId}`);
+      }
       
       const response = await fetch(`/api/processes/${processId}`);
       
       if (!response.ok) {
         errorCountRef.current += 1;
-        console.error(`Failed to fetch process status (attempt ${errorCountRef.current}):`, response.statusText);
+        
+        // Only log errors in development environment
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Failed to fetch process status (attempt ${errorCountRef.current}):`, response.statusText);
+        }
         
         // If we've had too many errors, stop polling
         if (errorCountRef.current >= 5) {
-          console.error('Too many polling errors, stopping poll');
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Too many polling errors, stopping poll');
+          }
           clearIntervalIfExists();
         }
         
@@ -56,12 +65,17 @@ export function useProcessStatus(
       
       const data = await response.json();
       
-      // Log the full response for debugging
-      console.log("Full process status API response:", data);
+      // Only log in development environment
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Full process status API response:", data);
+      }
       
       // Get status directly from the API response
       const processStatus = data.status?.toLowerCase() || '';
-      console.log(`Final extracted process status: "${processStatus}"`);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Final extracted process status: "${processStatus}"`);
+      }
       
       // Direct 1:1 mapping from API status to component status
       let newStatus: 'none' | 'indexing' | 'indexed';
@@ -76,7 +90,9 @@ export function useProcessStatus(
         newStatus = 'none';
       }
       
-      console.log(`Mapping API status "${processStatus}" to component status "${newStatus}"`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Mapping API status "${processStatus}" to component status "${newStatus}"`);
+      }
       
       // Update the status state
       setStatus(newStatus);
@@ -95,33 +111,32 @@ export function useProcessStatus(
               }
             }
           });
-          console.log("Session update successful");
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Session update successful");
+          }
         } catch (sessionError) {
-          console.error("Error updating session:", sessionError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Error updating session:", sessionError);
+          }
         }
       }
       
-      // Manage polling interval based on status
-      if (newStatus === 'indexing') {
-        // Only set up polling if not already polling
-        if (!intervalIdRef.current) {
-          console.log(`Setting up polling interval: ${pollInterval}ms for indexing status`);
-          intervalIdRef.current = setInterval(checkProcessStatus, pollInterval);
-        }
-      } else if (intervalIdRef.current) {
-        // For indexed or none status, stop polling
-        console.log(`Stopping polling for ${newStatus} status`);
+      // If the process is indexed, stop polling
+      if (newStatus === 'indexed') {
         clearIntervalIfExists();
       }
+      
     } catch (error) {
-      errorCountRef.current += 1;
-      console.error(`Error checking process status (attempt ${errorCountRef.current}):`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error checking process status:", error);
+      }
+    } finally {
+      isPollingRef.current = false;
     }
-    
-    isPollingRef.current = false;
   }
   
-  // Helper function to clear interval if it exists
+  // Function to clear the interval if it exists
   function clearIntervalIfExists() {
     if (intervalIdRef.current) {
       clearInterval(intervalIdRef.current);
@@ -129,30 +144,23 @@ export function useProcessStatus(
     }
   }
   
-  // This effect handles the polling and cleanup
+  // Set up polling when the component mounts or when processId changes
   useEffect(() => {
-    // Skip polling if no processId
-    if (!processId) {
-      setStatus('none');
-      clearIntervalIfExists();
-      return;
-    }
+    // Clear any existing interval
+    clearIntervalIfExists();
     
-    // Run the initial check
-    checkProcessStatus();
-    
-    // Start polling if we have a processId
-    if (processId && !intervalIdRef.current) {
-      console.log(`Setting up initial polling interval for indexing status`);
+    // If we have a process ID, start polling
+    if (processId) {
+      // Initial check
+      checkProcessStatus();
+      
+      // Set up interval for subsequent checks
       intervalIdRef.current = setInterval(checkProcessStatus, pollInterval);
     }
     
-    // Cleanup function to run when component unmounts or deps change
+    // Clean up on unmount or when processId changes
     return () => {
-      if (intervalIdRef.current) {
-        console.log('Cleaning up polling interval on unmount/deps change');
-        clearIntervalIfExists();
-      }
+      clearIntervalIfExists();
     };
   }, [processId, pollInterval]);
   
