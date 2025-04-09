@@ -1,4 +1,4 @@
-import { ChevronDownIcon, PlusIcon, UserPlusIcon } from 'lucide-react';
+import { ChevronDownIcon, PlusIcon, UserPlusIcon, PencilIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -40,12 +40,16 @@ function generatePastelColor(text: string) {
 
 export function SpaceSelector({ 
   spaceName,
+  spaceId,
   onCreateSpace,
-  onInviteToSpace 
+  onInviteToSpace,
+  onRenameSpace
 }: { 
   spaceName: string;
+  spaceId: string;
   onCreateSpace?: () => void;
   onInviteToSpace?: () => void;
+  onRenameSpace?: (newName: string) => void;
 }) {
   const initials = getInitials(spaceName || 'Default Space');
   const backgroundImage = generatePastelColor(spaceName);
@@ -55,10 +59,10 @@ export function SpaceSelector({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex items-center gap-2 px-2 hover:bg-muted rounded-md h-auto py-1"
+          className="flex items-center gap-2 px-2 hover:bg-muted rounded-md h-auto py-1 min-w-[200px]"
         >
           <div 
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-1 ring-white/10"
+            className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-1 ring-white/10"
             style={{ 
               backgroundImage,
               boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.15)'
@@ -66,8 +70,8 @@ export function SpaceSelector({
           >
             {initials}
           </div>
-          <span className="text-lg font-semibold">{spaceName || 'Default Space'}</span>
-          <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-lg font-semibold truncate flex-1">{spaceName || 'Default Space'}</span>
+          <ChevronDownIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
@@ -79,6 +83,11 @@ export function SpaceSelector({
         <DropdownMenuItem onClick={onInviteToSpace}>
           <UserPlusIcon className="mr-2 h-4 w-4" />
           <span>Invite to Space</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onRenameSpace?.(spaceName)}>
+          <PencilIcon className="mr-2 h-4 w-4" />
+          <span>Rename Space</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
