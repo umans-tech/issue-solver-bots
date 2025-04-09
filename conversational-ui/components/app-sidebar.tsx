@@ -108,8 +108,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         },
       });
 
-      // Refresh the page to update the UI
-      router.refresh();
+      // Force a full page reload to update all components
+      window.location.reload();
     } catch (error) {
       console.error('Error switching space:', error);
     }
