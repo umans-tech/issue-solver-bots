@@ -70,6 +70,7 @@ function PureArtifact({
   reload,
   votes,
   isReadonly,
+  selectedModelId,
 }: {
   chatId: string;
   input: string;
@@ -95,6 +96,7 @@ function PureArtifact({
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  selectedModelId: string;
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
@@ -348,6 +350,7 @@ function PureArtifact({
                     append={append}
                     className="bg-background dark:bg-muted"
                     setMessages={setMessages}
+                    selectedModelId={selectedModelId}
                   />
                 </form>
               </div>
