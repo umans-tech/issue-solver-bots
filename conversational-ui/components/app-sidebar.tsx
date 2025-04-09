@@ -21,16 +21,17 @@ import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SpaceSelector } from '@/components/space-selector';
 import { SpaceRenameDialog } from '@/components/space-rename-dialog';
+import { SpaceCreateDialog } from '@/components/space-create-dialog';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleCreateSpace = () => {
-    // TODO: Implement space creation
-    console.log('Create new space');
+    setIsCreateDialogOpen(true);
   };
 
   const handleInviteToSpace = () => {
@@ -40,6 +41,37 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   const handleRenameSpace = () => {
     setIsRenameDialogOpen(true);
+  };
+
+  const handleSwitchSpace = async (spaceId: string) => {
+    try {
+      const response = await fetch('/api/spaces/switch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ spaceId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to switch space');
+      }
+
+      const newSpace = await response.json();
+
+      // Update the session with the new space data
+      await updateSession({
+        user: {
+          ...session?.user,
+          selectedSpace: newSpace,
+        },
+      });
+
+      // Refresh the page to update the UI
+      router.refresh();
+    } catch (error) {
+      console.error('Error switching space:', error);
+    }
   };
 
   return (
@@ -53,6 +85,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               onCreateSpace={handleCreateSpace}
               onInviteToSpace={handleInviteToSpace}
               onRenameSpace={handleRenameSpace}
+              onSwitchSpace={handleSwitchSpace}
             />
             <Tooltip>
               <TooltipTrigger asChild>
@@ -83,6 +116,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         onOpenChange={setIsRenameDialogOpen}
         currentName={session?.user?.selectedSpace?.name || ''}
         spaceId={session?.user?.selectedSpace?.id || ''}
+      />
+      <SpaceCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
       />
     </Sidebar>
   );

@@ -1,41 +1,22 @@
-import { ChevronDownIcon, PlusIcon, UserPlusIcon, PencilIcon } from 'lucide-react';
-import { Button } from './ui/button';
+import { useSession } from 'next-auth/react';
+import { PlusIcon, UserIcon, PenIcon, ChevronDownIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
+import { getInitials, generatePastelColor } from '@/lib/utils';
 
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function generatePastelColor(text: string) {
-  if (!text || text === 'Default Space') {
-    // Dégradé par défaut plus visible et élégant
-    return 'linear-gradient(135deg, #00DC82 0%, #36E4DA 100%)';
-  }
-
-  // Génère une couleur basée sur le texte pour les autres cas
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = text.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  const h = hash % 360;
-  // Augmentation de la saturation et ajustement de la luminosité pour plus de contraste
-  const s = 85 + (hash % 15); // Variation de saturation entre 85-100%
-  const l1 = 65 + (hash % 10); // Première couleur
-  const l2 = 45 + (hash % 15); // Deuxième couleur plus foncée pour meilleur contraste
-  
-  return `linear-gradient(135deg, hsl(${h}, ${s}%, ${l1}%) 0%, hsl(${h}, ${s}%, ${l2}%) 100%)`;
+interface SpaceSelectorProps {
+  spaceName: string;
+  spaceId: string;
+  onCreateSpace?: () => void;
+  onInviteToSpace?: () => void;
+  onRenameSpace?: (newName: string) => void;
+  onSwitchSpace?: (spaceId: string) => void;
 }
 
 export function SpaceSelector({ 
@@ -43,14 +24,10 @@ export function SpaceSelector({
   spaceId,
   onCreateSpace,
   onInviteToSpace,
-  onRenameSpace
-}: { 
-  spaceName: string;
-  spaceId: string;
-  onCreateSpace?: () => void;
-  onInviteToSpace?: () => void;
-  onRenameSpace?: (newName: string) => void;
-}) {
+  onRenameSpace,
+  onSwitchSpace
+}: SpaceSelectorProps) {
+  const { data: session } = useSession();
   const initials = getInitials(spaceName || 'Default Space');
   const backgroundImage = generatePastelColor(spaceName);
   
@@ -71,22 +48,44 @@ export function SpaceSelector({
             {initials}
           </div>
           <span className="text-lg font-semibold truncate flex-1">{spaceName || 'Default Space'}</span>
-          <ChevronDownIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="flex-shrink-0">
+            <ChevronDownIcon size={16} />
+          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
         <DropdownMenuItem onClick={onCreateSpace}>
-          <PlusIcon className="mr-2 h-4 w-4" />
+          <div className="mr-2">
+            <PlusIcon size={16} />
+          </div>
           <span>Create New Space</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {session?.user?.spaces?.map((space) => (
+          <DropdownMenuItem
+            key={space.id}
+            onClick={() => onSwitchSpace?.(space.id)}
+            className={space.id === spaceId ? 'bg-muted' : ''}
+          >
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold text-white mr-2"
+              style={{ backgroundImage: generatePastelColor(space.name) }}>
+              {getInitials(space.name)}
+            </div>
+            <span>{space.name}</span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onInviteToSpace}>
-          <UserPlusIcon className="mr-2 h-4 w-4" />
+          <div className="mr-2">
+            <UserIcon size={16} />
+          </div>
           <span>Invite to Space</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRenameSpace?.(spaceName)}>
-          <PencilIcon className="mr-2 h-4 w-4" />
+          <div className="mr-2">
+            <PenIcon size={16} />
+          </div>
           <span>Rename Space</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
