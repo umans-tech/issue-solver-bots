@@ -3,7 +3,7 @@
 import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -135,6 +135,17 @@ const PurePreviewMessage = ({
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
+  // Debug message rendering - helpful for troubleshooting UI issues
+  useEffect(() => {
+    console.log(`Rendering message ${message.id}:`, {
+      role: message.role,
+      hasContent: !!message.content,
+      hasToolInvocations: !!(message.toolInvocations && message.toolInvocations.length > 0),
+      toolCount: message.toolInvocations?.length || 0,
+      isLoading
+    });
+  }, [message, isLoading]);
+
   // Combine all codebase search results
   const combinedCodebaseSearchResults = useMemo(() => {
     if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {
@@ -196,7 +207,21 @@ const PurePreviewMessage = ({
             },
           )}
         >
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-4 w-full relative">
+            {/* Consistent message actions position for assistant messages */}
+            {message.role === 'assistant' && mode === 'view' && (
+              <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0 z-10">
+                <MessageActions
+                  key={`action-${message.id}`}
+                  chatId={chatId}
+                  message={message}
+                  vote={vote}
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                />
+              </div>
+            )}
+            
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
@@ -217,8 +242,8 @@ const PurePreviewMessage = ({
 
             {(message.content || message.reasoning) && mode === 'view' && (
               <div className="flex flex-row gap-2 items-start relative">
-                <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0">
-                  {message.role === 'user' && !isReadonly && (
+                {message.role === 'user' && !isReadonly && (
+                  <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -233,19 +258,20 @@ const PurePreviewMessage = ({
                       </TooltipTrigger>
                       <TooltipContent sideOffset={5} side="right">Edit message</TooltipContent>
                     </Tooltip>
-                  )}
-                  <MessageActions
-                    key={`action-${message.id}`}
-                    chatId={chatId}
-                    message={message}
-                    vote={vote}
-                    isLoading={isLoading}
-                    isReadonly={isReadonly}
-                  />
-                </div>
+                    <MessageActions
+                      key={`action-${message.id}-user`}
+                      chatId={chatId}
+                      message={message}
+                      vote={vote}
+                      isLoading={isLoading}
+                      isReadonly={isReadonly}
+                    />
+                  </div>
+                )}
 
                 <div
-                  className={cn('flex flex-col gap-4 flex-1 overflow-hidden ml-8', {
+                  className={cn('flex flex-col gap-4 flex-1 overflow-hidden', {
+                    'ml-8': true,
                     'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                       message.role === 'user',
                   })}
@@ -271,112 +297,116 @@ const PurePreviewMessage = ({
 
             {message.toolInvocations && message.toolInvocations.length > 0 && (
               <div className="flex flex-col gap-4">
-                {message.toolInvocations.map((toolInvocation) => {
-                  const { toolName, toolCallId, state, args } = toolInvocation;
-                  // For TypeScript: explicitly access result via toolInvocation.result
-                  const result = 'result' in toolInvocation ? toolInvocation.result : undefined;
+                <div className={cn('flex flex-col gap-4 flex-1 overflow-hidden', {
+                  'ml-8': true,
+                })}>
+                  {message.toolInvocations.map((toolInvocation) => {
+                    const { toolName, toolCallId, state, args } = toolInvocation;
+                    // For TypeScript: explicitly access result via toolInvocation.result
+                    const result = 'result' in toolInvocation ? toolInvocation.result : undefined;
 
-                  // Handle codebase search animation separately
-                  if (toolName === 'codebaseSearch' && state === 'call') {
-                    return (
-                      <div className="text-muted-foreground" key={toolCallId}>
-                        <span className="animate-pulse">Searching the codebase...</span>
-                      </div>
-                    );
-                  }
-
-                  if (state === 'result') {
-                    // Skip individual codebase search results if we have multiple searches
-                    if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
-                      return null;
-                    }
-
-                    // Show single codebase search result normally
-                    if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
+                    // Handle codebase search animation separately
+                    if (toolName === 'codebaseSearch' && state === 'call') {
                       return (
-                        <div key={toolCallId} className="mt-3">
-                          {!isLoading && result && (
-                            <CodebaseSearchResult 
-                              state={state} 
-                              result={result}
-                            />
-                          )}
+                        <div className="text-muted-foreground" key={toolCallId}>
+                          <span className="animate-pulse">Searching the codebase...</span>
                         </div>
                       );
                     }
 
+                    if (state === 'result') {
+                      // Skip individual codebase search results if we have multiple searches
+                      if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
+                        return null;
+                      }
+
+                      // Show single codebase search result normally
+                      if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
+                        return (
+                          <div key={toolCallId} className="mt-3">
+                            {!isLoading && result && (
+                              <CodebaseSearchResult 
+                                state={state} 
+                                result={result}
+                              />
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={toolCallId}>
+                          {toolName === 'getWeather' ? (
+                            <Weather weatherAtLocation={result} />
+                          ) : toolName === 'createDocument' ? (
+                            <DocumentPreview
+                              isReadonly={isReadonly}
+                              result={result}
+                            />
+                          ) : toolName === 'updateDocument' ? (
+                            <DocumentToolResult
+                              type="update"
+                              result={result}
+                              isReadonly={isReadonly}
+                            />
+                          ) : toolName === 'requestSuggestions' ? (
+                            <DocumentToolResult
+                              type="request-suggestions"
+                              result={result}
+                              isReadonly={isReadonly}
+                            />
+                          ) : toolName === 'codebaseAssistant' ? (
+                            <div>
+                            </div>
+                          ) : (
+                            <pre>{JSON.stringify(result, null, 2)}</pre>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    // For states other than 'result' or 'running' during codebaseSearch
                     return (
-                      <div key={toolCallId}>
+                      <div
+                        key={toolCallId}
+                        className={cx({
+                          skeleton: ['getWeather'].includes(toolName),
+                        })}
+                      >
                         {toolName === 'getWeather' ? (
-                          <Weather weatherAtLocation={result} />
+                          <Weather />
                         ) : toolName === 'createDocument' ? (
-                          <DocumentPreview
-                            isReadonly={isReadonly}
-                            result={result}
-                          />
+                          <DocumentPreview isReadonly={isReadonly} args={args} />
                         ) : toolName === 'updateDocument' ? (
-                          <DocumentToolResult
+                          <DocumentToolCall
                             type="update"
-                            result={result}
+                            args={args}
                             isReadonly={isReadonly}
                           />
                         ) : toolName === 'requestSuggestions' ? (
-                          <DocumentToolResult
+                          <DocumentToolCall
                             type="request-suggestions"
-                            result={result}
+                            args={args}
                             isReadonly={isReadonly}
                           />
-                        ) : toolName === 'codebaseAssistant' ? (
-                          <div>
-                          </div>
-                        ) : (
-                          <pre>{JSON.stringify(result, null, 2)}</pre>
-                        )}
+                        ) : toolName === 'codebaseSearch' ? (
+                          // For codebaseSearch in other states, don't show anything
+                          null
+                        ) : null}
                       </div>
                     );
-                  }
-                  
-                  // For states other than 'result' or 'running' during codebaseSearch
-                  return (
-                    <div
-                      key={toolCallId}
-                      className={cx({
-                        skeleton: ['getWeather'].includes(toolName),
-                      })}
-                    >
-                      {toolName === 'getWeather' ? (
-                        <Weather />
-                      ) : toolName === 'createDocument' ? (
-                        <DocumentPreview isReadonly={isReadonly} args={args} />
-                      ) : toolName === 'updateDocument' ? (
-                        <DocumentToolCall
-                          type="update"
-                          args={args}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'requestSuggestions' ? (
-                        <DocumentToolCall
-                          type="request-suggestions"
-                          args={args}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'codebaseSearch' ? (
-                        // For codebaseSearch in other states, don't show anything
-                        null
-                      ) : null}
-                    </div>
-                  );
-                })}
+                  })}
 
-                {/* Display combined codebase search results at the end ONLY if we have multiple searches */}
-                {combinedCodebaseSearchResults && hasMultipleCodebaseSearches && !isLoading && (
-                  <div className="mt-3">
-                    <CodebaseSearchResult 
-                      state="result" 
-                      result={combinedCodebaseSearchResults}
-                    />
-                  </div>
-                )}
+                  {/* Display combined codebase search results at the end ONLY if we have multiple searches */}
+                  {combinedCodebaseSearchResults && hasMultipleCodebaseSearches && !isLoading && (
+                    <div className="mt-3">
+                      <CodebaseSearchResult 
+                        state="result" 
+                        result={combinedCodebaseSearchResults}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
