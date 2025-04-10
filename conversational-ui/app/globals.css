@@ -205,19 +205,45 @@
 
 /* Add gradient to dark mode */
 .dark body {
-    background: linear-gradient(135deg, hsla(260, 50%, 8%, 1) 0%, hsla(270, 50%, 10%, 1) 50%, hsla(280, 50%, 12%, 1) 100%);
+    background: linear-gradient(135deg, hsla(260, 50%, 6%, 1) 0%, hsla(270, 50%, 8%, 1) 50%, hsla(280, 50%, 10%, 1) 100%);
 }
 
 /* Add translucent effect to sidebar in dark mode */
 .dark [role="dialog"],
-.dark nav,
-.dark aside {
+.dark nav {
     background-color: hsla(270, 50%, 7%, 0.7) !important;
     backdrop-filter: blur(12px);
     border-right: 1px solid hsla(280, 50%, 25%, 0.2);
 }
 
-/* Add glass morphism to message container */
+/* Apply gradient to sidebar */
+.dark [data-sidebar="sidebar"] {
+    background: linear-gradient(175deg, hsla(270, 60%, 7%, 1) 0%, hsla(280, 60%, 10%, 1) 50%, hsla(290, 70%, 12%, 1) 100%) !important;
+    border-right: 1px solid hsla(280, 60%, 30%, 0.3) !important;
+    box-shadow: 2px 0 16px hsla(275, 80%, 5%, 0.4);
+}
+
+/* Add subtle animation to sidebar in dark mode */
+.dark [data-sidebar="sidebar"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(210deg, transparent 0%, hsla(285, 70%, 15%, 0.1) 50%, transparent 100%);
+    background-size: 200% 200%;
+    animation: gradientMove 15s ease infinite;
+    pointer-events: none;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+}
+
+/* Glass morphism to message container */
 .dark .bg-muted {
     background-color: hsla(270, 50%, 5%, 0.3) !important;
     backdrop-filter: blur(8px);
