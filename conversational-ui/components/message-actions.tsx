@@ -34,10 +34,10 @@ export function PureMessageActions({
   const [_, copyToClipboard] = useCopyToClipboard();
   const router = useRouter();
 
-  // Only hide actions when loading or when there are tool invocations
+  // Only hide actions when loading
   if (isLoading) return null;
   
-  // Check if message has tool invocations, but don't return null if it does
+  // Check if message has tool invocations but don't restrict functionality based on it
   const hasToolInvocations = message.toolInvocations && message.toolInvocations.length > 0;
 
   const handleBranch = async () => {
@@ -91,7 +91,7 @@ export function PureMessageActions({
           <TooltipContent sideOffset={5} side="right">Copy</TooltipContent>
         </Tooltip>
 
-        {message.role === 'assistant' && !hasToolInvocations && (
+        {message.role === 'assistant' && (
           <>
             <Tooltip>
               <TooltipTrigger asChild>
