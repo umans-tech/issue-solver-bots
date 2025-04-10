@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, GitIcon } from './icons';
+import { PlusIcon, GitIcon, CopyIcon } from './icons';
 import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -148,6 +149,47 @@ function PureChatHeader({
             {gitStatus === 'indexed' && 'Repository Indexing - Completed'}
           </TooltipContent>
         </Tooltip>
+        {isReadonly && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="order-2 md:order-1 md:px-2 px-2 md:h-fit"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/clone', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        sourceChatId: chatId,
+                      }),
+                    });
+                    
+                    if (!response.ok) {
+                      throw new Error('Failed to clone conversation');
+                    }
+                    
+                    const data = await response.json();
+                    if (data.success && data.newChatId) {
+                      toast.success('Created a clone of this conversation!');
+                      // Navigate to the new chat
+                      router.push(`/chat/${data.newChatId}`);
+                    }
+                  } catch (error) {
+                    console.error('Error cloning conversation:', error);
+                    toast.error('Failed to clone conversation');
+                  }
+                }}
+              >
+                <CopyIcon />
+                <span className="ml-2 hidden md:inline">Clone Conversation</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Clone this conversation</TooltipContent>
+          </Tooltip>
+        )}
         {!isReadonly && (
           <VisibilitySelector
             chatId={chatId}
