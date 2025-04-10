@@ -5,6 +5,8 @@ import { useChat } from 'ai/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -16,7 +18,6 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
-import { toast } from 'sonner';
 
 export function Chat({
   id,
@@ -33,6 +34,7 @@ export function Chat({
 }) {
   const { mutate } = useSWRConfig();
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
+  const router = useRouter();
   
   // Handle potential corrupt localStorage data
   const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<string | null>(null);
@@ -134,6 +136,46 @@ export function Chat({
               append={append}
               selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}
             />
+          )}
+          {isReadonly && (
+            <div className="w-full flex justify-center items-center">
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    // Call branch API with the last message ID
+                    const lastMessage = messages[messages.length - 1];
+                    const response = await fetch('/api/branch', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        sourceChatId: id,
+                        messageId: lastMessage.id,
+                      }),
+                    });
+                    
+                    if (!response.ok) {
+                      throw new Error('Failed to create conversation copy');
+                    }
+                    
+                    const data = await response.json();
+                    if (data.success && data.newChatId) {
+                      toast.success('Created new conversation from shared chat!');
+                      // Navigate to the new chat
+                      router.push(`/chat/${data.newChatId}`);
+                    }
+                  } catch (error) {
+                    console.error('Error continuing conversation:', error);
+                    toast.error('Failed to create conversation copy');
+                  }
+                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md"
+              >
+                Continue this conversation
+              </button>
+            </div>
           )}
         </form>
       </div>

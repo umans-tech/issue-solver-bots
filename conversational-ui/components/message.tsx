@@ -234,15 +234,14 @@ const PurePreviewMessage = ({
                       <TooltipContent sideOffset={5} side="right">Edit message</TooltipContent>
                     </Tooltip>
                   )}
-                  {!isReadonly && (
-                    <MessageActions
-                      key={`action-${message.id}`}
-                      chatId={chatId}
-                      message={message}
-                      vote={vote}
-                      isLoading={isLoading}
-                    />
-                  )}
+                  <MessageActions
+                    key={`action-${message.id}`}
+                    chatId={chatId}
+                    message={message}
+                    vote={vote}
+                    isLoading={isLoading}
+                    isReadonly={isReadonly}
+                  />
                 </div>
 
                 <div
