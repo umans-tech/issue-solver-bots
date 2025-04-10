@@ -59,38 +59,38 @@
         --sidebar-ring: 217.2 91.2% 59.8%;
     }
     .dark {
-        --background: 240 10% 3.9%;
+        --background: 270 50% 10%;
         --foreground: 0 0% 98%;
-        --card: 240 10% 3.9%;
+        --card: 270 50% 8%;
         --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
+        --popover: 270 50% 8%;
         --popover-foreground: 0 0% 98%;
         --primary: 0 0% 98%;
         --primary-foreground: 240 5.9% 10%;
-        --secondary: 240 3.7% 15.9%;
+        --secondary: 270 35% 15%;
         --secondary-foreground: 0 0% 98%;
-        --muted: 240 3.7% 15.9%;
+        --muted: 270 35% 15%;
         --muted-foreground: 240 5% 64.9%;
-        --accent: 240 3.7% 15.9%;
+        --accent: 270 40% 20%;
         --accent-foreground: 0 0% 98%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
+        --border: 270 40% 20%;
+        --input: 270 40% 20%;
         --ring: 240 4.9% 83.9%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-        --sidebar-background: 240 5.9% 10%;
+        --chart-1: 290 70% 60%;
+        --chart-2: 250 70% 60%;
+        --chart-3: 230 70% 60%;
+        --chart-4: 310 70% 60%;
+        --chart-5: 270 70% 60%;
+        --sidebar-background: 270 50% 6% / 0.85;
         --sidebar-foreground: 240 4.8% 95.9%;
-        --sidebar-primary: 224.3 76.3% 48%;
+        --sidebar-primary: 280 80% 60%;
         --sidebar-primary-foreground: 0 0% 100%;
-        --sidebar-accent: 240 3.7% 15.9%;
+        --sidebar-accent: 260 40% 20%;
         --sidebar-accent-foreground: 240 4.8% 95.9%;
-        --sidebar-border: 240 3.7% 15.9%;
-        --sidebar-ring: 217.2 91.2% 59.8%;
+        --sidebar-border: 270 40% 20% / 0.3;
+        --sidebar-ring: 280 80% 60%;
     }
 }
 
@@ -193,4 +193,52 @@
 * {
     max-width: 100%;
     box-sizing: border-box;
+}
+
+/* Add a glass-like effect to message composer */
+.dark form textarea {
+    background-color: hsla(270, 50%, 12%, 0.6) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid hsla(280, 70%, 30%, 0.3);
+    box-shadow: 0 4px 12px hsla(270, 70%, 5%, 0.2);
+}
+
+/* Add gradient to dark mode */
+.dark body {
+    background: linear-gradient(135deg, hsla(260, 50%, 8%, 1) 0%, hsla(270, 50%, 10%, 1) 50%, hsla(280, 50%, 12%, 1) 100%);
+}
+
+/* Add translucent effect to sidebar in dark mode */
+.dark [role="dialog"],
+.dark nav,
+.dark aside {
+    background-color: hsla(270, 50%, 7%, 0.7) !important;
+    backdrop-filter: blur(12px);
+    border-right: 1px solid hsla(280, 50%, 25%, 0.2);
+}
+
+/* Add glass morphism to message container */
+.dark .bg-muted {
+    background-color: hsla(270, 50%, 5%, 0.3) !important;
+    backdrop-filter: blur(8px);
+}
+
+/* Add subtle purple glow to icons in dark mode */
+.dark svg {
+    filter: drop-shadow(0 0 1px hsla(280, 100%, 70%, 0.2));
+}
+
+/* Add color gradients to buttons in dark mode */
+.dark button:hover {
+    background: linear-gradient(135deg, hsla(260, 50%, 20%, 0.7), hsla(280, 50%, 25%, 0.7)) !important;
+}
+
+.dark [role="button"]:hover {
+    background: linear-gradient(135deg, hsla(260, 50%, 20%, 0.7), hsla(280, 50%, 25%, 0.7)) !important;
+}
+
+/* Add subtle glow to active elements */
+.dark *:focus,
+.dark button:focus {
+    box-shadow: 0 0 0 2px hsla(280, 70%, 50%, 0.2) !important;
 }
