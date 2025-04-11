@@ -3,7 +3,7 @@ import {createDataStreamResponse, type Message, smoothStream, streamText,} from 
 import {auth} from '@/app/(auth)/auth';
 import {myProvider} from '@/lib/ai/models';
 import {systemPrompt} from '@/lib/ai/prompts';
-import {deleteChatById, getChatById, saveChat, saveMessages,} from '@/lib/db/queries';
+import {deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById,} from '@/lib/db/queries';
 import {generateUUID, getMostRecentUserMessage, sanitizeResponseMessages,} from '@/lib/utils';
 import {generateTitleFromUserMessage} from '../../actions';
 import {createDocument} from '@/lib/ai/tools/create-document';
@@ -156,6 +156,44 @@ export async function DELETE(request: Request) {
 
         return new Response('Chat deleted', {status: 200});
     } catch (error) {
+        return new Response('An error occurred while processing your request', {
+            status: 500,
+        });
+    }
+}
+
+export async function PATCH(request: Request) {
+    const {searchParams} = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+        return new Response('Not Found', {status: 404});
+    }
+
+    const session = await auth();
+
+    if (!session || !session.user) {
+        return new Response('Unauthorized', {status: 401});
+    }
+
+    try {
+        const chat = await getChatById({id});
+
+        if (!chat || chat.userId !== session.user.id) {
+            return new Response('Unauthorized', {status: 401});
+        }
+
+        const { title } = await request.json();
+        
+        if (!title || typeof title !== 'string' || title.trim() === '') {
+            return new Response('Invalid title', {status: 400});
+        }
+
+        await updateChatTitleById({chatId: id, title: title.trim()});
+
+        return new Response('Chat title updated', {status: 200});
+    } catch (error) {
+        console.error('Error updating chat title:', error);
         return new Response('An error occurred while processing your request', {
             status: 500,
         });
