@@ -115,7 +115,7 @@ function PureChatHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
               onClick={() => {
                 router.push('/');
@@ -131,11 +131,29 @@ function PureChatHeader({
       )}
 
       <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-1 md:order-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowRepoDialog(true)}
+            >
+              <GitIcon status={gitStatus} />
+              <span className="sr-only">Connect Repository</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {gitStatus === 'none' && 'Connect Repository'}
+            {gitStatus === 'indexing' && 'Repository Indexing - In Progress'}
+            {gitStatus === 'indexed' && 'Repository Indexing - Completed'}
+          </TooltipContent>
+        </Tooltip>
         {isReadonly && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 className="order-2 md:order-1 md:px-2 px-2 md:h-fit"
                 onClick={async () => {
                   try {
@@ -182,24 +200,6 @@ function PureChatHeader({
       </div>
 
       <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowRepoDialog(true)}
-            >
-              <GitIcon status={gitStatus} />
-              <span className="sr-only">Connect Repository</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {gitStatus === 'none' && 'Connect Repository'}
-            {gitStatus === 'indexing' && 'Repository Indexing - In Progress'}
-            {gitStatus === 'indexed' && 'Repository Indexing - Completed'}
-          </TooltipContent>
-        </Tooltip>
         <ThemeToggle />
         <IconUmansLogo className="h-16 w-16" />
       </div>

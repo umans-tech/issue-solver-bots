@@ -74,11 +74,11 @@ export function PureMessageActions({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-row gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
+              className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
               variant="ghost"
               onClick={async () => {
                 await copyToClipboard(message.content as string);
@@ -88,7 +88,7 @@ export function PureMessageActions({
               <CopyIcon />
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={5} side="right">Copy</TooltipContent>
+          <TooltipContent sideOffset={5} side="top">Copy</TooltipContent>
         </Tooltip>
 
         {message.role === 'assistant' && (
@@ -96,14 +96,14 @@ export function PureMessageActions({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
+                  className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
                   variant="ghost"
                   onClick={handleBranch}
                 >
                   <BranchIcon />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent sideOffset={5} side="right">Branch Conversation</TooltipContent>
+              <TooltipContent sideOffset={5} side="top">Branch Conversation</TooltipContent>
             </Tooltip>
 
             {!isReadonly && (
@@ -111,7 +111,7 @@ export function PureMessageActions({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
+                      className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
                       disabled={vote?.isUpvoted}
                       variant="ghost"
                       onClick={async () => {
@@ -157,13 +157,13 @@ export function PureMessageActions({
                       <ThumbUpIcon />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={5} side="right">Upvote Response</TooltipContent>
+                  <TooltipContent sideOffset={5} side="top">Upvote Response</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      className="py-1 px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
+                      className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
                       variant="ghost"
                       disabled={vote && !vote.isUpvoted}
                       onClick={async () => {
@@ -209,7 +209,7 @@ export function PureMessageActions({
                       <ThumbDownIcon />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={5} side="right">Downvote Response</TooltipContent>
+                  <TooltipContent sideOffset={5} side="top">Downvote Response</TooltipContent>
                 </Tooltip>
               </>
             )}

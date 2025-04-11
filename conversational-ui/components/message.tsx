@@ -208,19 +208,7 @@ const PurePreviewMessage = ({
           )}
         >
           <div className="flex flex-col gap-4 w-full relative">
-            {/* Consistent message actions position for assistant messages */}
-            {message.role === 'assistant' && mode === 'view' && (
-              <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0 z-10">
-                <MessageActions
-                  key={`action-${message.id}`}
-                  chatId={chatId}
-                  message={message}
-                  vote={vote}
-                  isLoading={isLoading}
-                  isReadonly={isReadonly}
-                />
-              </div>
-            )}
+            {/* Remove the assistant action buttons from left position */}
             
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
@@ -241,14 +229,23 @@ const PurePreviewMessage = ({
             )}
 
             {(message.content || message.reasoning) && mode === 'view' && (
-              <div className="flex flex-row gap-2 items-start relative">
-                {message.role === 'user' && !isReadonly && (
-                  <div className="flex flex-col gap-1 mt-1 absolute left-0 top-0">
+              <div className="flex flex-col gap-2 items-start w-full">
+                <div
+                  className={cn('flex flex-col gap-4 overflow-hidden w-full', {
+                    'bg-primary text-primary-foreground px-3 py-2 rounded-lg':
+                      message.role === 'user',
+                  })}
+                >
+                  <Markdown>{message.content as string}</Markdown>
+                </div>
+
+                <div className="flex flex-row gap-1 mt-1 ml-auto">
+                  {message.role === 'user' && !isReadonly && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                          className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
                           onClick={() => {
                             setMode('edit');
                           }}
@@ -256,27 +253,17 @@ const PurePreviewMessage = ({
                           <PencilEditIcon />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent sideOffset={5} side="right">Edit message</TooltipContent>
+                      <TooltipContent sideOffset={5}>Edit message</TooltipContent>
                     </Tooltip>
-                    <MessageActions
-                      key={`action-${message.id}-user`}
-                      chatId={chatId}
-                      message={message}
-                      vote={vote}
-                      isLoading={isLoading}
-                      isReadonly={isReadonly}
-                    />
-                  </div>
-                )}
-
-                <div
-                  className={cn('flex flex-col gap-4 flex-1 overflow-hidden', {
-                    'ml-8': true,
-                    'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
-                      message.role === 'user',
-                  })}
-                >
-                  <Markdown>{message.content as string}</Markdown>
+                  )}
+                  <MessageActions
+                    key={`action-${message.id}-user`}
+                    chatId={chatId}
+                    message={message}
+                    vote={vote}
+                    isLoading={isLoading}
+                    isReadonly={isReadonly}
+                  />
                 </div>
               </div>
             )}
@@ -297,9 +284,7 @@ const PurePreviewMessage = ({
 
             {message.toolInvocations && message.toolInvocations.length > 0 && (
               <div className="flex flex-col gap-4">
-                <div className={cn('flex flex-col gap-4 flex-1 overflow-hidden', {
-                  'ml-8': true,
-                })}>
+                <div className={cn('flex flex-col gap-4 overflow-hidden w-full')}>
                   {message.toolInvocations.map((toolInvocation) => {
                     const { toolName, toolCallId, state, args } = toolInvocation;
                     // For TypeScript: explicitly access result via toolInvocation.result
@@ -407,6 +392,20 @@ const PurePreviewMessage = ({
                     </div>
                   )}
                 </div>
+                
+                {/* Only show actions here if there's no message content (to avoid duplication) */}
+                {message.role === 'assistant' && !message.content && (
+                  <div className="flex flex-row gap-1 mt-1 ml-auto">
+                    <MessageActions
+                      key={`action-${message.id}-tools`}
+                      chatId={chatId}
+                      message={message}
+                      vote={vote}
+                      isLoading={isLoading}
+                      isReadonly={isReadonly}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
