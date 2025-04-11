@@ -348,6 +348,21 @@ export async function updateChatVisiblityById({
   }
 }
 
+export async function updateChatTitleById({
+  chatId,
+  title,
+}: {
+  chatId: string;
+  title: string;
+}) {
+  try {
+    return await db.update(chat).set({ title }).where(eq(chat.id, chatId));
+  } catch (error) {
+    console.error('Failed to update chat title in database');
+    throw error;
+  }
+}
+
 // Space-related queries
 
 /**

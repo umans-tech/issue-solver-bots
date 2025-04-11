@@ -13,6 +13,7 @@ import {
   GlobeIcon,
   LockIcon,
   MoreHorizontalIcon,
+  PencilEditIcon,
   ShareIcon,
   TrashIcon,
 } from '@/components/icons';
@@ -49,6 +50,7 @@ import {
 import type { Chat } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { ChatRenameDialog } from './chat-rename-dialog';
 
 type GroupedChats = {
   today: Chat[];
@@ -63,22 +65,30 @@ const PureChatItem = ({
   isActive,
   onDelete,
   setOpenMobile,
+  mutate,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
+  mutate: (...args: any[]) => any;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
     initialVisibility: chat.visibility,
   });
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [localTitle, setLocalTitle] = useState(chat.title);
+
+  useEffect(() => {
+    setLocalTitle(chat.title);
+  }, [chat.title]);
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive}>
         <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span>{chat.title}</span>
+          <span>{localTitle}</span>
         </Link>
       </SidebarMenuButton>
 
@@ -94,6 +104,14 @@ const PureChatItem = ({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent side="bottom" align="end">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() => setShowRenameDialog(true)}
+          >
+            <PencilEditIcon />
+            <span>Rename</span>
+          </DropdownMenuItem>
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
               <ShareIcon />
@@ -140,12 +158,28 @@ const PureChatItem = ({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ChatRenameDialog
+        open={showRenameDialog}
+        onOpenChange={setShowRenameDialog}
+        chatId={chat.id}
+        currentTitle={localTitle}
+        onSuccess={(newTitle: string) => {
+          setLocalTitle(newTitle);
+          mutate();
+        }}
+      />
     </SidebarMenuItem>
   );
 };
 
 export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
-  if (prevProps.isActive !== nextProps.isActive) return false;
+  if (
+    prevProps.isActive !== nextProps.isActive ||
+    prevProps.chat.title !== nextProps.chat.title
+  ) {
+    return false;
+  }
   return true;
 });
 
@@ -157,14 +191,14 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const {
     data: history,
     isLoading,
-    mutate,
+    mutate: refreshHistory,
   } = useSWR<Array<Chat>>(user ? '/api/history' : null, fetcher, {
     fallbackData: [],
   });
 
   useEffect(() => {
-    mutate();
-  }, [pathname, mutate]);
+    refreshHistory();
+  }, [pathname, refreshHistory]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -177,7 +211,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     toast.promise(deletePromise, {
       loading: 'Deleting chat...',
       success: () => {
-        mutate((history) => {
+        refreshHistory((history) => {
           if (history) {
             return history.filter((h) => h.id !== id);
           }
@@ -306,6 +340,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setShowDeleteDialog(true);
                             }}
                             setOpenMobile={setOpenMobile}
+                            mutate={refreshHistory}
                           />
                         ))}
                       </>
@@ -326,6 +361,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setShowDeleteDialog(true);
                             }}
                             setOpenMobile={setOpenMobile}
+                            mutate={refreshHistory}
                           />
                         ))}
                       </>
@@ -346,6 +382,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setShowDeleteDialog(true);
                             }}
                             setOpenMobile={setOpenMobile}
+                            mutate={refreshHistory}
                           />
                         ))}
                       </>
@@ -366,6 +403,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setShowDeleteDialog(true);
                             }}
                             setOpenMobile={setOpenMobile}
+                            mutate={refreshHistory}
                           />
                         ))}
                       </>
@@ -386,6 +424,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setShowDeleteDialog(true);
                             }}
                             setOpenMobile={setOpenMobile}
+                            mutate={refreshHistory}
                           />
                         ))}
                       </>
