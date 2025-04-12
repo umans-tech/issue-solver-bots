@@ -598,3 +598,22 @@ form textarea::-webkit-scrollbar {
 .dark [role="option"][aria-selected="true"] {
     background: linear-gradient(135deg, hsla(270, 60%, 15%, 0.7), hsla(280, 60%, 18%, 0.7)) !important;
 }
+
+/* Remove focus styles after mouse clicks while preserving keyboard navigation accessibility */
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+.btn:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+    ring-offset: none !important;
+    border-color: transparent !important;
+}
+
+/* Ensure keyboard navigation still shows focus styles */
+button:focus-visible,
+[role="button"]:focus-visible,
+.btn:focus-visible {
+    outline: 2px solid var(--ring) !important;
+    outline-offset: 2px !important;
+}
