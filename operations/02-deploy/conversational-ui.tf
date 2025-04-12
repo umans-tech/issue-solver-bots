@@ -93,6 +93,12 @@ resource "vercel_project_environment_variables" "env_vars" {
       sensitive = true
     },
     {
+      key       = "EXA_API_KEY"
+      value     = var.exa_api_key
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
       key   = "ANTHROPIC_BASE_URL"
       value = var.anthropic_base_url
       target = [local.vercel_deployment_target]

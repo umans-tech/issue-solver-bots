@@ -36,6 +36,12 @@ variable "anthropic_api_key" {
   default   = ""
 }
 
+variable "exa_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "vercel_api_token" {
   description = "Vercel API Token"
   type        = string
