@@ -18,6 +18,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
+import { WebSearch, WebSearchAnimation, getCombinedWebSearchResults, hasMultipleWebSearchesCalls } from './web-search';
 import equal from 'fast-deep-equal';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -31,15 +32,6 @@ const SearchingAnimation = () => (
   <div className="flex flex-col w-full">
     <div className="text-muted-foreground">
       <span className="animate-pulse">Searching the codebase...</span>
-    </div>
-  </div>
-);
-
-// Component to display web search animation
-const WebSearchAnimation = () => (
-  <div className="flex flex-col w-full">
-    <div className="text-muted-foreground">
-      <span className="animate-pulse">Searching the web...</span>
     </div>
   </div>
 );
@@ -121,126 +113,6 @@ const CodebaseSearchResult = ({
   );
 };
 
-// Component to display web search results
-const WebSearchResult = ({
-  result
-}: {
-  result: any;
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  if (!result || !Array.isArray(result)) {
-    return null;
-  }
-  
-  // Get the site favicon for each source
-  const getFaviconUrl = (url: string) => {
-    try {
-      const domain = new URL(url).hostname;
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-    } catch (e) {
-      return undefined;
-    }
-  };
-  
-  const visibleSources = result.slice(0, 3);
-  
-  return (
-    <div className="mt-1">
-      {!expanded ? (
-        <div 
-          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setExpanded(true)}
-        >
-          {visibleSources.map((source, index) => {
-            const faviconUrl = getFaviconUrl(source.url);
-            return (
-              <div key={index} className="flex items-center">
-                {faviconUrl && (
-                  <img 
-                    src={faviconUrl} 
-                    alt="" 
-                    className="w-4 h-4 rounded-sm" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
-          <span>Sources</span>
-        </div>
-      ) : (
-        <div className="rounded-md border border-border overflow-hidden bg-background">
-          <div 
-            className="py-2 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
-            onClick={() => setExpanded(false)}
-          >
-            <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-sm font-medium">Sources</span>
-            </div>
-            <button 
-              className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
-              aria-label="Close sources"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(false);
-              }}
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div className="flex flex-col divide-y divide-border/50">
-            {result.map((source, index) => (
-              <div key={index} className="flex flex-col gap-1 p-3">
-                <div className="flex items-start gap-2">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <img 
-                      src={getFaviconUrl(source.url)} 
-                      alt="" 
-                      className="w-5 h-5 rounded-sm" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-0">
-                    <a 
-                      href={source.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-base font-medium text-primary hover:underline line-clamp-1"
-                    >
-                      {source.title || 'Untitled Source'}
-                    </a>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {source.url}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -312,42 +184,7 @@ const PurePreviewMessage = ({
   }, [message.toolInvocations, isLoading]);
 
   // Combine all web search results
-  const combinedWebSearchResults = useMemo(() => {
-    if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {
-      return null;
-    }
-    
-    // Get all web search results
-    const webSearchResults = message.toolInvocations
-      .filter(tool => 
-        tool.toolName === 'webSearch' && 
-        tool.state === 'result' && 
-        'result' in tool
-      )
-      .map(tool => tool.state === 'result' ? tool.result : undefined)
-      .filter(result => result !== undefined);
-    
-    if (webSearchResults.length === 0) {
-      return null;
-    }
-    
-    // Combine all results, ensuring no duplicate URLs
-    const urlSet = new Set();
-    const combinedResults = [];
-    
-    for (const result of webSearchResults) {
-      if (!Array.isArray(result)) continue;
-      
-      for (const source of result) {
-        if (source && source.url && !urlSet.has(source.url)) {
-          urlSet.add(source.url);
-          combinedResults.push(source);
-        }
-      }
-    }
-    
-    return combinedResults.length > 0 ? combinedResults : null;
-  }, [message.toolInvocations, isLoading]);
+  const combinedWebSearchResults = getCombinedWebSearchResults(message, isLoading);
 
   // Check if we should render codebase search results separately or combined
   const hasMultipleCodebaseSearches = useMemo(() => {
@@ -358,12 +195,7 @@ const PurePreviewMessage = ({
   }, [message.toolInvocations]);
 
   // Check if we should render web search results separately or combined
-  const hasMultipleWebSearches = useMemo(() => {
-    if (!message.toolInvocations) return false;
-    return message.toolInvocations.filter(
-      tool => tool.toolName === 'webSearch' && tool.state === 'result'
-    ).length > 1;
-  }, [message.toolInvocations]);
+  const hasMultipleWebSearches = hasMultipleWebSearchesCalls(message);
 
   return (
     <AnimatePresence>
@@ -476,11 +308,7 @@ const PurePreviewMessage = ({
 
                     // Handle web search animation separately
                     if (toolName === 'webSearch' && state === 'call') {
-                      return (
-                        <div className="text-muted-foreground" key={toolCallId}>
-                          <span className="animate-pulse">Searching the web...</span>
-                        </div>
-                      );
+                      return <WebSearchAnimation key={toolCallId} />;
                     }
 
                     if (state === 'result') {
@@ -513,7 +341,7 @@ const PurePreviewMessage = ({
                         return (
                           <div key={toolCallId} className="mt-3">
                             {!isLoading && result && (
-                              <WebSearchResult result={result} />
+                              <WebSearch result={result} />
                             )}
                           </div>
                         );
@@ -598,7 +426,7 @@ const PurePreviewMessage = ({
                   {/* Display combined web search results at the end ONLY if we have multiple searches */}
                   {combinedWebSearchResults && hasMultipleWebSearches && !isLoading && (
                     <div className="mt-3">
-                      <WebSearchResult result={combinedWebSearchResults} />
+                      <WebSearch result={combinedWebSearchResults} />
                     </div>
                   )}
                 </div>
