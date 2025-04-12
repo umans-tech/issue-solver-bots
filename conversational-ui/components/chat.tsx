@@ -7,6 +7,7 @@ import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -139,7 +140,8 @@ export function Chat({
           )}
           {isReadonly && (
             <div className="w-full flex justify-center items-center">
-              <button
+              <Button
+                variant="outline"
                 onClick={async (e) => {
                   e.preventDefault();
                   try {
@@ -171,10 +173,9 @@ export function Chat({
                     toast.error('Failed to create conversation copy');
                   }
                 }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md"
               >
                 Continue this conversation
-              </button>
+              </Button>
             </div>
           )}
         </form>
