@@ -12,7 +12,7 @@ import {requestSuggestions} from '@/lib/ai/tools/request-suggestions';
 import {getWeather} from '@/lib/ai/tools/get-weather';
 import {codebaseAssistant} from '@/lib/ai/tools/codebase-assistant';
 import {codebaseSearch} from '@/lib/ai/tools/codebase-search';
-
+import { webSearch } from '@/lib/ai/tools/web_search';
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
                     'requestSuggestions',
                     'codebaseAssistant',
                     'codebaseSearch',
+                    'webSearch',
                 ],
                 experimental_transform: smoothStream({chunking: 'word'}),
                 experimental_generateMessageId: generateUUID,
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
                         session: Object.assign({}, session, { knowledgeBaseId }),
                         dataStream,
                     }),
+                    webSearch: webSearch,
                 },
                 onFinish: async ({response, reasoning}) => {
                     if (session.user?.id) {
