@@ -344,10 +344,11 @@
 
 /* Enhance message composer textarea - dark mode */
 .dark form textarea {
-    background-color: hsla(270, 50%, 18%, 0.7) !important;
+    background-color: hsla(270, 40%, 22%, 0.8) !important;
     backdrop-filter: blur(10px);
-    border: 1px solid hsla(280, 70%, 30%, 0.25) !important;
-    box-shadow: 0 4px 12px hsla(270, 70%, 5%, 0.2);
+    border: 1px solid hsla(280, 50%, 40%, 0.4) !important;
+    box-shadow: 0 4px 12px hsla(275, 20%, 8%, 0.3),
+                inset 0 0 8px hsla(280, 50%, 25%, 0.15);
     transition: all 0.3s ease;
     border-radius: 12px;
     outline: none !important;
@@ -357,7 +358,7 @@
 
 /* Override any Tailwind border utilities - dark mode */
 .dark form textarea[class*="border"] {
-    border: 1px solid hsla(280, 70%, 30%, 0.25) !important;
+    border: 1px solid hsla(280, 50%, 40%, 0.4) !important;
 }
 
 /* Add glow effect when textarea is focused - dark mode */
@@ -432,7 +433,7 @@ form textarea::-webkit-scrollbar {
 
 /* Glass morphism to message container - dark mode */
 .dark .bg-muted {
-    background-color: hsla(270, 50%, 5%, 0.3) !important;
+    background-color: hsla(270, 35%, 20%, 0.6) !important;
     backdrop-filter: blur(8px);
 }
 
