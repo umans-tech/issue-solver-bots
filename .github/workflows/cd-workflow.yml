@@ -204,6 +204,7 @@ jobs:
           TF_VAR_openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
+          TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
@@ -244,6 +245,7 @@ jobs:
           TF_VAR_openai_api_key: ${{ secrets.TF_VAR_OPENAI_API_KEY }}
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
+          TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
