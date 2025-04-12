@@ -65,7 +65,7 @@ export function WebSearch({ result }: WebSearchProps) {
               </div>
             );
           })}
-          <span>Sources</span>
+          <span className="text-xs font-medium text-muted-foreground">Sources</span>
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden bg-background">
@@ -74,7 +74,7 @@ export function WebSearch({ result }: WebSearchProps) {
             onClick={() => setExpanded(false)}
           >
             <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-sm font-medium">Sources</span>
+              <span className="text-xs font-medium text-muted-foreground">Sources</span>
             </div>
             <button 
               className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
