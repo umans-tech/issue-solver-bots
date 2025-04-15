@@ -7,7 +7,7 @@ export const DEFAULT_CHAT_MODEL: string = 'coding-model';
 export const myProvider = customProvider({
     languageModels: {
         'chat-model-small': openai('gpt-4o-mini'),
-        'chat-model-large': openai('gpt-4o'),
+        'chat-model-large': openai('gpt-4.1'),
         'chat-model-reasoning': openai('o3-mini'),
         'coding-model-light': anthropic('claude-3-5-sonnet-latest'),
         'coding-model': anthropic('claude-3-7-sonnet-latest'),
