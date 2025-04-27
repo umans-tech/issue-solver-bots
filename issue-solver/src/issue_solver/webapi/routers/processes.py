@@ -7,6 +7,11 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    CodingAgentImplementationCompleted,
+    CodingAgentImplementationFailed,
+    CodingAgentImplementationStarted,
+    CodingAgentRequested,
+    PullRequestCreated,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -49,6 +54,16 @@ class ProcessTimelineView(BaseModel):
                 status = "indexed"
             case RepositoryIndexationRequested():
                 status = "indexing"
+            case CodingAgentRequested():
+                status = "coding_agent_requested"
+            case CodingAgentImplementationStarted():
+                status = "coding_agent_implementation_started"
+            case CodingAgentImplementationCompleted():
+                status = "coding_agent_implementation_completed"
+            case CodingAgentImplementationFailed():
+                status = "coding_agent_implementation_failed"
+            case PullRequestCreated():
+                status = "pull_request_created"
             case _:
                 status = "unknown"
         return status

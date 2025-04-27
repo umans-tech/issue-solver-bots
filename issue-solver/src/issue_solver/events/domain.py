@@ -56,11 +56,64 @@ class RepositoryIndexationRequested(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class CodingAgentRequested(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    task_description: str
+    branch_name: str
+    pr_title: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CodingAgentImplementationStarted(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CodingAgentImplementationCompleted(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CodingAgentImplementationFailed(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+    error_type: str
+    error_message: str
+
+
+@dataclass(frozen=True, slots=True)
+class PullRequestCreated(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    pr_title: str
+    pr_description: str
+    pr_url: str
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryIntegrationFailed
     | CodeRepositoryIndexed
     | RepositoryIndexationRequested
+    | CodingAgentRequested
+    | CodingAgentImplementationStarted
+    | CodingAgentImplementationCompleted
+    | CodingAgentImplementationFailed
+    | PullRequestCreated
 )
 
 T = TypeVar("T", bound=AnyDomainEvent)

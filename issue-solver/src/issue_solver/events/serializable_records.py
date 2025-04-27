@@ -7,6 +7,11 @@ from issue_solver.events.domain import (
     CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    CodingAgentRequested,
+    CodingAgentImplementationStarted,
+    CodingAgentImplementationCompleted,
+    CodingAgentImplementationFailed,
+    PullRequestCreated,
     T,
 )
 from pydantic import BaseModel
@@ -22,6 +27,14 @@ def get_record_type(event_type: Type[T]) -> str:
             return "repository_indexed"
         case type() if event_type is RepositoryIndexationRequested:
             return "repository_indexation_requested"
+        case type() if event_type is CodingAgentRequested:
+            return "coding_agent_requested"
+        case type() if event_type is CodingAgentImplementationStarted:
+            return "coding_agent_implementation_started"
+        case type() if event_type is CodingAgentImplementationCompleted:
+            return "coding_agent_implementation_completed"
+        case type() if event_type is CodingAgentImplementationFailed:
+            return "coding_agent_implementation_failed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -131,6 +144,43 @@ class CodeRepositoryIndexedRecord(BaseModel):
         )
 
 
+class PullRequestCreatedRecord(BaseModel):
+    type: Literal["pull_request_created"] = "pull_request_created"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+    pr_title: str
+    pr_description: str
+    pr_url: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> PullRequestCreated:
+        return PullRequestCreated(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+            pr_title=self.pr_title,
+            pr_description=self.pr_description,
+            pr_url=self.pr_url,
+        )
+
+    @classmethod
+    def create_from(cls, event: PullRequestCreated) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+            pr_title=event.pr_title,
+            pr_description=event.pr_description,
+            pr_url=event.pr_url,
+        )   
+
+
 class RepositoryIndexationRequestedRecord(BaseModel):
     type: Literal["repository_indexation_requested"] = "repository_indexation_requested"
     occurred_at: datetime
@@ -159,11 +209,140 @@ class RepositoryIndexationRequestedRecord(BaseModel):
         )
 
 
+class CodingAgentRequestedRecord(BaseModel):
+    type: Literal["coding_agent_requested"] = "coding_agent_requested"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+    task_description: str
+    branch_name: str
+    pr_title: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodingAgentRequested:
+        return CodingAgentRequested(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+            task_description=self.task_description,
+            branch_name=self.branch_name,
+            pr_title=self.pr_title,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodingAgentRequested) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+        )
+
+
+class CodingAgentImplementationStartedRecord(BaseModel):
+    type: Literal["coding_agent_implementation_started"] = "coding_agent_implementation_started"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodingAgentImplementationStarted:
+        return CodingAgentImplementationStarted(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodingAgentImplementationStarted) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+        )
+
+
+class CodingAgentImplementationCompletedRecord(BaseModel):
+    type: Literal["coding_agent_implementation_completed"] = "coding_agent_implementation_completed"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodingAgentImplementationCompleted:
+        return CodingAgentImplementationCompleted(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodingAgentImplementationCompleted) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+        )
+
+
+class CodingAgentImplementationFailedRecord(BaseModel):
+    type: Literal["coding_agent_implementation_failed"] = "coding_agent_implementation_failed"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    user_id: str
+    error_type: str
+    error_message: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> CodingAgentImplementationFailed:
+        return CodingAgentImplementationFailed(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            user_id=self.user_id,
+            error_type=self.error_type,
+            error_message=self.error_message,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodingAgentImplementationFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            user_id=event.user_id,
+            error_type=event.error_type,
+            error_message=event.error_message,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryIntegrationFailedRecord
     | CodeRepositoryIndexedRecord
     | RepositoryIndexationRequestedRecord
+    | CodingAgentRequestedRecord
+    | CodingAgentImplementationStartedRecord
+    | CodingAgentImplementationCompletedRecord
+    | CodingAgentImplementationFailedRecord
+    | PullRequestCreatedRecord
 )
 
 
@@ -181,6 +360,12 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return CodeRepositoryIndexedRecord.create_from(event)
         case RepositoryIndexationRequested():
             return RepositoryIndexationRequestedRecord.create_from(event)
+        case CodingAgentRequested():
+            return CodingAgentRequestedRecord.create_from(event)
+        case CodingAgentImplementationStarted():
+            return CodingAgentImplementationStartedRecord.create_from(event)
+        case CodingAgentImplementationCompleted():
+            return CodingAgentImplementationCompletedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -201,6 +386,26 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "repository_indexation_requested":
             return RepositoryIndexationRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "coding_agent_requested":
+            return CodingAgentRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "coding_agent_implementation_started":
+            return CodingAgentImplementationStartedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "coding_agent_implementation_completed":
+            return CodingAgentImplementationCompletedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "coding_agent_implementation_failed":
+            return CodingAgentImplementationFailedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "pull_request_created":
+            return PullRequestCreatedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

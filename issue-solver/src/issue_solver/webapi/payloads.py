@@ -66,3 +66,11 @@ class ConnectRepositoryRequest(BaseSchema):
     access_token: str
     user_id: str = Field(default="")
     space_id: str = Field(default="")
+
+
+class CodingAgentRequest(BaseSchema):
+    task_description: str
+    branch_name: str
+    pr_title: str
+    user_id: str = Field(default="")
+    space_id: str = Field(default="")
