@@ -108,8 +108,13 @@ function PureChatHeader({
   }, [gitStatus, knowledgeBaseId, processId]);
 
   return (
-    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
-      <SidebarToggle />
+    <header className="sticky top-0 z-50 flex items-center justify-between w-full h-16 px-4 border-b shrink-0 bg-background">
+      <div className="flex items-center">
+        <SidebarToggle />
+        <Link href="/landing" className="ml-4">
+          <IconUmansLogo className="h-6 w-auto" />
+        </Link>
+      </div>
 
       {(!open || windowWidth < 768) && (
         <Tooltip>
