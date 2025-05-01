@@ -17,6 +17,16 @@ resource "vercel_project" "conversational_ui" {
   framework = "nextjs"
 }
 
+resource "vercel_project_domain" "umans_ai" {
+  project_id = vercel_project.conversational_ui.id
+  domain     = "${local.domain_prefix}umans.ai"
+}
+
+resource "vercel_project_domain" "app_umans_ai" {
+  project_id = vercel_project.conversational_ui.id
+  domain     = "app.${local.domain_prefix}umans.ai"
+}
+
 resource "vercel_project_environment_variables" "env_vars" {
   project_id = vercel_project.conversational_ui.id
   variables = [
