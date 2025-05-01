@@ -2,7 +2,23 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/landing"
+      "destination": "/landing",
+      "has": [
+        {
+          "type": "host",
+          "value": "umans.ai"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "destination": "/landing",
+      "has": [
+        {
+          "type": "host",
+          "value": "pr-(?<pr>[0-9]+).umans.ai"
+        }
+      ]
     }
   ],
   "redirects": [
