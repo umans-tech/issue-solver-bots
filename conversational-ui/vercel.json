@@ -2,18 +2,12 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/landing",
-      "has": [
-        {
-          "type": "host",
-          "value": "umans.ai"
-        }
-      ]
+      "destination": "/landing"
     }
   ],
   "redirects": [
     {
-      "source": "/",
+      "source": "/go-to-app",
       "destination": "https://app.umans.ai",
       "has": [
         {
@@ -21,13 +15,18 @@
           "value": "umans.ai"
         }
       ],
-      "basePath": false,
-      "locale": false,
-      "condition": {
-        "source": "querystring",
-        "key": "from",
-        "value": "landing"
-      }
+      "permanent": false
+    },
+    {
+      "source": "/go-to-app",
+      "destination": "https://app.pr-:pr.umans.ai",
+      "has": [
+        {
+          "type": "host",
+          "value": "pr-(?<pr>[0-9]+).umans.ai"
+        }
+      ],
+      "permanent": false
     }
   ]
 } 
