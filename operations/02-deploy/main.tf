@@ -20,6 +20,7 @@ locals {
   deployment_target              = terraform.workspace == "production" ? "production" : "preview"
   vercel_deployment_target       = "production"
   environment_name_suffix        = terraform.workspace == "production" ? "" : "-${local.environment_name}"
+  domain_prefix                 = terraform.workspace == "production" ? "" : "${local.environment_name}."
   conversational_ui_project_name = "conversational-ui${local.environment_name_suffix}"
-  auth_url                       = "https://${local.conversational_ui_project_name}.vercel.app"
+  auth_url                       = "https://app.${local.domain_prefix}umans.ai"
 }
