@@ -1,0 +1,33 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/landing",
+      "has": [
+        {
+          "type": "host",
+          "value": "umans.ai"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://app.umans.ai",
+      "has": [
+        {
+          "type": "host",
+          "value": "umans.ai"
+        }
+      ],
+      "basePath": false,
+      "locale": false,
+      "condition": {
+        "source": "querystring",
+        "key": "from",
+        "value": "landing"
+      }
+    }
+  ]
+} 
