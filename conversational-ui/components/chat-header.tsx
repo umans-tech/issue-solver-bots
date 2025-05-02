@@ -111,9 +111,6 @@ function PureChatHeader({
     <header className="sticky top-0 z-50 flex items-center justify-between w-full h-16 px-4 border-b shrink-0 bg-background">
       <div className="flex items-center">
         <SidebarToggle />
-        <Link href="/landing" className="ml-4">
-          <IconUmansLogo className="h-6 w-auto" />
-        </Link>
       </div>
 
       {(!open || windowWidth < 768) && (
@@ -206,7 +203,9 @@ function PureChatHeader({
           </TooltipContent>
         </Tooltip>
         <ThemeToggle />
-        <IconUmansLogo className="h-16 w-16" />
+        <Link href="/landing">
+          <IconUmansLogo className="h-16 w-16" />
+        </Link>
       </div>
 
       <RepoConnectionDialog 
