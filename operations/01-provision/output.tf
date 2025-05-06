@@ -44,7 +44,14 @@ output "certificate_arn" {
   description = "ARN of the SSL certificate for the *.umans.ai domain"
 }
 
-output "hosted_zone_id" {
-  value = aws_route53_zone.umans_ai.zone_id
-  description = "ID of the Route53 hosted zone for umans.ai"
+# DNS validation information to be configured in Namecheap
+output "certificate_validation_options" {
+  value = [
+    for dvo in aws_acm_certificate.umans_ai.domain_validation_options : {
+      name   = replace(dvo.resource_record_name, ".umans.ai.", "")
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  ]
+  description = "DNS records to create in Namecheap to validate the SSL certificate"
 }

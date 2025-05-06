@@ -22,3 +22,26 @@ output "api_gateway_endpoint" {
   value       = aws_apigatewayv2_api.cudu_api.api_endpoint
   description = "URL of the API Gateway endpoint"
 }
+
+output "api_domain_cname_target" {
+  value       = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name
+  description = "CNAME value to configure in Namecheap for api.umans.ai"
+}
+
+output "namecheap_dns_instructions" {
+  value = <<-EOT
+    DNS INSTRUCTIONS FOR NAMECHEAP:
+    ----------------------------------
+    
+    To configure the API domain, add this record in Namecheap Advanced DNS:
+    
+    Type: CNAME
+    Host: api${local.environment_name == "production" ? "" : ".${local.environment_name}"}
+    Value: ${aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name}
+    TTL: Automatic
+
+    DNS propagation can take up to 48 hours, but usually 
+    a few minutes to a few hours are sufficient.
+  EOT
+  description = "Instructions for DNS configuration in Namecheap"
+}

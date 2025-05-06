@@ -81,7 +81,7 @@ resource "aws_apigatewayv2_stage" "cudu_api" {
   auto_deploy = true
 }
 
-# Domaine personnalisé pour API Gateway
+# Custom domain name for API Gateway
 resource "aws_apigatewayv2_domain_name" "api_domain" {
   domain_name = "api.${local.domain_prefix}umans.ai"
 
@@ -92,24 +92,11 @@ resource "aws_apigatewayv2_domain_name" "api_domain" {
   }
 }
 
-# Mapping du domaine personnalisé au stage API Gateway
+# Custom domain mapping to API Gateway stage
 resource "aws_apigatewayv2_api_mapping" "api_mapping" {
   api_id      = aws_apigatewayv2_api.cudu_api.id
   domain_name = aws_apigatewayv2_domain_name.api_domain.id
   stage       = aws_apigatewayv2_stage.cudu_api.id
-}
-
-# Enregistrement DNS pour le domaine personnalisé de l'API
-resource "aws_route53_record" "api_domain" {
-  name    = "api.${local.domain_prefix}umans.ai"
-  type    = "A"
-  zone_id = data.terraform_remote_state.provision.outputs.hosted_zone_id
-
-  alias {
-    name                   = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name
-    zone_id                = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].hosted_zone_id
-    evaluate_target_health = false
-  }
 }
 
 # Lambda permission for API Gateway
