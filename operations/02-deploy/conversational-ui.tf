@@ -115,7 +115,7 @@ resource "vercel_project_environment_variables" "env_vars" {
     },
     {
       key    = "CUDU_ENDPOINT"
-      value  = aws_apigatewayv2_api.cudu_api.api_endpoint
+      value  = "https://api.${local.domain_prefix}umans.ai"
       target = [local.vercel_deployment_target]
     }
   ]

@@ -38,3 +38,13 @@ output "blob_secret_access_key" {
   value = aws_iam_access_key.conversational_ui_blob_access_key.secret
   sensitive = true
 }
+
+output "certificate_arn" {
+  value = aws_acm_certificate.umans_ai.arn
+  description = "ARN of the SSL certificate for the *.umans.ai domain"
+}
+
+output "hosted_zone_id" {
+  value = aws_route53_zone.umans_ai.zone_id
+  description = "ID of the Route53 hosted zone for umans.ai"
+}
