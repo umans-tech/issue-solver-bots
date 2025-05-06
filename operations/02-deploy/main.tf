@@ -31,7 +31,8 @@ locals {
 
 # Explicitly query the certificate to verify it's validated
 data "aws_acm_certificate" "umans_ai" {
-  domain      = "umans.ai"
+  domain      = "*.umans.ai"  # Explicitly query for the wildcard cert
   statuses    = ["ISSUED"]
+  types       = ["AMAZON_ISSUED"]
   most_recent = true
 }

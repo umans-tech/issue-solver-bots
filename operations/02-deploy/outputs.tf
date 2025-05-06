@@ -13,16 +13,14 @@ output "process_queue_url" {
   description = "URL of the SQS queue for repository processing"
 }
 
+# Temporarilly commented out since we're not creating the custom domain yet
+/*
 output "api_domain_url" {
   value       = "https://api.${local.domain_prefix}umans.ai"
   description = "URL of the custom domain for the API"
 }
 
-output "api_gateway_endpoint" {
-  value       = aws_apigatewayv2_api.cudu_api.api_endpoint
-  description = "URL of the API Gateway endpoint"
-}
-
+# Information for Namecheap DNS configuration
 output "api_domain_cname_target" {
   value       = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name
   description = "CNAME value to configure in Namecheap for api.umans.ai"
@@ -44,4 +42,11 @@ output "namecheap_dns_instructions" {
     a few minutes to a few hours are sufficient.
   EOT
   description = "Instructions for DNS configuration in Namecheap"
+}
+*/
+
+# Temporary output for the API Gateway URL until we get the custom domain working
+output "api_gateway_endpoint" {
+  value       = aws_apigatewayv2_stage.cudu_api.invoke_url
+  description = "URL of the API Gateway endpoint"
 }

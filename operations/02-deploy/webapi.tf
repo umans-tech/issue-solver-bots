@@ -43,7 +43,7 @@ resource "aws_lambda_function" "webapi" {
   }
 }
 
-# API Gateway HTTP API
+# Create main API Gateway resources first
 resource "aws_apigatewayv2_api" "cudu_api" {
   name          = "webapi${local.environment_name_suffix}"
   protocol_type = "HTTP"
@@ -81,6 +81,25 @@ resource "aws_apigatewayv2_stage" "cudu_api" {
   auto_deploy = true
 }
 
+# Lambda permission for API Gateway
+resource "aws_lambda_permission" "api_gateway" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.webapi.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.cudu_api.execution_arn}/*/*/{proxy+}"
+}
+
+# Try creating just the API Gateway and its configuration first
+# We'll add the custom domain in a separate step 
+output "api_gateway_url" {
+  value = aws_apigatewayv2_stage.cudu_api.invoke_url
+  description = "URL of the API Gateway (without custom domain)"
+}
+
+# Comment out the custom domain for now
+# Uncomment after getting the API Gateway working
+/*
 # Custom domain name for API Gateway
 resource "aws_apigatewayv2_domain_name" "api_domain" {
   domain_name = "api.${local.domain_prefix}umans.ai"
@@ -90,6 +109,13 @@ resource "aws_apigatewayv2_domain_name" "api_domain" {
     endpoint_type   = "REGIONAL"
     security_policy = "TLS_1_2"
   }
+
+  # Add tags to help with debugging
+  tags = {
+    Name = "api.${local.domain_prefix}umans.ai"
+    Environment = local.environment_name
+    ManagedBy = "Terraform"
+  }
 }
 
 # Custom domain mapping to API Gateway stage
@@ -98,12 +124,4 @@ resource "aws_apigatewayv2_api_mapping" "api_mapping" {
   domain_name = aws_apigatewayv2_domain_name.api_domain.id
   stage       = aws_apigatewayv2_stage.cudu_api.id
 }
-
-# Lambda permission for API Gateway
-resource "aws_lambda_permission" "api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.webapi.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.cudu_api.execution_arn}/*/*/{proxy+}"
-}
+*/
