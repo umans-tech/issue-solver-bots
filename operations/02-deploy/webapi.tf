@@ -83,7 +83,7 @@ resource "aws_apigatewayv2_stage" "cudu_api" {
 
 # Custom domain name for API Gateway
 resource "aws_apigatewayv2_domain_name" "api_domain" {
-  domain_name = "api.${local.domain_prefix}umans.ai"
+  domain_name = local.api_domain
 
   domain_name_configuration {
     certificate_arn = local.certificate_arn
@@ -93,7 +93,7 @@ resource "aws_apigatewayv2_domain_name" "api_domain" {
 
   # Add tags to help with debugging
   tags = {
-    Name = "api.${local.domain_prefix}umans.ai"
+    Name = local.api_domain
     Environment = local.environment_name
     ManagedBy = "Terraform"
   }

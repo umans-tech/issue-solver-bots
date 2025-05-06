@@ -14,7 +14,7 @@ output "process_queue_url" {
 }
 
 output "api_domain_url" {
-  value       = "https://api.${local.domain_prefix}umans.ai"
+  value       = local.api_url
   description = "URL of the custom domain for the API"
 }
 
@@ -37,7 +37,7 @@ output "namecheap_dns_instructions" {
     To configure the API domain, add this record in Namecheap Advanced DNS:
     
     Type: CNAME
-    Host: api${local.environment_name == "production" ? "" : ".${local.environment_name}"}
+    Host: ${terraform.workspace == "production" ? "api" : "api${local.domain_prefix}"}
     Value: ${aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name}
     TTL: Automatic
 

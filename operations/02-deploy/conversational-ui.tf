@@ -24,7 +24,7 @@ resource "vercel_project_domain" "umans_ai" {
 
 resource "vercel_project_domain" "app_umans_ai" {
   project_id = vercel_project.conversational_ui.id
-  domain     = "app.${local.domain_prefix}umans.ai"
+  domain     = local.ui_domain
 }
 
 resource "vercel_project_environment_variables" "env_vars" {
