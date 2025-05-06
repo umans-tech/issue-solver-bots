@@ -86,7 +86,7 @@ resource "aws_apigatewayv2_domain_name" "api_domain" {
   domain_name = "api.${local.domain_prefix}umans.ai"
 
   domain_name_configuration {
-    certificate_arn = data.terraform_remote_state.provision.outputs.certificate_arn
+    certificate_arn = data.aws_acm_certificate.umans_ai.arn
     endpoint_type   = "REGIONAL"
     security_policy = "TLS_1_2"
   }

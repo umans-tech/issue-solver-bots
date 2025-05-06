@@ -44,6 +44,12 @@ output "certificate_arn" {
   description = "ARN of the SSL certificate for the *.umans.ai domain"
 }
 
+output "certificate_validation_status" {
+  value       = "Certificate validation completed. You can now deploy the API domain."
+  description = "Indicates that the certificate has been validated"
+  depends_on  = [aws_acm_certificate_validation.umans_ai]
+}
+
 # DNS validation information to be configured in Namecheap
 output "certificate_validation_options" {
   value = [

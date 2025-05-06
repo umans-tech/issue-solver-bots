@@ -23,4 +23,15 @@ locals {
   domain_prefix                 = terraform.workspace == "production" ? "" : "${local.environment_name}."
   conversational_ui_project_name = "conversational-ui${local.environment_name_suffix}"
   auth_url                       = "https://app.${local.domain_prefix}umans.ai"
+  
+  # Verify that certificate validation has been completed
+  # This will cause Terraform to fail if the certificate is not validated
+  certificate_validation_check = data.terraform_remote_state.provision.outputs.certificate_validation_status == "Certificate validation completed. You can now deploy the API domain." ? true : tobool("Certificate not validated yet. Please ensure DNS records are created and wait for validation to complete.")
+}
+
+# Explicitly query the certificate to verify it's validated
+data "aws_acm_certificate" "umans_ai" {
+  domain      = "umans.ai"
+  statuses    = ["ISSUED"]
+  most_recent = true
 }
