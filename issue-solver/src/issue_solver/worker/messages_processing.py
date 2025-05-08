@@ -18,6 +18,7 @@ from issue_solver.events.domain import (
     RepositoryIndexationRequested,
     most_recent_event,
 )
+from issue_solver.issues.issue import IssueInfo
 from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitSettings,
@@ -304,6 +305,8 @@ async def dispatch_coding_agent(message: CodingAgentRequested) -> None:
                 occurred_at=get_clock().now(),
             ),
         )
+
+        git_helper.create_branch(to_path, branch_name)
         
         run_coding_agent(task_description, to_path)
 
@@ -318,7 +321,7 @@ async def dispatch_coding_agent(message: CodingAgentRequested) -> None:
         
         logger.info(f"Successfully dispatched coding agent for process: {process_id}")
 
-        commit_changes(git_settings, to_path, branch_name, pr_title, task_description)
+        git_helper.commit_and_push(IssueInfo(task_description), to_path)
 
         pr_url = create_pull_request(git_settings, to_path, branch_name, pr_title, task_description)
 
@@ -380,9 +383,6 @@ def create_pull_request(git_settings: GitSettings, to_path: Path, branch_name: s
     else:
         raise ValueError(f"Unsupported repository type: {repo_type}")
 
-
-def commit_changes(git_settings: GitSettings, to_path: Path, branch_name: str, pr_title: str, task_description: str) -> None:
-    pass
 
 
 def get_repo_type(url: str) -> str:

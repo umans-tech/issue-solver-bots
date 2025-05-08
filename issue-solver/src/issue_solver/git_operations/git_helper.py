@@ -326,7 +326,11 @@ class GitHelper:
             )
         except git.exc.GitCommandError as e:
             raise self.convert_git_exception_to_validation_error(e)
+        
 
+    def create_branch(self, repo_path: Path, branch_name: str) -> None:
+        repo = Repo(repo_path)
+        repo.git.checkout("HEAD", b=branch_name)
 
 @dataclass
 class CodeVersion:

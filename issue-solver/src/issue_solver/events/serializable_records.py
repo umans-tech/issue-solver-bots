@@ -35,6 +35,8 @@ def get_record_type(event_type: Type[T]) -> str:
             return "coding_agent_implementation_completed"
         case type() if event_type is CodingAgentImplementationFailed:
             return "coding_agent_implementation_failed"
+        case type() if event_type is PullRequestCreated:
+            return "pull_request_created"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
