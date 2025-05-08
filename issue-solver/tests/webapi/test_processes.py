@@ -4,6 +4,10 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    IssueResolutionRequested,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+    IssueResolutionFailed,
 )
 from issue_solver.webapi.routers.processes import ProcessTimelineView
 
@@ -142,3 +146,97 @@ def test_status_should_be_indexed_if_the_latest_event_is_indexed_after_indexatio
 
     # Then
     assert process_timeline_view.status == "indexed"
+
+
+def test_status_should_be_started_when_the_latest_event_is_issue_resolution_in_progress():
+    # Given
+    history = [
+        IssueResolutionRequested(
+            knowledge_base_id="knowledge-base-id",
+            issue={
+                "description": "test-issue-description",
+                "title": "test-issue-title",
+            },
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
+        ),
+        IssueResolutionStarted(
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T01:00:00"),
+        ),
+    ]
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="test-process-id", events=history
+    )
+
+    # Then
+    assert process_timeline_view.type == "issue_resolution"
+    assert process_timeline_view.status == "in_progress"
+
+
+def test_status_should_be_completed_when_the_latest_event_is_issue_resolution_completed():
+    # Given
+    history = [
+        IssueResolutionRequested(
+            knowledge_base_id="knowledge-base-id",
+            issue={
+                "description": "test-issue-description",
+                "title": "test-issue-title",
+            },
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
+        ),
+        IssueResolutionStarted(
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T01:00:00"),
+        ),
+        IssueResolutionCompleted(
+            pr_url="test-pr-url",
+            pr_number=123,
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T02:00:00"),
+        ),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="test-process-id", events=history
+    )
+
+    # Then
+    assert process_timeline_view.type == "issue_resolution"
+    assert process_timeline_view.status == "completed"
+
+
+def test_status_should_be_failed_when_the_latest_event_is_issue_resolution_failed():
+    # Given
+    history = [
+        IssueResolutionRequested(
+            knowledge_base_id="knowledge-base-id",
+            issue={
+                "description": "test-issue-description",
+                "title": "test-issue-title",
+            },
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
+        ),
+        IssueResolutionStarted(
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T01:00:00"),
+        ),
+        IssueResolutionFailed(
+            reason="test-reason",
+            error_message="test-error-message",
+            process_id="test-process-id",
+            occurred_at=datetime.fromisoformat("2025-01-01T02:00:00"),
+        ),
+    ]
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="test-process-id", events=history
+    )
+
+    # Then
+    assert process_timeline_view.type == "issue_resolution"
+    assert process_timeline_view.status == "failed"

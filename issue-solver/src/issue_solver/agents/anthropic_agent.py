@@ -4,6 +4,11 @@ import anthropic
 from anthropic.types import MessageParam, TextBlockParam, ToolResultBlockParam
 
 from issue_solver.agents.coding_agent import TurnOutput, CodingAgent, Message
+from issue_solver.agents.issue_resolving_agent import (
+    IssueResolvingAgent,
+    ResolveIssueCommand,
+)
+from issue_solver.agents.resolution_approaches import resolution_approach_prompt
 from issue_solver.agents.tools.anthropic_tools_schema import bash_tool, edit_tool
 from issue_solver.agents.tools.base import ToolResult
 from issue_solver.agents.tools.bash import BashTool
@@ -15,7 +20,38 @@ from issue_solver.models.supported_models import (
 )
 
 
-class AnthropicAgent(CodingAgent[SupportedAnthropicModel, MessageParam]):
+class AnthropicAgent(
+    CodingAgent[SupportedAnthropicModel, MessageParam], IssueResolvingAgent
+):
+    async def resolve_issue(self, command: ResolveIssueCommand) -> None:
+        repo_location = command.repo_path
+        issue_description = command.issue.description
+        max_turns = 20
+
+        system_message = resolution_approach_prompt(
+            location=str(repo_location), pr_description=issue_description
+        )
+        if not isinstance(command.model.ai_model, SupportedAnthropicModel):
+            raise ValueError(
+                f"Unsupported model type: {command.model}. Supported models are: {SupportedAnthropicModel}"
+            )
+        has_finished = False
+        turn = 1
+        history = None
+        while not has_finished:
+            agent = self
+            response = await agent.run_full_turn(
+                system_message=system_message,
+                messages=history or [],
+                model=cast(QualifiedAIModel[SupportedAnthropicModel], command.model),
+            )
+            print(f"Turn {turn}: {response.turn_messages()}")
+            turn += 1
+            history = response.messages_history()
+            has_finished = response.has_finished() or turn == max_turns
+        if not has_finished:
+            raise Exception(f"Could not resolve issue in {turn} iterations")
+
     def __init__(
         self,
         api_key: str,

@@ -6,8 +6,14 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    IssueResolutionRequested,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+    AnyDomainEvent,
+    IssueResolutionFailed,
 )
 from issue_solver.events.event_store import EventStore
+from issue_solver.issues.issue import IssueInfo
 
 
 @pytest.mark.asyncio
@@ -135,3 +141,69 @@ async def test_find_event_repository_indexation_requested(event_store: EventStor
 
     # Then
     assert events == [appended_event]
+
+
+@pytest.mark.asyncio
+async def test_get_issue_resolution_events(
+    event_store: EventStore,
+):
+    # Given
+    events: list[AnyDomainEvent] = [
+        IssueResolutionRequested(
+            occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+            knowledge_base_id="knowledge-base-id",
+            process_id="test-process-id",
+            issue=IssueInfo(description="test issue"),
+        ),
+        IssueResolutionStarted(
+            occurred_at=datetime.fromisoformat("2021-01-01T01:00:00"),
+            process_id="test-process-id",
+        ),
+        IssueResolutionCompleted(
+            occurred_at=datetime.fromisoformat("2021-01-01T02:00:00"),
+            process_id="test-process-id",
+            pr_url="test-pr-url",
+            pr_number=123,
+        ),
+    ]
+
+    await event_store.append("test-process-id", *events)
+
+    # When
+    retrieved_events = await event_store.get("test-process-id")
+
+    # Then
+    assert retrieved_events == events
+
+
+@pytest.mark.asyncio
+async def test_get_issue_resolution_events_2(
+    event_store: EventStore,
+):
+    # Given
+    events: list[AnyDomainEvent] = [
+        IssueResolutionRequested(
+            occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+            knowledge_base_id="knowledge-base-id",
+            process_id="test-process-id",
+            issue=IssueInfo(description="test issue"),
+        ),
+        IssueResolutionStarted(
+            occurred_at=datetime.fromisoformat("2021-01-01T01:00:00"),
+            process_id="test-process-id",
+        ),
+        IssueResolutionFailed(
+            occurred_at=datetime.fromisoformat("2021-01-01T02:00:00"),
+            process_id="test-process-id",
+            reason="test reason",
+            error_message="test error message",
+        ),
+    ]
+
+    await event_store.append("test-process-id", *events)
+
+    # When
+    retrieved_events = await event_store.get("test-process-id")
+
+    # Then
+    assert retrieved_events == events

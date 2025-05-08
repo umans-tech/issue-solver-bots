@@ -6,11 +6,15 @@ from typing import TypeVar, Generic
 class SupportedOpenAIModel(StrEnum):
     GPT4O = "gpt-4o"
     GPT4O_MINI = "gpt-4o-mini"
+    GPT41 = "gpt-4.1"
+    GPT41_MINI = "gpt-4.1-mini"
+    GPT41_NANO = "gpt-4.1-nano"
 
 
 class SupportedAnthropicModel(StrEnum):
     CLAUDE_35_SONNET = "claude-3-5-sonnet"
     CLAUDE_35_HAIKU = "claude-3-5-haiku"
+    CLAUDE_37_SONNET = "claude-3-7-sonnet"
 
 
 class SupportedDeepSeekModel(StrEnum):
