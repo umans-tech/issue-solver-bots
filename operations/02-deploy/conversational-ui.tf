@@ -19,7 +19,7 @@ resource "vercel_project" "conversational_ui" {
 
 resource "vercel_project_domain" "umans_ai" {
   project_id = vercel_project.conversational_ui.id
-  domain     = local.environment_name == "production" ? "umans.ai" : "pr-${local.environment_name}.umans.ai"
+  domain     = "${local.environment_name_suffix == "" ? "" : terraform.workspace}umans.ai"
 }
 
 resource "vercel_project_domain" "app_umans_ai" {

@@ -37,7 +37,7 @@ output "namecheap_dns_instructions" {
     To configure the API domain, add this record in Namecheap Advanced DNS:
     
     Type: CNAME
-    Host: ${local.api_domain != "api.umans.ai" ? replace(local.api_domain, ".umans.ai", "") : "api"}
+    Host: ${replace(local.api_domain, ".umans.ai", "")}
     Value: ${aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name}
     TTL: Automatic
 

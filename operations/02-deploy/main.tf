@@ -16,18 +16,17 @@ data "terraform_remote_state" "provision" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  is_production                = terraform.workspace == "production"
-  pr_id                        = local.is_production ? "" : "pr-${terraform.workspace}-"
-  api_domain                   = local.is_production ? "api.umans.ai" : "${local.pr_id}api.umans.ai"
-  ui_domain                    = local.is_production ? "app.umans.ai" : "${local.pr_id}app.umans.ai"
-  environment_name             = terraform.workspace
-  deployment_target            = local.is_production ? "production" : "preview"
-  vercel_deployment_target     = "production"
-  environment_name_suffix      = local.is_production ? "" : "-${local.environment_name}"
+  environment_name          = terraform.workspace
+  is_production            = terraform.workspace == "production"
+  environment_name_suffix  = local.is_production ? "" : "-${local.environment_name}"
+  api_domain               = "api${local.environment_name_suffix}.umans.ai"
+  ui_domain                = "app${local.environment_name_suffix}.umans.ai"
   conversational_ui_project_name = "conversational-ui${local.environment_name_suffix}"
-  auth_url                     = "https://${local.ui_domain}"
-  api_url                      = "https://${local.api_domain}"
-  certificate_arn              = data.terraform_remote_state.provision.outputs.certificate_arn
+  auth_url                 = "https://${local.ui_domain}"
+  api_url                  = "https://${local.api_domain}"
+  certificate_arn          = data.terraform_remote_state.provision.outputs.certificate_arn
+  deployment_target        = local.is_production ? "production" : "preview"
+  vercel_deployment_target = "production"
 }
 
 # Commenting out the certificate lookup as we'll use the hardcoded ARN
