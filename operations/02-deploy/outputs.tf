@@ -21,7 +21,7 @@ output "api_domain_url" {
 # Information for Namecheap DNS configuration
 output "api_domain_cname_target" {
   value       = aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name
-  description = "CNAME value to configure in Namecheap for api.umans.ai"
+  description = "CNAME value to configure in Namecheap for the API domain"
 }
 
 output "api_gateway_endpoint" {
@@ -37,7 +37,7 @@ output "namecheap_dns_instructions" {
     To configure the API domain, add this record in Namecheap Advanced DNS:
     
     Type: CNAME
-    Host: ${terraform.workspace == "production" ? "api" : "api${local.domain_prefix}"}
+    Host: ${local.api_domain != "api.umans.ai" ? replace(local.api_domain, ".umans.ai", "") : "api"}
     Value: ${aws_apigatewayv2_domain_name.api_domain.domain_name_configuration[0].target_domain_name}
     TTL: Automatic
 

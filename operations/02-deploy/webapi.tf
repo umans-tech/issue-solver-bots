@@ -91,7 +91,6 @@ resource "aws_apigatewayv2_domain_name" "api_domain" {
     security_policy = "TLS_1_2"
   }
 
-  # Add tags to help with debugging
   tags = {
     Name = local.api_domain
     Environment = local.environment_name
