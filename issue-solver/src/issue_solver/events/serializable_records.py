@@ -8,8 +8,14 @@ from issue_solver.events.domain import (
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
     T,
+    IssueResolutionRequested,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+    IssueResolutionFailed,
 )
 from pydantic import BaseModel
+
+from issue_solver.issues.issue import IssueInfo
 
 
 def get_record_type(event_type: Type[T]) -> str:
@@ -159,11 +165,121 @@ class RepositoryIndexationRequestedRecord(BaseModel):
         )
 
 
+class IssueResolutionRequestedRecord(BaseModel):
+    type: Literal["issue_resolution_requested"] = "issue_resolution_requested"
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+    issue: IssueInfo
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> IssueResolutionRequested:
+        return IssueResolutionRequested(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+            issue=self.issue,
+        )
+
+    @classmethod
+    def create_from(cls, event: IssueResolutionRequested) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+            issue=event.issue,
+        )
+
+
+class IssueResolutionStartedRecord(BaseModel):
+    type: Literal["issue_resolution_started"] = "issue_resolution_started"
+    occurred_at: datetime
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> IssueResolutionStarted:
+        return IssueResolutionStarted(
+            occurred_at=self.occurred_at,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: IssueResolutionStarted) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            process_id=event.process_id,
+        )
+
+
+class IssueResolutionCompletedRecord(BaseModel):
+    type: Literal["issue_resolution_completed"] = "issue_resolution_completed"
+    occurred_at: datetime
+    process_id: str
+    pr_number: int
+    pr_url: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> IssueResolutionCompleted:
+        return IssueResolutionCompleted(
+            occurred_at=self.occurred_at,
+            process_id=self.process_id,
+            pr_number=self.pr_number,
+            pr_url=self.pr_url,
+        )
+
+    @classmethod
+    def create_from(cls, event: IssueResolutionCompleted) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            process_id=event.process_id,
+            pr_number=event.pr_number,
+            pr_url=event.pr_url,
+        )
+
+
+class IssueResolutionFailedRecord(BaseModel):
+    type: Literal["issue_resolution_failed"] = "issue_resolution_failed"
+    occurred_at: datetime
+    process_id: str
+    reason: str
+    error_message: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> IssueResolutionFailed:
+        return IssueResolutionFailed(
+            occurred_at=self.occurred_at,
+            process_id=self.process_id,
+            reason=self.reason,
+            error_message=self.error_message,
+        )
+
+    @classmethod
+    def create_from(cls, event: IssueResolutionFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            process_id=event.process_id,
+            reason=event.reason,
+            error_message=event.error_message,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryIntegrationFailedRecord
     | CodeRepositoryIndexedRecord
     | RepositoryIndexationRequestedRecord
+    | IssueResolutionRequestedRecord
+    | IssueResolutionStartedRecord
+    | IssueResolutionCompletedRecord
+    | IssueResolutionFailedRecord
 )
 
 
@@ -181,6 +297,14 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return CodeRepositoryIndexedRecord.create_from(event)
         case RepositoryIndexationRequested():
             return RepositoryIndexationRequestedRecord.create_from(event)
+        case IssueResolutionRequested():
+            return IssueResolutionRequestedRecord.create_from(event)
+        case IssueResolutionStarted():
+            return IssueResolutionStartedRecord.create_from(event)
+        case IssueResolutionCompleted():
+            return IssueResolutionCompletedRecord.create_from(event)
+        case IssueResolutionFailed():
+            return IssueResolutionFailedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -201,6 +325,22 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "repository_indexation_requested":
             return RepositoryIndexationRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "issue_resolution_requested":
+            return IssueResolutionRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "issue_resolution_started":
+            return IssueResolutionStartedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "issue_resolution_completed":
+            return IssueResolutionCompletedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "issue_resolution_failed":
+            return IssueResolutionFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

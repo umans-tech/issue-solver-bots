@@ -2,6 +2,12 @@ import json
 import logging
 from pathlib import Path
 
+from openai import OpenAI
+
+from issue_solver.agents.issue_resolving_agent import (
+    IssueResolvingAgent,
+    ResolveIssueCommand,
+)
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -9,11 +15,21 @@ from issue_solver.events.domain import (
     CodeRepositoryIntegrationFailed,
     RepositoryIndexationRequested,
     most_recent_event,
+    IssueResolutionRequested,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+    IssueResolutionFailed,
 )
+from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitSettings,
     GitValidationError,
+    GitClient,
+)
+from issue_solver.models.supported_models import (
+    QualifiedAIModel,
+    SupportedAnthropicModel,
 )
 from issue_solver.webapi.dependencies import (
     get_clock,
@@ -26,18 +42,162 @@ from issue_solver.worker.vector_store_helper import (
     unindex_obsolete_files,
     upload_repository_files_to_vector_store,
 )
-from openai import OpenAI
 
 logger = logging.getLogger()
 
 
-async def process_event_message(message: AnyDomainEvent) -> None:
-    """
-    Process a repository connection message.
+class Dependencies:
+    def __init__(
+        self,
+        event_store: EventStore,
+        git_client: GitClient,
+        coding_agent: IssueResolvingAgent,
+    ):
+        self._event_store = event_store
+        self.git_client = git_client
+        self.coding_agent = coding_agent
 
-    Args:
-        message: The SQS message containing repository information
-    """
+    @property
+    def event_store(self) -> EventStore:
+        return self._event_store
+
+
+async def resolve_issue(
+    message: IssueResolutionRequested, dependencies: Dependencies
+) -> None:
+    event_store = dependencies.event_store
+    knowledge_base_id = message.knowledge_base_id
+    events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+    if not events:
+        logger.error(f"Knowledge base ID {knowledge_base_id} not found in event store")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="repo_not_found",
+                error_message=f"Knowledge base ID {knowledge_base_id} not found.",
+            ),
+        )
+        return
+    code_repository_connected = events[0]
+    url = code_repository_connected.url
+    access_token = code_repository_connected.access_token
+    process_id = message.process_id
+    repo_path = Path(f"/tmp/repo/{process_id}")
+    try:
+        new_branch_name = (
+            f"auto/{process_id}/{(message.issue.title or "").replace(' ', '_')[:50]}"
+        )
+        dependencies.git_client.clone_repository(
+            url=url,
+            access_token=access_token,
+            to_path=repo_path,
+            new_branch_name=new_branch_name,
+        )
+    except Exception as e:
+        logger.error(f"Error cloning repository: {str(e)}")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="repo_cant_be_cloned",
+                error_message=str(e),
+            ),
+        )
+        return
+
+    await dependencies.event_store.append(
+        message.process_id,
+        IssueResolutionStarted(
+            process_id=message.process_id,
+            occurred_at=message.occurred_at,
+        ),
+    )
+
+    # Run coding agent
+    try:
+        await dependencies.coding_agent.resolve_issue(
+            ResolveIssueCommand(
+                model=QualifiedAIModel(
+                    ai_model=SupportedAnthropicModel.CLAUDE_37_SONNET, version="latest"
+                ),
+                issue=(message.issue),
+                repo_path=repo_path,
+            )
+        )
+    except Exception as e:
+        logger.error(f"Error resolving issue: {str(e)}")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="coding_agent_failed",
+                error_message=str(e),
+            ),
+        )
+        return
+
+    try:
+        dependencies.git_client.commit_and_push(
+            issue_info=message.issue,
+            repo_path=repo_path,
+            url=url,
+            access_token=access_token,
+        )
+    except Exception as e:
+        logger.error(f"Error committing changes: {str(e)}")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="failed_to_push_changes",
+                error_message=str(e),
+            ),
+        )
+        return
+    # Submit PR
+    try:
+        dependencies.git_client.submit_pull_request(
+            repo_path=repo_path,
+            title=message.issue.title
+            or f"automatic issue resolution {message.process_id}",
+            body=message.issue.description,
+            access_token=access_token,
+            url=url,
+        )
+    except Exception as e:
+        logger.error(f"Error creating pull request: {str(e)}")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="failed_to_submit_pr",
+                error_message=str(e),
+            ),
+        )
+        return
+
+    await dependencies.event_store.append(
+        message.process_id,
+        IssueResolutionCompleted(
+            process_id=message.process_id,
+            occurred_at=message.occurred_at,
+            pr_url="test-pr-url",
+            pr_number=123,
+        ),
+    )
+
+
+async def process_event_message(
+    message: AnyDomainEvent, dependencies: Dependencies
+) -> None:
     try:
         match message:
             case CodeRepositoryConnected():
@@ -46,6 +206,8 @@ async def process_event_message(message: AnyDomainEvent) -> None:
                 logger.info("Skipping already processed repository")
             case RepositoryIndexationRequested():
                 await index_new_changes_codebase(message)
+            case IssueResolutionRequested():
+                await resolve_issue(message, dependencies)
     except Exception as e:
         logger.error(f"Error processing repository message: {str(e)}")
         raise

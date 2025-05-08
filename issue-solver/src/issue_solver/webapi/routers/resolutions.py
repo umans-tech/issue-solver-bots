@@ -1,18 +1,53 @@
+import datetime
 import json
 import logging
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
 from issue_solver.agents.resolution_approaches import resolution_approach_prompt
-from issue_solver.webapi.dependencies import get_agent, get_logger
+from issue_solver.events.domain import (
+    IssueResolutionRequested,
+)
+from issue_solver.events.event_store import EventStore
+from issue_solver.webapi.dependencies import get_agent, get_logger, get_event_store
 from issue_solver.webapi.payloads import (
     IterateIssueResolutionRequest,
     SolveIssueRequest,
+    ResolveIssueRequest,
 )
+from issue_solver.webapi.routers.repository import publish
 
 router = APIRouter(prefix="/resolutions", tags=["resolutions"])
+
+
+@router.post("/", status_code=201)
+async def resolve_issue(
+    request: ResolveIssueRequest,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(lambda: get_logger("issue_solver.webapi.routers.repository.index")),
+    ],
+):
+    """Request issue resolution for a given knowledge base and issue."""
+    process_id = str(uuid.uuid4())
+    knowledge_base_id = request.knowledge_base_id
+    event = IssueResolutionRequested(
+        occurred_at=datetime.datetime.fromisoformat("2021-01-01T00:00:00"),
+        knowledge_base_id=knowledge_base_id,
+        process_id=process_id,
+        issue=request.issue,
+    )
+    await event_store.append(process_id, event)
+    publish(event, logger)
+    return {
+        "process_id": process_id,
+        "knowledge_base_id": knowledge_base_id,
+        "issue": request.issue,
+    }
 
 
 @router.post("/iterate")

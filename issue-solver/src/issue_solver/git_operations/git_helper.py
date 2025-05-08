@@ -5,6 +5,9 @@ from typing import Any, Callable, Optional, Self, TypeVar, cast
 
 import git
 from git import Repo, cmd
+from github import Github
+from gitlab import Gitlab
+
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
 from pydantic import Field
@@ -244,9 +247,7 @@ class GitHelper:
             print("No 'repo_origin' remote found. Cannot push changes.")
 
     def clone_repository(
-        self,
-        to_path: Path,
-        depth: int | None = 1,
+        self, to_path: Path, depth: int | None = 1, new_branch_name=None
     ) -> "CodeVersion":
         try:
             repo = Repo.clone_from(
@@ -255,9 +256,12 @@ class GitHelper:
                 env={"GIT_TERMINAL_PROMPT": "0"},
                 depth=depth,
             )
-            return CodeVersion(
+            if new_branch_name:
+                repo.git.checkout(new_branch_name, b=True)
+            code_version = CodeVersion(
                 branch=repo.active_branch.name, commit_sha=repo.head.commit.hexsha
             )
+            return code_version
         except git.exc.GitCommandError as e:
             raise self.convert_git_exception_to_validation_error(e)
 
@@ -350,3 +354,113 @@ class GitSettings(BaseSettings):
         default="umans-agent",
         description="Username used for Git commits.",
     )
+
+
+class GitClient:
+    @staticmethod
+    def _default_branch(
+        remote_url: str, access_token: str, repo_path: Path | None = None
+    ) -> str:
+        url = remote_url.removesuffix(".git")
+        if "github.com" in url.lower():
+            owner_repo = url.replace("https://github.com/", "")
+            return Github(access_token).get_repo(owner_repo).default_branch
+        if "gitlab.com" in url.lower():
+            owner_repo = url.replace("https://gitlab.com/", "")
+            return (
+                Gitlab("https://gitlab.com", private_token=access_token)
+                .projects.get(owner_repo)
+                .default_branch
+            )
+        if repo_path:
+            head_ref = Repo(repo_path).git.symbolic_ref("refs/remotes/origin/HEAD")
+            return head_ref.split("/")[-1]
+        return "main"
+
+    @classmethod
+    def clone_repository(
+        cls,
+        url: str,
+        access_token: str,
+        to_path: Path,
+        new_branch_name: str | None = None,
+    ) -> None:
+        GitHelper(
+            settings=GitSettings(repository_url=url, access_token=access_token)
+        ).clone_repository(to_path=to_path, new_branch_name=new_branch_name)
+
+    @classmethod
+    def commit_and_push(
+        cls,
+        issue_info: IssueInfo,
+        repo_path: Path,
+        url: str,
+        access_token: str,
+    ) -> None:
+        GitHelper(
+            settings=GitSettings(repository_url=url, access_token=access_token)
+        ).commit_and_push(issue_info, repo_path)
+
+    @classmethod
+    def submit_pull_request(
+        cls,
+        repo_path: Path,
+        title: str,
+        body: str,
+        access_token: str,
+        url: str | None = None,
+        branch: str | None = None,
+    ) -> None:
+        repo = Repo(repo_path)
+        source_branch = branch or repo.active_branch.name
+        remote_url = url or repo.remotes.origin.url
+        target_branch = cls._default_branch(remote_url, access_token, repo_path)
+
+        if "github.com" in remote_url.lower():
+            cls._submit_github_pr(
+                access_token, body, remote_url, source_branch, target_branch, title
+            )
+        elif "gitlab.com" in remote_url.lower():
+            cls._submit_gitlab_mr(
+                access_token, body, remote_url, source_branch, target_branch, title
+            )
+        else:
+            raise GitValidationError(
+                f"Unsupported Git service: {remote_url}", "unsupported_git_service", 400
+            )
+
+    @classmethod
+    def _submit_gitlab_mr(
+        cls,
+        access_token: str,
+        body: str,
+        remote_url: str,
+        source_branch: str,
+        target_branch: str,
+        title: str,
+    ) -> None:
+        owner_repo = remote_url.removesuffix(".git").replace("https://gitlab.com/", "")
+        gl = Gitlab("https://gitlab.com", private_token=access_token)
+        gl.projects.get(owner_repo).mergerequests.create(
+            {
+                "source_branch": source_branch,
+                "target_branch": target_branch,
+                "title": title,
+                "description": body,
+            }
+        )
+
+    @classmethod
+    def _submit_github_pr(
+        cls,
+        access_token: str,
+        body: str,
+        remote_url: str,
+        source_branch: str,
+        target_branch: str,
+        title: str,
+    ) -> None:
+        owner_repo = remote_url.removesuffix(".git").replace("https://github.com/", "")
+        Github(access_token).get_repo(owner_repo).create_pull(
+            title=title, body=body, head=source_branch, base=target_branch
+        )

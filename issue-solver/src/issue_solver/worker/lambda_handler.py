@@ -5,11 +5,20 @@ Lambda handler for processing repository connection messages from SQS.
 import asyncio
 import json
 import logging
+import os
 import sys
 from typing import Any, Dict
 
+from issue_solver.agents.anthropic_agent import AnthropicAgent
+from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
-from issue_solver.worker.messages_processing import logger, process_event_message
+from issue_solver.git_operations.git_helper import GitClient
+from issue_solver.webapi.dependencies import init_event_store
+from issue_solver.worker.messages_processing import (
+    logger,
+    process_event_message,
+    Dependencies,
+)
 
 # Configure logging
 logger.setLevel(logging.INFO)
@@ -50,7 +59,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             try:
                 message = json.loads(message_body)
                 event_record = deserialize(message["type"], message_body)
-                asyncio.run(process_event_message(event_record))
+                asyncio.run(load_dependencies_and_process_event_message(event_record))
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON in message body: {message_body}")
                 continue
@@ -60,3 +69,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error in handler: {str(e)}")
         return {"statusCode": 500, "body": f"Error: {str(e)}"}
+
+
+async def load_dependencies_and_process_event_message(
+    event_record: AnyDomainEvent,
+) -> None:
+    event_store = await init_event_store()
+    dependencies = Dependencies(
+        event_store=event_store,
+        git_client=GitClient(),
+        coding_agent=AnthropicAgent(api_key=os.environ["ANTHROPIC_API_KEY"]),
+    )
+    await process_event_message(
+        event_record,
+        dependencies,
+    )

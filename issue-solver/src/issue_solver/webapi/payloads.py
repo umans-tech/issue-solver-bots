@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.coding_agent import Message
+from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedOpenAIModel,
     SupportedAnthropicModel,
@@ -66,3 +67,8 @@ class ConnectRepositoryRequest(BaseSchema):
     access_token: str
     user_id: str = Field(default="")
     space_id: str = Field(default="")
+
+
+class ResolveIssueRequest(BaseSchema):
+    knowledge_base_id: str
+    issue: IssueInfo

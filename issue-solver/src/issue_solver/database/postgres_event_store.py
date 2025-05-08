@@ -15,7 +15,11 @@ class PostgresEventStore(EventStore):
     def __init__(self, connection):
         self.connection = connection
 
-    async def append(self, process_id: str, event: AnyDomainEvent) -> None:
+    async def append(self, process_id: str, *events: AnyDomainEvent) -> None:
+        for e in events:
+            await self.append_one_event(process_id, e)
+
+    async def append_one_event(self, process_id: str, event: AnyDomainEvent):
         next_position = await self.connection.fetchval(
             """
             SELECT COALESCE(MAX(position), 0) + 1
@@ -24,20 +28,17 @@ class PostgresEventStore(EventStore):
             """,
             process_id,
         )
-
         record = serialize(event)
         event_id = str(uuid.uuid4())
         await self.connection.execute(
             """
-            INSERT INTO events_store (
-                event_id,
-                activity_id,
-                position,
-                event_type,
-                data,
-                metadata,
-                occured_at
-            )
+            INSERT INTO events_store (event_id,
+                                      activity_id,
+                                      position,
+                                      event_type,
+                                      data,
+                                      metadata,
+                                      occured_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             """,
             event_id,

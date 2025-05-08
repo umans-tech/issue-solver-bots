@@ -7,6 +7,10 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
+    IssueResolutionRequested,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+    IssueResolutionFailed,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -27,16 +31,24 @@ class ProcessTimelineView(BaseModel):
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
-        status = cls.to_status(events)
         event_records = []
         for one_event in events:
             event_records.append(serialize(one_event).safe_copy())
         return cls(
             id=process_id,
-            type="code_repository_integration",
-            status=status,
+            type=cls.infer_process_type(events),
+            status=cls.to_status(events),
             events=event_records,
         )
+
+    @classmethod
+    def infer_process_type(cls, events: list[AnyDomainEvent]) -> str:
+        if not events:
+            raise ValueError("No events provided to infer process type.")
+        first_event = events[0]
+        if isinstance(first_event, IssueResolutionRequested):
+            return "issue_resolution"
+        return "code_repository_integration"
 
     @classmethod
     def to_status(cls, events: list[AnyDomainEvent]) -> str:
@@ -49,6 +61,14 @@ class ProcessTimelineView(BaseModel):
                 status = "indexed"
             case RepositoryIndexationRequested():
                 status = "indexing"
+            case IssueResolutionRequested():
+                status = "requested"
+            case IssueResolutionStarted():
+                status = "in_progress"
+            case IssueResolutionCompleted():
+                status = "completed"
+            case IssueResolutionFailed():
+                status = "failed"
             case _:
                 status = "unknown"
         return status

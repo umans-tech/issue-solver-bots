@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Sequence, TypeVar
 
+from issue_solver.issues.issue import IssueInfo
+
 
 @dataclass(kw_only=True, frozen=True)
 class DomainEvent(ABC):
@@ -56,12 +58,47 @@ class RepositoryIndexationRequested(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class IssueResolutionRequested(DomainEvent):
+    knowledge_base_id: str
+    issue: IssueInfo
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class IssueResolutionStarted(DomainEvent):
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class IssueResolutionCompleted(DomainEvent):
+    pr_url: str
+    pr_number: int
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class IssueResolutionFailed(DomainEvent):
+    reason: str
+    error_message: str
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryIntegrationFailed
     | CodeRepositoryIndexed
     | RepositoryIndexationRequested
+    | IssueResolutionRequested
+    | IssueResolutionStarted
+    | IssueResolutionCompleted
+    | IssueResolutionFailed
 )
+
 
 T = TypeVar("T", bound=AnyDomainEvent)
 
