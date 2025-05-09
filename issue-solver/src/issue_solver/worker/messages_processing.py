@@ -273,7 +273,7 @@ async def dispatch_coding_agent(message: CodingAgentRequested) -> None:
     events = await event_store.get(process_id)
     code_repository_connected = most_recent_event(events, CodeRepositoryConnected)
     if code_repository_connected is None:
-        logger.warning("Missing events for process, skipping indexation")
+        logger.warning("Missing events for process, skipping implementation")
         return
     access_token = code_repository_connected.access_token
     url = code_repository_connected.url
@@ -307,7 +307,7 @@ async def dispatch_coding_agent(message: CodingAgentRequested) -> None:
         )
 
         git_helper.create_branch(to_path, branch_name)
-        
+
         run_coding_agent(task_description, to_path)
 
         # Record the completion event
