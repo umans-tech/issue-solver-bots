@@ -13,7 +13,6 @@ resource "aws_lambda_function" "worker" {
     variables = {
       DATABASE_URL                 = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string,
       OPENAI_API_KEY               = var.openai_api_key,
-      ANTHROPIC_BASE_URL           = var.anthropic_base_url,
       ANTHROPIC_API_KEY            = var.anthropic_api_key,
       GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
     }
