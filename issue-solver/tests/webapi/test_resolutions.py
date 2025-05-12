@@ -36,8 +36,8 @@ def test_issue_resolution_route_should_request_issue_resolution(
 
     # Then
     assert response.status_code == 201
-    assert "process_id" in response.json()
-    process_id = response.json()["process_id"]
+    assert "processId" in response.json()
+    process_id = response.json()["processId"]
     messages = receive_event_message(sqs_client, sqs_queue)
     assert "Messages" in messages
     message_body = json.loads(messages["Messages"][0]["Body"])

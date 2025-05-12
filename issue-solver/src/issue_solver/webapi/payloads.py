@@ -72,3 +72,7 @@ class ConnectRepositoryRequest(BaseSchema):
 class ResolveIssueRequest(BaseSchema):
     knowledge_base_id: str
     issue: IssueInfo
+
+
+class ProcessCreated(BaseSchema):
+    process_id: str

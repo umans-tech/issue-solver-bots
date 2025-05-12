@@ -12,6 +12,7 @@ from issue_solver.events.event_store import EventStore
 from issue_solver.webapi.dependencies import get_logger, get_event_store, get_clock
 from issue_solver.webapi.payloads import (
     ResolveIssueRequest,
+    ProcessCreated,
 )
 from issue_solver.webapi.routers.repository import publish
 
@@ -27,7 +28,7 @@ async def resolve_issue(
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.index")),
     ],
-):
+) -> ProcessCreated:
     """Request issue resolution for a given knowledge base and issue."""
     process_id = str(uuid.uuid4())
     knowledge_base_id = request.knowledge_base_id
@@ -39,8 +40,4 @@ async def resolve_issue(
     )
     await event_store.append(process_id, event)
     publish(event, logger)
-    return {
-        "process_id": process_id,
-        "knowledge_base_id": knowledge_base_id,
-        "issue": request.issue,
-    }
+    return ProcessCreated(process_id=process_id)

@@ -13,6 +13,7 @@ import {
   LoaderIcon,
   PencilEditIcon,
   SparklesIcon,
+  RouteIcon,
 } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -26,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import Link from 'next/link';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -36,30 +38,68 @@ const SearchingAnimation = () => (
   </div>
 );
 
+const RemoteCodingAgentResult = ({
+  state,
+  result
+}: {
+  state: string;
+  result: any;
+}) => {
+  return (
+    <div className="bg-background border py-2 px-3 rounded-xl w-fit flex flex-row gap-3 items-center">
+      <div className="text-muted-foreground">
+        <RouteIcon size={16} />
+      </div>
+      <Link 
+        href={`/tasks/${result.processId}`} 
+        className="text-primary hover:text-primary/80 flex items-center gap-2 transition-colors"
+      >
+        <span>View remote task progress</span>
+        <svg 
+          width="14" 
+          height="14" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+          className="text-primary"
+        >
+          <path 
+            d="M7 17L17 7M17 7H8M17 7V16" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+    </div>
+  );
+};
+
 // Component to display codebase search results
-const CodebaseSearchResult = ({ 
-  state, 
-  result 
-}: { 
-  state: string; 
+const CodebaseSearchResult = ({
+  state,
+  result
+}: {
+  state: string;
   result: any;
 }) => {
   const [showAll, setShowAll] = useState(false);
-  
+
   // Parse source files from the result
   const sources = useMemo(() => {
     if (Array.isArray(result)) {
       return result; // Already processed array
     }
-    
+
     if (typeof result !== 'string') {
       return [];
     }
-    
+
     // Parse XML result
     return Array.from(result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g));
   }, [result]);
-    
+
   // Filter for unique sources based on file_path
   const uniqueSources = useMemo(() => {
     const uniquePaths = new Set();
@@ -71,14 +111,14 @@ const CodebaseSearchResult = ({
       return true;
     });
   }, [sources]);
-    
+
   // If no unique sources, don't render anything
   if (uniqueSources.length === 0) {
     return null;
   }
-  
+
   const displayCount = showAll ? uniqueSources.length : Math.min(3, uniqueSources.length);
-  
+
   return (
     <div className="rounded-md border border-border p-3 bg-muted/30">
       <div className="text-xs font-medium text-muted-foreground mb-2">Sources from codebase:</div>
@@ -86,7 +126,7 @@ const CodebaseSearchResult = ({
         {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
           <Tooltip key={index}>
             <TooltipTrigger asChild>
-              <div 
+              <div
                 className="inline-flex h-7 items-center justify-center rounded-md border border-primary/10 bg-primary/5 px-3 text-xs font-medium"
               >
                 {fileName}
@@ -97,11 +137,11 @@ const CodebaseSearchResult = ({
             </TooltipContent>
           </Tooltip>
         ))}
-        
+
         {uniqueSources.length > 3 && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-7 text-xs text-primary"
             onClick={() => setShowAll(!showAll)}
           >
@@ -152,34 +192,34 @@ const PurePreviewMessage = ({
     if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {
       return null;
     }
-    
+
     // Get all codebase search results
     const codebaseSearchResults = message.toolInvocations
-      .filter(tool => 
-        tool.toolName === 'codebaseSearch' && 
-        tool.state === 'result' && 
+      .filter(tool =>
+        tool.toolName === 'codebaseSearch' &&
+        tool.state === 'result' &&
         'result' in tool
       )
       .map(tool => tool.state === 'result' ? tool.result : undefined)
       .filter(result => result !== undefined);
-    
+
     if (codebaseSearchResults.length === 0) {
       return null;
     }
-    
+
     // Collect all source matches from all results
     const allMatches = [];
-    
+
     for (const result of codebaseSearchResults) {
       if (typeof result !== 'string') continue;
-      
+
       const matches = Array.from(
         result.matchAll(/<result file_name='([^']+)' file_path='([^']+)'>/g)
       );
-      
+
       allMatches.push(...matches);
     }
-    
+
     return allMatches.length > 0 ? allMatches : null;
   }, [message.toolInvocations, isLoading]);
 
@@ -216,7 +256,7 @@ const PurePreviewMessage = ({
         >
           <div className="flex flex-col gap-4 w-full relative">
             {/* Remove the assistant action buttons from left position */}
-            
+
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
@@ -322,8 +362,8 @@ const PurePreviewMessage = ({
                         return (
                           <div key={toolCallId} className="mt-3">
                             {!isLoading && result && (
-                              <CodebaseSearchResult 
-                                state={state} 
+                              <CodebaseSearchResult
+                                state={state}
                                 result={result}
                               />
                             )}
@@ -337,7 +377,7 @@ const PurePreviewMessage = ({
                         if (hasMultipleWebSearches) {
                           return null;
                         }
-                        
+
                         return (
                           <div key={toolCallId} className="mt-3">
                             {!isLoading && result && (
@@ -371,13 +411,19 @@ const PurePreviewMessage = ({
                           ) : toolName === 'codebaseAssistant' ? (
                             <div>
                             </div>
+                          ) : toolName === 'remoteCodingAgent' ? (
+                            <RemoteCodingAgentResult
+                              state={state}
+                              result={result}
+                            />
                           ) : (
                             <pre>{JSON.stringify(result, null, 2)}</pre>
                           )}
                         </div>
                       );
                     }
-                    
+          
+
                     // For states other than 'result' or 'running' during codebaseSearch
                     return (
                       <div
@@ -416,8 +462,8 @@ const PurePreviewMessage = ({
                   {/* Display combined codebase search results at the end ONLY if we have multiple searches */}
                   {combinedCodebaseSearchResults && hasMultipleCodebaseSearches && !isLoading && (
                     <div className="mt-3">
-                      <CodebaseSearchResult 
-                        state="result" 
+                      <CodebaseSearchResult
+                        state="result"
                         result={combinedCodebaseSearchResults}
                       />
                     </div>
@@ -430,7 +476,7 @@ const PurePreviewMessage = ({
                     </div>
                   )}
                 </div>
-                
+
                 {/* Only show actions here if there's no message content (to avoid duplication) */}
                 {message.role === 'assistant' && !message.content && (
                   <div className="flex flex-row gap-1 mt-1 ml-auto">
