@@ -163,7 +163,7 @@ async def resolve_issue(
         return
     # Submit PR
     try:
-        dependencies.git_client.submit_pull_request(
+        pr_reference = dependencies.git_client.submit_pull_request(
             repo_path=repo_path,
             title=message.issue.title
             or f"automatic issue resolution {message.process_id}",
@@ -189,8 +189,8 @@ async def resolve_issue(
         IssueResolutionCompleted(
             process_id=message.process_id,
             occurred_at=message.occurred_at,
-            pr_url="test-pr-url",
-            pr_number=123,
+            pr_url=pr_reference.url,
+            pr_number=pr_reference.number,
         ),
     )
 

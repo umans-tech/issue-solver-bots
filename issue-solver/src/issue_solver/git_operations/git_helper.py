@@ -355,6 +355,11 @@ class GitSettings(BaseSettings):
         description="Username used for Git commits.",
     )
 
+@dataclass
+class PullRequestReference:
+    url: str
+    number: int
+
 
 class GitClient:
     @staticmethod
@@ -410,7 +415,7 @@ class GitClient:
         access_token: str,
         url: str | None = None,
         branch: str | None = None,
-    ) -> None:
+    ) -> PullRequestReference:
         repo = Repo(repo_path)
         source_branch = branch or repo.active_branch.name
         remote_url = url or repo.remotes.origin.url
@@ -438,16 +443,20 @@ class GitClient:
         source_branch: str,
         target_branch: str,
         title: str,
-    ) -> None:
+    ) -> PullRequestReference:
         owner_repo = remote_url.removesuffix(".git").replace("https://gitlab.com/", "")
         gl = Gitlab("https://gitlab.com", private_token=access_token)
-        gl.projects.get(owner_repo).mergerequests.create(
+        mr = gl.projects.get(owner_repo).mergerequests.create(
             {
                 "source_branch": source_branch,
                 "target_branch": target_branch,
                 "title": title,
                 "description": body,
             }
+        )
+        return PullRequestReference(
+            url=f"https://gitlab.com/{owner_repo}/merge_requests/{mr.iid}",
+            number=mr.get("iid"),
         )
 
     @classmethod
@@ -459,8 +468,12 @@ class GitClient:
         source_branch: str,
         target_branch: str,
         title: str,
-    ) -> None:
+    ) -> PullRequestReference:
         owner_repo = remote_url.removesuffix(".git").replace("https://github.com/", "")
-        Github(access_token).get_repo(owner_repo).create_pull(
+        pr = Github(access_token).get_repo(owner_repo).create_pull(
             title=title, body=body, head=source_branch, base=target_branch
+        )
+        return PullRequestReference(
+            url=f"https://github.com/{owner_repo}/pull/{pr.number}",
+            number=pr.get("number"),
         )
