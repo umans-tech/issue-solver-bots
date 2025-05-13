@@ -1,15 +1,15 @@
-import datetime
 import logging
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     IssueResolutionRequested,
 )
 from issue_solver.events.event_store import EventStore
-from issue_solver.webapi.dependencies import get_logger, get_event_store
+from issue_solver.webapi.dependencies import get_logger, get_event_store, get_clock
 from issue_solver.webapi.payloads import (
     ResolveIssueRequest,
 )
@@ -22,6 +22,7 @@ router = APIRouter(prefix="/resolutions", tags=["resolutions"])
 async def resolve_issue(
     request: ResolveIssueRequest,
     event_store: Annotated[EventStore, Depends(get_event_store)],
+    clock: Annotated[Clock, Depends(get_clock)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.repository.index")),
@@ -31,7 +32,7 @@ async def resolve_issue(
     process_id = str(uuid.uuid4())
     knowledge_base_id = request.knowledge_base_id
     event = IssueResolutionRequested(
-        occurred_at=datetime.datetime.fromisoformat("2021-01-01T00:00:00"),
+        occurred_at=clock.now(),
         knowledge_base_id=knowledge_base_id,
         process_id=process_id,
         issue=request.issue,

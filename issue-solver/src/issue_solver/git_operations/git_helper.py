@@ -355,6 +355,7 @@ class GitSettings(BaseSettings):
         description="Username used for Git commits.",
     )
 
+
 @dataclass
 class PullRequestReference:
     url: str
@@ -422,11 +423,11 @@ class GitClient:
         target_branch = cls._default_branch(remote_url, access_token, repo_path)
 
         if "github.com" in remote_url.lower():
-            cls._submit_github_pr(
+            return cls._submit_github_pr(
                 access_token, body, remote_url, source_branch, target_branch, title
             )
         elif "gitlab.com" in remote_url.lower():
-            cls._submit_gitlab_mr(
+            return cls._submit_gitlab_mr(
                 access_token, body, remote_url, source_branch, target_branch, title
             )
         else:
@@ -456,7 +457,7 @@ class GitClient:
         )
         return PullRequestReference(
             url=f"https://gitlab.com/{owner_repo}/merge_requests/{mr.iid}",
-            number=mr.get("iid"),
+            number=mr.iid,
         )
 
     @classmethod
@@ -470,10 +471,12 @@ class GitClient:
         title: str,
     ) -> PullRequestReference:
         owner_repo = remote_url.removesuffix(".git").replace("https://github.com/", "")
-        pr = Github(access_token).get_repo(owner_repo).create_pull(
-            title=title, body=body, head=source_branch, base=target_branch
+        pr = (
+            Github(access_token)
+            .get_repo(owner_repo)
+            .create_pull(title=title, body=body, head=source_branch, base=target_branch)
         )
         return PullRequestReference(
             url=f"https://github.com/{owner_repo}/pull/{pr.number}",
-            number=pr.get("number"),
+            number=pr.number,
         )

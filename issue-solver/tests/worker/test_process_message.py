@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import Mock, AsyncMock
 
 import pytest
@@ -22,7 +23,7 @@ async def test_given_issue_resolution_request_start_resolution(
     event_store, time_under_control: ControllableClock
 ):
     # Given
-    time_under_control.set_from_iso_format("2025-01-01T00:00:00")
+    time_under_control.set_from_iso_format("2025-05-13T10:38:49")
     indexation_process_id = "indexation_process_id"
     await event_store.append(
         indexation_process_id,
@@ -31,14 +32,14 @@ async def test_given_issue_resolution_request_start_resolution(
             access_token="test-access-token",
             user_id="test-user-id",
             space_id="test-space-id",
-            occurred_at=time_under_control.now(),
+            occurred_at=datetime.fromisoformat("2025-05-13T10:35:00"),
             knowledge_base_id="test-knowledge-base-id",
             process_id=indexation_process_id,
         ),
     )
     process_id = "test-process-id"
     issue_resolution_requested_event = IssueResolutionRequested(
-        occurred_at=time_under_control.now(),
+        occurred_at=datetime.fromisoformat("2025-05-13T10:36:12"),
         knowledge_base_id="test-knowledge-base-id",
         process_id=process_id,
         issue=IssueInfo(description="test issue"),
@@ -54,7 +55,9 @@ async def test_given_issue_resolution_request_start_resolution(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, git_client, coding_agent),
+        dependencies=Dependencies(
+            event_store, git_client, coding_agent, time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(process_id)
@@ -95,7 +98,7 @@ async def test_resolve_issue_should_fail_when_repo_cant_find_knowledge_base(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, Mock(), AsyncMock()),
+        dependencies=Dependencies(event_store, Mock(), AsyncMock(), time_under_control),
     )
     # Then
     produced_events = await event_store.get(process_id)
@@ -148,7 +151,9 @@ async def test_resolve_issue_should_fail_when_repo_cant_be_cloned(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, git_helper, AsyncMock()),
+        dependencies=Dependencies(
+            event_store, git_helper, AsyncMock(), time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(issue_resolution_process_id)
@@ -199,7 +204,9 @@ async def test_resolve_issue_should_fail_when_coding_agent_fails(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, git_helper, coding_agent),
+        dependencies=Dependencies(
+            event_store, git_helper, coding_agent, time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(issue_resolution_process_id)
@@ -249,7 +256,9 @@ async def test_resolve_issue_should_fail_when_fail_to_push_changes(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, git_helper, coding_agent),
+        dependencies=Dependencies(
+            event_store, git_helper, coding_agent, time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(issue_resolution_process_id)
@@ -299,7 +308,9 @@ async def test_resolve_issue_should_fail_when_fail_to_submit_pr(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, git_helper, coding_agent),
+        dependencies=Dependencies(
+            event_store, git_helper, coding_agent, time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(issue_resolution_process_id)

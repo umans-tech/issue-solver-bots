@@ -8,6 +8,7 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     ResolveIssueCommand,
 )
+from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -52,10 +53,12 @@ class Dependencies:
         event_store: EventStore,
         git_client: GitClient,
         coding_agent: IssueResolvingAgent,
+        clock: Clock,
     ):
         self._event_store = event_store
         self.git_client = git_client
         self.coding_agent = coding_agent
+        self.clock = clock
 
     @property
     def event_store(self) -> EventStore:
@@ -103,7 +106,7 @@ async def resolve_issue(
             message.process_id,
             IssueResolutionFailed(
                 process_id=message.process_id,
-                occurred_at=message.occurred_at,
+                occurred_at=dependencies.clock.now(),
                 reason="repo_cant_be_cloned",
                 error_message=str(e),
             ),
@@ -114,7 +117,7 @@ async def resolve_issue(
         message.process_id,
         IssueResolutionStarted(
             process_id=message.process_id,
-            occurred_at=message.occurred_at,
+            occurred_at=dependencies.clock.now(),
         ),
     )
 
@@ -135,7 +138,7 @@ async def resolve_issue(
             message.process_id,
             IssueResolutionFailed(
                 process_id=message.process_id,
-                occurred_at=message.occurred_at,
+                occurred_at=dependencies.clock.now(),
                 reason="coding_agent_failed",
                 error_message=str(e),
             ),
@@ -155,7 +158,7 @@ async def resolve_issue(
             message.process_id,
             IssueResolutionFailed(
                 process_id=message.process_id,
-                occurred_at=message.occurred_at,
+                occurred_at=dependencies.clock.now(),
                 reason="failed_to_push_changes",
                 error_message=str(e),
             ),
@@ -177,7 +180,7 @@ async def resolve_issue(
             message.process_id,
             IssueResolutionFailed(
                 process_id=message.process_id,
-                occurred_at=message.occurred_at,
+                occurred_at=dependencies.clock.now(),
                 reason="failed_to_submit_pr",
                 error_message=str(e),
             ),
@@ -188,7 +191,7 @@ async def resolve_issue(
         message.process_id,
         IssueResolutionCompleted(
             process_id=message.process_id,
-            occurred_at=message.occurred_at,
+            occurred_at=dependencies.clock.now(),
             pr_url=pr_reference.url,
             pr_number=pr_reference.number,
         ),
