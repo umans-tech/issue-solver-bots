@@ -12,7 +12,7 @@ from issue_solver.events.domain import (
     IssueResolutionFailed,
     CodeRepositoryConnected,
 )
-from issue_solver.git_operations.git_helper import GitClient
+from issue_solver.git_operations.git_helper import GitClient, PullRequestReference
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.worker.messages_processing import process_event_message, Dependencies
 
@@ -45,10 +45,16 @@ async def test_given_issue_resolution_request_start_resolution(
     )
 
     coding_agent = AsyncMock()
+    git_client = Mock()
+    git_client.submit_pull_request.return_value = PullRequestReference(
+        url="http://gitlab.com/test-repo/pull/54",
+        number=54,
+    )
+
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, Mock(), coding_agent),
+        dependencies=Dependencies(event_store, git_client, coding_agent),
     )
     # Then
     produced_events = await event_store.get(process_id)
@@ -64,8 +70,8 @@ async def test_given_issue_resolution_request_start_resolution(
         IssueResolutionCompleted(
             process_id=process_id,
             occurred_at=time_under_control.now(),
-            pr_url="test-pr-url",
-            pr_number=123,
+            pr_url="http://gitlab.com/test-repo/pull/54",
+            pr_number=54,
         )
         in produced_events
     )
@@ -239,10 +245,6 @@ async def test_resolve_issue_should_fail_when_fail_to_push_changes(
     error_message = "Failed to push changes because of missing write access to the repository with token"
     git_helper.commit_and_push.side_effect = Exception(error_message)
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    coding_agent.resolve_issue.return_value = {
-        "pr_url": "http://gitlab.com/test-repo/pull/1",
-        "pr_number": 1,
-    }
 
     # When
     await process_event_message(
@@ -293,10 +295,6 @@ async def test_resolve_issue_should_fail_when_fail_to_submit_pr(
     error_message = "Failed to create pull request because of missing write access to pull request with token"
     git_helper.submit_pull_request.side_effect = Exception(error_message)
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    coding_agent.resolve_issue.return_value = {
-        "pr_url": "http://gitlab.com/test-repo/pull/1",
-        "pr_number": 1,
-    }
 
     # When
     await process_event_message(
