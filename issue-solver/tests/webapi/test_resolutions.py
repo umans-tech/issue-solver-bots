@@ -7,7 +7,8 @@ def test_issue_resolution_route_should_request_issue_resolution(
     api_client, time_under_control, sqs_client, sqs_queue
 ):
     # Given
-    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
+    current_time = "2025-01-01T10:10:56"
+    time_under_control.set_from_iso_format(current_time)
     connect_repo_response = api_client.post(
         "/repositories/",
         json={
@@ -41,7 +42,7 @@ def test_issue_resolution_route_should_request_issue_resolution(
     assert "Messages" in messages
     message_body = json.loads(messages["Messages"][0]["Body"])
     assert message_body["process_id"] == process_id
-    assert message_body["occurred_at"] == "2021-01-01T00:00:00"
+    assert message_body["occurred_at"] == current_time
     assert message_body["type"] == "issue_resolution_requested"
     get_process_response = api_client.get(
         f"/processes/{process_id}",

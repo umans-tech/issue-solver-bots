@@ -13,7 +13,7 @@ from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
 from issue_solver.git_operations.git_helper import GitClient
-from issue_solver.webapi.dependencies import init_event_store
+from issue_solver.webapi.dependencies import init_event_store, get_clock
 from issue_solver.worker.messages_processing import (
     logger,
     process_event_message,
@@ -79,6 +79,7 @@ async def load_dependencies_and_process_event_message(
         event_store=event_store,
         git_client=GitClient(),
         coding_agent=AnthropicAgent(api_key=os.environ["ANTHROPIC_API_KEY"]),
+        clock=get_clock(),
     )
     await process_event_message(
         event_record,
