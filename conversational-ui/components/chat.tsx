@@ -74,6 +74,7 @@ export function Chat({
     isLoading,
     stop,
     reload,
+    experimental_resume,
   } = useChat({
     id,
     body: { 
@@ -100,6 +101,16 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+
+  // Attempt to resume any in-progress streams when component mounts
+  useEffect(() => {
+    if (experimental_resume) {
+      experimental_resume().catch(error => {
+        // Silently handle resume errors (no need to show a toast)
+        console.error('Failed to resume stream:', error);
+      });
+    }
+  }, [experimental_resume]);
 
   return (
     <>

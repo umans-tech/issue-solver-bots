@@ -17,6 +17,8 @@ import {
   vote,
   space,
   spaceToUser,
+  chatStream,
+  type ChatStream,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -75,6 +77,7 @@ export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
+    await db.delete(chatStream).where(eq(chatStream.chatId, id));
 
     return await db.delete(chat).where(eq(chat.id, id));
   } catch (error) {
@@ -526,4 +529,92 @@ export async function ensureDefaultSpace(userId: string) {
   }
   
   return null;
+}
+
+// ChatStream related queries
+
+/**
+ * Save a new chat stream record
+ */
+export async function saveChatStream({
+  chatId,
+  streamId,
+}: {
+  chatId: string;
+  streamId: string;
+}) {
+  try {
+    return await db.insert(chatStream).values({
+      chatId,
+      streamId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Failed to save chat stream in database', error);
+    throw error;
+  }
+}
+
+/**
+ * Get the latest stream ID for a chat
+ */
+export async function getLatestChatStreamByChatId({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<ChatStream | null> {
+  try {
+    const streams = await db
+      .select()
+      .from(chatStream)
+      .where(eq(chatStream.chatId, chatId))
+      .orderBy(desc(chatStream.updatedAt))
+      .limit(1);
+
+    return streams.length > 0 ? streams[0] : null;
+  } catch (error) {
+    console.error('Failed to get latest chat stream by chat ID from database', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a chat stream record
+ */
+export async function updateChatStream({
+  id,
+  streamId,
+}: {
+  id: string;
+  streamId: string;
+}) {
+  try {
+    return await db
+      .update(chatStream)
+      .set({
+        streamId,
+        updatedAt: new Date(),
+      })
+      .where(eq(chatStream.id, id));
+  } catch (error) {
+    console.error('Failed to update chat stream in database', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete chat stream records for a chat
+ */
+export async function deleteChatStreamsByChatId({
+  chatId,
+}: {
+  chatId: string;
+}) {
+  try {
+    return await db.delete(chatStream).where(eq(chatStream.chatId, chatId));
+  } catch (error) {
+    console.error('Failed to delete chat streams by chat ID from database', error);
+    throw error;
+  }
 }
