@@ -5,12 +5,6 @@ resource "aws_lambda_function" "worker" {
   role          = aws_iam_role.worker_lambda_exec.arn
   timeout = 900  # 15 minutes
   memory_size   = 2048
-
-  vpc_config {
-    subnet_ids = data.terraform_remote_state.provision.outputs.private_subnet_ids
-    security_group_ids = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
-  }
-
   ephemeral_storage {
     size = 10240 # 10 GB of ephemeral storage
   }

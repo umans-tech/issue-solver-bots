@@ -38,18 +38,3 @@ output "blob_secret_access_key" {
   value = aws_iam_access_key.conversational_ui_blob_access_key.secret
   sensitive = true
 }
-
-output "vpc_id" {
-  description = "The ID of the VPC"
-  value       = aws_vpc.main.id
-}
-
-output "private_subnet_ids" {
-  description = "The IDs of the private subnets"
-  value       = aws_subnet.private[*].id
-}
-
-output "lambda_security_group_id" {
-  description = "The ID of the Lambda security group"
-  value       = aws_security_group.lambda_sg.id
-}
