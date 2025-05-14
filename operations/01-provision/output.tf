@@ -38,3 +38,11 @@ output "blob_secret_access_key" {
   value = aws_iam_access_key.conversational_ui_blob_access_key.secret
   sensitive = true
 }
+
+output "redis_url" {
+  value = format(
+    "redis://%s:6379",
+    aws_elasticache_serverless_cache.redis_cache.endpoint[0].address
+  )
+  sensitive = true
+}
