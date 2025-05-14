@@ -21,6 +21,12 @@ output "transaction_pooler_jdbc_connection_string" {
   sensitive = true
 }
 
+output "redis_connection_string" {
+  description = "Redis connection string for the Conversational UI"
+  value       = "rediss://${aws_elasticache_serverless_cache.conversational_ui_redis.endpoint[0].address}:6379"
+  sensitive   = true
+}
+
 output "blob_bucket_name" {
   value = aws_s3_bucket.conversational_ui_blob_storage.bucket
 }
