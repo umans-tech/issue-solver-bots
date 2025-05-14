@@ -28,8 +28,13 @@ resource "aws_lambda_function" "webapi" {
   image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.webapi_image_tag}"
   package_type  = "Image"
   role          = aws_iam_role.webapi_lambda_exec.arn
-  timeout       = 30
+  timeout       = 60
   memory_size   = 256
+
+  vpc_config {
+    subnet_ids = data.terraform_remote_state.provision.outputs.private_subnet_ids
+    security_group_ids = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
+  }
 
   environment {
     variables = {
@@ -42,7 +47,6 @@ resource "aws_lambda_function" "webapi" {
     }
   }
 }
-
 # API Gateway HTTP API
 resource "aws_apigatewayv2_api" "cudu_api" {
   name          = "webapi${local.environment_name_suffix}"
