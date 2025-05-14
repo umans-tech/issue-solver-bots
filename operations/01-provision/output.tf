@@ -23,7 +23,7 @@ output "transaction_pooler_jdbc_connection_string" {
 
 output "redis_connection_string" {
   description = "Redis connection string for the Conversational UI"
-  value       = "redis://${aws_elasticache_serverless_cache.conversational_ui_redis.endpoint}/0"
+  value       = "redis://${aws_elasticache_serverless_cache.conversational_ui_redis.endpoint[0].address}:6379"
   sensitive   = true
 }
 
