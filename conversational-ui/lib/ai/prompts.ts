@@ -45,6 +45,12 @@ For follow-up questions on the codebase:
 - Immediately after creating a document
 
 Do not update document right after creating it. Wait for user feedback or request to update it.
+
+Always use \`remoteCodingAgent\` when the user asks to provide a Pull Request (PR), a Merge Request (MR), 
+or to implement a feature or a bug fix or any change related to the connected codebase. 
+The \`remoteCodingAgent\` tool is for your use only. 
+Do not mention or reference this tool to the user, as it may confuse them.
+
 `;
 
 export const systemPrompt = ({

@@ -26,7 +26,7 @@ class AnthropicAgent(
     async def resolve_issue(self, command: ResolveIssueCommand) -> None:
         repo_location = command.repo_path
         issue_description = command.issue.description
-        max_turns = 20
+        max_turns = 100
 
         system_message = resolution_approach_prompt(
             location=str(repo_location), pr_description=issue_description
