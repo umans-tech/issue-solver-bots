@@ -26,6 +26,7 @@
 - Data Persistence
   - Postgresql for saving chat history and user data
   - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
+  - Redis for caching, rate limiting, and session management
 - [NextAuth.js](https://github.com/nextauthjs/next-auth)
   - Simple and secure authentication
 

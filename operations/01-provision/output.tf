@@ -21,6 +21,12 @@ output "transaction_pooler_jdbc_connection_string" {
   sensitive = true
 }
 
+output "redis_connection_string" {
+  description = "Redis connection string for the Conversational UI"
+  value       = "redis://${aws_elasticache_serverless_cache.conversational_ui_redis.endpoint[0].address}:6379"
+  sensitive   = true
+}
+
 output "blob_bucket_name" {
   value = aws_s3_bucket.conversational_ui_blob_storage.bucket
 }
@@ -37,4 +43,19 @@ output "blob_access_key_id" {
 output "blob_secret_access_key" {
   value = aws_iam_access_key.conversational_ui_blob_access_key.secret
   sensitive = true
+}
+
+output "vpc_id" {
+  description = "The ID of the VPC"
+  value       = aws_vpc.main.id
+}
+
+output "private_subnet_ids" {
+  description = "The IDs of the private subnets"
+  value       = aws_subnet.private[*].id
+}
+
+output "lambda_security_group_id" {
+  description = "The ID of the Lambda security group"
+  value       = aws_security_group.lambda_sg.id
 }

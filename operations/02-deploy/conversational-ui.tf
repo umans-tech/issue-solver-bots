@@ -53,6 +53,12 @@ resource "vercel_project_environment_variables" "env_vars" {
       sensitive = true
     },
     {
+      key       = "REDIS_URL"
+      value     = data.terraform_remote_state.provision.outputs.redis_connection_string
+      target = [local.vercel_deployment_target]
+      sensitive = true
+    },
+    {
       key       = "BLOB_READ_WRITE_TOKEN"
       value     = data.terraform_remote_state.provision.outputs.blob_secret_access_key
       target = [local.vercel_deployment_target]
