@@ -54,3 +54,31 @@ audit:
 audit-fix:
     @echo "Fixing audit issues..."
     @pnpm audit fix
+
+# 🐳 Build Docker container
+docker-build:
+    @echo "Building Docker image for conversational-ui..."
+    @docker build -t conversational-ui:latest .
+
+# 🚀 Run the Docker container with migrations
+docker-run-with-migrate:
+    @echo "Running Docker container with migrations..."
+    @docker run -p 3000:3000 --env-file .env -e DB_MIGRATE=true conversational-ui:latest
+
+# 🚀 Run the Docker container without migrations
+docker-run:
+    @echo "Running Docker container without migrations..."
+    @docker run -p 3000:3000 --env-file .env conversational-ui:latest
+
+# 🐳 Build and run Docker container with migrations (combined)
+docker: docker-build docker-run-with-migrate
+
+# 🌐 Run with Docker Compose (includes PostgreSQL and MinIO)
+docker-compose-up:
+    @echo "Starting all services with Docker Compose..."
+    @docker-compose -f docker-compose.yml -f docker-compose.app.yml up -d
+
+# 🛑 Stop Docker Compose services
+docker-compose-down:
+    @echo "Stopping all services..."
+    @docker-compose -f docker-compose.yml -f docker-compose.app.yml down
