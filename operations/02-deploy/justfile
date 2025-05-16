@@ -29,8 +29,11 @@ plan: init
 # 🚀 Apply changes for apps deployment
 apply: init
     @terraform apply -var "branch_name={{branch_name}}" -auto-approve
-    @echo ">>> Deployed App URL:"
+    @echo ">>> Deployed App URLs:"
+    @echo ">>> AWS:"
     @terraform output conversational_ui_url
+    @echo ">>> Vercel:"
+    @terraform output vercel_conversational_ui_url
 
 # 💣 Destroy all resources for apps deployment
 destroy: init

@@ -57,3 +57,7 @@ destroy: init empty-bucket
 # 👀 Show BACKEND_DATABASE_URL.
 backend-database-url:
     @echo "$(terraform output -raw transaction_pooler_connection_string | sed 's/postgresql:\/\//postgresql+asyncpg:\/\//g' | sed 's/\?.*//g')"
+
+# 👀 Show FRONTEND_DATABASE_URL.
+frontend-database-url:
+    @echo "$(terraform output -raw transaction_pooler_connection_string)"
