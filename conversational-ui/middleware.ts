@@ -1,10 +1,21 @@
+import { NextRequest, NextResponse } from 'next/server';
 import NextAuth from 'next-auth';
-
 import { authConfig } from '@/app/(auth)/auth.config';
 
-export default NextAuth(authConfig).auth;
+const { auth } = NextAuth(authConfig);
+
+export default function middleware(req: NextRequest) {
+    if (req.nextUrl.pathname === '/api/health') {
+        return NextResponse.next();
+    }
+    return auth(req as any)
+}
 
 export const config = {
-  // Matcher ignoring /terms, /privacy, and /landing pages to make them publicly accessible
-  matcher: ['/((?!terms|privacy|landing).)*', '/api/:path*', '/login', '/register'],
+    matcher: [
+        '/((?!terms|privacy|landing).)*',
+        '/api/:path*',
+        '/login',
+        '/register',
+    ],
 };

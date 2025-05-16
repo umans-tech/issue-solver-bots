@@ -57,3 +57,8 @@ variable "worker_image_tag" {
   type        = string
   description = "The tag of the Docker image to be deployed in the worker lambda function"
 }
+
+variable "conversational_ui_image_tag" {
+  type        = string
+  description = "The tag of the Docker image to be deployed in the conversational-ui App Runner service"
+}

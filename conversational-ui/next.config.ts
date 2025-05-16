@@ -3,6 +3,7 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   experimental: {
   },
+  output: 'standalone', // Add this line for containerization
   images: {
     remotePatterns: [
       {

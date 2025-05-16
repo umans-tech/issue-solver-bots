@@ -136,6 +136,21 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
 
+      - name: Build and push conversational-ui container image
+        uses: docker/build-push-action@v6
+        with:
+          context: 'conversational-ui'
+          file: conversational-ui/Dockerfile
+          push: true
+          build-args: |
+            POSTGRES_URL=postgresql://user:password@localhost:5432/dummy
+            REDIS_URL=redis://localhost:6379
+            OPENAI_API_KEY=sk-dummy-key-for-build-only
+            EXA_API_KEY=exa-dummy-key-for-build-only
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ env.IMAGE_ENV_TAG }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
 
   deploy:
     needs: [ detect-changes, provision, package ]
@@ -192,6 +207,24 @@ jobs:
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run conversational-ui migrations
+        run: |
+          cd operations/01-provision
+          terraform init -reconfigure
+          export POSTGRES_URL=$(just frontend-database-url)
+          cd ../../conversational-ui
+          npm install -g pnpm
+          pnpm install
+          NODE_ENV=production POSTGRES_URL=$POSTGRES_URL node -r tsx lib/db/migrate.ts
+        env:
+          GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+          TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
+          TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
       - name: Apply deploy
         run: |
@@ -208,6 +241,7 @@ jobs:
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
+          TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
 
   cleanup:
     needs: detect-changes
@@ -249,6 +283,7 @@ jobs:
           TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
+          TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
 
       - name: Destroy provision
         run: |
