@@ -9,6 +9,7 @@ import boto3
 import pytest
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from issue_solver.database.utils import get_pgbouncer_safe_connect_args
 from issue_solver.webapi.dependencies import get_clock, get_validation_service
 from issue_solver.webapi.main import app
 from pytest_httpserver import HTTPServer
@@ -105,7 +106,10 @@ def wait_for_postgres(db_url: str, timeout: int = 5) -> None:
 
 
 async def _check_connection(db_url: str) -> None:
-    conn = await asyncpg.connect(db_url)
+    conn = await asyncpg.connect(
+        db_url,
+        **get_pgbouncer_safe_connect_args()
+    )
     await conn.execute("SELECT 1")
     await conn.close()
 

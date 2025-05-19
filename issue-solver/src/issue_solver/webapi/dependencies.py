@@ -8,6 +8,7 @@ from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.clock import Clock, UTCSystemClock
 from issue_solver.database.postgres_event_store import PostgresEventStore
+from issue_solver.database.utils import get_pgbouncer_safe_connect_args
 from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
     DefaultGitValidationService,
@@ -53,6 +54,7 @@ def get_validation_service() -> GitValidationService:
 async def init_event_store() -> EventStore:
     return PostgresEventStore(
         connection=await asyncpg.connect(
-            os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
+            os.environ["DATABASE_URL"].replace("+asyncpg", ""),
+            **get_pgbouncer_safe_connect_args()
         )
     )
