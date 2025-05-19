@@ -1,12 +1,13 @@
 import asyncio
 import os
 from logging.config import fileConfig
-from itertools import count
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from issue_solver.database.utils import get_sqlalchemy_connect_args
 
 # this is the Alembic Config object, which provides
 # access to values within the .ini file in use.
@@ -23,9 +24,6 @@ if config.config_file_name is not None:
 # from myapp.db.models import Base
 # target_metadata = Base.metadata
 target_metadata = None
-
-# Counter for generating unique prepared statement names
-_stmt_counter = count()
 
 
 def run_migrations_offline() -> None:
@@ -67,15 +65,7 @@ async def run_migrations_online() -> None:
     connectable = create_async_engine(
         db_url,
         poolclass=pool.NullPool,
-        connect_args={
-            "statement_cache_size": 0,
-            "prepared_statement_cache_size": 0,
-            "prepared_statement_name_func": lambda operation=None: f"ps_{next(_stmt_counter)}",
-            "server_settings": {
-                "statement_timeout": "10000",
-                "idle_in_transaction_session_timeout": "60000",
-            },
-        },
+        connect_args=get_sqlalchemy_connect_args(),
     )
 
     async with connectable.connect() as async_connection:

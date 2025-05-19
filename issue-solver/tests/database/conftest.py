@@ -8,6 +8,7 @@ import pytest
 import pytest_asyncio
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from issue_solver.database.utils import get_pgbouncer_safe_connect_args
 from issue_solver.events.event_store import EventStore
 from issue_solver.webapi.dependencies import init_event_store
 from testcontainers.postgres import PostgresContainer
@@ -35,7 +36,10 @@ def wait_for_postgres(db_url: str, timeout: int = 5) -> None:
 
 
 async def _check_connection(db_url: str) -> None:
-    conn = await asyncpg.connect(db_url)
+    conn = await asyncpg.connect(
+        db_url,
+        **get_pgbouncer_safe_connect_args()
+    )
     await conn.execute("SELECT 1")
     await conn.close()
 
