@@ -3,6 +3,7 @@
 alias t := test
 alias c := check-typing
 alias l := lint
+alias lf := lint-fix
 alias f := format
 alias s := start-services
 alias d := dev
@@ -20,6 +21,10 @@ test-cov:
 # 🧹 Lint the code
 lint:
     uv run ruff check
+
+# ✨ Fix linting issues
+lint-fix:
+    uv run ruff check --fix
 
 # 🎨 Format the code
 format:
