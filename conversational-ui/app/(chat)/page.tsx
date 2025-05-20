@@ -7,6 +7,7 @@ import { DataStreamHandler } from '@/components/data-stream-handler';
 
 export default async function Page() {
   const id = generateUUID();
+  const randomKey = generateUUID();
 
   const cookieStore = await cookies();
   const modelIdFromCookie = cookieStore.get('chat-model');
@@ -15,7 +16,7 @@ export default async function Page() {
     return (
       <>
         <Chat
-          key={id}
+          key={`${id}-${randomKey}`}
           id={id}
           initialMessages={[]}
           selectedChatModel={DEFAULT_CHAT_MODEL}
@@ -31,7 +32,7 @@ export default async function Page() {
   return (
     <>
       <Chat
-        key={id}
+        key={`${id}-${randomKey}`}
         id={id}
         initialMessages={[]}
         selectedChatModel={modelIdFromCookie.value}
