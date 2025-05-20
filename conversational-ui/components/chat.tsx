@@ -1,7 +1,7 @@
 'use client';
 
 import type { Attachment, Message } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
@@ -26,12 +26,14 @@ export function Chat({
   selectedChatModel,
   selectedVisibilityType,
   isReadonly,
+  autoResume,
 }: {
   id: string;
   initialMessages: Array<Message>;
   selectedChatModel: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  autoResume: boolean;
 }) {
   const { mutate } = useSWRConfig();
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
@@ -74,6 +76,7 @@ export function Chat({
     isLoading,
     stop,
     reload,
+    experimental_resume,
   } = useChat({
     id,
     body: { 
@@ -92,6 +95,16 @@ export function Chat({
       toast.error('An error occured, please try again!');
     },
   });
+
+  useEffect(() => {
+    if (autoResume) {
+      experimental_resume();
+    }
+
+    // note: this hook has no dependencies since it only needs to run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,

@@ -1,9 +1,9 @@
-import { createDataStreamResponse, type Message, smoothStream, streamText, } from 'ai';
+import { createDataStream, type Message, smoothStream, streamText, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, sanitizeResponseMessages, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -14,10 +14,17 @@ import { codebaseAssistant } from '@/lib/ai/tools/codebase-assistant';
 import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web_search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
+import { createResumableStreamContext } from 'resumable-stream';
+import { after } from 'next/server';
+
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
 
+const streamContext = createResumableStreamContext({
+    waitUntil: after,
+  });
+  
 export async function POST(request: Request) {
     const {
         id,
@@ -54,7 +61,9 @@ export async function POST(request: Request) {
         messages: [{ ...userMessage, createdAt: new Date(), chatId: id }],
     });
 
-    return createDataStreamResponse({
+    const streamId = generateUUID();
+    await createStreamId({ streamId, chatId: id });
+    const stream = createDataStream({
         execute: (dataStream) => {
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
@@ -137,7 +146,65 @@ export async function POST(request: Request) {
             return 'Oops, an error occured!';
         },
     });
+
+    return new Response(
+        await streamContext.resumableStream(streamId, () => stream),
+    );
 }
+
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const chatId = searchParams.get('chatId');
+  
+    if (!chatId) {
+      return new Response('id is required', { status: 400 });
+    }
+  
+    const session = await auth();
+  
+    if (!session?.user) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+  
+    let chat: Chat;
+  
+    try {
+      chat = await getChatById({ id: chatId });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  
+    if (!chat) {
+      return new Response('Not found', { status: 404 });
+    }
+  
+    if (chat.userId !== session.user.id) {
+      return new Response('Forbidden', { status: 403 });
+    }
+  
+    const streamIds = await getStreamIdsByChatId({ chatId });
+  
+    if (!streamIds.length) {
+      return new Response('No streams found', { status: 404 });
+    }
+  
+    const recentStreamId = streamIds.at(-1);
+  
+    if (!recentStreamId) {
+      return new Response('No recent stream found', { status: 404 });
+    }
+  
+    const emptyDataStream = createDataStream({
+      execute: () => {},
+    });
+  
+    return new Response(
+      await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+      {
+        status: 200,
+      },
+    );
+  }  
 
 export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
