@@ -40,6 +40,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     return (
       <>
         <Chat
+          key={`${id}-${messagesFromDb.length}`}
           id={chat.id}
           initialMessages={convertToUIMessages(messagesFromDb)}
           selectedChatModel={DEFAULT_CHAT_MODEL}
@@ -55,6 +56,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   return (
     <>
       <Chat
+        key={`${id}-${messagesFromDb.length}`}
         id={chat.id}
         initialMessages={convertToUIMessages(messagesFromDb)}
         selectedChatModel={chatModelFromCookie.value}
