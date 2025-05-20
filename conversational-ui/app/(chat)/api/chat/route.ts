@@ -14,6 +14,7 @@ import { codebaseAssistant } from '@/lib/ai/tools/codebase-assistant';
 import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web_search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
+import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
 
