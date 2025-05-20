@@ -46,7 +46,7 @@ resource "aws_internet_gateway" "igw" {
 
 # Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
-  count  = length(aws_subnet.public)
+  count  = 0
   domain = "vpc"
 
   tags = {
@@ -56,14 +56,14 @@ resource "aws_eip" "nat" {
 
 # NAT Gateway
 resource "aws_nat_gateway" "nat" {
-  count         = length(aws_subnet.public)
+  count         = 0
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
 
   depends_on = [aws_internet_gateway.igw]
 
   tags = {
-    Name = "umans-nat-${count.index}${local.environment_name_suffix}"
+    Name = "umans-nat${local.environment_name_suffix}"
   }
 }
 
@@ -88,7 +88,7 @@ resource "aws_route_table" "private" {
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat[count.index].id
+    instance_id    = aws_instance.nat.id
   }
 
   tags = {
@@ -98,7 +98,7 @@ resource "aws_route_table" "private" {
 
 # Route table association for public subnets
 resource "aws_route_table_association" "public" {
-  count          = 2
+  count          = length(aws_subnet.public)
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
@@ -125,5 +125,47 @@ resource "aws_security_group" "lambda_sg" {
 
   tags = {
     Name = "umans-lambda-sg${local.environment_name_suffix}"
+  }
+}
+
+# Data source for Amazon Linux 2 AMI
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-gp2"]
+  }
+}
+
+# NAT EC2 instance in public subnet
+resource "aws_instance" "nat" {
+  ami                         = data.aws_ami.amazon_linux.id
+  instance_type               = "t3.nano"
+  subnet_id                   = aws_subnet.public[0].id
+  associate_public_ip_address = true
+  source_dest_check           = false
+
+  tags = {
+    Name = "umans-nat-instance${local.environment_name_suffix}"
+  }
+
+  user_data = <<-EOF
+    #!/bin/bash
+    sysctl -w net.ipv4.ip_forward=1
+    yum install -y iptables-services
+    systemctl enable iptables
+    systemctl start iptables
+    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    service iptables save
+  EOF
+}
+
+# Elastic IP for the NAT instance (free while attached)
+resource "aws_eip" "nat_instance" {
+  instance = aws_instance.nat.id
+
+  tags = {
+    Name = "umans-nat-eip-instance${local.environment_name_suffix}"
   }
 }
