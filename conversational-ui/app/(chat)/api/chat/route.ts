@@ -219,7 +219,7 @@ export async function GET(request: Request) {
       return new Response('No streams found', { status: 404 });
     }
   
-    const recentStreamId = streamIds[0];
+    const recentStreamId = streamIds.at(-1);
   
     if (!recentStreamId) {
       return new Response('No recent stream found', { status: 404 });
