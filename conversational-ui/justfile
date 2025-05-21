@@ -35,6 +35,11 @@ dev: install start-services migrate
     @echo "Starting the development server..."
     @pnpm run dev
 
+# 📦 Build the project
+build:
+    @echo "Building the project..."
+    @pnpm build
+
 # 📐 Lint the code
 lint:
     @echo "Linting the code..."
