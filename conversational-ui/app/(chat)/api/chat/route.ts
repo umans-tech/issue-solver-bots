@@ -15,16 +15,34 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web_search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { Chat } from '@/lib/db/schema';
-import { createResumableStreamContext } from 'resumable-stream';
+import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
 
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
 
-const streamContext = createResumableStreamContext({
-    waitUntil: after,
-  });
+let globalStreamContext: ResumableStreamContext | null = null;
+
+function getStreamContext() {
+  if (!globalStreamContext) {
+    try {
+      globalStreamContext = createResumableStreamContext({
+        waitUntil: after,
+      });
+    } catch (error: any) {
+      if (error.message.includes('REDIS_URL')) {
+        console.log(
+          ' > Resumable streams are disabled due to missing REDIS_URL',
+        );
+      } else {
+        console.error(error);
+      }
+    }
+  }
+
+  return globalStreamContext;
+}
   
 export async function POST(request: Request) {
     const {
@@ -148,12 +166,24 @@ export async function POST(request: Request) {
         },
     });
 
-    return new Response(
+    const streamContext = getStreamContext();
+
+    if (streamContext) {
+      return new Response(
         await streamContext.resumableStream(streamId, () => stream),
-    );
+      );
+    } else {
+      return new Response(stream);
+    }
 }
 
 export async function GET(request: Request) {
+    const streamContext = getStreamContext();
+
+    if (!streamContext) {
+      return new Response(null, { status: 204 });
+    }
+  
     const { searchParams } = new URL(request.url);
     const chatId = searchParams.get('chatId');
   
