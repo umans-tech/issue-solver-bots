@@ -234,21 +234,48 @@ resource "aws_apprunner_service" "conversational_ui" {
   }
 }
 
-# Custom domain for App Runner (optional)
 resource "aws_apprunner_custom_domain_association" "conversational_ui" {
-  count = local.environment_name == "production" ? 1 : 0
-
-  domain_name = "app-aws.umans.ai"
+  for_each    = toset(local.custom_app_runner_domains)
   service_arn = aws_apprunner_service.conversational_ui.arn
-
-  # Note: You'll need to add the DNS verification record to your DNS provider
-  # to complete the domain association
+  domain_name = each.value
 }
 
-output "domain_validation_records" {
-  value = local.environment_name == "production" ? (
-    length(aws_apprunner_custom_domain_association.conversational_ui) > 0 ?
-    aws_apprunner_custom_domain_association.conversational_ui[0].certificate_validation_records : null
-  ) : null
-  description = "DNS records for domain validation"
+locals {
+  apprunner_cert_validations = flatten([
+    for domain_key, domain_assoc in aws_apprunner_custom_domain_association.conversational_ui : [
+      for cert_record in domain_assoc.certificate_validation_records : {
+        key    = "${domain_key}-${cert_record.name}"
+        name   = cert_record.name
+        type   = cert_record.type
+        value  = cert_record.value
+      }
+    ]
+  ])
+}
+
+resource "aws_route53_record" "apprunner_cert_validation" {
+  for_each = {
+    for validation in local.apprunner_cert_validations :
+    validation.key => validation
+  }
+
+  allow_overwrite = true
+  zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
+  name            = each.value.name
+  type            = each.value.type
+  records         = [each.value.value]
+  ttl             = 60
+}
+
+resource "aws_route53_record" "landing_alias" {
+  for_each = aws_apprunner_custom_domain_association.conversational_ui
+
+  zone_id = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
+  name    = each.value.domain_name
+  type    = "CNAME"
+  ttl     = 300
+  records = [each.value.dns_target]
+  lifecycle {
+    create_before_destroy = true
+  }
 }

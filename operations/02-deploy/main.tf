@@ -13,6 +13,15 @@ data "terraform_remote_state" "provision" {
   }
 }
 
+data "terraform_remote_state" "foundation" {
+  backend = "s3"
+  config = {
+    bucket = "terraform-state-umans-platform"
+    key    = "foundation/apps/terraform.tfstate"
+    region = "eu-west-3"
+  }
+}
+
 data "aws_caller_identity" "current" {}
 
 locals {
@@ -22,5 +31,10 @@ locals {
   environment_name_suffix        = terraform.workspace == "production" ? "" : "-${local.environment_name}"
   domain_prefix                 = terraform.workspace == "production" ? "" : "${local.environment_name}."
   conversational_ui_project_name = "conversational-ui${local.environment_name_suffix}"
-  auth_url                       = "https://app.${local.domain_prefix}umans.ai"
+  landing_domain                 = "${local.domain_prefix}umans.ai"
+  app_domain                     = "app.${local.domain_prefix}umans.ai"
+  api_domain                     = "api.${local.domain_prefix}umans.ai"
+  auth_url                       = "https://${local.app_domain}"
+  custom_app_runner_domains = [local.landing_domain, local.app_domain]
+
 }
