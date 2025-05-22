@@ -92,7 +92,7 @@ async def resolve_issue(
     repo_path = Path(f"/tmp/repo/{process_id}")
     try:
         new_branch_name = (
-            f"auto/{process_id}/{(message.issue.title or "").replace(' ', '_')[:50]}"
+            f"auto/{process_id}/{(message.issue.title or '').replace(' ', '_')[:50]}"
         )
         dependencies.git_client.clone_repository(
             url=url,

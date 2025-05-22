@@ -108,7 +108,7 @@ def path_from_repo_root(file_path: str) -> str:
     repo_root_pattern = "/tmp/repo/{process_id}"
     position_of_repo_root = len(repo_root_pattern.split("/"))
     path_slots_from_repo_root = file_path.split("/")[position_of_repo_root:]
-    return f"/{("/").join(path_slots_from_repo_root)}"
+    return f"/{('/').join(path_slots_from_repo_root)}"
 
 
 @retry(wait=wait_random_exponential(min=5, max=70), stop=stop_after_attempt(10))

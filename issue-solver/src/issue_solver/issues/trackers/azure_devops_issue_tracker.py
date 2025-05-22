@@ -1,7 +1,6 @@
 from typing import Literal
 
 from pydantic import AnyUrl, Field
-from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issues.issue import IssueReference, IssueInfo
@@ -21,7 +20,7 @@ class AzureDevOpsIssueTracker(IssueTracker):
         type: Literal["AZURE_DEVOPS"] = "AZURE_DEVOPS"
         base_url: AnyUrl = Field(
             description="Base URL for the Azure DevOps.",
-            default=Url("https://dev.azure.com"),
+            default=AnyUrl("https://dev.azure.com"),
         )
 
         model_config = SettingsConfigDict(

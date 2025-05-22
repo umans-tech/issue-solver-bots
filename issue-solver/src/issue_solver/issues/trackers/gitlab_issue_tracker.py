@@ -5,7 +5,6 @@ from typing import Self, assert_never, Literal
 
 import gitlab
 from pydantic import AnyUrl, Field
-from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issues.issue import (
@@ -100,7 +99,7 @@ class GitlabIssueTracker(IssueTracker):
         type: Literal["GITLAB"] = "GITLAB"
         base_url: AnyUrl = Field(
             description="Base URL for the GitLab.",
-            default=Url("https://gitlab.com"),
+            default=AnyUrl("https://gitlab.com"),
         )
         api_version: str = Field(
             description="API version for the issue tracker.", default="4"
