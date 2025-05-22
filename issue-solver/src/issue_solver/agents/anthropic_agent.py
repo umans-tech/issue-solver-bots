@@ -37,17 +37,17 @@ class AnthropicAgent(
             )
         has_finished = False
         turn = 1
-        history = None
+        history: list[MessageParam | Message] = []
         while not has_finished:
             agent = self
             response = await agent.run_full_turn(
                 system_message=system_message,
-                messages=history or [],
+                messages=history,
                 model=cast(QualifiedAIModel[SupportedAnthropicModel], command.model),
             )
             print(f"Turn {turn}: {response.turn_messages()}")
             turn += 1
-            history = response.messages_history()
+            history = response.messages_history()  # type: ignore
             has_finished = response.has_finished() or turn == max_turns
         if not has_finished:
             raise Exception(f"Could not resolve issue in {turn} iterations")

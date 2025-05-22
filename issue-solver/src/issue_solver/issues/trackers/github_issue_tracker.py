@@ -5,7 +5,6 @@ from typing import Literal, Self
 
 import requests
 from pydantic import AnyUrl, Field
-from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issues.issue import (
@@ -41,8 +40,7 @@ class GithubIssueTracker(IssueTracker):
         issue_path = self.get_issue_path(issue_reference)
         headers = {
             "Accept": f"application/vnd.github.{self.settings.api_version}+json",
-            "Authorization": f"Bearer {self.
-            settings.private_token}"
+            "Authorization": f"Bearer {self.settings.private_token}"
             if self.settings.private_token
             else None,
         }
@@ -98,7 +96,7 @@ class GithubIssueTracker(IssueTracker):
         type: Literal["GITHUB"] = "GITHUB"
         base_url: AnyUrl = Field(
             description="Base URL for the GitHub.",
-            default=Url("https://api.github.com"),
+            default=AnyUrl("https://api.github.com"),
         )
         object_type: GithubObjectType = Field(
             default=GithubObjectType.ISSUE,

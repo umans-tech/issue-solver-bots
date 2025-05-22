@@ -1,7 +1,6 @@
 from typing import Literal
 
 from pydantic import AnyUrl, Field
-from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issues.issue import IssueReference, IssueInfo
@@ -21,7 +20,7 @@ class JiraIssueTracker(IssueTracker):
         type: Literal["JIRA"] = "JIRA"
         base_url: AnyUrl = Field(
             description="Base URL for the Jira.",
-            default=Url("https://jira.atlassian.com"),
+            default=AnyUrl("https://jira.atlassian.com"),
         )
 
         model_config = SettingsConfigDict(

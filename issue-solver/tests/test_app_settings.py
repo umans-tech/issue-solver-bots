@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-from pydantic_core import Url
+from pydantic import ValidationError, AnyUrl
 
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import IssueSettings, SolveCommandSettings
@@ -99,7 +98,7 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic(
     selected_issue_tracker = app_settings.selected_issue_tracker
     assert type(selected_issue_tracker) is GitlabIssueTracker.Settings
     assert selected_issue_tracker.private_token == gitlab_private_token
-    assert selected_issue_tracker.base_url == Url("https://gitlab.com")
+    assert selected_issue_tracker.base_url == AnyUrl("https://gitlab.com")
 
     assert type(app_settings.issue) is IssueSettings
     assert app_settings.issue.ref == IssueInternalId(
@@ -112,7 +111,7 @@ def test_full_valid_app_settings_with_gitlab_swe_crafter_and_anthropic(
     assert app_settings.git.user_name == git_user_name
     assert app_settings.repo_path == Path(path_to_repo)
     assert app_settings.model_settings == AnthropicSettings(
-        api_key=anthropic_api_key, base_url=Url(anthropic_base_url)
+        api_key=anthropic_api_key, base_url=AnyUrl(anthropic_base_url)
     )
 
 
@@ -167,7 +166,7 @@ def test_anthropic_model_with_required_fields(clean_env: None) -> None:
     assert app_settings.ai_model == SupportedAnthropicModel.CLAUDE_35_HAIKU
     assert isinstance(model_settings, AnthropicSettings)
     assert model_settings.api_key == "anthropic-test-key"
-    assert model_settings.base_url == Url("https://api.anthropic.example.org")
+    assert model_settings.base_url == AnyUrl("https://api.anthropic.example.org")
 
 
 def test_qwen_model_with_required_fields(clean_env: None) -> None:
@@ -278,7 +277,7 @@ def test_selected_model_with_settings(clean_env: None) -> None:
     assert model_with_settings.model.version == "20250110"
     assert isinstance(model_with_settings.settings, AnthropicSettings)
     assert model_with_settings.settings.api_key == "anthropic-test-key"
-    assert model_with_settings.settings.base_url == Url(
+    assert model_with_settings.settings.base_url == AnyUrl(
         "https://api.anthropic.example.org"
     )
 
@@ -298,7 +297,7 @@ def test_github_tracker_is_interpreted_correctly(clean_env: None) -> None:
     tracker = app_settings.selected_issue_tracker
     assert isinstance(tracker, GithubIssueTracker.Settings)
     assert tracker.type == "GITHUB"
-    assert tracker.base_url == Url("https://api.github.com")
+    assert tracker.base_url == AnyUrl("https://api.github.com")
     assert isinstance(app_settings.issue.ref, IssueInternalId)
     assert app_settings.issue.ref.project_id == "octocat/Hello-World"
     assert app_settings.issue.ref.iid == "101"
@@ -373,7 +372,7 @@ def test_http_based_tracker_is_interpreted_correctly(clean_env: None) -> None:
     tracker = app_settings.selected_issue_tracker
     assert isinstance(tracker, HttpBasedIssueTracker.Settings)
     assert tracker.type == "HTTP"
-    assert tracker.base_url == Url("https://my-http-service.example.org")
+    assert tracker.base_url == AnyUrl("https://my-http-service.example.org")
 
 
 def test_notion_tracker_is_interpreted_correctly(clean_env: None) -> None:
@@ -392,7 +391,7 @@ def test_notion_tracker_is_interpreted_correctly(clean_env: None) -> None:
     tracker = app_settings.selected_issue_tracker
     assert isinstance(tracker, NotionIssueTracker.Settings)
     assert tracker.type == "NOTION"
-    assert tracker.base_url == Url("https://api.notion.com/v1")
+    assert tracker.base_url == AnyUrl("https://api.notion.com/v1")
 
 
 def issue_description_example() -> str:

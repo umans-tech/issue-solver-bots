@@ -118,7 +118,7 @@ def to_dict_with_prefix(ai_model_settings: BaseSettings) -> dict[str, Any]:
     settings_model_dump = ai_model_settings.model_dump(by_alias=True)
     if ai_model_settings.model_config.get("env_prefix"):
         settings_model_dump = {
-            f"{ai_model_settings.model_config.get("env_prefix")}{k}".upper(): v
+            f"{ai_model_settings.model_config.get('env_prefix')}{k}".upper(): v
             for k, v in settings_model_dump.items()
         }
     return settings_model_dump

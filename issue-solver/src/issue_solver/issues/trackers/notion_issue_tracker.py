@@ -4,7 +4,6 @@ from typing import Self, Literal, Any
 
 import requests
 from pydantic import AnyUrl, Field
-from pydantic_core import Url
 from pydantic_settings import SettingsConfigDict
 
 from issue_solver.issues.issue import (
@@ -95,7 +94,7 @@ class NotionIssueTracker(IssueTracker):
         type: Literal["NOTION"] = "NOTION"
         base_url: AnyUrl = Field(
             description="Base URL for Notion API",
-            default=Url("https://api.notion.com/v1"),
+            default=AnyUrl("https://api.notion.com/v1"),
         )
         private_token: str = Field(description="Bearer token for Notion")
 

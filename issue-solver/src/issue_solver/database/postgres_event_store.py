@@ -72,9 +72,9 @@ class PostgresEventStore(EventStore):
 
     async def find(self, criteria: dict[str, Any], event_type: Type[T]) -> list[T]:
         sql_conditions = [
-            f"data->>${i} = ${i+1}" for i in range(1, len(criteria) * 2, 2)
+            f"data->>${i} = ${i + 1}" for i in range(1, len(criteria) * 2, 2)
         ]
-        sql_conditions.append(f"event_type = ${len(criteria)*2 + 1}")
+        sql_conditions.append(f"event_type = ${len(criteria) * 2 + 1}")
 
         query = f"""
             SELECT event_type, data, metadata, occured_at

@@ -10,10 +10,7 @@ def mock_repo():
     """Create a mocked git repository for testing."""
     repo = Mock()
     repo.git.diff.return_value = (
-        "A\tnew_file.txt\n"
-        "M\tfile1.txt\n"
-        "D\tfile2.txt\n"
-        "R100\told_name.txt\tnew_name.txt"
+        "A\tnew_file.txt\nM\tfile1.txt\nD\tfile2.txt\nR100\told_name.txt\tnew_name.txt"
     )
     return repo
 

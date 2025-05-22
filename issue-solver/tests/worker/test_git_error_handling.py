@@ -50,17 +50,23 @@ async def test_index_codebase_git_validation_error():
     mock_init_event_store.return_value = mock_event_store
 
     # Patch dependencies
-    with patch(
-        "issue_solver.worker.messages_processing.init_event_store",
-        mock_init_event_store,
-    ), patch(
-        "issue_solver.worker.messages_processing.get_clock",
-        return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
-    ), patch(
-        "issue_solver.worker.messages_processing.get_validation_service",
-        return_value=NoopGitValidationService(),
-    ), patch(
-        "issue_solver.worker.messages_processing.GitHelper.clone_repository", mock_clone
+    with (
+        patch(
+            "issue_solver.worker.messages_processing.init_event_store",
+            mock_init_event_store,
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_clock",
+            return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_validation_service",
+            return_value=NoopGitValidationService(),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.GitHelper.clone_repository",
+            mock_clone,
+        ),
     ):
         # When
         await index_codebase(message)
@@ -132,18 +138,25 @@ async def test_index_new_changes_codebase_git_validation_error():
     mock_init_event_store.return_value = mock_event_store
 
     # Patch dependencies
-    with patch(
-        "issue_solver.worker.messages_processing.init_event_store",
-        mock_init_event_store,
-    ), patch(
-        "issue_solver.worker.messages_processing.get_clock",
-        return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
-    ), patch(
-        "issue_solver.worker.messages_processing.get_validation_service",
-        return_value=NoopGitValidationService(),
-    ), patch(
-        "issue_solver.worker.messages_processing.GitHelper.pull_repository", mock_pull
-    ), patch("pathlib.Path.exists", mock_path_exists):
+    with (
+        patch(
+            "issue_solver.worker.messages_processing.init_event_store",
+            mock_init_event_store,
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_clock",
+            return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_validation_service",
+            return_value=NoopGitValidationService(),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.GitHelper.pull_repository",
+            mock_pull,
+        ),
+        patch("pathlib.Path.exists", mock_path_exists),
+    ):
         # When
         await index_new_changes_codebase(message)
 
@@ -213,18 +226,25 @@ async def test_index_new_changes_codebase_clone_git_validation_error():
     mock_init_event_store.return_value = mock_event_store
 
     # Patch dependencies
-    with patch(
-        "issue_solver.worker.messages_processing.init_event_store",
-        mock_init_event_store,
-    ), patch(
-        "issue_solver.worker.messages_processing.get_clock",
-        return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
-    ), patch(
-        "issue_solver.worker.messages_processing.get_validation_service",
-        return_value=NoopGitValidationService(),
-    ), patch(
-        "issue_solver.worker.messages_processing.GitHelper.clone_repository", mock_clone
-    ), patch("pathlib.Path.exists", mock_path_exists):
+    with (
+        patch(
+            "issue_solver.worker.messages_processing.init_event_store",
+            mock_init_event_store,
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_clock",
+            return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.get_validation_service",
+            return_value=NoopGitValidationService(),
+        ),
+        patch(
+            "issue_solver.worker.messages_processing.GitHelper.clone_repository",
+            mock_clone,
+        ),
+        patch("pathlib.Path.exists", mock_path_exists),
+    ):
         # When
         await index_new_changes_codebase(message)
 
