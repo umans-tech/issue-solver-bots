@@ -202,7 +202,7 @@ export async function GET(request: Request) {
       return new Response('Not found', { status: 404 });
     }
     
-    if (!chat) {
+    if (!chat) {    
       return new Response('Not found', { status: 404 });
     }
     
