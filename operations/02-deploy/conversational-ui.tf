@@ -147,15 +147,33 @@ resource "aws_route53_record" "apprunner_cert_validation" {
   ttl             = 60
 }
 
+# Create CNAME records for subdomains and alias record for apex domain
 resource "aws_route53_record" "landing_alias" {
   for_each = aws_apprunner_custom_domain_association.conversational_ui
 
+  allow_overwrite = true
   zone_id = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name    = each.value.domain_name
-  type    = "CNAME"
-  ttl     = 300
-  records = [each.value.dns_target]
+  
+  # Use alias record for apex domain, CNAME for subdomains
+  type = each.value.domain_name == "umans.ai" ? "A" : "CNAME"
+  
+  # For apex domain (umans.ai), use alias record
+  dynamic "alias" {
+    for_each = each.value.domain_name == "umans.ai" ? [1] : []
+    content {
+      name                   = each.value.dns_target
+      zone_id                = "Z087117439MBKHYM69QS6" # App Runner hosted zone ID for eu-west-3
+      evaluate_target_health = false
+    }
+  }
+  
+  # For subdomains, use CNAME records
+  ttl     = each.value.domain_name == "umans.ai" ? null : 300
+  records = each.value.domain_name == "umans.ai" ? null : [each.value.dns_target]
+  
   lifecycle {
     create_before_destroy = true
   }
 }
+
