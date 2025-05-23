@@ -31,6 +31,7 @@ function getStreamContext() {
         waitUntil: after,
       });
     } catch (error: any) {
+        console.log(error);
       if (error.message.includes('REDIS_URL')) {
         console.log(
           ' > Resumable streams are disabled due to missing REDIS_URL',

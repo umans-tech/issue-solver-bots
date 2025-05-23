@@ -92,6 +92,8 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
+      console.error('Error in useChat:\n', error.message);
+      console.error('Call stack:\n', error.stack);
       toast.error('An error occured, please try again!');
     },
   });
