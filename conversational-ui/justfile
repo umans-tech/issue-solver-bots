@@ -79,3 +79,8 @@ docker-compose-up:
 docker-compose-down:
     @echo "Stopping all services..."
     @docker-compose -f docker-compose.yml -f docker-compose.app.yml down
+
+# 🔐Reset a user's password by email. Usage: just reset-password user@example.com
+reset-password EMAIL:
+    @echo "Resetting password for user: {{EMAIL}}"
+    @node scripts/reset-password.js {{EMAIL}}
