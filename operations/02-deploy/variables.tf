@@ -42,12 +42,6 @@ variable "exa_api_key" {
   default   = ""
 }
 
-variable "vercel_api_token" {
-  description = "Vercel API Token"
-  type        = string
-  sensitive   = true
-}
-
 variable "webapi_image_tag" {
   type        = string
   description = "The tag of the Docker image to be deployed in the webapi lambda function"

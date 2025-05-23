@@ -1,17 +1,3 @@
-terraform {
-  required_providers {
-    vercel = {
-      source  = "vercel/vercel"
-      version = "~> 2.0"
-    }
-  }
-}
-
-provider "vercel" {
-  api_token = var.vercel_api_token
-  team      = "umans"
-}
-
 # IAM role for App Runner
 resource "aws_iam_role" "conversational_ui_app_runner_role" {
   name = "conversational-ui${local.environment_name_suffix}-app-runner-role"
