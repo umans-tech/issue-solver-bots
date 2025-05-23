@@ -32,8 +32,6 @@ apply: init
     @echo ">>> Deployed App URLs:"
     @echo ">>> AWS:"
     @terraform output conversational_ui_url
-    @echo ">>> Vercel:"
-    @terraform output vercel_conversational_ui_url
 
 # 💣 Destroy all resources for apps deployment
 destroy: init
