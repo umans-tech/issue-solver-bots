@@ -1,3 +1,12 @@
+# Local variables
+locals {
+  # AWS typically creates 3 certificate validation records per domain
+  # If you encounter errors about index out of bounds, you may need to adjust this number
+  # This is a workaround for Terraform's limitation with for_each and unknown values
+  # See: https://github.com/hashicorp/terraform-provider-aws/issues/23460
+  cert_validation_records_count = 3
+}
+
 # IAM role for App Runner
 resource "aws_iam_role" "conversational_ui_app_runner_role" {
   name = "conversational-ui${local.environment_name_suffix}-app-runner-role"
@@ -106,30 +115,31 @@ resource "aws_apprunner_custom_domain_association" "conversational_ui" {
   domain_name = each.value
 }
 
-locals {
-  apprunner_cert_validations = flatten([
-    for domain_key, domain_assoc in aws_apprunner_custom_domain_association.conversational_ui : [
-      for cert_record in domain_assoc.certificate_validation_records : {
-        key    = "${domain_key}-${cert_record.name}"
-        name   = cert_record.name
-        type   = cert_record.type
-        value  = cert_record.value
-      }
-    ]
-  ])
-}
-
-resource "aws_route53_record" "apprunner_cert_validation" {
-  for_each = {
-    for validation in local.apprunner_cert_validations :
-    validation.key => validation
-  }
-
+# Create validation records for the landing domain (typically 3 records)
+# WORKAROUND: We use count with tolist() instead of for_each to avoid the Terraform error:
+# "Invalid for_each argument: certificate_validation_records will be known only after apply"
+# This is a known limitation when using for_each with unknown values from resource attributes
+resource "aws_route53_record" "apprunner_cert_validation_landing" {
+  count = local.cert_validation_records_count
+  
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
-  name            = each.value.name
-  type            = each.value.type
-  records         = [each.value.value]
+  name            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].name
+  type            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].type
+  records         = [tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].value]
+  ttl             = 60
+}
+
+# Create validation records for the app domain (typically 3 records)
+# WORKAROUND: Same as above - using count with tolist() instead of for_each
+resource "aws_route53_record" "apprunner_cert_validation_app" {
+  count = local.cert_validation_records_count
+  
+  allow_overwrite = true
+  zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
+  name            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].name
+  type            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].type
+  records         = [tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].value]
   ttl             = 60
 }
 
