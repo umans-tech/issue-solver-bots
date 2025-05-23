@@ -11,6 +11,8 @@ export const myProvider = customProvider({
         'chat-model-reasoning': openai('o3-mini'),
         'coding-model-light': anthropic('claude-3-5-sonnet-latest'),
         'coding-model': anthropic('claude-3-7-sonnet-latest'),
+        'coding-model-large': anthropic('claude-sonnet-4-20250514'),
+        'coding-model-super': anthropic('claude-opus-4-20250514'),
         'title-model': openai('gpt-4o-mini'),
         'artifact-model': openai('gpt-4o'),
     },
@@ -45,6 +47,16 @@ export const chatModels: Array<ChatModel> = [
     {
         id: 'coding-model',
         name: 'Coding model',
+        description: 'Model for coding tasks, with more complex interactions with the codebase',
+    },
+    {
+        id: 'coding-model-large',
+        name: 'Large Coding model',
+        description: 'Model for coding tasks, with more complex interactions with the codebase',
+    },
+    {
+        id: 'coding-model-super',
+        name: 'Super Coding model',
         description: 'Model for coding tasks, with more complex interactions with the codebase',
     },
 ];
