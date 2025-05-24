@@ -31,6 +31,7 @@ function getStreamContext() {
         waitUntil: after,
       });
     } catch (error: any) {
+        console.log(error);
       if (error.message.includes('REDIS_URL')) {
         console.log(
           ' > Resumable streams are disabled due to missing REDIS_URL',
@@ -193,23 +194,23 @@ export async function GET(request: Request) {
   
     const session = await auth();
   
-    if (!session?.user) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-  
     let chat: Chat;
-  
+    
     try {
       chat = await getChatById({ id: chatId });
     } catch {
       return new Response('Not found', { status: 404 });
     }
-  
+    
     if (!chat) {
       return new Response('Not found', { status: 404 });
     }
+    
+    if (chat.visibility !== 'public' && !session?.user) {
+      return new Response('Unauthorized', { status: 401 });
+    }
   
-    if (chat.userId !== session.user.id) {
+    if (chat.visibility === 'private' && chat.userId !== session?.user.id) {
       return new Response('Forbidden', { status: 403 });
     }
   
