@@ -31,10 +31,14 @@ apply: init
 
 # 👀 Show outputs for resources provisionning
 output:
-    @echo "\n>>> Transaction Pooler Connection (PostgreSQL): ⚡️🔌🐘"
-    @terraform output -raw transaction_pooler_connection_string
     @echo "\n>>> Transaction Pooler Connection (JDBC): ☕️️🔌🐘"
     @terraform output -raw transaction_pooler_jdbc_connection_string
+    @echo "\n>>> Transaction Pooler Connection (PostgreSQL): ⚡️🔌🐘"
+    @terraform output -raw transaction_pooler_connection_string
+    @echo "\n>>> Direct Connection (PostgreSQL): ⚡️🔌🐘"
+    @terraform output -raw direct_database_connection_string
+    @echo "\n>>> Session Pooler Connection (PostgreSQL): ⚡️🔌🐘"
+    @terraform output -raw session_pooler_connection_string
     @echo  "\n>>> All outputs: 🤐"
     @terraform output
     @echo  "\n>>> BLOB_ACCESS_KEY_ID"
@@ -61,3 +65,7 @@ backend-database-url:
 # 👀 Show FRONTEND_DATABASE_URL.
 frontend-database-url:
     @echo "$(terraform output -raw transaction_pooler_connection_string)"
+
+# 👀 Show BACKEND_DIRECT_DATABASE_URL for migrations.
+backend-direct-database-url:
+    @echo "$(terraform output -raw session_pooler_connection_string)"
