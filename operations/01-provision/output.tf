@@ -9,6 +9,27 @@ output "transaction_pooler_connection_string" {
   sensitive = true
 }
 
+output "direct_database_connection_string" {
+  description = "Direct PostgreSQL connection string for migrations (bypassing PgBouncer)"
+  value = format(
+    "postgresql+asyncpg://postgres:%s@db.%s.supabase.co:5432/postgres?ssl=true",
+    random_password.conversational_ui_db_password.result,
+    supabase_project.conversational_ui.id
+  )
+  sensitive = true
+}
+
+output "session_pooler_connection_string" {
+  description = "Session Pooler PostgreSQL connection string for migrations (alternative to direct connection)"
+  value = format(
+    "postgresql+asyncpg://postgres.%s:%s@aws-0-%s.pooler.supabase.com:5432/postgres",
+    supabase_project.conversational_ui.id,
+    random_password.conversational_ui_db_password.result,
+    supabase_project.conversational_ui.region
+  )
+  sensitive = true
+}
+
 output "transaction_pooler_jdbc_connection_string" {
   description = "JDBC connection string for transaction pooler"
   value = format(

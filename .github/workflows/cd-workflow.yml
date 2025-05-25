@@ -198,7 +198,7 @@ jobs:
           cd operations/01-provision
           terraform init -reconfigure
           just init
-          export DATABASE_URL=$(just backend-database-url)
+          export DATABASE_URL=$(just backend-direct-database-url)
           cd ../../issue-solver
           uv sync
           just db-upgrade
