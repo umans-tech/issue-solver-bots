@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChatRequestOptions, Message } from 'ai';
+import type { UIMessage } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect } from 'react';
@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { UseChatHelpers } from '@ai-sdk/react';
 import Link from 'next/link';
 
 // Component to display search animation
@@ -153,6 +154,18 @@ const CodebaseSearchResult = ({
   );
 };
 
+const CodebaseSearchPreview = ({
+  type,
+  args,
+  isReadonly,
+}: {
+  type: string;
+  args: any;
+  isReadonly: boolean;
+}) => {
+  return <span className="animate-pulse">Searching the codebase...</span>;
+};
+
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -163,15 +176,11 @@ const PurePreviewMessage = ({
   isReadonly,
 }: {
   chatId: string;
-  message: Message;
+  message: UIMessage;
   vote: Vote | undefined;
   isLoading: boolean;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  setMessages: UseChatHelpers['setMessages'];
+  reload: UseChatHelpers['reload'];
   isReadonly: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
@@ -255,8 +264,6 @@ const PurePreviewMessage = ({
           )}
         >
           <div className="flex flex-col gap-4 w-full relative">
-            {/* Remove the assistant action buttons from left position */}
-
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
@@ -268,218 +275,198 @@ const PurePreviewMessage = ({
               </div>
             )}
 
-            {message.reasoning && (
-              <MessageReasoning
-                isLoading={isLoading}
-                reasoning={message.reasoning}
-              />
-            )}
+            {message.parts?.map((part, index) => {
+              const { type } = part;
+              const key = `message-${message.id}-part-${index}`;
 
-            {(message.content || message.reasoning) && mode === 'view' && (
-              <div className="flex flex-col gap-2 items-start w-full">
-                <div
-                  className={cn('flex flex-col gap-4 overflow-hidden w-full', {
-                    'bg-primary text-primary-foreground px-3 py-2 rounded-lg':
-                      message.role === 'user',
-                  })}
-                >
-                  <Markdown>{message.content as string}</Markdown>
-                </div>
-
-                <div className="flex flex-row gap-1 mt-1 ml-auto">
-                  {message.role === 'user' && !isReadonly && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                          onClick={() => {
-                            setMode('edit');
-                          }}
-                        >
-                          <PencilEditIcon />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent sideOffset={5}>Edit message</TooltipContent>
-                    </Tooltip>
-                  )}
-                  <MessageActions
-                    key={`action-${message.id}-user`}
-                    chatId={chatId}
-                    message={message}
-                    vote={vote}
+              if (type === 'reasoning') {
+                return (
+                  <MessageReasoning
+                    key={key}
                     isLoading={isLoading}
-                    isReadonly={isReadonly}
+                    reasoning={part.reasoning}
                   />
-                </div>
-              </div>
-            )}
+                );
+              }
 
-            {message.content && mode === 'edit' && (
-              <div className="flex flex-row gap-2 items-start">
-                <div className="size-8" />
+              if (type === 'text') {
+                if (mode === 'view') {
+                  return (
+                    <div key={key} className="flex flex-row gap-2 items-start">
+                      {message.role === 'user' && !isReadonly && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              data-testid="message-edit-button"
+                              variant="ghost"
+                              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                              onClick={() => {
+                                setMode('edit');
+                              }}
+                            >
+                              <PencilEditIcon />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit message</TooltipContent>
+                        </Tooltip>
+                      )}
 
-                <MessageEditor
-                  key={message.id}
-                  message={message}
-                  setMode={setMode}
-                  setMessages={setMessages}
-                  reload={reload}
-                />
-              </div>
-            )}
-
-            {message.toolInvocations && message.toolInvocations.length > 0 && (
-              <div className="flex flex-col gap-4">
-                <div className={cn('flex flex-col gap-4 overflow-hidden w-full')}>
-                  {message.toolInvocations.map((toolInvocation) => {
-                    const { toolName, toolCallId, state, args } = toolInvocation;
-                    // For TypeScript: explicitly access result via toolInvocation.result
-                    const result = 'result' in toolInvocation ? toolInvocation.result : undefined;
-
-                    // Handle codebase search animation separately
-                    if (toolName === 'codebaseSearch' && state === 'call') {
-                      return (
-                        <div className="text-muted-foreground" key={toolCallId}>
-                          <span className="animate-pulse">Searching the codebase...</span>
-                        </div>
-                      );
-                    }
-
-                    // Handle web search animation separately
-                    if (toolName === 'webSearch' && state === 'call') {
-                      return <WebSearchAnimation key={toolCallId} />;
-                    }
-
-                    if (state === 'result') {
-                      // Skip individual codebase search results if we have multiple searches
-                      if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
-                        return null;
-                      }
-
-                      // Show single codebase search result normally
-                      if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
-                        return (
-                          <div key={toolCallId} className="mt-3">
-                            {!isLoading && result && (
-                              <CodebaseSearchResult
-                                state={state}
-                                result={result}
-                              />
-                            )}
-                          </div>
-                        );
-                      }
-
-                      // Show web search results
-                      if (toolName === 'webSearch') {
-                        // Skip individual web search results if we have multiple searches
-                        if (hasMultipleWebSearches) {
-                          return null;
-                        }
-
-                        return (
-                          <div key={toolCallId} className="mt-3">
-                            {!isLoading && result && (
-                              <WebSearch result={result} />
-                            )}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={toolCallId}>
-                          {toolName === 'getWeather' ? (
-                            <Weather weatherAtLocation={result} />
-                          ) : toolName === 'createDocument' ? (
-                            <DocumentPreview
-                              isReadonly={isReadonly}
-                              result={result}
-                            />
-                          ) : toolName === 'updateDocument' ? (
-                            <DocumentToolResult
-                              type="update"
-                              result={result}
-                              isReadonly={isReadonly}
-                            />
-                          ) : toolName === 'requestSuggestions' ? (
-                            <DocumentToolResult
-                              type="request-suggestions"
-                              result={result}
-                              isReadonly={isReadonly}
-                            />
-                          ) : toolName === 'codebaseAssistant' ? (
-                            <div>
-                            </div>
-                          ) : toolName === 'remoteCodingAgent' ? (
-                            <RemoteCodingAgentResult
-                              state={state}
-                              result={result}
-                            />
-                          ) : (
-                            <pre>{JSON.stringify(result, null, 2)}</pre>
-                          )}
-                        </div>
-                      );
-                    }
-          
-
-                    // For states other than 'result' or 'running' during codebaseSearch
-                    return (
                       <div
-                        key={toolCallId}
-                        className={cx({
-                          skeleton: ['getWeather'].includes(toolName),
+                        data-testid="message-content"
+                        className={cn('flex flex-col gap-4', {
+                          'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
+                            message.role === 'user',
                         })}
                       >
-                        {toolName === 'getWeather' ? (
-                          <Weather />
-                        ) : toolName === 'createDocument' ? (
-                          <DocumentPreview isReadonly={isReadonly} args={args} />
-                        ) : toolName === 'updateDocument' ? (
-                          <DocumentToolCall
-                            type="update"
-                            args={args}
-                            isReadonly={isReadonly}
-                          />
-                        ) : toolName === 'requestSuggestions' ? (
-                          <DocumentToolCall
-                            type="request-suggestions"
-                            args={args}
-                            isReadonly={isReadonly}
-                          />
-                        ) : toolName === 'codebaseSearch' ? (
-                          // For codebaseSearch in other states, don't show anything
-                          null
-                        ) : toolName === 'webSearch' ? (
-                          // For webSearch in other states, show the animation
-                          <WebSearchAnimation />
-                        ) : null}
+                        <Markdown>{part.text}</Markdown>
                       </div>
-                    );
-                  })}
+                    </div>
+                  );
+                }
 
-                  {/* Display combined codebase search results at the end ONLY if we have multiple searches */}
-                  {combinedCodebaseSearchResults && hasMultipleCodebaseSearches && !isLoading && (
-                    <div className="mt-3">
-                      <CodebaseSearchResult
-                        state="result"
-                        result={combinedCodebaseSearchResults}
+                if (mode === 'edit') {
+                  return (
+                    <div key={key} className="flex flex-row gap-2 items-start">
+                      <div className="size-8" />
+
+                      <MessageEditor
+                        key={message.id}
+                        message={message}
+                        setMode={setMode}
+                        setMessages={setMessages}
+                        reload={reload}
                       />
                     </div>
-                  )}
+                  );
+                }
+              }
 
-                  {/* Display combined web search results at the end ONLY if we have multiple searches */}
-                  {combinedWebSearchResults && hasMultipleWebSearches && !isLoading && (
-                    <div className="mt-3">
-                      <WebSearch result={combinedWebSearchResults} />
+              if (type === 'tool-invocation') {
+                const { toolInvocation } = part;
+                const { toolName, toolCallId, state } = toolInvocation;
+                
+                if (state === 'call') {
+                  const { args } = toolInvocation;
+
+                  return (
+                    <div
+                      key={toolCallId}
+                      className={cx({
+                        skeleton: ['getWeather'].includes(toolName),
+                      })}
+                    >
+                      {toolName === 'getWeather' ? (
+                        <Weather />
+                      ) : toolName === 'createDocument' ? (
+                        <DocumentPreview isReadonly={isReadonly} args={args} />
+                      ) : toolName === 'updateDocument' ? (
+                        <DocumentToolCall
+                          type="update"
+                          args={args}
+                          isReadonly={isReadonly}
+                        />
+                      ) : toolName === 'requestSuggestions' ? (
+                        <DocumentToolCall
+                          type="request-suggestions"
+                          args={args}
+                          isReadonly={isReadonly}
+                        />
+                      ) : toolName === 'codebaseSearch' ? (
+                        <CodebaseSearchPreview
+                          type="codebaseSearch"
+                          args={args}
+                          isReadonly={isReadonly}
+                        />
+                      ) : toolName === 'webSearch' ? (
+                        <WebSearchAnimation />
+                      ) : null}
                     </div>
-                  )}
-                </div>
+                  );
+                }
 
-                {/* Only show actions here if there's no message content (to avoid duplication) */}
-                {message.role === 'assistant' && !message.content && (
-                  <div className="flex flex-row gap-1 mt-1 ml-auto">
+                if (state === 'result') {
+                  const { result } = toolInvocation;
+                  // Skip individual codebase search results if we have multiple searches
+                  if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
+                    return null;
+                  }
+
+                  // Show single codebase search result normally
+                  if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
+                    return (
+                      <div key={toolCallId} className="mt-3">
+                        {!isLoading && result && (
+                          <CodebaseSearchResult
+                            state={state}
+                            result={result}
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Show web search results
+                  if (toolName === 'webSearch') {
+                    // Skip individual web search results if we have multiple searches
+                    if (hasMultipleWebSearches) {
+                      return null;
+                    }
+
+                    return (
+                      <div key={toolCallId} className="mt-3">
+                        {!isLoading && result && (
+                          <WebSearch result={result} />
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={toolCallId}>
+                      {toolName === 'getWeather' ? (
+                        <Weather weatherAtLocation={result} />
+                      ) : toolName === 'createDocument' ? (
+                        <DocumentPreview
+                          isReadonly={isReadonly}
+                          result={result}
+                        />
+                      ) : toolName === 'updateDocument' ? (
+                        <DocumentToolResult
+                          type="update"
+                          result={result}
+                          isReadonly={isReadonly}
+                        />
+                      ) : toolName === 'requestSuggestions' ? (
+                        <DocumentToolResult
+                          type="request-suggestions"
+                          result={result}
+                          isReadonly={isReadonly}
+                        />
+                      ) : toolName === 'codebaseAssistant' ? (
+                          <div>
+                          </div>
+                      ) : toolName === 'remoteCodingAgent' ? (
+                          <RemoteCodingAgentResult
+                            state={state}
+                            result={result}
+                          />
+                      ) : toolName === 'webSearch' ? (
+                        <WebSearch result={result} />
+                      ) : toolName === 'codebaseSearch' ? (
+                        <CodebaseSearchResult
+                          state={state}
+                          result={result}
+                        />
+                      ) : (
+                        <pre>{JSON.stringify(result, null, 2)}</pre>
+                      )}
+                    </div>
+                  );
+                }
+              }
+            })}
+
+                {!isReadonly && (
                     <MessageActions
                       key={`action-${message.id}-tools`}
                       chatId={chatId}
@@ -488,10 +475,7 @@ const PurePreviewMessage = ({
                       isLoading={isLoading}
                       isReadonly={isReadonly}
                     />
-                  </div>
                 )}
-              </div>
-            )}
           </div>
         </div>
       </motion.div>
@@ -503,16 +487,8 @@ export const PreviewMessage = memo(
   PurePreviewMessage,
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.message.reasoning !== nextProps.message.reasoning)
-      return false;
-    if (prevProps.message.content !== nextProps.message.content) return false;
-    if (
-      !equal(
-        prevProps.message.toolInvocations,
-        nextProps.message.toolInvocations,
-      )
-    )
-      return false;
+    if (prevProps.message.id !== nextProps.message.id) return false;
+    if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
 
     return true;

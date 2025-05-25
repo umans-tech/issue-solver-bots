@@ -1,10 +1,10 @@
-import { createDataStream, type Message, smoothStream, streamText, } from 'ai';
+import { createDataStream, UIMessage, smoothStream, streamText, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
 import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId } from '@/lib/db/queries';
-import { generateUUID, getMostRecentUserMessage, sanitizeResponseMessages, } from '@/lib/utils';
+import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         knowledgeBaseId,
     }: {
         id: string;
-        messages: Array<Message>;
+        messages: Array<UIMessage>;
         selectedChatModel: string;
         knowledgeBaseId?: string | null;
     } = await request.json();
@@ -78,7 +78,16 @@ export async function POST(request: Request) {
     }
 
     await saveMessages({
-        messages: [{ ...userMessage, createdAt: new Date(), chatId: id }],
+        messages: [
+            {
+              chatId: id,
+              id: userMessage.id,
+              role: 'user',
+              parts: userMessage.parts,
+              attachments: userMessage.experimental_attachments ?? [],
+              createdAt: new Date(),
+            },
+          ],
     });
 
     const streamId = generateUUID();
@@ -125,25 +134,36 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response, reasoning }) => {
+                onFinish: async ({ response }) => {
                     if (session.user?.id) {
                         try {
-                            const sanitizedResponseMessages = sanitizeResponseMessages({
-                                messages: response.messages,
-                                reasoning,
+                            const assistantId = getTrailingMessageId({
+                                messages: response.messages.filter(
+                                  (message) => message.role === 'assistant',
+                                ),
+                              });
+              
+                              if (!assistantId) {
+                                throw new Error('No assistant message found!');
+                              }
+              
+                              const [, assistantMessage] = appendResponseMessages({
+                                messages: [userMessage],
+                                responseMessages: response.messages,
                             });
 
                             await saveMessages({
-                                messages: sanitizedResponseMessages.map((message) => {
-                                    return {
-                                        id: message.id,
-                                        chatId: id,
-                                        role: message.role,
-                                        content: message.content,
-                                        createdAt: new Date(),
-                                        experimental_attachments: message.experimental_attachments,
-                                    };
-                                }),
+                                messages: [
+                                    {
+                                      id: assistantId,
+                                      chatId: id,
+                                      role: assistantMessage.role,
+                                      parts: assistantMessage.parts,
+                                      attachments:
+                                        assistantMessage.experimental_attachments ?? [],
+                                      createdAt: new Date(),
+                                    },
+                                ],
                             });
                         } catch (error) {
                             console.error('Failed to save chat');
