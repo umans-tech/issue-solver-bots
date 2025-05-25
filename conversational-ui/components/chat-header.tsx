@@ -41,6 +41,12 @@ function PureChatHeader({
     const refreshSession = async () => {
       if (isSessionRefreshed) return; // Prevent multiple refreshes
       
+      // Only refresh session if user is authenticated
+      if (!session?.user) {
+        console.log("No authenticated user, skipping session refresh");
+        return;
+      }
+      
       try {
         console.log("Attempting to refresh session from server...");
         
@@ -73,7 +79,7 @@ function PureChatHeader({
     };
     
     refreshSession();
-  }, [updateSession, isSessionRefreshed]);
+  }, [updateSession, isSessionRefreshed, session?.user]);
 
   // Get repository data from session
   const knowledgeBaseId = session?.user?.selectedSpace?.knowledgeBaseId;
