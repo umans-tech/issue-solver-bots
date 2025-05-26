@@ -1,6 +1,9 @@
 import { compare } from 'bcrypt-ts';
 import NextAuth, { type User, type Session } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+import GitHubProvider from 'next-auth/providers/github';
+import EmailProvider from 'next-auth/providers/email';
 
 import { getUser, getSelectedSpace } from '@/lib/db/queries';
 
@@ -27,6 +30,7 @@ export const {
 } = NextAuth({
   ...authConfig,
   providers: [
+    // Traditional email/password authentication
     Credentials({
       credentials: {},
       async authorize({ email, password }: any) {
@@ -38,11 +42,41 @@ export const {
         return users[0] as any;
       },
     }),
+    // Social providers
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_ID || "",
+      clientSecret: process.env.GITHUB_SECRET || "",
+    }),
+    // Email verification provider
+    EmailProvider({
+      server: {
+        host: process.env.EMAIL_SERVER_HOST || "",
+        port: process.env.EMAIL_SERVER_PORT ? parseInt(process.env.EMAIL_SERVER_PORT) : 587,
+        auth: {
+          user: process.env.EMAIL_SERVER_USER || "",
+          pass: process.env.EMAIL_SERVER_PASSWORD || "",
+        },
+      },
+      from: process.env.EMAIL_FROM || "noreply@example.com",
+    }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        
+        // Store provider information and email verification status
+        if (account) {
+          token.provider = account.provider;
+        }
+        
+        if (user.emailVerified) {
+          token.emailVerified = user.emailVerified;
+        }
       }
         
       // Always get the user's selected space directly from the database
@@ -77,6 +111,15 @@ export const {
     }) {
       if (session.user) {
         session.user.id = token.id as string;
+        
+        // Add authentication provider and email verification status
+        if (token.provider) {
+          session.user.provider = token.provider;
+        }
+        
+        if (token.emailVerified) {
+          session.user.emailVerified = token.emailVerified;
+        }
         
         // Add selected space info to the session
         if (token.selectedSpace) {
