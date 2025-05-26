@@ -5,7 +5,7 @@ import { auth } from '@/app/(auth)/auth'
 export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { error?: string }
+  searchParams: Promise<{ error?: string }>
 }) {
   // Redirect if already logged in
   const session = await auth()
@@ -13,7 +13,8 @@ export default async function AuthErrorPage({
     redirect('/')
   }
 
-  const error = searchParams.error || 'default'
+  const params = await searchParams
+  const error = params.error || 'default'
   
   // Map error codes to user-friendly messages
   const errorMessages: Record<string, string> = {
