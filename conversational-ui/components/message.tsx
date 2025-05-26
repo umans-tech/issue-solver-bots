@@ -185,17 +185,6 @@ const PurePreviewMessage = ({
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
-  // Debug message rendering - helpful for troubleshooting UI issues
-  useEffect(() => {
-    console.log(`Rendering message ${message.id}:`, {
-      role: message.role,
-      hasContent: !!message.content,
-      hasToolInvocations: !!(message.toolInvocations && message.toolInvocations.length > 0),
-      toolCount: message.toolInvocations?.length || 0,
-      isLoading
-    });
-  }, [message, isLoading]);
-
   // Combine all codebase search results
   const combinedCodebaseSearchResults = useMemo(() => {
     if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {

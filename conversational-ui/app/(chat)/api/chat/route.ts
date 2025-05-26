@@ -1,4 +1,4 @@
-import { createDataStream, UIMessage, smoothStream, streamText, } from 'ai';
+import { createDataStream, UIMessage, appendResponseMessages, smoothStream, streamText, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
