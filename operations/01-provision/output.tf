@@ -9,6 +9,16 @@ output "transaction_pooler_connection_string" {
   sensitive = true
 }
 
+output "direct_database_connection_string" {
+  description = "Direct database connection string (bypassing PgBouncer) for migrations"
+  value = format(
+    "postgresql://postgres:%s@db.%s.supabase.co:5432/postgres?sslmode=require",
+    random_password.conversational_ui_db_password.result,
+    supabase_project.conversational_ui.id
+  )
+  sensitive = true
+}
+
 output "transaction_pooler_jdbc_connection_string" {
   description = "JDBC connection string for transaction pooler"
   value = format(

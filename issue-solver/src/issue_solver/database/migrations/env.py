@@ -59,20 +59,36 @@ async def run_migrations_online() -> None:
     if not config_section:
         raise ValueError("No config section found")
     db_url = os.getenv("DATABASE_URL", config_section["sqlalchemy.url"])
-
-    # Create async engine with proper connection arguments for pgbouncer
-    connectable = create_async_engine(
-        db_url,
-        poolclass=pool.AsyncAdaptedQueuePool,
-        connect_args={
+    
+    # Set default connect_args for any connection
+    connect_args = {
+        "server_settings": {
+            "statement_timeout": "10000",
+            "idle_in_transaction_session_timeout": "60000",
+        },
+    }
+    
+    # Check if this is a direct database connection (not using pgbouncer)
+    if "ssl=true" in db_url:
+        # For direct database connections, we need SSL but not the pgbouncer-specific settings
+        connect_args["ssl"] = True
+    else:
+        # For pgbouncer connections, add the necessary settings
+        connect_args.update({
             "statement_cache_size": 0,
             "prepared_statement_cache_size": 0,
             "prepared_statement_name_func": lambda operation=None: f"ps_{uuid.uuid4()}",
-            "server_settings": {
-                "statement_timeout": "10000",
-                "idle_in_transaction_session_timeout": "60000",
-            },
-        },
+        })
+    
+    # Clean up URL if ssl parameter is in query string (move it to connect_args)
+    if "ssl=true" in db_url:
+        db_url = db_url.replace("&ssl=true", "")
+
+    # Create async engine with the appropriate connection arguments
+    connectable = create_async_engine(
+        db_url,
+        poolclass=pool.AsyncAdaptedQueuePool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as async_connection:
