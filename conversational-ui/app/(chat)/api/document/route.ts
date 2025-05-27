@@ -1,4 +1,5 @@
-import { auth } from '@/app/(auth)/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/auth';
 import { ArtifactKind } from '@/components/artifact';
 import {
   deleteDocumentsByIdAfterTimestamp,
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getServerSession(authOptions) as any;
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getServerSession(authOptions) as any;
 
   if (!session) {
     return new Response('Unauthorized', { status: 401 });
@@ -80,7 +81,7 @@ export async function PATCH(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getServerSession(authOptions) as any;
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });

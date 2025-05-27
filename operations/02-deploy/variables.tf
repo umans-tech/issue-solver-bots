@@ -2,6 +2,15 @@ variable "auth_secret" {
   type      = string
   sensitive = true
 }
+variable "auth_google_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "auth_google_secret" {
+  type      = string
+  sensitive = true
+}
 
 variable "branch_name" {
   type    = string

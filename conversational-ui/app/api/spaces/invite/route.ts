@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/app/(auth)/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/auth';
 import { db } from '@/lib/db';
 import { spaceToUser } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -8,7 +9,7 @@ import { getUser } from '@/lib/db/queries';
 export async function POST(request: Request) {
   try {
     // Check authentication
-    const session = await auth();
+    const session = await getServerSession(authOptions) as any;
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

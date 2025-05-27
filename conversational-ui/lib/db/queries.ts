@@ -50,6 +50,18 @@ export async function createUser(email: string, password: string) {
   }
 }
 
+export async function createOAuthUser(email: string, name?: string) {
+  try {
+    return await db.insert(user).values({ 
+      email, 
+      password: null // OAuth users don't have passwords
+    }).returning();
+  } catch (error) {
+    console.error('Failed to create OAuth user in database');
+    throw error;
+  }
+}
+
 export async function saveChat({
   id,
   userId,
