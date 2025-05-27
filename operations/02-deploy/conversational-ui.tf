@@ -59,7 +59,10 @@ resource "aws_apprunner_service" "conversational_ui" {
           HOSTNAME                     = "0.0.0.0"
           POSTGRES_URL                 = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string
           NEXTAUTH_URL                 = local.auth_url
+          NEXTAUTH_URL_INTERNAL        = local.auth_url
           NEXTAUTH_SECRET              = var.auth_secret
+          AUTH_GOOGLE_ID               = var.auth_google_id
+          AUTH_GOOGLE_SECRET           = var.auth_google_secret
           REDIS_URL                    = data.terraform_remote_state.provision.outputs.redis_connection_string
           BLOB_READ_WRITE_TOKEN        = data.terraform_remote_state.provision.outputs.blob_secret_access_key
           BLOB_ACCESS_KEY_ID           = data.terraform_remote_state.provision.outputs.blob_access_key_id
@@ -110,7 +113,7 @@ resource "aws_apprunner_service" "conversational_ui" {
 }
 
 resource "aws_apprunner_custom_domain_association" "conversational_ui" {
-  for_each    = toset(local.custom_app_runner_domains)
+  for_each = toset(local.custom_app_runner_domains)
   service_arn = aws_apprunner_service.conversational_ui.arn
   domain_name = each.value
 }
@@ -121,26 +124,30 @@ resource "aws_apprunner_custom_domain_association" "conversational_ui" {
 # This is a known limitation when using for_each with unknown values from resource attributes
 resource "aws_route53_record" "apprunner_cert_validation_landing" {
   count = local.cert_validation_records_count
-  
+
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].name
   type            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].type
-  records         = [tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].value]
-  ttl             = 60
+  records = [
+    tolist(aws_apprunner_custom_domain_association.conversational_ui[local.landing_domain].certificate_validation_records)[count.index].value
+  ]
+  ttl = 60
 }
 
 # Create validation records for the app domain (typically 3 records)
 # WORKAROUND: Same as above - using count with tolist() instead of for_each
 resource "aws_route53_record" "apprunner_cert_validation_app" {
   count = local.cert_validation_records_count
-  
+
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].name
   type            = tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].type
-  records         = [tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].value]
-  ttl             = 60
+  records = [
+    tolist(aws_apprunner_custom_domain_association.conversational_ui[local.app_domain].certificate_validation_records)[count.index].value
+  ]
+  ttl = 60
 }
 
 # Create CNAME records for subdomains and alias record for apex domain
@@ -148,26 +155,26 @@ resource "aws_route53_record" "landing_alias" {
   for_each = aws_apprunner_custom_domain_association.conversational_ui
 
   allow_overwrite = true
-  zone_id = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
-  name    = each.value.domain_name
-  
+  zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
+  name = each.value.domain_name
+
   # Use alias record for apex domain, CNAME for subdomains
   type = each.value.domain_name == "umans.ai" ? "A" : "CNAME"
-  
+
   # For apex domain (umans.ai), use alias record
   dynamic "alias" {
     for_each = each.value.domain_name == "umans.ai" ? [1] : []
     content {
       name                   = each.value.dns_target
-      zone_id                = "Z087117439MBKHYM69QS6" # App Runner hosted zone ID for eu-west-3
+      zone_id = "Z087117439MBKHYM69QS6" # App Runner hosted zone ID for eu-west-3
       evaluate_target_health = false
     }
   }
-  
+
   # For subdomains, use CNAME records
   ttl     = each.value.domain_name == "umans.ai" ? null : 300
   records = each.value.domain_name == "umans.ai" ? null : [each.value.dns_target]
-  
+
   lifecycle {
     create_before_destroy = true
   }

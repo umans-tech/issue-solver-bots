@@ -4,10 +4,13 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useActionState, useEffect, useState} from 'react';
 import {toast} from 'sonner';
+import { signIn } from 'next-auth/react';
 
 import {AuthForm} from '@/components/auth-form';
 import {IconUmansLogo} from '@/components/icons';
 import {SubmitButton} from '@/components/submit-button';
+import { GoogleSignInButton } from '@/components/google-signin-button';
+import { AuthDivider } from '@/components/auth-divider';
 
 import {register, type RegisterActionState} from '../actions';
 
@@ -15,6 +18,7 @@ export default function Page() {
     const router = useRouter();
 
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [isSuccessful, setIsSuccessful] = useState(false);
 
     const [state, formAction] = useActionState<RegisterActionState, FormData>(
@@ -26,20 +30,41 @@ export default function Page() {
 
     useEffect(() => {
         if (state.status === 'user_exists') {
-            toast.error('Account already exists');
+            toast.error(state.message || 'Account already exists');
         } else if (state.status === 'failed') {
-            toast.error('Failed to create account');
+            toast.error(state.message || 'Failed to create account');
         } else if (state.status === 'invalid_data') {
             toast.error('Failed validating your submission!');
         } else if (state.status === 'success') {
-            toast.success('Account created successfully');
-            setIsSuccessful(true);
-            router.refresh();
+            // Server registration passed, now sign in with NextAuth
+            handleNextAuthSignIn();
         }
-    }, [state, router]);
+    }, [state.status, state.message]);
+
+    const handleNextAuthSignIn = async () => {
+        try {
+            const result = await signIn('credentials', {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                toast.error('Account created but failed to sign in. Please try signing in manually.');
+            } else if (result?.ok) {
+                setIsSuccessful(true);
+                toast.success('Account created and signed in successfully!');
+                router.push('/');
+            }
+        } catch (error) {
+            console.error('NextAuth sign in error after registration:', error);
+            toast.error('Account created but failed to sign in. Please try signing in manually.');
+        }
+    };
 
     const handleSubmit = (formData: FormData) => {
         setEmail(formData.get('email') as string);
+        setPassword(formData.get('password') as string);
         formAction(formData);
     };
 
@@ -55,6 +80,12 @@ export default function Page() {
                         Create an account with your email and password
                     </p>
                 </div>
+                
+                <div className="flex flex-col gap-4 px-4 sm:px-16">
+                    <GoogleSignInButton text="Sign up with Google" />
+                    <AuthDivider />
+                </div>
+                
                 <AuthForm action={handleSubmit} defaultEmail={email} showTerms={true}>
                     <SubmitButton isSuccessful={isSuccessful}>Sign Up</SubmitButton>
                     <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">

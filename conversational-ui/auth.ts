@@ -1,10 +1,9 @@
+import NextAuth, { type User, type Session, NextAuthOptions } from 'next-auth';
 import { compare } from 'bcrypt-ts';
-import NextAuth, { type User, type Session } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 
-import { getUser, getSelectedSpace } from '@/lib/db/queries';
-
-import { authConfig } from './auth.config';
+import { getUser, getSelectedSpace, createOAuthUser, ensureDefaultSpace } from '@/lib/db/queries';
 
 interface ExtendedSession extends Session {
   user: {
@@ -19,14 +18,16 @@ interface ExtendedSession extends Session {
   } & Omit<Session['user'], 'id'>;
 }
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
-  ...authConfig,
+export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: '/login',
+    newUser: '/',
+  },
   providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    }),
     Credentials({
       credentials: {},
       async authorize({ email, password }: any) {
@@ -40,7 +41,7 @@ export const {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
       }
@@ -132,5 +133,35 @@ export const {
 
       return session;
     },
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'google') {
+        // Handle Google OAuth sign-in
+        // Check if user exists by email
+        const existingUsers = await getUser(user.email!);
+        
+        if (existingUsers.length === 0) {
+          // Create new Google user
+          const newUsers = await createOAuthUser(user.email!, user.name || undefined);
+          if (newUsers.length > 0) {
+            user.id = newUsers[0].id;
+            // Create default space for the new user
+            await ensureDefaultSpace(newUsers[0].id);
+          }
+          return true;
+        }
+        
+        // User exists, allow sign-in
+        user.id = existingUsers[0].id;
+        // Ensure they have a default space
+        await ensureDefaultSpace(existingUsers[0].id);
+        return true;
+      }
+      
+      // For credentials provider, the authorize function already handles validation
+      return true;
+    },
   },
-});
+};
+
+const handler = NextAuth(authOptions);
+export default handler; 

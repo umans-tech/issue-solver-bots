@@ -3,9 +3,11 @@ import { cookies } from 'next/headers';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { ensureDefaultSpace } from '@/lib/db/queries';
-import { SessionProvider } from 'next-auth/react';
+import { Providers } from '@/components/providers';
 
-import { auth } from '../(auth)/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/auth';
+import type { Session } from 'next-auth';
 import Script from 'next/script';
 
 export const experimental_ppr = true;
@@ -15,7 +17,8 @@ export default async function TasksLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
+  const session = await getServerSession(authOptions) as any as Session | null;
+  const cookieStore = await cookies();
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const theme = cookieStore.get('theme')?.value || 'system';
 
@@ -30,12 +33,12 @@ export default async function TasksLayout({
         src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"
         strategy="beforeInteractive"
       />
-      <SessionProvider session={session}>
+      <Providers session={session}>
         <SidebarProvider defaultOpen={!isCollapsed}>
           <AppSidebar user={session?.user} />
           <SidebarInset>{children}</SidebarInset>
         </SidebarProvider>
-      </SessionProvider>
+      </Providers>
     </>
   );
 } 

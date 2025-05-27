@@ -1,10 +1,9 @@
 'use server';
 
 import { z } from 'zod';
+import { compare } from 'bcrypt-ts';
 
 import { createUser, getUser } from '@/lib/db/queries';
-
-import { signIn } from './auth';
 import { ensureDefaultSpace } from '@/lib/db/queries';
 
 const authFormSchema = z.object({
@@ -14,6 +13,7 @@ const authFormSchema = z.object({
 
 export interface LoginActionState {
   status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
+  message?: string;
 }
 
 export const login = async (
@@ -26,19 +26,27 @@ export const login = async (
       password: formData.get('password'),
     });
 
-    await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
-    });
+    // Validate credentials on server side
+    const users = await getUser(validatedData.email);
+    if (users.length === 0) {
+      return { status: 'failed', message: 'Invalid credentials!' };
+    }
 
+    const passwordsMatch = await compare(validatedData.password, users[0].password!);
+    if (!passwordsMatch) {
+      return { status: 'failed', message: 'Invalid credentials!' };
+    }
+
+    // Credentials are valid, return success
+    // The client side will handle the actual signIn call
     return { status: 'success' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
     }
 
-    return { status: 'failed' };
+    console.error('Login error:', error);
+    return { status: 'failed', message: 'Login failed. Please try again.' };
   }
 };
 
@@ -50,6 +58,7 @@ export interface RegisterActionState {
     | 'failed'
     | 'user_exists'
     | 'invalid_data';
+  message?: string;
 }
 
 export const register = async (
@@ -65,34 +74,28 @@ export const register = async (
     const [user] = await getUser(validatedData.email);
 
     if (user) {
-      return { status: 'user_exists' } as RegisterActionState;
+      return { status: 'user_exists', message: 'User already exists' } as RegisterActionState;
     }
     
-    // Create the user first
+    // Create the user
     await createUser(validatedData.email, validatedData.password);
     
     // Get the newly created user to access their ID
     const [newUser] = await getUser(validatedData.email);
     
-    // Create a default space for the user and set it as selected
-    // This ensures the space is created before the session is initialized
+    // Create a default space for the user
     if (newUser && newUser.id) {
       await ensureDefaultSpace(newUser.id);
     }
     
-    // Now sign in with the credentials
-    await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
-    });
-
+    // Return success, client side will handle signIn
     return { status: 'success' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
     }
 
-    return { status: 'failed' };
+    console.error('Register error:', error);
+    return { status: 'failed', message: 'Registration failed. Please try again.' };
   }
 };

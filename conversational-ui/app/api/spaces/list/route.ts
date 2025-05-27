@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/app/(auth)/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/auth';
 import { getSpacesForUser } from '@/lib/db/queries';
 
 export async function GET() {
   try {
     // Check authentication
-    const session = await auth();
+    const session = await getServerSession(authOptions) as any;
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
