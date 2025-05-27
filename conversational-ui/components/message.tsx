@@ -14,6 +14,7 @@ import {
   PencilEditIcon,
   SparklesIcon,
   RouteIcon,
+  SearchIcon,
 } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -29,6 +30,8 @@ import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import { UseChatHelpers } from '@ai-sdk/react';
 import Link from 'next/link';
+import { Sources, getFileExtension, getLanguageIcon } from './sources';
+import { CodeIcon } from './icons';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -80,12 +83,14 @@ const RemoteCodingAgentResult = ({
 // Component to display codebase search results
 const CodebaseSearchResult = ({
   state,
-  result
+  result,
+  query
 }: {
   state: string;
   result: any;
+  query?: string;
 }) => {
-  const [showAll, setShowAll] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // Parse source files from the result
   const sources = useMemo(() => {
@@ -118,38 +123,148 @@ const CodebaseSearchResult = ({
     return null;
   }
 
-  const displayCount = showAll ? uniqueSources.length : Math.min(3, uniqueSources.length);
+  // Take only the first 3 sources for collapsed view
+  const visibleSources = uniqueSources.slice(0, 3);
 
   return (
-    <div className="rounded-md border border-border p-3 bg-muted/30">
-      <div className="text-xs font-medium text-muted-foreground mb-2">Sources from codebase:</div>
-      <div className="flex flex-wrap gap-2">
-        {uniqueSources.slice(0, displayCount).map(([_, fileName, filePath], index) => (
-          <Tooltip key={index}>
-            <TooltipTrigger asChild>
-              <div
-                className="inline-flex h-7 items-center justify-center rounded-md border border-primary/10 bg-primary/5 px-3 text-xs font-medium"
-              >
-                {fileName}
+    <div className="mt-1">
+      {query && (
+        <div className="flex items-center gap-2 text-sm mb-2">
+          <CodeIcon size={16} />
+          <span className="text-muted-foreground">Searched the codebase for:</span>
+          <SearchIcon size={16} />
+          <span className="font-medium">"{query}"</span>
+        </div>
+      )}
+      {!expanded ? (
+        <div 
+          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setExpanded(true)}
+        >
+          {visibleSources.map(([_, fileName, filePath], index) => {
+            const extension = getFileExtension(filePath);
+            const languageIcon = getLanguageIcon(extension);
+            
+            return (
+              <div key={index} className="flex items-center">
+                {languageIcon ? (
+                  <img 
+                    src={languageIcon} 
+                    alt={`${extension} file`} 
+                    className="w-4 h-4 rounded-sm" 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-4 h-4 rounded-sm bg-primary/10 flex items-center justify-center">
+                    <svg 
+                      width="10" 
+                      height="10" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-primary"
+                    >
+                      <path 
+                        d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                )}
               </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[300px]">
-              <span className="text-xs truncate">{filePath}</span>
-            </TooltipContent>
-          </Tooltip>
-        ))}
-
-        {uniqueSources.length > 3 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-primary"
-            onClick={() => setShowAll(!showAll)}
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border overflow-hidden bg-background">
+          <div 
+            className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
+            onClick={() => setExpanded(false)}
           >
-            {showAll ? 'Show less' : `+${uniqueSources.length - 3} more`}
-          </Button>
-        )}
-      </div>
+            <div className="flex items-center gap-1.5 flex-grow">
+              <span className="text-xs font-medium text-muted-foreground">Search results</span>
+            </div>
+            <button 
+              className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
+              aria-label="Close search results"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(false);
+              }}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div className="p-3">
+            <div className="flex flex-wrap gap-2">
+              {uniqueSources.map(([_, fileName, filePath], index) => {
+                const extension = getFileExtension(filePath);
+                const languageIcon = getLanguageIcon(extension);
+                
+                return (
+                  <Tooltip key={index}>
+                    <TooltipTrigger asChild>
+                      <div className="inline-flex h-7 items-center justify-center rounded-md border border-primary/10 bg-primary/5 px-3 text-xs font-medium gap-1.5">
+                        {languageIcon ? (
+                          <img 
+                            src={languageIcon} 
+                            alt={`${extension} file`} 
+                            className="w-3 h-3" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
+                            <svg 
+                              width="8" 
+                              height="8" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="text-primary"
+                            >
+                              <path 
+                                d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
+                                stroke="currentColor" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        {fileName}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[300px]">
+                      <span className="text-xs truncate">{filePath}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -184,6 +299,16 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+
+  // Collect all sources from message parts
+  const allSources = useMemo(() => {
+    if (!message.parts) return [];
+    
+    return message.parts
+      .filter(part => part.type === 'source')
+      .map(part => part.source)
+      .filter(source => source !== undefined);
+  }, [message.parts]);
 
   // Combine all codebase search results
   const combinedCodebaseSearchResults = useMemo(() => {
@@ -276,6 +401,11 @@ const PurePreviewMessage = ({
                     reasoning={part.reasoning}
                   />
                 );
+              }
+
+              if (type === 'source') {
+                // Skip individual source rendering - we'll show all sources consolidated at the end
+                return null;
               }
 
               if (type === 'text') {
@@ -374,20 +504,17 @@ const PurePreviewMessage = ({
                 }
 
                 if (state === 'result') {
-                  const { result } = toolInvocation;
-                  // Skip individual codebase search results if we have multiple searches
-                  if (toolName === 'codebaseSearch' && hasMultipleCodebaseSearches) {
-                    return null;
-                  }
+                  const { result, args } = toolInvocation;
 
                   // Show single codebase search result normally
-                  if (toolName === 'codebaseSearch' && !hasMultipleCodebaseSearches) {
+                  if (toolName === 'codebaseSearch') {
                     return (
                       <div key={toolCallId} className="mt-3">
-                        {!isLoading && result && (
+                        {result && (
                           <CodebaseSearchResult
                             state={state}
                             result={result}
+                            query={args?.query}
                           />
                         )}
                       </div>
@@ -396,15 +523,11 @@ const PurePreviewMessage = ({
 
                   // Show web search results
                   if (toolName === 'webSearch') {
-                    // Skip individual web search results if we have multiple searches
-                    if (hasMultipleWebSearches) {
-                      return null;
-                    }
 
                     return (
                       <div key={toolCallId} className="mt-3">
-                        {!isLoading && result && (
-                          <WebSearch result={result} />
+                        {result && (
+                          <WebSearch result={result} query={args?.query} />
                         )}
                       </div>
                     );
@@ -440,11 +563,12 @@ const PurePreviewMessage = ({
                             result={result}
                           />
                       ) : toolName === 'webSearch' ? (
-                        <WebSearch result={result} />
+                        <WebSearch result={result} query={args?.query} />
                       ) : toolName === 'codebaseSearch' ? (
                         <CodebaseSearchResult
                           state={state}
                           result={result}
+                          query={args?.query}
                         />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
@@ -454,6 +578,11 @@ const PurePreviewMessage = ({
                 }
               }
             })}
+
+            {/* Render all sources consolidated at the end */}
+            {!isLoading && allSources.length > 0 && (
+              <Sources sources={allSources} />
+            )}
 
                 {!isReadonly && (
                     <MessageActions

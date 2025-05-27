@@ -94,6 +94,16 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
     const stream = createDataStream({
         execute: (dataStream) => {
+            // Collect sources written to the dataStream
+            const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
+            
+            // Wrap dataStream.writeSource to collect sources
+            const originalWriteSource = dataStream.writeSource.bind(dataStream);
+            dataStream.writeSource = (source) => {
+                collectedSources.push(source);
+                return originalWriteSource(source);
+            };
+
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({ selectedChatModel }),
@@ -128,7 +138,10 @@ export async function POST(request: Request) {
                         session: Object.assign({}, session, { knowledgeBaseId }),
                         dataStream,
                     }),
-                    webSearch: webSearch,
+                    webSearch: webSearch({
+                        session,
+                        dataStream,
+                    }),
                     remoteCodingAgent: remoteCodingAgent({
                         session: Object.assign({}, session, { knowledgeBaseId }),
                         dataStream,
@@ -152,13 +165,22 @@ export async function POST(request: Request) {
                                 responseMessages: response.messages,
                             });
 
+                            // Add collected sources to the message parts
+                            const messageParts = [...(assistantMessage.parts || [])];
+                            for (const source of collectedSources) {
+                                messageParts.push({
+                                    type: 'source',
+                                    source: source,
+                                });
+                            }
+
                             await saveMessages({
                                 messages: [
                                     {
                                       id: assistantId,
                                       chatId: id,
                                       role: assistantMessage.role,
-                                      parts: assistantMessage.parts,
+                                      parts: messageParts,
                                       attachments:
                                         assistantMessage.experimental_attachments ?? [],
                                       createdAt: new Date(),
