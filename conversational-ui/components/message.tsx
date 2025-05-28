@@ -145,7 +145,7 @@ const PurePreviewMessage = ({
                               <Button
                                 data-testid="message-edit-button"
                                 variant="ghost"
-                                className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
                                 onClick={() => {
                                   setMode('edit');
                                 }}
@@ -160,7 +160,7 @@ const PurePreviewMessage = ({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
                                 variant="ghost"
                                 onClick={async () => {
                                   const textFromParts = message.parts
