@@ -68,7 +68,7 @@ export const CodebaseSearchResult = ({
             <CodeIcon size={16} />
             <span className="text-muted-foreground">Searched the codebase for:</span>
             <SearchIcon size={16} />
-            <span className="font-medium">"{query}"</span>
+            <span className="text-muted-foreground">"{query}"</span>
           </div>
         )}
         {!expanded ? (

@@ -44,10 +44,10 @@ export async function POST(req: NextRequest) {
     const newMessages = sourceMessages.map(msg => ({
       id: generateUUID(),
       chatId: newChatId,
-      content: msg.content,
       role: msg.role,
+      parts: msg.parts,
+      attachments: msg.attachments,
       createdAt: new Date(),
-      experimental_attachments: msg.experimental_attachments,
     }));
     
     // Save the copied messages to the new chat
