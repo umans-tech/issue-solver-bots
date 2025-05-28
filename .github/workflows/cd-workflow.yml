@@ -221,6 +221,7 @@ jobs:
           npm install -g pnpm
           pnpm install
           NODE_ENV=production POSTGRES_URL=$POSTGRES_URL node -r tsx lib/db/migrate.ts
+          pnpm exec tsx lib/db/helpers/01-core-to-parts.ts
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}

@@ -1,6 +1,8 @@
 'use client';
 
+import { DataStreamWriter } from 'ai';
 import { useState, useMemo } from 'react';
+import { GlobeIcon } from './icons';
 
 interface WebSource {
   title: string;
@@ -19,8 +21,9 @@ const getFaviconUrl = (url: string) => {
   }
 };
 
-export interface WebSearchProps {
+export interface WebSearchResultProps {
   result: WebSource[] | any;
+  query?: string;
 }
 
 export const WebSearchAnimation = () => (
@@ -31,7 +34,7 @@ export const WebSearchAnimation = () => (
   </div>
 );
 
-export function WebSearch({ result }: WebSearchProps) {
+export function WebSearch({ result, query }: WebSearchResultProps) {
   const [expanded, setExpanded] = useState(false);
   
   if (!result || !Array.isArray(result)) {
@@ -43,6 +46,14 @@ export function WebSearch({ result }: WebSearchProps) {
   
   return (
     <div className="mt-1">
+      {query && (
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <span className="text-muted-foreground">
+            <GlobeIcon size={16} />
+          </span>
+          <span className="text-muted-foreground">Searched the web for: "{query}"</span>
+        </div>
+      )}
       {!expanded ? (
         <div 
           className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -65,20 +76,19 @@ export function WebSearch({ result }: WebSearchProps) {
               </div>
             );
           })}
-          <span className="text-xs font-medium text-muted-foreground">Sources</span>
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden bg-background">
           <div 
-            className="py-2 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
+            className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
             onClick={() => setExpanded(false)}
           >
             <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-xs font-medium text-muted-foreground">Sources</span>
+              <span className="text-xs font-medium text-muted-foreground">Search results</span>
             </div>
             <button 
               className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
-              aria-label="Close sources"
+              aria-label="Close search results"
               onClick={(e) => {
                 e.stopPropagation();
                 setExpanded(false);

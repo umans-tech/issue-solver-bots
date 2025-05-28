@@ -55,7 +55,7 @@ function logSearchOperation(operation: string, data: any) {
   console.log(`[${timestamp}] CodebaseSearch ${operation}:`, JSON.stringify(data, null, 2));
 }
 
-export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
+export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => tool({
   description: 'Search the codebase using hybrid semantic search to find relevant code snippets.',
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
@@ -95,6 +95,14 @@ export const codebaseSearch = ({ session }: CodebaseSearchProps) => tool({
 
       // Format the results in XML
       const formattedResult = formatResults(searchResults);
+      for (const result of searchResults.data) {
+        dataStream.writeSource({
+          sourceType: 'url',
+          id: result.file_id,
+          url: result.attributes?.file_path as string,
+          title: result.attributes?.file_name as string,
+        });
+      }
       return formattedResult;
     } catch (error) {
       // Log error

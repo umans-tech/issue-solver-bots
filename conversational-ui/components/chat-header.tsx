@@ -41,7 +41,7 @@ function PureChatHeader({
     const refreshSession = async () => {
       if (isSessionRefreshed) return; // Prevent multiple refreshes
       
-      // Only refresh session if user is authenticated
+      // Only try to refresh session if user is authenticated
       if (!session?.user) {
         console.log("No authenticated user, skipping session refresh");
         return;
@@ -71,7 +71,7 @@ function PureChatHeader({
           console.log("Chat header session refreshed on mount");
           setIsSessionRefreshed(true);
         } else {
-          console.error("Failed to refresh session:", response.statusText);
+          console.log("Session refresh failed:", response.status, response.statusText);
         }
       } catch (error) {
         console.error("Error refreshing session on mount:", error);
