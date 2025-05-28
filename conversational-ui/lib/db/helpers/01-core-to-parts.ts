@@ -93,7 +93,10 @@ function sanitizeParts<T extends { type: string; [k: string]: any }>(
 }
 
 async function migrateMessages() {
+  console.info('Starting message migration from deprecated schema to new parts-based schema...');
+  
   const chats = await db.select().from(chat);
+  console.info(`Found ${chats.length} chats to process`);
 
   let processedCount = 0;
 
@@ -225,14 +228,22 @@ async function migrateMessages() {
           createdAt: msg.createdAt,
         }));
 
-        await db.insert(message).values(validMessageBatch);
+        try {
+          await db.insert(message).values(validMessageBatch).onConflictDoNothing();
+        } catch (error) {
+          console.warn(`Warning: Some messages may already exist for batch starting at index ${j}`);
+        }
       }
     }
 
     for (let j = 0; j < newVotesToInsert.length; j += INSERT_BATCH_SIZE) {
       const voteBatch = newVotesToInsert.slice(j, j + INSERT_BATCH_SIZE);
       if (voteBatch.length > 0) {
-        await db.insert(vote).values(voteBatch);
+        try {
+          await db.insert(vote).values(voteBatch).onConflictDoNothing();
+        } catch (error) {
+          console.warn(`Warning: Some votes may already exist for batch starting at index ${j}`);
+        }
       }
     }
   }
