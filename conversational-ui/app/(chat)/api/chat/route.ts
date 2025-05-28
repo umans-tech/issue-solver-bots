@@ -12,7 +12,7 @@ import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
 import { codebaseAssistant } from '@/lib/ai/tools/codebase-assistant';
 import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
-import { webSearch } from '@/lib/ai/tools/web_search';
+import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
