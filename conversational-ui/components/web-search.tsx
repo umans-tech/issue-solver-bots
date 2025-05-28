@@ -2,7 +2,7 @@
 
 import { DataStreamWriter } from 'ai';
 import { useState, useMemo } from 'react';
-import { GlobeIcon, SearchIcon } from './icons';
+import { GlobeIcon } from './icons';
 
 interface WebSource {
   title: string;
@@ -47,11 +47,11 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
   return (
     <div className="mt-1">
       {query && (
-        <div className="flex items-center gap-2 text-sm mb-2">
-          <GlobeIcon size={16} />
-          <span className="text-muted-foreground">Searched the web for:</span>
-          <SearchIcon size={16} />
-          <span className="text-muted-foreground">"{query}"</span>
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <span className="text-muted-foreground">
+            <GlobeIcon size={16} />
+          </span>
+          <span className="text-muted-foreground">Searched the web for: "{query}"</span>
         </div>
       )}
       {!expanded ? (

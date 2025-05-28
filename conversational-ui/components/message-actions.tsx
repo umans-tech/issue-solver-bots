@@ -3,10 +3,11 @@ import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
+import { Split } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
 
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon, BranchIcon } from './icons';
+import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -111,7 +112,7 @@ export function PureMessageActions({
                   variant="ghost"
                   onClick={handleBranch}
                 >
-                  <BranchIcon />
+                  <Split />
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={5} side="top">Branch Conversation</TooltipContent>

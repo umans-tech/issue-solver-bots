@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CodeIcon, SearchIcon } from "./icons";
+import { CodeIcon } from "./icons";
 import { getFileExtension, getLanguageIcon } from "./sources";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -64,11 +64,11 @@ export const CodebaseSearchResult = ({
     return (
       <div className="mt-1">
         {query && (
-          <div className="flex items-center gap-2 text-sm mb-2">
-            <CodeIcon size={16} />
-            <span className="text-muted-foreground">Searched the codebase for:</span>
-            <SearchIcon size={16} />
-            <span className="text-muted-foreground">"{query}"</span>
+          <div className="flex items-center gap-2 text-sm mb-1">
+            <span className="text-muted-foreground">
+              <CodeIcon size={16} />
+            </span>
+            <span className="text-muted-foreground">Searched the codebase for: "{query}"</span>
           </div>
         )}
         {!expanded ? (

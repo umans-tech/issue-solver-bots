@@ -15,6 +15,7 @@ import {
   SparklesIcon,
   RouteIcon,
   SearchIcon,
+  CopyIcon,
 } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -91,7 +92,7 @@ const PurePreviewMessage = ({
             },
           )}
         >
-          <div className="flex flex-col gap-4 w-full relative">
+          <div className="flex flex-col gap-1 w-full relative">
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
@@ -125,25 +126,7 @@ const PurePreviewMessage = ({
               if (type === 'text') {
                 if (mode === 'view') {
                   return (
-                    <div key={key} className="flex flex-row gap-2 items-start">
-                      {message.role === 'user' && !isReadonly && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              data-testid="message-edit-button"
-                              variant="ghost"
-                              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                              onClick={() => {
-                                setMode('edit');
-                              }}
-                            >
-                              <PencilEditIcon />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit message</TooltipContent>
-                        </Tooltip>
-                      )}
-
+                    <div key={key} className="flex flex-col gap-2">
                       <div
                         data-testid="message-content"
                         className={cn('flex flex-col gap-4', {
@@ -153,6 +136,53 @@ const PurePreviewMessage = ({
                       >
                         <Markdown>{part.text}</Markdown>
                       </div>
+                      
+                      {/* Show edit button below user message */}
+                      {message.role === 'user' && !isReadonly && (
+                        <div className="flex justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                data-testid="message-edit-button"
+                                variant="ghost"
+                                className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                onClick={() => {
+                                  setMode('edit');
+                                }}
+                              >
+                                <PencilEditIcon />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit message</TooltipContent>
+                          </Tooltip>
+                          
+                          {/* Copy button for user messages */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                variant="ghost"
+                                onClick={async () => {
+                                  const textFromParts = message.parts
+                                    ?.filter((part) => part.type === 'text')
+                                    .map((part) => part.text)
+                                    .join('\n')
+                                    .trim();
+
+                                  if (!textFromParts) {
+                                    return;
+                                  }
+
+                                  await navigator.clipboard.writeText(textFromParts);
+                                }}
+                              >
+                                <CopyIcon />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -223,7 +253,7 @@ const PurePreviewMessage = ({
                   // Show single codebase search result normally
                   if (toolName === 'codebaseSearch') {
                     return (
-                      <div key={toolCallId} className="mt-3">
+                      <div key={toolCallId}>
                         {result && (
                           <CodebaseSearchResult
                             state={state}
@@ -239,7 +269,7 @@ const PurePreviewMessage = ({
                   if (toolName === 'webSearch') {
 
                     return (
-                      <div key={toolCallId} className="mt-3">
+                      <div key={toolCallId}>
                         {result && (
                           <WebSearch result={result} query={args?.query} />
                         )}
@@ -298,7 +328,7 @@ const PurePreviewMessage = ({
               <Sources sources={allSources} />
             )}
 
-                {!isReadonly && (
+                {!isReadonly && message.role === 'assistant' && (
                     <MessageActions
                       key={`action-${message.id}-tools`}
                       chatId={chatId}
