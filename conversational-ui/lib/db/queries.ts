@@ -38,26 +38,17 @@ export async function getUser(email: string): Promise<Array<User>> {
   }
 }
 
-export async function createUser(email: string, password: string) {
-  const salt = genSaltSync(10);
-  const hash = hashSync(password, salt);
+export async function createUser(email: string, password: string | null) {
+  let hash = null;
+  if (password) {
+    const salt = genSaltSync(10);
+    hash = hashSync(password, salt);
+  }
 
   try {
     return await db.insert(user).values({ email, password: hash });
   } catch (error) {
     console.error('Failed to create user in database');
-    throw error;
-  }
-}
-
-export async function createOAuthUser(email: string, name?: string) {
-  try {
-    return await db.insert(user).values({ 
-      email, 
-      password: null // OAuth users don't have passwords
-    }).returning();
-  } catch (error) {
-    console.error('Failed to create OAuth user in database');
     throw error;
   }
 }
@@ -120,7 +111,9 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
-export async function saveMessages({ messages }: { messages: Array<DBMessage> }) {
+export async function saveMessages({
+  messages,
+}: { messages: Array<DBMessage> }) {
   try {
     return await db.insert(message).values(messages);
   } catch (error) {
@@ -387,30 +380,51 @@ export async function createSpace(
   userId: string,
   knowledgeBaseId?: string,
   processId?: string,
-  isDefault: boolean = false
+  isDefault: boolean = false,
 ) {
-  return db
-    .insert(space)
-    .values({
-      name,
-      knowledgeBaseId,
-      processId,
-      isDefault,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning()
-    .then(async (spaces) => {
-      if (spaces.length > 0) {
-        // Create the space-user relationship
-        await db.insert(spaceToUser).values({
-          spaceId: spaces[0].id,
-          userId: userId,
-        });
-        return spaces[0];
-      }
-      return null;
-    });
+  try {
+    // First verify the user exists
+    const userExists = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    if (userExists.length === 0) {
+      throw new Error(`User with ID ${userId} does not exist`);
+    }
+
+    // Create the space
+    const newSpaces = await db
+      .insert(space)
+      .values({
+        name,
+        knowledgeBaseId,
+        processId,
+        isDefault,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    if (newSpaces.length > 0) {
+      const newSpace = newSpaces[0];
+      
+      // Create the space-user relationship
+      await db.insert(spaceToUser).values({
+        spaceId: newSpace.id,
+        userId: userId,
+      });
+      
+      console.log(`✅ Created space "${name}" for user ${userId}`);
+      return newSpace;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error creating space:', error);
+    throw error;
+  }
 }
 
 /**
@@ -454,7 +468,7 @@ export async function updateSpace(
     knowledgeBaseId?: string;
     processId?: string;
     isDefault?: boolean;
-  }
+  },
 ) {
   return db
     .update(space)
@@ -504,7 +518,7 @@ export async function getSelectedSpace(userId: string) {
 export async function ensureDefaultSpace(userId: string) {
   // Check if user already has a space
   const userSpaces = await getSpacesForUser(userId);
-  
+
   if (userSpaces.length === 0) {
     // Create a default space for the user
     const defaultSpace = await createSpace(
@@ -512,9 +526,9 @@ export async function ensureDefaultSpace(userId: string) {
       userId,
       undefined,
       undefined,
-      true
+      true,
     );
-    
+
     // Set this as the selected space
     if (defaultSpace) {
       await setSelectedSpace(userId, defaultSpace.id);
@@ -529,16 +543,16 @@ export async function ensureDefaultSpace(userId: string) {
       .from(user)
       .where(eq(user.id, userId))
       .then((users) => users[0]);
-      
+
     if (!userWithSpace.selectedSpaceId) {
       await setSelectedSpace(userId, userSpaces[0].id);
       return userSpaces[0];
     }
-    
+
     // Return the currently selected space
     return getSpaceById(userWithSpace.selectedSpaceId);
   }
-  
+
   return null;
 }
 

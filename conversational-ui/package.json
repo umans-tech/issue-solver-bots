@@ -68,7 +68,7 @@
     "mermaid": "^11.6.0",
     "nanoid": "^5.1.2",
     "next": "15.2.4",
-    "next-auth": "4.24.11",
+    "next-auth": "5.0.0-beta.25",
     "next-themes": "^0.3.0",
     "openai": "^4.87.3",
     "orderedmap": "^2.1.1",

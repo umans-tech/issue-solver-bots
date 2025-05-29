@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/app/(auth)/auth';
 import { createSpace, setSelectedSpace } from '@/lib/db/queries';
 
 export async function POST(request: Request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

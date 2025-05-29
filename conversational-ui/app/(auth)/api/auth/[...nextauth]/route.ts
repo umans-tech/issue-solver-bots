@@ -1,3 +1,1 @@
-import NextAuth from '@/auth';
-
-export { NextAuth as GET, NextAuth as POST };
+export { GET, POST } from '@/app/(auth)/auth';

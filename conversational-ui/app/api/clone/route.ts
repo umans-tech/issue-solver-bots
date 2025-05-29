@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/app/(auth)/auth';
 import { generateUUID } from '@/lib/utils';
 import { saveChat, getMessagesByChatId, saveMessages, getChatById } from '@/lib/db/queries';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

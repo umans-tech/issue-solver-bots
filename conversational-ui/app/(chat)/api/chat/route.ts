@@ -1,7 +1,6 @@
 import { createDataStream, UIMessage, appendResponseMessages, smoothStream, streamText, } from 'ai';
 
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
 import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId } from '@/lib/db/queries';
@@ -59,7 +58,7 @@ export async function POST(request: Request) {
         knowledgeBaseId?: string | null;
     } = await request.json();
 
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
 
     if (!session || !session.user || !session.user.id) {
         return new Response('Unauthorized', { status: 401 });
@@ -235,7 +234,7 @@ export async function GET(request: Request) {
       return new Response('id is required', { status: 400 });
     }
   
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
   
     let chat: Chat;
     
@@ -289,7 +288,7 @@ export async function DELETE(request: Request) {
         return new Response('Not Found', { status: 404 });
     }
 
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
 
     if (!session || !session.user) {
         return new Response('Unauthorized', { status: 401 });
@@ -320,7 +319,7 @@ export async function PATCH(request: Request) {
         return new Response('Not Found', { status: 404 });
     }
 
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
 
     if (!session || !session.user) {
         return new Response('Unauthorized', { status: 401 });
