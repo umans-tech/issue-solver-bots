@@ -150,7 +150,7 @@ importers:
         version: 0.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       openai:
         specifier: ^4.87.3
-        version: 4.87.3(ws@8.18.1(bufferutil@4.0.9))(zod@3.24.2)
+        version: 4.87.3(ws@8.18.1)(zod@3.24.2)
       orderedmap:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1922,8 +1922,8 @@ packages:
   '@types/node@22.13.9':
     resolution: {integrity: sha512-acBjXdRJ3A6Pb3tqnw9HZmyR3Fiol3aGxRCK1x3d+6CDAMjl7I649wpSd+yNURCjbOUGu9tqtLKnTGxmK6CyGw==}
 
-  '@types/node@22.15.20':
-    resolution: {integrity: sha512-A6BohGFRGHAscJsTslDCA9JG7qSJr/DWUvrvY8yi9IgnGtMxCyat7vvQ//MFa0DnLsyuS3wYTpLdw4Hf+Q5JXw==}
+  '@types/node@22.15.24':
+    resolution: {integrity: sha512-w9CZGm9RDjzTh/D+hFwlBJ3ziUaVw7oufKA3vOFSOZlzmW9AkZnfjPb+DLnrV6qtgL/LNmP0/2zBNCFHL3F0ng==}
 
   '@types/papaparse@5.3.15':
     resolution: {integrity: sha512-JHe6vF6x/8Z85nCX4yFdDslN11d+1pr12E526X8WAfhadOeaOTx5AuIkvDKIBopfvlzpzkdMx4YyvSKCM9oqtw==}
@@ -6692,7 +6692,7 @@ snapshots:
     dependencies:
       undici-types: 6.20.0
 
-  '@types/node@22.15.20':
+  '@types/node@22.15.24':
     dependencies:
       undici-types: 6.21.0
     optional: true
@@ -6705,14 +6705,14 @@ snapshots:
 
   '@types/pg@8.11.11':
     dependencies:
-      '@types/node': 22.15.20
+      '@types/node': 22.15.24
       pg-protocol: 1.10.0
       pg-types: 4.0.2
     optional: true
 
   '@types/pg@8.11.6':
     dependencies:
-      '@types/node': 22.15.20
+      '@types/node': 22.15.24
       pg-protocol: 1.10.0
       pg-types: 4.0.2
     optional: true
@@ -8937,7 +8937,9 @@ snapshots:
   obuf@1.1.2:
     optional: true
 
-  openai@4.87.3(ws@8.18.1(bufferutil@4.0.9))(zod@3.24.2):
+  oidc-token-hash@5.1.0: {}
+
+  openai@4.87.3(ws@8.18.1)(zod@3.24.2):
     dependencies:
       '@types/node': 18.19.80
       '@types/node-fetch': 2.6.12
