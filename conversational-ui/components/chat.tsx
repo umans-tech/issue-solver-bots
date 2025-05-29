@@ -1,11 +1,12 @@
 'use client';
 
-import type { Attachment, Message } from 'ai';
+import type { Attachment, UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -29,7 +30,7 @@ export function Chat({
   autoResume,
 }: {
   id: string;
-  initialMessages: Array<Message>;
+  initialMessages: Array<UIMessage>;
   selectedChatModel: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
@@ -38,6 +39,7 @@ export function Chat({
   const { mutate } = useSWRConfig();
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
   const router = useRouter();
+  const { data: session } = useSession();
   
   // Handle potential corrupt localStorage data
   const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<string | null>(null);
@@ -159,6 +161,13 @@ export function Chat({
                 variant="outline"
                 onClick={async (e) => {
                   e.preventDefault();
+                  
+                  // Check if user is authenticated
+                  if (!session?.user) {
+                    toast.error('Please sign in to continue this conversation');
+                    return;
+                  }
+                  
                   try {
                     // Call branch API with the last message ID
                     const lastMessage = messages[messages.length - 1];

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { IconUmansLogo } from '@/components/icons';
 
 export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -35,6 +36,17 @@ export default function LandingPage() {
             rgba(99, 102, 241, 0) 50%)`,
         }}
       />
+
+      {/* Header with Logo */}
+      <header className="relative z-20 flex justify-center pt-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <IconUmansLogo className="h-16 w-auto" />
+        </motion.div>
+      </header>
 
       {/* Hero Section */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
@@ -109,6 +121,37 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t bg-background py-8">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-8"
+          >
+            <div className="flex space-x-6">
+              <Link
+                href="/privacy"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Umans. All rights reserved.
+            </p>
+          </motion.div>
+        </div>
+      </footer>
     </div>
   );
 } 

@@ -198,7 +198,7 @@ jobs:
           cd operations/01-provision
           terraform init -reconfigure
           just init
-          export DATABASE_URL=$(just backend-database-url)
+          export DATABASE_URL=$(just backend-direct-database-url)
           cd ../../issue-solver
           uv sync
           just db-upgrade
@@ -221,6 +221,7 @@ jobs:
           npm install -g pnpm
           pnpm install
           NODE_ENV=production POSTGRES_URL=$POSTGRES_URL node -r tsx lib/db/migrate.ts
+          pnpm exec tsx lib/db/helpers/01-core-to-parts.ts
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
@@ -238,7 +239,6 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
-          TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
@@ -280,7 +280,6 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
-          TF_VAR_vercel_api_token: ${{ secrets.TF_VAR_VERCEL_API_TOKEN }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
+import { CodeXml as LucideCode } from 'lucide-react';
 
 export const BotIcon = () => {
   return (
@@ -1192,6 +1193,12 @@ export const ShareIcon = ({ size = 16 }: { size?: number }) => {
 
 export const CodeIcon = ({ size = 16 }: { size?: number }) => {
   return (
+    <LucideCode size={size} />
+  );
+};
+
+export const SearchIcon = ({ size = 16 }: { size?: number }) => {
+  return (
     <svg
       height={size}
       strokeLinejoin="round"
@@ -1202,9 +1209,9 @@ export const CodeIcon = ({ size = 16 }: { size?: number }) => {
       <path
         fillRule="evenodd"
         clipRule="evenodd"
-        d="M4.21969 12.5303L4.75002 13.0607L5.81068 12L5.28035 11.4697L1.81068 7.99999L5.28035 4.53032L5.81068 3.99999L4.75002 2.93933L4.21969 3.46966L0.39647 7.29289C0.00594562 7.68341 0.00594562 8.31658 0.39647 8.7071L4.21969 12.5303ZM11.7804 12.5303L11.25 13.0607L10.1894 12L10.7197 11.4697L14.1894 7.99999L10.7197 4.53032L10.1894 3.99999L11.25 2.93933L11.7804 3.46966L15.6036 7.29289C15.9941 7.68341 15.9941 8.31658 15.6036 8.7071L11.7804 12.5303Z"
+        d="M6.5 1.75C3.87665 1.75 1.75 3.87665 1.75 6.5C1.75 9.12335 3.87665 11.25 6.5 11.25C7.82124 11.25 8.97706 10.7315 9.82553 9.90624L13.2098 13.2905C13.5027 13.5834 13.9776 13.5834 14.2705 13.2905C14.5634 12.9976 14.5634 12.5227 14.2705 12.2298L10.8863 8.84559C11.7315 7.99712 12.25 6.84131 12.25 6.5C12.25 3.87665 10.1234 1.75 6.5 1.75ZM6.5 3.25C9.12335 3.25 10.75 4.87665 10.75 6.5C10.75 8.12335 9.12335 9.75 6.5 9.75C4.87665 9.75 3.25 8.12335 3.25 6.5C3.25 4.87665 4.87665 3.25 6.5 3.25Z"
         fill="currentColor"
-      ></path>
+      />
     </svg>
   );
 };

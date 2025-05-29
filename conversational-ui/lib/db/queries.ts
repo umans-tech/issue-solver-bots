@@ -12,7 +12,7 @@ import {
   document,
   type Suggestion,
   suggestion,
-  type Message,
+  type DBMessage,
   message,
   vote,
   space,
@@ -108,9 +108,9 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
-export async function saveMessages({ messages }: { messages: Partial<Message>[] }) {
+export async function saveMessages({ messages }: { messages: Array<DBMessage> }) {
   try {
-    return await db.insert(message).values(messages as Message[]);
+    return await db.insert(message).values(messages);
   } catch (error) {
     console.error('Failed to save messages in database', error);
     throw error;

@@ -79,3 +79,21 @@ output "certificate_arn_us_east_1" {
   description = "ARN of validated ACM certificate in us-east-1 for API Gateway v2"
   value       = aws_acm_certificate_validation.umans_us_east_1.certificate_arn
 }
+
+// Google Site Verification TXT record
+resource "aws_route53_record" "google_site_verification" {
+  zone_id = aws_route53_zone.umans_ai.zone_id
+  name    = "umans.ai"
+  type    = "TXT"
+  ttl     = 300
+  records = ["google-site-verification=9Npml_N-Q3KXYEBdIVyvFtB4rsRR9yYQ6yDclnrHzRQ"]
+}
+
+// Gmail MX record for email activation
+resource "aws_route53_record" "gmail_mx" {
+  zone_id = aws_route53_zone.umans_ai.zone_id
+  name    = "umans.ai"
+  type    = "MX"
+  ttl     = 300
+  records = ["1 SMTP.GOOGLE.COM."]
+}
