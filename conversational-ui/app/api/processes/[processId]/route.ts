@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/app/(auth)/auth';
 
 export async function GET(
   request: Request,
@@ -21,7 +20,7 @@ export async function GET(
     console.log(`Getting status for process: ${processId}`);
     
     // Check authentication
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

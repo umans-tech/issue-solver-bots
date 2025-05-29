@@ -2,8 +2,7 @@ import {GetObjectCommand, PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {NextResponse} from 'next/server';
 import {z} from 'zod';
 
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import {auth} from '@/app/(auth)/auth';
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import {generateUUID, SUPPORTED_MIME_TYPES} from '@/lib/utils';
 
@@ -21,7 +20,7 @@ const FileSchema = z.object({
 const OneWeekInSeconds = 604800;
 
 export async function POST(request: Request) {
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
     const {searchParams} = new URL(request.url);
     const chatId = searchParams.get('chatId');
 

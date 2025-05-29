@@ -59,7 +59,6 @@ resource "aws_apprunner_service" "conversational_ui" {
           HOSTNAME                     = "0.0.0.0"
           POSTGRES_URL                 = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string
           NEXTAUTH_URL                 = local.auth_url
-          NEXTAUTH_URL_INTERNAL        = local.auth_url
           NEXTAUTH_SECRET              = var.auth_secret
           AUTH_GOOGLE_ID               = var.auth_google_id
           AUTH_GOOGLE_SECRET           = var.auth_google_secret

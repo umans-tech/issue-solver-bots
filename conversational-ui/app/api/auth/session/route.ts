@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/app/(auth)/auth';
 import { getSelectedSpace } from '@/lib/db/queries';
 
 // Create a custom route to get the latest session data with fresh space info
 export async function GET() {
   try {
     // Get the current session
-    const session = await getServerSession(authOptions) as any;
+    const session = await auth();
     
     // If there's no session, return unauthorized
     if (!session) {
