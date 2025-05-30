@@ -9,6 +9,7 @@ on:
       - 'operations/02-deploy/**'
       - 'conversational-ui/**'
       - 'issue-solver/**'
+      - '.github/workflows/cd-workflow.yml'
   pull_request:
     types: [ opened, synchronize, reopened, closed ]
     paths:
@@ -16,6 +17,7 @@ on:
       - 'operations/02-deploy/**'
       - 'conversational-ui/**'
       - 'issue-solver/**'
+      - '.github/workflows/cd-workflow.yml'
 
 permissions:
   id-token: write
@@ -25,6 +27,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
+      workflow-changes: ${{ steps.filter.outputs.workflow }}
       provision-changes: ${{ steps.filter.outputs.provision }}
       deploy-changes: ${{ steps.filter.outputs.deploy }}
       app-changes: ${{ steps.filter.outputs.app }}
@@ -34,6 +37,8 @@ jobs:
         id: filter
         with:
           filters: |
+            workflow:
+              - '.github/workflows/cd-workflow.yml'
             provision:
               - 'operations/01-provision/**'
             deploy:
@@ -45,8 +50,8 @@ jobs:
   provision:
     needs: detect-changes
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.provision-changes == 'true' || needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.provision-changes == 'true' || needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.provision-changes == 'true' || needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.provision-changes == 'true' || needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -83,8 +88,8 @@ jobs:
   package:
     needs: [ detect-changes ]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -155,8 +160,8 @@ jobs:
   deploy:
     needs: [ detect-changes, provision, package ]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -212,18 +217,22 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm
+
       - name: Run conversational-ui migrations
         run: |
           cd operations/01-provision
           terraform init -reconfigure
+          just init
           export POSTGRES_URL=$(just frontend-database-url)
           cd ../../conversational-ui
-          npm install -g pnpm
           pnpm install
-          NODE_ENV=production POSTGRES_URL=$POSTGRES_URL node -r tsx lib/db/migrate.ts
-          pnpm exec tsx lib/db/helpers/01-core-to-parts.ts
+          just migrate
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+          NODE_ENV: production
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
