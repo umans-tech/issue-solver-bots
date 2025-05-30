@@ -28,9 +28,9 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     if (state.status === PasswordResetStatus.SUCCESS) {
-      toast.success('Password reset successfully! Redirecting to login...');
+      toast.success('Password reset successfully! Signing you in...');
       setTimeout(() => {
-        router.push('/login');
+        router.push('/');
       }, 2000);
     } else if (state.status === PasswordResetStatus.FAILED) {
       toast.error(state.error || 'Failed to reset password');

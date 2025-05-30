@@ -222,10 +222,26 @@ export const passwordReset = async (
       })
       .where(eq(user.id, userRecord.id));
 
-    return { 
-      status: PasswordResetStatus.SUCCESS,
-      message: 'Password reset successfully!'
-    };
+    // Auto sign-in the user after successful password reset
+    try {
+      await signIn('credentials', {
+        email: userRecord.email,
+        password: newPassword,
+        redirect: false,
+      });
+      
+      return { 
+        status: PasswordResetStatus.SUCCESS,
+        message: 'Password reset successfully! Signing you in...'
+      };
+    } catch (signInError) {
+      console.error('Auto sign-in failed after password reset:', signInError);
+      // Still return success since password was reset
+      return { 
+        status: PasswordResetStatus.SUCCESS,
+        message: 'Password reset successfully! Please sign in with your new password.'
+      };
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { 
