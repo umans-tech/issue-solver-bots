@@ -26,7 +26,12 @@ export default function Page() {
 
   useEffect(() => {
     if (state.status === 'failed') {
-      toast.error('Invalid credentials!');
+      toast.error('Invalid credentials or email not verified!', {
+        action: {
+          label: 'Resend Verification',
+          onClick: () => router.push('/verify-email'),
+        },
+      });
     } else if (state.status === 'invalid_data') {
       toast.error('Failed validating your submission!');
     } else if (state.status === 'success') {

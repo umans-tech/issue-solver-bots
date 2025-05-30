@@ -75,6 +75,8 @@ resource "aws_apprunner_service" "conversational_ui" {
           ANTHROPIC_BASE_URL           = var.anthropic_base_url
           EXA_API_KEY                  = var.exa_api_key
           CUDU_ENDPOINT                = aws_apigatewayv2_api.cudu_api.api_endpoint
+          EMAIL_API_KEY                = var.email_api_key
+          EMAIL_FROM                   = var.email_from
         }
       }
       image_identifier      = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.conversational_ui_image_tag}"

@@ -64,6 +64,13 @@
       "when": 1748193292007,
       "tag": "0008_adorable_tusk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1748618759097,
+      "tag": "0009_huge_black_knight",
+      "breakpoints": true
     }
   ]
 }

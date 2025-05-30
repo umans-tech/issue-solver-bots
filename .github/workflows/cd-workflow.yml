@@ -152,6 +152,8 @@ jobs:
             REDIS_URL=redis://localhost:6379
             OPENAI_API_KEY=sk-dummy-key-for-build-only
             EXA_API_KEY=exa-dummy-key-for-build-only
+            EMAIL_API_KEY=dummy-email-key-for-build-only
+            EMAIL_FROM="sender@domain"
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ github.sha }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ env.IMAGE_ENV_TAG }}
@@ -250,6 +252,7 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
+          TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
@@ -293,6 +296,7 @@ jobs:
           TF_VAR_anthropic_api_key: ${{ secrets.TF_VAR_ANTHROPIC_API_KEY }}
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
+          TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
