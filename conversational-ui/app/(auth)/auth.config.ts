@@ -17,13 +17,15 @@ export const authConfig = {
       const isOnLogin = nextUrl.pathname.startsWith('/login');
       const isOnLanding = nextUrl.pathname.startsWith('/landing');
       const isOnVerifyEmail = nextUrl.pathname.startsWith('/verify-email');
+      const isOnForgotPassword = nextUrl.pathname.startsWith('/forgot-password');
+      const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
 
       if (isLoggedIn && (isOnLogin || isOnRegister)) {
         return Response.redirect(new URL('/', nextUrl as unknown as URL));
       }
 
-      if (isOnRegister || isOnLogin || isOnLanding || isOnVerifyEmail) {
-        return true; // Always allow access to register, login, landing, and verification pages
+      if (isOnRegister || isOnLogin || isOnLanding || isOnVerifyEmail || isOnForgotPassword || isOnResetPassword) {
+        return true; // Always allow access to auth pages
       }
 
       if (isOnChat) {

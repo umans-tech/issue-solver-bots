@@ -18,12 +18,27 @@ export enum RegisterStatus {
   VERIFICATION_SENT = 'verification_sent',
 }
 
-export interface LoginActionState {
-  status: LoginStatus;
-  error?: string;
+// Simple addition for password reset - reuse existing patterns
+export enum PasswordResetStatus {
+  IDLE = 'idle',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  INVALID_DATA = 'invalid_data',
 }
 
-export interface RegisterActionState {
+// Action state types
+export type LoginActionState = {
+  status: LoginStatus;
+  error?: string;
+};
+
+export type RegisterActionState = {
   status: RegisterStatus;
   error?: string;
-} 
+};
+
+export type PasswordResetActionState = {
+  status: PasswordResetStatus;
+  message?: string;
+  error?: string;
+}; 
