@@ -9,7 +9,8 @@ import { AuthForm } from '@/components/auth-form';
 import { IconUmansLogo } from '@/components/icons';
 import { SubmitButton } from '@/components/submit-button';
 
-import { register, type RegisterActionState } from '../actions';
+import { register } from '../actions';
+import { RegisterStatus, type RegisterActionState } from '../status';
 
 export default function Page() {
   const router = useRouter();
@@ -20,26 +21,27 @@ export default function Page() {
   const [state, formAction] = useActionState<RegisterActionState, FormData>(
     register,
     {
-      status: 'idle',
+      status: RegisterStatus.IDLE,
     },
   );
 
   useEffect(() => {
-    if (state.status === 'user_exists') {
-      toast.error('Account already exists');
-    } else if (state.status === 'oauth_user_exists') {
-      toast.error(
-        'An account with this email already exists. Please sign in with Google instead.',
-      );
-    } else if (state.status === 'failed') {
-      toast.error('Failed to create account');
-    } else if (state.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (state.status === 'success') {
+    if (state.status === RegisterStatus.USER_EXISTS) {
+      toast.error(state.error || 'An account with this email already exists.', {
+        action: {
+          label: 'Sign In',
+          onClick: () => router.push('/login'),
+        },
+      });
+    } else if (state.status === RegisterStatus.FAILED) {
+      toast.error(state.error || 'Failed to create account');
+    } else if (state.status === RegisterStatus.INVALID_DATA) {
+      toast.error(state.error || 'Please enter valid information');
+    } else if (state.status === RegisterStatus.SUCCESS) {
       toast.success('Account created successfully');
       setIsSuccessful(true);
       router.refresh();
-    } else if (state.status === 'verification_sent') {
+    } else if (state.status === RegisterStatus.VERIFICATION_SENT) {
       toast.success('Verification email sent! Please check your email.');
       setIsSuccessful(true);
       // Store email for verification page
@@ -48,7 +50,7 @@ export default function Page() {
       }
       router.push('/verify-email');
     }
-  }, [state, router]);
+  }, [state, router, email]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);

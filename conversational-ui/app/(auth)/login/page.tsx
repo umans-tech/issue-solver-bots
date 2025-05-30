@@ -9,7 +9,8 @@ import { AuthForm } from '@/components/auth-form';
 import { IconUmansLogo } from '@/components/icons';
 import { SubmitButton } from '@/components/submit-button';
 
-import { login, type LoginActionState } from '../actions';
+import { login } from '../actions';
+import { LoginStatus, type LoginActionState } from '../status';
 
 export default function Page() {
   const router = useRouter();
@@ -20,25 +21,27 @@ export default function Page() {
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
     {
-      status: 'idle',
+      status: LoginStatus.IDLE,
     },
   );
 
   useEffect(() => {
-    if (state.status === 'failed') {
-      toast.error('Invalid credentials or email not verified!', {
+    if (state.status === LoginStatus.EMAIL_NOT_VERIFIED) {
+      toast.error(state.error || 'Please verify your email address before signing in.', {
         action: {
           label: 'Resend Verification',
           onClick: () => router.push('/verify-email'),
         },
       });
-    } else if (state.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (state.status === 'success') {
+    } else if (state.status === LoginStatus.FAILED) {
+      toast.error(state.error || 'Invalid credentials');
+    } else if (state.status === LoginStatus.INVALID_DATA) {
+      toast.error(state.error || 'Please enter valid credentials.');
+    } else if (state.status === LoginStatus.SUCCESS) {
       setIsSuccessful(true);
       router.refresh();
     }
-  }, [state.status, router]);
+  }, [state, router]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);
