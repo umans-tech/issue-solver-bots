@@ -72,6 +72,14 @@ export default function Page() {
             </Link>
             {' for free.'}
           </p>
+          <p className="text-center text-sm text-gray-600 dark:text-zinc-400">
+            <Link
+              href="/forgot-password"
+              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+            >
+              Forgot your password?
+            </Link>
+          </p>
         </AuthForm>
       </div>
     </div>
