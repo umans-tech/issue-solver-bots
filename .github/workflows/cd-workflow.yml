@@ -212,18 +212,22 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup pnpm
+        run: |
+          npm install -g pnpm
+
       - name: Run conversational-ui migrations
         run: |
           cd operations/01-provision
           terraform init -reconfigure
+          just init
           export POSTGRES_URL=$(just frontend-database-url)
           cd ../../conversational-ui
-          npm install -g pnpm
           pnpm install
-          NODE_ENV=production POSTGRES_URL=$POSTGRES_URL node -r tsx lib/db/migrate.ts
-          pnpm exec tsx lib/db/helpers/01-core-to-parts.ts
+          just migrate
         env:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+          NODE_ENV: production
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
