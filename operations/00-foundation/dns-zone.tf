@@ -98,40 +98,40 @@ resource "aws_route53_record" "gmail_mx" {
   records = ["1 SMTP.GOOGLE.COM."]
 }
 
-// Email configuration for updates.umans.ai subdomain
+// Email configuration for umans.ai domain
 // DKIM and SPF records (Required)
 
-// MX record for send.updates subdomain
-resource "aws_route53_record" "send_updates_mx" {
+// MX record for send subdomain
+resource "aws_route53_record" "send_mx" {
   zone_id = aws_route53_zone.umans_ai.zone_id
-  name    = "send.updates.umans.ai"
+  name    = "send.umans.ai"
   type    = "MX"
   ttl     = 300
   records = ["10 feedback-smtp.eu-west-1.amazonses.com"]
 }
 
-// SPF record for send.updates subdomain
-resource "aws_route53_record" "send_updates_spf" {
+// SPF record for send domain
+resource "aws_route53_record" "send_spf" {
   zone_id = aws_route53_zone.umans_ai.zone_id
-  name    = "send.updates.umans.ai"
+  name    = "send.umans.ai"
   type    = "TXT"
   ttl     = 300
   records = ["v=spf1 include:amazonses.com ~all"]
 }
 
 // DKIM record for resend domain key
-resource "aws_route53_record" "resend_domainkey_updates" {
+resource "aws_route53_record" "resend_domainkey" {
   zone_id = aws_route53_zone.umans_ai.zone_id
-  name    = "resend._domainkey.updates.umans.ai"
+  name    = "resend._domainkey.umans.ai"
   type    = "TXT"
   ttl     = 300
-  records = ["p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwZpOX3STThKBmEQIyJqr+rYQhIGXy/+ygXZzUPU7CR3nRG1Jky3mYUMze85wZdBZvUj9+sVjjJct3aN1ApRTrUX4MOkxt/dpPiNoAN59N1Pvt9PGtrxsCySwMtL3X8w6LNjAPtPDyXdnX1gHcuF4stOpyQD2IqLEgpN4DCMqvWwIDAQAB"]
+  records = ["p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC/2E6buiDbnSQsRYE0XavzMnBPTK+HSlYI6/2Hm5/MC2yNgxo/ohFT5RhlRcjbftAEGDFyua2LLJgiT071a00hc5jDLddZv1nWYUD8yzgoR+AN4Ryeym9rOwDdDDxrE2gkX+ARqfq6A2EcpiBQWQ7DRlqlf/25x5iagg74k7bd5wIDAQAB"]
 }
 
 // DMARC record (Recommended)
-resource "aws_route53_record" "dmarc_updates" {
+resource "aws_route53_record" "dmarc" {
   zone_id = aws_route53_zone.umans_ai.zone_id
-  name    = "_dmarc.updates.umans.ai"
+  name    = "_dmarc.umans.ai"
   type    = "TXT"
   ttl     = 300
   records = ["v=DMARC1; p=none;"]
