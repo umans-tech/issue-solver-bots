@@ -53,6 +53,50 @@ export async function createUser(email: string, password: string | null) {
   }
 }
 
+export async function createUserWithVerification(
+  email: string, 
+  password: string, 
+  verificationToken: string
+) {
+  const salt = genSaltSync(10);
+  const hash = hashSync(password, salt);
+
+  try {
+    return await db.insert(user).values({ 
+      email, 
+      password: hash, 
+      emailVerificationToken: verificationToken
+    });
+  } catch (error) {
+    console.error('Failed to create user with verification in database');
+    throw error;
+  }
+}
+
+export async function getUserByVerificationToken(token: string): Promise<Array<User>> {
+  try {
+    return await db.select().from(user).where(eq(user.emailVerificationToken, token));
+  } catch (error) {
+    console.error('Failed to get user by verification token from database');
+    throw error;
+  }
+}
+
+export async function verifyUserEmail(userId: string) {
+  try {
+    return await db
+      .update(user)
+      .set({ 
+        emailVerified: new Date(),
+        emailVerificationToken: null 
+      })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error('Failed to verify user email in database');
+    throw error;
+  }
+}
+
 export async function saveChat({
   id,
   userId,

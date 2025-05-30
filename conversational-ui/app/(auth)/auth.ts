@@ -8,6 +8,7 @@ import {
   getSelectedSpace,
   createUser,
   ensureDefaultSpace,
+  verifyUserEmail,
 } from '@/lib/db/queries';
 
 import { authConfig } from './auth.config';
@@ -56,6 +57,11 @@ export const {
         // Check if user has a password (not an OAuth user)
         if (!users[0].password) return null;
 
+        // Check if email is verified
+        if (!users[0].emailVerified) {
+          return null; // Reject unverified users
+        }
+
         // biome-ignore lint: Forbidden non-null assertion.
         const passwordsMatch = await compare(password, users[0].password!);
         if (!passwordsMatch) return null;
@@ -82,12 +88,19 @@ export const {
           if (existingUsers.length === 0) {
             console.log('➕ Creating new OAuth user:', user.email);
             
-            // Create user without password for OAuth
+            // Create user without password for OAuth, but with emailVerified set
             await createUser(user.email!, null);
             console.log('✅ User created successfully');
             
             // Add a small delay to ensure transaction is committed
             await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Set email as verified for OAuth users
+            const [newUser] = await getUser(user.email!);
+            if (newUser?.id) {
+              await verifyUserEmail(newUser.id);
+              console.log('✅ OAuth user email verified automatically');
+            }
           }
           
           // Always get the database user (either existing or newly created)

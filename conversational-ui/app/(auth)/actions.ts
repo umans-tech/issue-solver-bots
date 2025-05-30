@@ -1,8 +1,10 @@
 'use server';
 
 import { z } from 'zod';
+import { nanoid } from 'nanoid';
 
-import { createUser, getUser } from '@/lib/db/queries';
+import { createUser, getUser, createUserWithVerification } from '@/lib/db/queries';
+import { sendVerificationEmail } from '@/lib/email';
 
 import { signIn } from './auth';
 import { ensureDefaultSpace } from '@/lib/db/queries';
@@ -43,14 +45,15 @@ export const login = async (
 };
 
 export interface RegisterActionState {
-  status:
-    | 'idle'
-    | 'in_progress'
-    | 'success'
-    | 'failed'
+  status: 
+    | 'idle' 
+    | 'in_progress' 
+    | 'success' 
+    | 'failed' 
+    | 'invalid_data'
     | 'user_exists'
     | 'oauth_user_exists'
-    | 'invalid_data';
+    | 'verification_sent';
 }
 
 export const register = async (
@@ -74,26 +77,22 @@ export const register = async (
       return { status: 'user_exists' } as RegisterActionState;
     }
 
-    // Create the user first
-    await createUser(validatedData.email, validatedData.password);
+    // Generate verification token
+    const verificationToken = nanoid(64);
 
-    // Get the newly created user to access their ID
-    const [newUser] = await getUser(validatedData.email);
+    // Create the user with verification token (unverified)
+    await createUserWithVerification(validatedData.email, validatedData.password, verificationToken);
 
-    // Create a default space for the user and set it as selected
-    // This ensures the space is created before the session is initialized
-    if (newUser && newUser.id) {
-      await ensureDefaultSpace(newUser.id);
+    // Send verification email
+    try {
+      await sendVerificationEmail(validatedData.email, verificationToken);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // You might want to delete the user here if email fails
+      return { status: 'failed' };
     }
 
-    // Now sign in with the credentials
-    await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
-    });
-
-    return { status: 'success' };
+    return { status: 'verification_sent' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };

@@ -39,6 +39,14 @@ export default function Page() {
       toast.success('Account created successfully');
       setIsSuccessful(true);
       router.refresh();
+    } else if (state.status === 'verification_sent') {
+      toast.success('Verification email sent! Please check your email.');
+      setIsSuccessful(true);
+      // Store email for verification page
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingVerificationEmail', email);
+      }
+      router.push('/verify-email');
     }
   }, [state, router]);
 
