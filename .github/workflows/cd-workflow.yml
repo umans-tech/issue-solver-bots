@@ -9,6 +9,7 @@ on:
       - 'operations/02-deploy/**'
       - 'conversational-ui/**'
       - 'issue-solver/**'
+      - '.github/workflows/cd-workflow.yml'
   pull_request:
     types: [ opened, synchronize, reopened, closed ]
     paths:
@@ -16,6 +17,7 @@ on:
       - 'operations/02-deploy/**'
       - 'conversational-ui/**'
       - 'issue-solver/**'
+      - '.github/workflows/cd-workflow.yml'
 
 permissions:
   id-token: write
