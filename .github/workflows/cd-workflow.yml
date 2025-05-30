@@ -88,8 +88,8 @@ jobs:
   package:
     needs: [ detect-changes ]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -160,8 +160,8 @@ jobs:
   deploy:
     needs: [ detect-changes, provision, package ]
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true')) ||
-      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true'))
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
