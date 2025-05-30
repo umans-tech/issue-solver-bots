@@ -9,6 +9,7 @@ import { IconUmansLogo } from '@/components/icons';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 import { passwordReset } from '../actions';
 import { PasswordResetStatus, type PasswordResetActionState } from '../status';
@@ -38,6 +39,16 @@ export default function ForgotPasswordPage() {
     formAction(formData);
   };
 
+  const handleSendAgain = () => {
+    if (email) {
+      const formData = new FormData();
+      formData.append('email', email);
+      formAction(formData);
+    }
+  };
+
+  const isInstructionsSent = state.status === PasswordResetStatus.SUCCESS;
+
   return (
     <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
@@ -45,9 +56,14 @@ export default function ForgotPasswordPage() {
           <div className="mb-4">
             <IconUmansLogo className="h-16 w-auto" />
           </div>
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Forgot Password</h3>
+          <h3 className="text-xl font-semibold dark:text-zinc-50">
+            {isInstructionsSent ? 'Check Your Email' : 'Forgot Password'}
+          </h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Enter your email address and we'll send you instructions to reset your password
+            {isInstructionsSent 
+              ? 'We\'ve sent password reset instructions to your email address.'
+              : 'Enter your email address and we\'ll send you instructions to reset your password'
+            }
           </p>
         </div>
 
@@ -69,14 +85,36 @@ export default function ForgotPasswordPage() {
                 placeholder="user@acme.com"
                 autoComplete="email"
                 required
-                autoFocus
+                autoFocus={!isInstructionsSent}
                 defaultValue={email}
+                readOnly={isInstructionsSent}
+                disabled={isInstructionsSent}
               />
             </div>
 
-            <SubmitButton isSuccessful={false}>
-              Send Reset Instructions
-            </SubmitButton>
+            {!isInstructionsSent ? (
+              <SubmitButton isSuccessful={false}>
+                Send Reset Instructions
+              </SubmitButton>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Button 
+                  type="button" 
+                  disabled 
+                  className="bg-green-600 hover:bg-green-600"
+                >
+                  ✓ Instructions Sent
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleSendAgain}
+                  className="text-sm"
+                >
+                  Send Again
+                </Button>
+              </div>
+            )}
 
             <div className="flex flex-col gap-2 text-center text-sm text-gray-600 dark:text-zinc-400">
               <Link
