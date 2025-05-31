@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { IconUmansLogo } from '@/components/icons';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Settings } from 'lucide-react';
 
 export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const learnMoreRef = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -21,8 +23,8 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const scrollToLearnMore = () => {
-    learnMoreRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -37,93 +39,248 @@ export default function LandingPage() {
         }}
       />
 
-      {/* Header with Logo */}
-      <header className="relative z-20 flex justify-center pt-8">
+      {/* Header with Logo and Theme Toggle */}
+      <header className="relative z-20 flex justify-between items-center pt-4 px-6 lg:px-8">
+        <div></div> {/* Spacer for centering logo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <IconUmansLogo className="h-16 w-auto" />
+          <IconUmansLogo className="h-20 w-auto" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <ThemeToggle />
         </motion.div>
       </header>
 
       {/* Hero Section */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 -mt-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-3xl text-center"
+          className="max-w-4xl text-center"
         >
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
-            Keep code, concepts & business goals perfectly in-sync
+          Deliver Value, Not Just Code
           </h1>
           
-          <p className="mb-8 text-lg text-muted-foreground">
-            umans.ai is your software's second brain—always aligned with the business, always shipping.
+          <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto">
+          Bridge the gap between what your system does, what business needs, and what your team plans to build.
           </p>
 
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center mb-6">
             <Link
               href="/go-to-app"
-              className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Start Building
             </Link>
             <button
-              onClick={scrollToLearnMore}
-              className="rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90"
+              onClick={scrollToFeatures}
+              className="rounded-md bg-secondary px-8 py-3 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90"
             >
               Learn More
             </button>
           </div>
+
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm font-medium">
+            <Rocket className="w-4 h-4 mr-2" />
+            Currently in Early Access (Alpha)
+          </div>
         </motion.div>
       </div>
 
-      {/* Learn More Section */}
-      <div ref={learnMoreRef} className="relative z-10 bg-background py-24">
+      {/* Current Capabilities Section */}
+      <div ref={featuresRef} className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:max-w-none">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-4">What You Get Today</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              AI agents that understand your codebase and collaborate with your team
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 mb-16">
+            {/* AI-Assisted Software Delivery */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
               viewport={{ once: true }}
-              className="grid grid-cols-1 gap-8 lg:grid-cols-2"
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
             >
-              {/* Problem Statement */}
-              <div className="rounded-2xl bg-card p-8 shadow-sm">
-                <h2 className="text-2xl font-bold text-foreground mb-4">The Problem</h2>
-                <p className="text-muted-foreground">
-                  Teams that have moved beyond an MVP hit a wall of complexity:
-                </p>
-                <ul className="mt-4 space-y-2 text-muted-foreground">
-                  <li>• Low predictability of delivering new changes → slipping roadmaps</li>
-                  <li>• Mis-alignment between business intent & code reality → re-work</li>
-                  <li>• Rising accidental complexity & bureaucracy → higher cost-of-change</li>
-                </ul>
+              <div className="mb-4">
+                <Brain className="w-8 h-8 text-primary" />
               </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Deep Codebase Understanding</h3>
+              <p className="text-muted-foreground">
+                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your team navigate even the most complex codebases with confidence.
+              </p>
+            </motion.div>
 
-              {/* Solution */}
-              <div className="rounded-2xl bg-card p-8 shadow-sm">
-                <h2 className="text-2xl font-bold text-foreground mb-4">The Solution</h2>
-                <p className="text-muted-foreground mb-4">
-                  umans.ai is a multi-AI-agent platform that:
-                </p>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• Captures & evolves the shared conceptual model of your software</li>
-                  <li>• Guides every next increment from design → deploy → observe</li>
-                  <li>• Boosts DORA metrics & confidence while shrinking cost-of-change</li>
-                </ul>
+            {/* Automated Issue Resolution */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <Zap className="w-8 h-8 text-primary" />
               </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Automated Issue Resolution</h3>
+              <p className="text-muted-foreground">
+                Delegate small changes, debugging fixes, and medium-sized pull requests to umans.ai remote agents.
+              </p>
+            </motion.div>
+
+            {/* Team Collaboration */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Multi-User Collaboration</h3>
+              <p className="text-muted-foreground">
+                Capture collective knowledge, maintain context across conversations, and ensure everyone stays aligned on what you're building.
+              </p>
             </motion.div>
           </div>
+
+        </div>
+      </div>
+
+      {/* Vision Section */}
+      <div className="relative z-10 bg-muted/30 py-24">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-4">Where We're Going</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Exploring the future of software delivery
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Specifications-driven Development */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Collaborative Executable Modeling</h3>
+              <p className="text-muted-foreground">
+                Transform business scenarios, examples, and specifications into a new level of coding abstraction where requirements become executable blueprints.
+              </p>
+            </motion.div>
+
+            {/* Production Intelligence */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <BarChart3 className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Production Intelligence</h3>
+              <p className="text-muted-foreground">
+                Monitor your applications in real-time with AI agents that analyze incidents, predict issues, and suggest mitigation strategies before problems escalate.
+              </p>
+            </motion.div>
+
+            {/* Complex Task Automation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <Bot className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Complex Task Automation</h3>
+              <p className="text-muted-foreground">
+                Scale beyond simple fixes with intelligent agents that handle sophisticated refactoring, architecture migrations, and multi-service deployments.
+              </p>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <div className="inline-flex items-center px-6 py-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium">
+              <FlaskConical className="w-4 h-4 mr-2" />
+              Soon: Private Beta with expanded capabilities
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="relative z-10 bg-background py-24">
+        <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-6">
+              Ready to transform your software delivery?
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Join teams that are already using AI agents to bridge the gap between 
+              business understanding and technical implementation.
+            </p>
+            <Link
+              href="/go-to-app"
+              className="rounded-md bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Start Building
+            </Link>
+          </motion.div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t bg-background py-8">
+      <footer className="relative z-10 border-t border-border bg-background py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
