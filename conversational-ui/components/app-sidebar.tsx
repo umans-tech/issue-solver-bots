@@ -199,10 +199,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <div className="w-full flex items-center gap-2 cursor-default">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Conversations</span>
-                  </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
