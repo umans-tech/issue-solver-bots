@@ -4,8 +4,9 @@ import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { CheckSquare, Plug, MessageCircle } from 'lucide-react';
 
-import { IconUmansChat, PlusIcon } from '@/components/icons';
+import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
@@ -15,9 +16,12 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarGroup,
+  SidebarGroupContent,
   useSidebar,
 } from '@/components/ui/sidebar';
-import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SpaceSelector } from '@/components/space-selector';
 import { SpaceRenameDialog } from '@/components/space-rename-dialog';
@@ -157,7 +161,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     <Sidebar className="group-data-[side=left]:border-r-0">
       <SidebarHeader>
         <SidebarMenu>
-          <div className="flex flex-row justify-between items-center">
+          <div className="flex w-full flex-row justify-between items-center">
             <SpaceSelector 
               spaceName={session?.user?.selectedSpace?.name || 'Chatbot'}
               spaceId={session?.user?.selectedSpace?.id || ''}
@@ -187,10 +191,61 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           </div>
         </SidebarMenu>
       </SidebarHeader>
+      
       <SidebarContent>
-        <SidebarHistory user={user} />
+        {/* Conversations Section */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <div className="w-full flex items-center gap-2 cursor-default">
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Conversations</span>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+            <SidebarHistory user={user} />
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>{user && <SidebarUserNav user={user} />}</SidebarFooter>
+      
+      <SidebarFooter>
+        {/* Tasks Section */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button className="w-full flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4" />
+                    <span>Tasks</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Integrations Section */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button className="w-full flex items-center gap-2">
+                    <Plug className="h-4 w-4" />
+                    <span>Integrations</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {user && <SidebarUserNav user={user} />}
+      </SidebarFooter>
       <SpaceRenameDialog
         open={isRenameDialogOpen}
         onOpenChange={setIsRenameDialogOpen}
