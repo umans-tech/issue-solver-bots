@@ -82,6 +82,32 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   const handleSwitchSpace = async (spaceId: string) => {
     try {
+      // Check if we're currently in a chat
+      const currentPath = window.location.pathname;
+      const chatMatch = currentPath.match(/^\/chat\/([^\/]+)$/);
+      const currentChatId = chatMatch ? chatMatch[1] : null;
+
+      // If we're in a chat, check if it belongs to the new space
+      let shouldRedirectToHome = false;
+      if (currentChatId) {
+        try {
+          const chatResponse = await fetch(`/api/chat/check-space`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: currentChatId, spaceId }),
+          });
+
+          if (chatResponse.ok) {
+            const { belongsToSpace } = await chatResponse.json();
+            shouldRedirectToHome = !belongsToSpace;
+          }
+        } catch (error) {
+          console.error('Error checking chat space:', error);
+          // If we can't check, err on the side of caution and redirect
+          shouldRedirectToHome = true;
+        }
+      }
+
       const response = await fetch('/api/spaces/switch', {
         method: 'POST',
         headers: {
@@ -109,8 +135,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         },
       });
 
-      // Force a full page reload to update all components
-      window.location.reload();
+      // Navigate based on whether the current chat belongs to the new space
+      if (shouldRedirectToHome) {
+        router.push('/');
+      }
     } catch (error) {
       console.error('Error switching space:', error);
     }
