@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated, Self
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -72,6 +72,118 @@ class ProcessTimelineView(BaseModel):
             case _:
                 status = "unknown"
         return status
+
+
+@router.get("/")
+async def list_processes(
+    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    space_id: str | None = Query(None, description="Filter by space ID"),
+    knowledge_base_id: str | None = Query(
+        None, description="Filter by knowledge base ID"
+    ),
+    process_type: str | None = Query(None, description="Filter by process type"),
+    status: str | None = Query(None, description="Filter by status"),
+    limit: int = Query(50, ge=1, le=100, description="Number of processes to return"),
+    offset: int = Query(0, ge=0, description="Number of processes to skip"),
+) -> dict:
+    """List processes with filtering and pagination."""
+
+    # Determine which processes to get based on filters
+    if space_id or knowledge_base_id:
+        processes = await _get_processes_by_criteria(
+            event_store, space_id, knowledge_base_id
+        )
+    else:
+        # If filtering by type or status only, get all processes
+        processes = await _get_all_processes(event_store)
+
+    # Apply additional filters
+    filtered_processes = _apply_filters(processes, process_type, status)
+
+    # Apply pagination
+    total = len(filtered_processes)
+    paginated_processes = filtered_processes[offset : offset + limit]
+
+    return {
+        "processes": paginated_processes,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+async def _get_processes_by_criteria(
+    event_store: InMemoryEventStore, space_id: str | None, knowledge_base_id: str | None
+) -> list[dict]:
+    """Get processes based on space_id or knowledge_base_id criteria."""
+    processes = []
+
+    if space_id:
+        repo_events = await event_store.find(
+            criteria={"space_id": space_id}, event_type=CodeRepositoryConnected
+        )
+        processes.extend(await _convert_events_to_processes(event_store, repo_events))
+
+    if knowledge_base_id:
+        repo_events = await event_store.find(
+            criteria={"knowledge_base_id": knowledge_base_id},
+            event_type=CodeRepositoryConnected,
+        )
+        processes.extend(await _convert_events_to_processes(event_store, repo_events))
+
+        issue_events = await event_store.find(
+            criteria={"knowledge_base_id": knowledge_base_id},
+            event_type=IssueResolutionRequested,
+        )
+        processes.extend(await _convert_events_to_processes(event_store, issue_events))
+
+    return processes
+
+
+def _apply_filters(
+    processes: list[dict], process_type: str | None, status: str | None
+) -> list[dict]:
+    """Apply type and status filters to processes."""
+    filtered = processes
+
+    if process_type:
+        filtered = [p for p in filtered if p["type"] == process_type]
+
+    if status:
+        filtered = [p for p in filtered if p["status"] == status]
+
+    return filtered
+
+
+async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
+    """Get all processes from all event types."""
+    all_processes = []
+
+    # Get all repository processes
+    repo_events = await event_store.find(
+        criteria={}, event_type=CodeRepositoryConnected
+    )
+    all_processes.extend(await _convert_events_to_processes(event_store, repo_events))
+
+    # Get all issue resolution processes
+    issue_events = await event_store.find(
+        criteria={}, event_type=IssueResolutionRequested
+    )
+    all_processes.extend(await _convert_events_to_processes(event_store, issue_events))
+
+    return all_processes
+
+
+async def _convert_events_to_processes(
+    event_store: InMemoryEventStore, events: list
+) -> list[dict]:
+    """Convert domain events to process timeline views."""
+    processes = []
+    for event in events:
+        process_events = await event_store.get(event.process_id)
+        process_view = ProcessTimelineView.create_from(event.process_id, process_events)
+        processes.append(process_view.model_dump())
+    return processes
 
 
 @router.get("/{process_id}")
