@@ -101,10 +101,12 @@ export async function saveChat({
   id,
   userId,
   title,
+  spaceId,
 }: {
   id: string;
   userId: string;
   title: string;
+  spaceId: string;
 }) {
   try {
     return await db.insert(chat).values({
@@ -112,6 +114,7 @@ export async function saveChat({
       createdAt: new Date(),
       userId,
       title,
+      spaceId,
     });
   } catch (error) {
     console.error('Failed to save chat in database');
@@ -141,6 +144,25 @@ export async function getChatsByUserId({ id }: { id: string }) {
       .orderBy(desc(chat.createdAt));
   } catch (error) {
     console.error('Failed to get chats by user from database');
+    throw error;
+  }
+}
+
+export async function getChatsByUserIdAndSpaceId({ 
+  userId, 
+  spaceId 
+}: { 
+  userId: string;
+  spaceId: string;
+}) {
+  try {
+    return await db
+      .select()
+      .from(chat)
+      .where(and(eq(chat.userId, userId), eq(chat.spaceId, spaceId)))
+      .orderBy(desc(chat.createdAt));
+  } catch (error) {
+    console.error('Failed to get chats by user and space from database');
     throw error;
   }
 }
@@ -631,4 +653,14 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     console.error('Failed to get stream ids by chat id from database');
     throw error;
   }
+}
+
+export async function getCurrentUserSpace(userId: string) {
+  let currentSpace = await getSelectedSpace(userId);
+  
+  if (!currentSpace) {
+    currentSpace = await ensureDefaultSpace(userId);
+  }
+  
+  return currentSpace;
 }

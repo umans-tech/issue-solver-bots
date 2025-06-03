@@ -71,6 +71,13 @@
       "when": 1748618759097,
       "tag": "0009_huge_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1748956958884,
+      "tag": "0010_daily_marten_broadcloak",
+      "breakpoints": true
     }
   ]
 }
