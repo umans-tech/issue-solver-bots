@@ -147,6 +147,26 @@ export default function TaskPage() {
     };
   };
 
+  // Function to get process type icon
+  const getProcessTypeIcon = (type?: string) => {
+    switch (type) {
+      case 'code_review':
+        return (
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'testing':
+        return (
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <TaskHeader />
@@ -180,68 +200,71 @@ export default function TaskPage() {
               <Card className="mb-6">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{getTaskTitle(processData)}</CardTitle>
-                      <CardDescription>Process ID: {processData.id}</CardDescription>
-                      {processData.processType && (
-                        <Badge variant="outline" className="mt-2">
-                          {processData.processType}
-                        </Badge>
-                      )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CardTitle className="text-2xl">{getTaskTitle(processData)}</CardTitle>
+                        {getProcessTypeIcon(processData.processType || processData.type)}
+                      </div>
+                      <CardDescription className="font-mono text-sm">
+                        Process ID: {processData.id}
+                      </CardDescription>
+                      <div className="flex items-center gap-2 mt-3">
+                        {processData.processType && (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            {getProcessTypeIcon(processData.processType)}
+                            <span className="text-xs">
+                              {processData.processType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </Badge>
+                        )}
+                        {processData.type && processData.type !== processData.processType && (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            {getProcessTypeIcon(processData.type)}
+                            <span className="text-xs">
+                              {processData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      {getStatusBadge(processData.status)}
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(processData.status)}
+                        {processData.status === 'in_progress' && (
+                          <div className="flex items-center gap-1 text-blue-500">
+                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
                       {processData.status?.toLowerCase() === 'completed' && 
                        processData.events?.some(event => 
                          event.type === 'issue_resolution_completed'
-                       ) && (
+                       ) &&
                         <a 
                           href={processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-500 hover:text-blue-700 mt-2 flex items-center"
+                          className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
                         >
-                          View PR #{processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_number}
-                          <svg 
-                            className="ml-1 h-3 w-3" 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                          >
-                            <path 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              strokeWidth={2} 
-                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" 
-                            />
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                           </svg>
+                          View PR #{processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_number}
                         </a>
-                      )}
+                      }
                       {processData.status?.toLowerCase() === 'failed' && 
                        processData.events?.some(event => 
                          event.type === 'issue_resolution_failed'
                        ) && (
-                        <a 
+                        <button 
                           onClick={() => setIsErrorDialogOpen(true)}
-                          className="text-sm text-red-500 hover:text-red-700 mt-2 flex items-center cursor-pointer"
+                          className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
                         >
-                          View Error Details
-                          <svg 
-                            className="ml-1 h-3 w-3" 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                          >
-                            <path 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              strokeWidth={2} 
-                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" 
-                            />
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
-                        </a>
+                          View Error Details
+                        </button>
                       )}
                     </div>
                   </div>
@@ -272,7 +295,7 @@ export default function TaskPage() {
                     )}
                     
                     {processData.status === 'in_progress' && (
-                      <div className="flex items-center gap-2 text-blue-500">
+                      <div className="flex items-center gap-2 text-blue-500 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                         <svg 
                           className="animate-spin h-4 w-4" 
                           xmlns="http://www.w3.org/2000/svg" 
@@ -293,9 +316,107 @@ export default function TaskPage() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           ></path>
                         </svg>
-                        <span>Task is currently in progress...</span>
+                        <span className="font-medium">Task is currently in progress...</span>
                       </div>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Process Information Card */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Process Information
+                  </CardTitle>
+                  <CardDescription>
+                    Detailed information about this process and its execution
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Basic Information</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                            <span className="text-sm font-medium">Process ID</span>
+                            <span className="text-sm font-mono text-muted-foreground">{processData.id}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                            <span className="text-sm font-medium">Type</span>
+                            <Badge variant="outline">
+                              {(processData.processType || processData.type || 'Unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                            <span className="text-sm font-medium">Current Status</span>
+                            {getStatusBadge(processData.status)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Timing Information */}
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Timing</h4>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                            <span className="text-sm font-medium">Created</span>
+                            <span className="text-sm text-muted-foreground">{formatDate(processData.createdAt)}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                            <span className="text-sm font-medium">Last Updated</span>
+                            <span className="text-sm text-muted-foreground">{formatDate(processData.updatedAt)}</span>
+                          </div>
+                          {processData.events && processData.events.length > 0 && (
+                            <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
+                              <span className="text-sm font-medium">Total Events</span>
+                              <Badge variant="outline">{processData.events.length}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Process Events Summary */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Events Summary</h4>
+                        {processData.events && processData.events.length > 0 ? (
+                          <div className="space-y-2">
+                            {processData.events.slice(0, 5).map((event, index) => (
+                              <div key={event.id || index} className="flex items-center gap-3 p-2 bg-muted/30 rounded-md">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {event.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDate(event.occurred_at)}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                            {processData.events.length > 5 && (
+                              <div className="text-xs text-muted-foreground text-center py-2">
+                                And {processData.events.length - 5} more events...
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-muted-foreground">
+                            <svg className="h-8 w-8 mx-auto mb-2 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-sm">No events recorded for this process</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
