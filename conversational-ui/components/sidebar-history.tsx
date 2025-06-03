@@ -7,6 +7,7 @@ import type { User } from 'next-auth';
 import { memo, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 
 import {
   CheckCircleFillIcon,
@@ -185,6 +186,7 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
+  const { data: session } = useSession();
   const params = useParams();
   const id = typeof params?.id === 'string' ? params.id : undefined;
   const pathname = usePathname();
@@ -198,7 +200,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
   useEffect(() => {
     refreshHistory();
-  }, [pathname, refreshHistory]);
+  }, [
+    pathname, 
+    refreshHistory, 
+    session?.user?.selectedSpace?.id
+  ]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);

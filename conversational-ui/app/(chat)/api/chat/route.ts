@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -74,7 +74,19 @@ export async function POST(request: Request) {
 
     if (!chat) {
         const title = await generateTitleFromUserMessage({ message: userMessage });
-        await saveChat({ id, userId: session.user.id, title });
+        
+        // Get current user's selected space
+        const currentSpace = await getCurrentUserSpace(session.user.id);
+        if (!currentSpace) {
+          throw new Error('Unable to determine user space');
+        }
+
+        await saveChat({ 
+          id, 
+          userId: session.user.id, 
+          title,
+          spaceId: currentSpace.id
+        });
     }
 
     await saveMessages({

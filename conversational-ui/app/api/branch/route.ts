@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 import { generateUUID } from '@/lib/utils';
-import { saveChat, getMessagesByChatId, saveMessages, getChatById } from '@/lib/db/queries';
+import { saveChat, getMessagesByChatId, saveMessages, getChatById, getCurrentUserSpace } from '@/lib/db/queries';
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,10 +43,18 @@ export async function POST(req: NextRequest) {
     
     // Create a new chat with the title based on the source chat's title
     const newChatId = generateUUID();
+    
+    // Get current user's selected space
+    const currentSpace = await getCurrentUserSpace(session.user.id);
+    if (!currentSpace) {
+      throw new Error('Unable to determine user space');
+    }
+
     await saveChat({
       id: newChatId,
       userId: session.user.id,
       title: `Branch from: ${sourceChat.title}`,
+      spaceId: currentSpace.id,
     });
     
     // Copy messages up to the branch point

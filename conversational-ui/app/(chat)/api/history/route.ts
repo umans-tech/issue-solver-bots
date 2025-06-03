@@ -1,5 +1,5 @@
 import { auth } from '@/app/(auth)/auth';
-import { getChatsByUserId } from '@/lib/db/queries';
+import { getCurrentUserSpace, getChatsByUserIdAndSpaceId } from '@/lib/db/queries';
 
 export async function GET() {
   const session = await auth();
@@ -8,7 +8,17 @@ export async function GET() {
     return Response.json('Unauthorized!', { status: 401 });
   }
 
-  // biome-ignore lint: Forbidden non-null assertion.
-  const chats = await getChatsByUserId({ id: session.user.id! });
+  // Get user's current space
+  const currentSpace = await getCurrentUserSpace(session.user.id);
+  if (!currentSpace) {
+    return Response.json('No space found for user', { status: 500 });
+  }
+
+  // Get chats filtered by current space
+  const chats = await getChatsByUserIdAndSpaceId({ 
+    userId: session.user.id, 
+    spaceId: currentSpace.id 
+  });
+  
   return Response.json(chats);
 }
