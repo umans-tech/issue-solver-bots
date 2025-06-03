@@ -231,10 +231,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <button className="w-full flex items-center gap-2">
+                  <Link href="/integrations" className="w-full flex items-center gap-2">
                     <Plug className="h-4 w-4" />
                     <span>Integrations</span>
-                  </button>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
