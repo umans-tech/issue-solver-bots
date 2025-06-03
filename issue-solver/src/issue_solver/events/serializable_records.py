@@ -28,6 +28,14 @@ def get_record_type(event_type: Type[T]) -> str:
             return "repository_indexed"
         case type() if event_type is RepositoryIndexationRequested:
             return "repository_indexation_requested"
+        case type() if event_type is IssueResolutionRequested:
+            return "issue_resolution_requested"
+        case type() if event_type is IssueResolutionStarted:
+            return "issue_resolution_started"
+        case type() if event_type is IssueResolutionCompleted:
+            return "issue_resolution_completed"
+        case type() if event_type is IssueResolutionFailed:
+            return "issue_resolution_failed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
