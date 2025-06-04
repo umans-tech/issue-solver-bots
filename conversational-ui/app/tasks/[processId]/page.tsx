@@ -20,6 +20,14 @@ import {
   AlertDialogFooter,
   AlertDialogCancel
 } from '../../../components/ui/alert-dialog';
+import { 
+  Check, 
+  Code, 
+  Info, 
+  ExternalLink, 
+  AlertCircle, 
+  Loader2
+} from 'lucide-react';
 
 interface ProcessData {
   id: string;
@@ -156,18 +164,12 @@ export default function TaskPage() {
   const getStatusBadge = (status?: string) => {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
     
-    const CheckIcon = () => (
-      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-      </svg>
-    );
-    
     switch (status.toLowerCase()) {
       case 'completed':
       case 'success':
         return (
           <Badge className="bg-green-500 text-white flex items-center gap-1">
-            <CheckIcon />
+            <Check className="h-3 w-3" />
             Completed
           </Badge>
         );
@@ -180,7 +182,7 @@ export default function TaskPage() {
       case 'indexed':
         return (
           <Badge className="bg-green-500 text-white flex items-center gap-1">
-            <CheckIcon />
+            <Check className="h-3 w-3" />
             Indexed
           </Badge>
         );
@@ -205,17 +207,9 @@ export default function TaskPage() {
   const getProcessTypeIcon = (type?: string) => {
     switch (type) {
       case 'code_review':
-        return (
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        );
+        return <Code className="h-4 w-4" />;
       case 'testing':
-        return (
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-        );
+        return <AlertCircle className="h-4 w-4" />;
       default:
         return null;
     }
@@ -336,7 +330,7 @@ export default function TaskPage() {
                         {getStatusBadge(processData.status)}
                         {processData.status === 'in_progress' && (
                           <div className="flex items-center gap-1 text-blue-500">
-                            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                            <Loader2 className="animate-spin h-4 w-4" />
                           </div>
                         )}
                       </div>
@@ -350,9 +344,7 @@ export default function TaskPage() {
                           rel="noopener noreferrer"
                           className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
                         >
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
+                          <ExternalLink className="h-4 w-4" />
                           View PR #{processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_number}
                         </a>
                       }
@@ -364,9 +356,7 @@ export default function TaskPage() {
                           onClick={() => setIsErrorDialogOpen(true)}
                           className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
                         >
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
+                          <AlertCircle className="h-4 w-4" />
                           View Error Details
                         </button>
                       )}
@@ -400,26 +390,7 @@ export default function TaskPage() {
                     
                     {processData.status === 'in_progress' && (
                       <div className="flex items-center gap-2 text-blue-500 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <svg 
-                          className="animate-spin h-4 w-4" 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          fill="none" 
-                          viewBox="0 0 24 24"
-                        >
-                          <circle 
-                            className="opacity-25" 
-                            cx="12" 
-                            cy="12" 
-                            r="10" 
-                            stroke="currentColor" 
-                            strokeWidth="4"
-                          ></circle>
-                          <path 
-                            className="opacity-75" 
-                            fill="currentColor" 
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
+                        <Loader2 className="animate-spin h-4 w-4" />
                         <span className="font-medium">Task is currently in progress...</span>
                       </div>
                     )}
@@ -432,9 +403,7 @@ export default function TaskPage() {
                 <Card className="mb-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
+                      <Info className="h-5 w-5" />
                       Issue Details
                     </CardTitle>
                     <CardDescription>
@@ -466,9 +435,7 @@ export default function TaskPage() {
                 <Card className="mb-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
+                      <Code className="h-5 w-5" />
                       Repository Information
                     </CardTitle>
                     <CardDescription>
