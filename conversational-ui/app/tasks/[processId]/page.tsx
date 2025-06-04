@@ -10,6 +10,7 @@ import { ProcessTimelineView } from '../../../components/process-timeline-view';
 import { Button } from '../../../components/ui/button';
 import { CopyIcon } from '../../../components/icons';
 import { toast } from 'sonner';
+import { Markdown } from '../../../components/markdown';
 import { 
   AlertDialog,
   AlertDialogContent,
@@ -37,6 +38,16 @@ interface ProcessData {
     error_message?: string;
     pr_url?: string;
     pr_number?: number;
+    // Issue resolution specific fields
+    issue?: {
+      title?: string;
+      description: string;
+    };
+    // Repository specific fields
+    url?: string;
+    knowledge_base_id?: string;
+    branch?: string;
+    commit_sha?: string;
   }>;
   result?: any;
   error?: string;
@@ -44,29 +55,54 @@ interface ProcessData {
   type?: string;
 }
 
+interface RepoInfo {
+  connected: boolean;
+  url?: string;
+  knowledge_base_id?: string;
+  branch?: string;
+  commit_sha?: string;
+  status?: string;
+}
+
 export default function TaskPage() {
   const params = useParams();
   const processId = params?.processId as string;
   const [processData, setProcessData] = useState<ProcessData | null>(null);
+  const [repoInfo, setRepoInfo] = useState<RepoInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchProcessData() {
+    async function fetchData() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/processes/${processId}`);
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch process data: ${response.statusText}`);
+        // Fetch process data
+        const processResponse = await fetch(`/api/processes/${processId}`);
+        if (!processResponse.ok) {
+          const errorText = await processResponse.text();
+          console.error('Process API error:', errorText);
+          throw new Error(`Failed to fetch process data: ${processResponse.status} ${processResponse.statusText}`);
+        }
+        const processData = await processResponse.json();
+        setProcessData(processData);
+        
+        // Fetch repository information for any task that might have repository data
+        try {
+          const repoResponse = await fetch('/api/repo');
+          if (repoResponse.ok) {
+            const repoData = await repoResponse.json();
+            setRepoInfo(repoData);
+          }
+        } catch (repoError) {
+          console.warn('Could not fetch repository information:', repoError);
+          // Don't fail the whole page if repo info can't be fetched
         }
         
-        const data = await response.json();
-        setProcessData(data);
         setError(null);
       } catch (err) {
-        console.error('Error fetching process data:', err);
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load task data');
       } finally {
         setLoading(false);
@@ -74,7 +110,7 @@ export default function TaskPage() {
     }
 
     if (processId) {
-      fetchProcessData();
+      fetchData();
     }
   }, [processId]);
 
@@ -120,16 +156,34 @@ export default function TaskPage() {
   const getStatusBadge = (status?: string) => {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
     
+    const CheckIcon = () => (
+      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+      </svg>
+    );
+    
     switch (status.toLowerCase()) {
       case 'completed':
       case 'success':
-        return <Badge className="bg-green-500 text-white">Completed</Badge>;
+        return (
+          <Badge className="bg-green-500 text-white flex items-center gap-1">
+            <CheckIcon />
+            Completed
+          </Badge>
+        );
       case 'failed':
       case 'error':
         return <Badge className="bg-red-500 text-white">Failed</Badge>;
       case 'in_progress':
       case 'running':
         return <Badge className="bg-blue-500 text-white">In Progress</Badge>;
+      case 'indexed':
+        return (
+          <Badge className="bg-green-500 text-white flex items-center gap-1">
+            <CheckIcon />
+            Indexed
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -165,6 +219,56 @@ export default function TaskPage() {
       default:
         return null;
     }
+  };
+
+  // Get issue information from events
+  const getIssueInfo = () => {
+    if (!processData?.events) return null;
+    
+    const issueRequestedEvent = processData.events.find(event => 
+      event.type === 'issue_resolution_requested'
+    );
+    
+    return issueRequestedEvent?.issue || null;
+  };
+
+  // Get repository information from events
+  const getRepoInfoFromEvents = () => {
+    if (!processData?.events) return null;
+    
+    const repoConnectedEvent = processData.events.find(event => 
+      event.type === 'repository_connected'
+    );
+    
+    const repoIndexedEvent = processData.events
+      .filter(event => event.type === 'repository_indexed')
+      .sort((a, b) => new Date(b.occurred_at || '').getTime() - new Date(a.occurred_at || '').getTime())[0];
+    
+    const indexationRequestedEvent = processData.events
+      .filter(event => event.type === 'repository_indexation_requested')
+      .sort((a, b) => new Date(b.occurred_at || '').getTime() - new Date(a.occurred_at || '').getTime())[0];
+    
+    if (!repoConnectedEvent) return null;
+    
+    return {
+      url: repoConnectedEvent.url,
+      knowledge_base_id: repoConnectedEvent.knowledge_base_id,
+      branch: repoIndexedEvent?.branch,
+      commit_sha: repoIndexedEvent?.commit_sha,
+      // Timing information
+      connected_at: repoConnectedEvent.occurred_at,
+      indexation_started_at: indexationRequestedEvent?.occurred_at,
+      indexation_completed_at: repoIndexedEvent?.occurred_at
+    };
+  };
+
+  // Check if this is a repository integration task
+  const isRepositoryTask = () => {
+    if (!processData?.events) return false;
+    
+    // Check if any repository-related events exist
+    const repoEvents = ['repository_connected', 'repository_indexation_requested', 'repository_indexed', 'repository_integration_failed'];
+    return processData.events.some(event => repoEvents.includes(event.type));
   };
 
   return (
@@ -323,103 +427,156 @@ export default function TaskPage() {
                 </CardContent>
               </Card>
 
-              {/* Process Information Card */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                    </svg>
-                    Process Information
-                  </CardTitle>
-                  <CardDescription>
-                    Detailed information about this process and its execution
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Basic Information */}
+              {/* Issue Information Card - Only show for issue resolution tasks */}
+              {(processData.type === 'issue_resolution' || processData.processType === 'issue_resolution') && getIssueInfo() && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Issue Details
+                    </CardTitle>
+                    <CardDescription>
+                      Information about the issue being resolved
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Basic Information</h4>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                            <span className="text-sm font-medium">Process ID</span>
-                            <span className="text-sm font-mono text-muted-foreground">{processData.id}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                            <span className="text-sm font-medium">Type</span>
-                            <Badge variant="outline">
-                              {(processData.processType || processData.type || 'Unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                            <span className="text-sm font-medium">Current Status</span>
-                            {getStatusBadge(processData.status)}
-                          </div>
+                      {getIssueInfo()?.title && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Issue Title</h4>
+                          <p className="text-lg font-medium">{getIssueInfo()?.title}</p>
                         </div>
-                      </div>
-
-                      {/* Timing Information */}
+                      )}
+                      
                       <div>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Timing</h4>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                            <span className="text-sm font-medium">Created</span>
-                            <span className="text-sm text-muted-foreground">{formatDate(processData.createdAt)}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                            <span className="text-sm font-medium">Last Updated</span>
-                            <span className="text-sm text-muted-foreground">{formatDate(processData.updatedAt)}</span>
-                          </div>
-                          {processData.events && processData.events.length > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-muted/30 rounded-md">
-                              <span className="text-sm font-medium">Total Events</span>
-                              <Badge variant="outline">{processData.events.length}</Badge>
-                            </div>
-                          )}
+                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Issue Description</h4>
+                        <div className="prose prose-sm max-w-none">
+                          <Markdown>{getIssueInfo()?.description || 'No description provided'}</Markdown>
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                    {/* Process Events Summary */}
+              {/* Repository Information Card - Show only for repository integration tasks */}
+              {isRepositoryTask() && (repoInfo?.connected || getRepoInfoFromEvents()) && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Repository Information
+                    </CardTitle>
+                    <CardDescription>
+                      Connected repository and Git information
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Events Summary</h4>
-                        {processData.events && processData.events.length > 0 ? (
-                          <div className="space-y-2">
-                            {processData.events.slice(0, 5).map((event, index) => (
-                              <div key={event.id || index} className="flex items-center gap-3 p-2 bg-muted/30 rounded-md">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">
-                                    {event.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDate(event.occurred_at)}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                            {processData.events.length > 5 && (
-                              <div className="text-xs text-muted-foreground text-center py-2">
-                                And {processData.events.length - 5} more events...
-                              </div>
-                            )}
+                      {(repoInfo?.url || getRepoInfoFromEvents()?.url) && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Repository URL</h4>
+                          <div className="flex items-center gap-2">
+                            <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                              {repoInfo?.url || getRepoInfoFromEvents()?.url}
+                            </code>
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(repoInfo?.url || getRepoInfoFromEvents()?.url || '');
+                                toast.success('Repository URL copied to clipboard!');
+                              }}
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              aria-label="Copy repository URL"
+                            >
+                              <CopyIcon size={16} />
+                            </Button>
                           </div>
-                        ) : (
-                          <div className="text-center py-4 text-muted-foreground">
-                            <svg className="h-8 w-8 mx-auto mb-2 opacity-50" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                            <p className="text-sm">No events recorded for this process</p>
+                        </div>
+                      )}
+                      
+                      {/* Connection Status and Git Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {repoInfo?.status && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Status</h4>
+                            {getStatusBadge(repoInfo.status)}
+                          </div>
+                        )}
+                        
+                        {getRepoInfoFromEvents()?.connected_at && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Connected Since</h4>
+                            <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.connected_at)}</span>
                           </div>
                         )}
                       </div>
+                      
+                      {/* Git Information */}
+                      {(repoInfo?.branch || getRepoInfoFromEvents()?.branch) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Current Branch</h4>
+                            <code className="bg-muted px-2 py-1 rounded text-sm block">
+                              {repoInfo?.branch || getRepoInfoFromEvents()?.branch}
+                            </code>
+                          </div>
+                          
+                          {(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha) && (
+                            <div>
+                              <h4 className="font-semibold text-sm text-muted-foreground mb-2">Latest Commit</h4>
+                              <div className="flex items-center gap-2">
+                                <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                                  {(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha)?.substring(0, 8)}...
+                                </code>
+                                <Button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha || '');
+                                    toast.success('Commit SHA copied to clipboard!');
+                                  }}
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Copy commit SHA"
+                                >
+                                  <CopyIcon size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Latest Indexation Information */}
+                      {(getRepoInfoFromEvents()?.indexation_started_at || getRepoInfoFromEvents()?.indexation_completed_at) && (
+                        <div>
+                          <h4 className="font-semibold text-sm text-muted-foreground mb-3">Latest Indexation</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {getRepoInfoFromEvents()?.indexation_started_at && (
+                              <div>
+                                <h5 className="font-medium text-xs text-muted-foreground mb-1">Started</h5>
+                                <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.indexation_started_at)}</span>
+                              </div>
+                            )}
+                            
+                            {getRepoInfoFromEvents()?.indexation_completed_at && (
+                              <div>
+                                <h5 className="font-medium text-xs text-muted-foreground mb-1">Completed</h5>
+                                <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.indexation_completed_at)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Error Dialog */}
               <AlertDialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
