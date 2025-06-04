@@ -1,25 +1,53 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import type { Session } from 'next-auth';
 
 /**
  * Hook to poll the process status at regular intervals
  * @param processId The ID of the process to poll
- * @param initialStatus The initial status of the process
  * @param pollInterval The interval in milliseconds between polls (default: 10000ms = 10s)
  * @returns The current status of the process
  */
 export function useProcessStatus(
-  processId: string | null | undefined,
-  initialStatus: 'none' | 'indexing' | 'indexed' = 'none',
+  processId?: string | null | undefined,
   pollInterval: number = 10000
 ) {
   const { data: session, update } = useSession();
+  
+  // Determine initial status based on session data internally
+  const knowledgeBaseId = session?.user?.selectedSpace?.knowledgeBaseId;
+  const initialStatus: 'none' | 'indexing' | 'indexed' = 
+    knowledgeBaseId && !processId ? 'indexed' : 'none';
+  
   const [status, setStatus] = useState<'none' | 'indexing' | 'indexed'>(initialStatus);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
   const lastPollTimeRef = useRef<number>(0);
   const errorCountRef = useRef(0);
+  const lastProcessIdRef = useRef<string | null | undefined>(processId);
+  const lastKnowledgeBaseIdRef = useRef<string | null | undefined>(knowledgeBaseId);
+  
+  // Update status when session data changes
+  useEffect(() => {
+    const currentInitialStatus: 'none' | 'indexing' | 'indexed' = 
+      knowledgeBaseId && !processId ? 'indexed' : 'none';
+    
+    const processIdChanged = lastProcessIdRef.current !== processId;
+    const knowledgeBaseIdChanged = lastKnowledgeBaseIdRef.current !== knowledgeBaseId;
+    
+    // Update status if:
+    // 1. No processId and we should use the calculated initial status
+    // 2. ProcessId changed 
+    // 3. KnowledgeBaseId changed (affects whether we show 'indexed' status)
+    if (!processId || processIdChanged || knowledgeBaseIdChanged) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Updating status to: ${currentInitialStatus} (processId: ${processId}, knowledgeBaseId: ${knowledgeBaseId})`);
+      }
+      setStatus(currentInitialStatus);
+    }
+    
+    lastProcessIdRef.current = processId;
+    lastKnowledgeBaseIdRef.current = knowledgeBaseId;
+  }, [processId, knowledgeBaseId]);
   
   // Define the checkProcessStatus function outside the main effect for reuse
   async function checkProcessStatus() {
