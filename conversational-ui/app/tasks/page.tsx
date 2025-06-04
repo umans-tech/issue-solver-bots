@@ -25,7 +25,8 @@ import {
   GitBranch,
   Database,
   Zap,
-  FolderOpen
+  FolderOpen,
+  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -45,6 +46,13 @@ interface ProcessData {
     type: string;
     occurred_at?: string;
     data?: any;
+    // Issue resolution specific fields
+    issue?: {
+      title?: string;
+      description: string;
+    };
+    pr_url?: string;
+    pr_number?: string;
   }>;
 }
 
@@ -95,12 +103,55 @@ export default function TasksPage() {
     }
   }, [session?.user?.selectedSpace?.knowledgeBaseId]);
 
+  // Function to format task type into a readable title
+  const getTaskTitle = (data: ProcessData) => {
+    // For issue resolution tasks, try to get the actual issue title from events
+    if ((data.type === 'issue_resolution' || data.processType === 'issue_resolution') && data.events) {
+      const issueRequestedEvent = data.events.find(event => 
+        event.type === 'issue_resolution_requested' || event.type === 'IssueResolutionRequested'
+      );
+      
+      if (issueRequestedEvent?.data?.issue?.title) {
+        return issueRequestedEvent.data.issue.title;
+      }
+      
+      // Also check the direct issue field structure
+      if (issueRequestedEvent?.issue?.title) {
+        return issueRequestedEvent.issue.title;
+      }
+    }
+    
+    if (data.type) {
+      const formattedType = data.type
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      return `${formattedType} Task`;
+    }
+    
+    if (data.processType) {
+      const formattedType = data.processType
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      return `${formattedType} Task`;
+    }
+    
+    if (data.title) {
+      return data.title;
+    }
+    
+    return `Task ${data.id.slice(0, 8)}...`;
+  };
+
   // Filter processes based on search and filters
   const filteredProcesses = processes.filter(process => {
+    const computedTitle = getTaskTitle(process);
     const matchesSearch = !searchTerm || 
       process.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (process.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (process.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (process.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      computedTitle.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || process.status === statusFilter;
     
@@ -125,31 +176,6 @@ export default function TasksPage() {
   const processTypes = Array.from(new Set(
     processes.map(p => p.processType || p.type).filter(Boolean)
   )) as string[];
-
-  // Function to format task type into a readable title
-  const getTaskTitle = (data: ProcessData) => {
-    if (data.type) {
-      const formattedType = data.type
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      return `${formattedType} Task`;
-    }
-    
-    if (data.processType) {
-      const formattedType = data.processType
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      return `${formattedType} Task`;
-    }
-    
-    if (data.title) {
-      return data.title;
-    }
-    
-    return `Task ${data.id.slice(0, 8)}...`;
-  };
 
   // Function to get process type with icon
   const getProcessTypeWithIcon = (processType?: string, type?: string) => {
@@ -273,77 +299,105 @@ export default function TasksPage() {
   const totalCount = filteredProcesses.length;
   const groupCount = Object.keys(groupedProcesses).length;
 
+  // Function to get group priority (lower number = higher priority)
+  const getGroupPriority = (groupType: string) => {
+    switch (groupType.toLowerCase()) {
+      case 'issue_resolution':
+        return 1;
+      case 'code_repository_integration':
+        return 2;
+      default:
+        return 3;
+    }
+  };
+
+  // Function to check if a group is code repository integration
+  const isCodeRepoGroup = (groupType: string) => {
+    return groupType.toLowerCase() === 'code_repository_integration';
+  };
+
+  // Function to get PR info from events
+  const getPRInfo = (data: ProcessData) => {
+    if (!data.events) return null;
+    
+    const completedEvent = data.events.find(event => 
+      event.type === 'issue_resolution_completed'
+    );
+    
+    if (completedEvent?.pr_url && completedEvent?.pr_number) {
+      return {
+        url: completedEvent.pr_url,
+        number: completedEvent.pr_number
+      };
+    }
+    
+    return null;
+  };
+
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <TaskHeader />
 
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto py-8 px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Tasks & Processes</h1>
-            <div className="flex items-center gap-4">
-              <p className="text-muted-foreground">
-                Monitor and manage all processes in your current workspace
-              </p>
-              {session?.user?.selectedSpace && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <FolderOpen className="h-3 w-3" />
-                  {session.user.selectedSpace.name}
-                </Badge>
-              )}
-            </div>
-            {!loading && (
-              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                <span>{totalCount} tasks</span>
-                <span>•</span>
-                <span>{groupCount} categories</span>
+          {/* Compact Header with Filters */}
+          <div className="mb-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-xl font-semibold text-foreground">Tasks & Processes</span>
+                {!loading && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>•</span>
+                    <span>{totalCount} tasks</span>
+                    <span>•</span>
+                    <span>{groupCount} categories</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+              
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative w-full sm:w-80">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search tasks by ID or title..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <div className="flex gap-2 shrink-0">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="connected">Connected</SelectItem>
+                      <SelectItem value="indexed">Indexed</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-          {/* Filters */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search tasks by ID, title, or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="connected">Connected</SelectItem>
-                  <SelectItem value="indexed">Indexed</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <Activity className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {processTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <Activity className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {processTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -375,26 +429,22 @@ export default function TasksPage() {
           ) : Object.keys(groupedProcesses).length === 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  {!session?.user?.selectedSpace?.knowledgeBaseId
-                    ? 'No Knowledge Base Connected'
-                    : 'No Tasks Found'
-                  }
-                </CardTitle>
+                <CardTitle>No Tasks Found</CardTitle>
                 <CardDescription>
                   {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
                       ? 'No tasks match your current filters. Try adjusting your search criteria.'
-                      : !session?.user?.selectedSpace?.knowledgeBaseId
-                          ? 'Connect a repository to your space to start seeing tasks and processes.'
-                          : `No tasks have been created yet in the "${session.user.selectedSpace.name} space".`
+                      : 'No tasks have been created yet in this workspace.'
                   }
                 </CardDescription>
               </CardHeader>
             </Card>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedProcesses).map(([groupType, groupProcesses]) => {
+              {Object.entries(groupedProcesses)
+                .sort(([a], [b]) => getGroupPriority(a) - getGroupPriority(b))
+                .map(([groupType, groupProcesses]) => {
                 const { icon, label, color } = getGroupHeaderInfo(groupType);
+                const isCodeRepo = isCodeRepoGroup(groupType);
                 
                 return (
                   <motion.div
@@ -422,6 +472,7 @@ export default function TasksPage() {
                       {groupProcesses.map((process, index) => {
                         const { badge, color: statusColor } = getStatusBadgeWithIcon(process.status);
                         const { icon: typeIcon, label: typeLabel, color: typeColor } = getProcessTypeWithIcon(process.processType, process.type);
+                        const prInfo = getPRInfo(process);
                         
                         return (
                           <motion.div
@@ -450,6 +501,18 @@ export default function TasksPage() {
                                       {typeIcon}
                                       <span className="text-xs">{typeLabel}</span>
                                     </Badge>
+                                    {prInfo && (
+                                      <a
+                                        href={prInfo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        PR #{prInfo.number}
+                                      </a>
+                                    )}
                                   </div>
                                 </CardHeader>
                                 
@@ -460,12 +523,14 @@ export default function TasksPage() {
                                     </p>
                                   )}
                                   
-                                  <div className="flex justify-between items-center text-xs text-muted-foreground">
-                                    <span>Created {getRelativeTime(process.createdAt)}</span>
-                                    {process.updatedAt && process.updatedAt !== process.createdAt && (
-                                      <span>Updated {getRelativeTime(process.updatedAt)}</span>
-                                    )}
-                                  </div>
+                                  {process.createdAt && getRelativeTime(process.createdAt) !== 'Unknown' && (
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                      <span>Created {getRelativeTime(process.createdAt)}</span>
+                                      {process.updatedAt && process.updatedAt !== process.createdAt && (
+                                        <span>Updated {getRelativeTime(process.updatedAt)}</span>
+                                      )}
+                                    </div>
+                                  )}
                                 </CardContent>
                               </Card>
                             </Link>
