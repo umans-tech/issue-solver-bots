@@ -62,10 +62,10 @@ export default function TasksPage() {
       try {
         setLoading(true);
         
-        // Build query parameters including space_id if available
+        // Build query parameters including knowledge_base_id if available
         const queryParams = new URLSearchParams();
-        if (session?.user?.selectedSpace?.id) {
-          queryParams.set('space_id', session.user.selectedSpace.id);
+        if (session?.user?.selectedSpace?.knowledgeBaseId) {
+          queryParams.set('knowledge_base_id', session.user.selectedSpace.knowledgeBaseId);
         }
         
         const response = await fetch(`/api/processes?${queryParams.toString()}`);
@@ -85,11 +85,15 @@ export default function TasksPage() {
       }
     }
 
-    // Only fetch if we have session data
-    if (session) {
+    // Only fetch if we have session data and a knowledge base ID
+    if (session && session?.user?.selectedSpace?.knowledgeBaseId) {
       fetchProcesses();
+    } else if (session && !session?.user?.selectedSpace?.knowledgeBaseId) {
+      // If we have a session but no knowledge base ID, set empty processes and stop loading
+      setProcesses([]);
+      setLoading(false);
     }
-  }, [session?.user?.selectedSpace?.id]);
+  }, [session?.user?.selectedSpace?.knowledgeBaseId]);
 
   // Filter processes based on search and filters
   const filteredProcesses = processes.filter(process => {
@@ -371,13 +375,18 @@ export default function TasksPage() {
           ) : Object.keys(groupedProcesses).length === 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle>No Tasks Found</CardTitle>
+                <CardTitle>
+                  {!session?.user?.selectedSpace?.knowledgeBaseId
+                    ? 'No Knowledge Base Connected'
+                    : 'No Tasks Found'
+                  }
+                </CardTitle>
                 <CardDescription>
-                  {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
-                    ? 'No tasks match your current filters. Try adjusting your search criteria.'
-                    : session?.user?.selectedSpace 
-                      ? `No tasks have been created yet in the "${session.user.selectedSpace.name}" workspace.`
-                      : 'No tasks have been created yet in this workspace.'
+                  {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
+                      ? 'No tasks match your current filters. Try adjusting your search criteria.'
+                      : !session?.user?.selectedSpace?.knowledgeBaseId
+                          ? 'Connect a repository to your space to start seeing tasks and processes.'
+                          : `No tasks have been created yet in the "${session.user.selectedSpace.name} space".`
                   }
                 </CardDescription>
               </CardHeader>

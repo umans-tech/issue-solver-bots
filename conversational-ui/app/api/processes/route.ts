@@ -4,6 +4,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const spaceId = searchParams.get('space_id');
+    const knowledgeBaseId = searchParams.get('knowledge_base_id');
     const processType = searchParams.get('process_type');
     const status = searchParams.get('status');
     const limit = searchParams.get('limit') || '50';
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
     });
 
     if (spaceId) queryParams.set('space_id', spaceId);
+    if (knowledgeBaseId) queryParams.set('knowledge_base_id', knowledgeBaseId);
     if (processType) queryParams.set('process_type', processType);
     if (status) queryParams.set('status', status);
 
