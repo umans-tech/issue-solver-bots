@@ -5,19 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
 import { TaskHeader } from '../../components/task-header';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
-import { 
-  Search,
-  Filter,
-  Activity,
   Clock,
   CheckCircle,
   XCircle,
@@ -25,7 +13,7 @@ import {
   GitBranch,
   Database,
   Zap,
-  FolderOpen,
+  Activity,
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
@@ -336,71 +324,21 @@ export default function TasksPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <TaskHeader />
+      <TaskHeader 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        processTypes={processTypes}
+        totalCount={totalCount}
+        groupCount={groupCount}
+        loading={loading}
+      />
 
       <div className="flex-1 overflow-auto">
-        <div className="container mx-auto py-8 px-4">
-          {/* Compact Header with Filters */}
-          <div className="mb-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-xl font-semibold text-foreground">Tasks & Processes</span>
-                {!loading && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span>•</span>
-                    <span>{totalCount} tasks</span>
-                    <span>•</span>
-                    <span>{groupCount} categories</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search tasks by ID or title..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <div className="flex gap-2 shrink-0">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                      <SelectItem value="connected">Connected</SelectItem>
-                      <SelectItem value="indexed">Indexed</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <Activity className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {processTypes.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="container mx-auto py-6 px-4 lg:px-6">
           {/* Content */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
