@@ -221,7 +221,8 @@ def index_new_files(all_files, client, vector_store_id):
         "total_files": len(all_files),
         "successful_uploads": 0,
         "failed_uploads": 0,
-        "skipped_files": 0,
+        "skipped_uploads": 0,
+        "skipped_files": [],
         "errors": [],
     }
     logger.info(f"{len(all_files)} files found in repository. Uploading in parallel...")
@@ -240,10 +241,11 @@ def index_new_files(all_files, client, vector_store_id):
                 stats["failed_uploads"] += 1
                 stats["errors"].append(result)
             elif result["status"] == "skipped":
-                stats["skipped_files"] += 1
+                stats["skipped_uploads"] += 1
+                stats["skipped_files"].append(result)
     logger.info(
         f"Upload complete. {stats['successful_uploads']} files uploaded successfully, "
-        f"{stats['failed_uploads']} failed, {stats['skipped_files']} skipped."
+        f"{stats['failed_uploads']} failed, {stats['skipped_uploads']} skipped."
     )
     return stats
 
