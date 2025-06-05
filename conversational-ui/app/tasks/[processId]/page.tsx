@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { TaskHeader } from '../../../components/task-header';
+import { SharedHeader } from '../../../components/shared-header';
 import { ProcessTimelineView } from '../../../components/process-timeline-view';
 import { Button } from '../../../components/ui/button';
 import { CopyIcon } from '../../../components/icons';
@@ -267,7 +267,7 @@ export default function TaskPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <TaskHeader />
+      <SharedHeader />
 
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto py-8 px-4">
