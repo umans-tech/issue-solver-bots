@@ -91,7 +91,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     setIsRenameDialogOpen(true);
   };
 
-  const handleSwitchSpace = async (spaceId: string) => {
+  const switchToSpace = async (spaceId: string, skipSpaceListRefresh: boolean = false) => {
     try {
       // Check if we're currently in a chat
       const currentPath = window.location.pathname;
@@ -131,7 +131,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         throw new Error('Failed to switch space');
       }
 
-      const newSpace = await response.json();
+      if (!skipSpaceListRefresh) {
+        await fetchSpaces();
+      }
       
       // Find the space in our local state
       const selectedSpace = spaces.find(space => space.id === spaceId);
@@ -151,14 +153,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         router.push('/');
       }
     } catch (error) {
-      console.error('Error switching space:', error);
+      console.error('Error switching to space:', error);
+      throw error;
     }
   };
 
-  const handleCreateSuccess = async () => {
-    // Recharger la liste des spaces après la création
+  const handleSwitchSpace = async (spaceId: string) => {
+    await switchToSpace(spaceId);
+  };
+
+  const handleCreateSuccess = async (newSpaceId: string) => {
     console.log('Space created, refreshing list...');
     await fetchSpaces();
+    
+    await switchToSpace(newSpaceId, true);
   };
 
   console.log('Current session:', session);
