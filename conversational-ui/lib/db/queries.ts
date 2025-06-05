@@ -664,3 +664,57 @@ export async function getCurrentUserSpace(userId: string) {
   
   return currentSpace;
 }
+
+/**
+ * Invite a user to a space
+ */
+export async function inviteUserToSpace(spaceId: string, userEmail: string): Promise<{
+  success: boolean;
+  error?: string;
+  space?: any;
+  user?: any;
+}> {
+  try {
+    // Get the space
+    const space = await getSpaceById(spaceId);
+    if (!space) {
+      return { success: false, error: 'Space not found' };
+    }
+
+    // Get the user to invite
+    const [userToInvite] = await getUser(userEmail);
+    if (!userToInvite) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Check if user is already in the space
+    const existingMembership = await db
+      .select()
+      .from(spaceToUser)
+      .where(
+        and(
+          eq(spaceToUser.spaceId, spaceId),
+          eq(spaceToUser.userId, userToInvite.id)
+        )
+      );
+
+    if (existingMembership.length > 0) {
+      return { success: false, error: 'User is already a member of this space' };
+    }
+
+    // Add user to space
+    await db.insert(spaceToUser).values({
+      spaceId,
+      userId: userToInvite.id,
+    });
+
+    return {
+      success: true,
+      space,
+      user: userToInvite,
+    };
+  } catch (error) {
+    console.error('Error inviting user to space:', error);
+    return { success: false, error: 'Failed to invite user to space' };
+  }
+}

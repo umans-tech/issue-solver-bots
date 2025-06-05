@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -24,16 +24,13 @@ export function SpaceInviteDialog({
   spaceId,
   spaceName,
 }: SpaceInviteDialogProps) {
-  const { data: session } = useSession();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      return;
-    }
+    if (!email.trim()) return;
 
     setIsLoading(true);
     setError(null);
@@ -41,19 +38,21 @@ export function SpaceInviteDialog({
     try {
       const response = await fetch('/api/spaces/invite', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          spaceId,
-          email: email.trim(),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spaceId, email: email.trim() }),
       });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to invite user');
       }
+
+      const result = await response.json();
+      
+      toast.success(
+        `Successfully invited ${result.userEmail} to "${result.spaceName}"! ` +
+        `They will receive an email notification about the invitation.`
+      );
 
       onOpenChange(false);
       setEmail('');
