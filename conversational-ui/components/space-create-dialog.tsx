@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 interface SpaceCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (spaceId: string) => void;
 }
 
 export function SpaceCreateDialog({
@@ -66,7 +66,7 @@ export function SpaceCreateDialog({
 
       onOpenChange(false);
       setName('');
-      onSuccess?.();
+      onSuccess?.(newSpace.id);
     } catch (error) {
       console.error('Error creating space:', error);
     } finally {
