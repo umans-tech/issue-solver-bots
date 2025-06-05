@@ -1,5 +1,4 @@
-import { useSession } from 'next-auth/react';
-import { Plus, UserPlus, Edit, ChevronDown } from 'lucide-react';
+import { Plus, UserPlus, Edit, ChevronDown, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -26,6 +25,7 @@ interface SpaceSelectorProps {
   spaces: Space[];
   onCreateSpace?: () => void;
   onInviteToSpace?: () => void;
+  onViewMembers?: () => void;
   onRenameSpace?: (newName: string) => void;
   onSwitchSpace?: (spaceId: string) => void;
 }
@@ -36,6 +36,7 @@ export function SpaceSelector({
   spaces,
   onCreateSpace,
   onInviteToSpace,
+  onViewMembers,
   onRenameSpace,
   onSwitchSpace
 }: SpaceSelectorProps) {
@@ -89,6 +90,12 @@ export function SpaceSelector({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>Manage Current Space</DropdownMenuLabel>
+          <DropdownMenuItem onClick={onViewMembers}>
+            <div className="mr-2">
+              <Users size={16} />
+            </div>
+            <span>View Members</span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={onInviteToSpace}>
             <div className="mr-2">
               <UserPlus size={16} />

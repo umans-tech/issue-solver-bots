@@ -718,3 +718,25 @@ export async function inviteUserToSpace(spaceId: string, userEmail: string): Pro
     return { success: false, error: 'Failed to invite user to space' };
   }
 }
+
+/**
+ * Get all members of a space
+ */
+export async function getSpaceMembers(spaceId: string) {
+  try {
+    return await db
+      .select({
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        joinedAt: spaceToUser.spaceId, // We'll use this as a placeholder for join date
+      })
+      .from(spaceToUser)
+      .innerJoin(user, eq(spaceToUser.userId, user.id))
+      .where(eq(spaceToUser.spaceId, spaceId))
+      .orderBy(asc(user.email));
+  } catch (error) {
+    console.error('Error getting space members:', error);
+    throw error;
+  }
+}
