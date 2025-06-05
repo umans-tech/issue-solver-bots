@@ -14,7 +14,11 @@ const nextConfig = {
     return config;
   },
   images: {
-    domains: ['avatar.vercel.sh'],
+    domains: [
+      'avatar.vercel.sh',
+      'lh3.googleusercontent.com', // Google profile images
+      'www.gravatar.com', // Gravatar images
+    ],
   },
 };
 

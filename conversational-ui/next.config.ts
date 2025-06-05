@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
       {
         hostname: 'avatar.vercel.sh',
       },
+      {
+        hostname: 'lh3.googleusercontent.com', // Google profile images
+      },
+      {
+        hostname: 'www.gravatar.com', // Gravatar images
+      },
     ],
   },
   env: {
