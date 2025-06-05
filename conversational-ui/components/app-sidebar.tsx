@@ -28,6 +28,7 @@ import { SpaceSelector } from '@/components/space-selector';
 import { SpaceRenameDialog } from '@/components/space-rename-dialog';
 import { SpaceCreateDialog } from '@/components/space-create-dialog';
 import { SpaceInviteDialog } from '@/components/space-invite-dialog';
+import { SpaceMembersDialog } from '@/components/space-members-dialog';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -36,6 +37,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
   const [spaces, setSpaces] = useState<any[]>([]);
 
   const fetchSpaces = async () => {
@@ -79,6 +81,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   const handleInviteToSpace = () => {
     setIsInviteDialogOpen(true);
+  };
+
+  const handleViewMembers = () => {
+    setIsMembersDialogOpen(true);
   };
 
   const handleRenameSpace = () => {
@@ -169,6 +175,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               spaces={spaces}
               onCreateSpace={handleCreateSpace}
               onInviteToSpace={handleInviteToSpace}
+              onViewMembers={handleViewMembers}
               onRenameSpace={handleRenameSpace}
               onSwitchSpace={handleSwitchSpace}
             />
@@ -257,6 +264,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SpaceInviteDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
+        spaceId={session?.user?.selectedSpace?.id || ''}
+        spaceName={session?.user?.selectedSpace?.name || ''}
+      />
+      <SpaceMembersDialog
+        open={isMembersDialogOpen}
+        onOpenChange={setIsMembersDialogOpen}
         spaceId={session?.user?.selectedSpace?.id || ''}
         spaceName={session?.user?.selectedSpace?.name || ''}
       />
