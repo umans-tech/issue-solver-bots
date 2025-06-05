@@ -65,13 +65,6 @@ export function SpaceSelector({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
-        <DropdownMenuItem onClick={onCreateSpace}>
-          <div className="mr-2">
-            <Plus size={16} />
-          </div>
-          <span>Create New Space</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuLabel>Your Spaces</DropdownMenuLabel>
           {spaces.map((space) => (
@@ -94,18 +87,26 @@ export function SpaceSelector({
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onInviteToSpace}>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Manage Current Space</DropdownMenuLabel>
+          <DropdownMenuItem onClick={onInviteToSpace}>
+            <div className="mr-2">
+              <UserPlus size={16} />
+            </div>
+            <span>Invite to Space</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onRenameSpace?.(spaceName)}>
+            <div className="mr-2">
+              <Edit size={16} />
+            </div>
+            <span>Rename Space</span>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuItem onClick={onCreateSpace}>
           <div className="mr-2">
-            <UserPlus size={16} />
+            <Plus size={16} />
           </div>
-          <span>Invite to Space</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onRenameSpace?.(spaceName)}>
-          <div className="mr-2">
-            <Edit size={16} />
-          </div>
-          <span>Rename Space</span>
+          <span>Create New Space</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
