@@ -1,5 +1,5 @@
 import { useSession } from 'next-auth/react';
-import { PlusIcon, UserIcon, PenIcon, ChevronDownIcon } from '@/components/icons';
+import { Plus, UserPlus, Edit, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -60,14 +60,14 @@ export function SpaceSelector({
           </div>
           <span className="text-lg font-semibold truncate flex-1">{spaceName || 'Default Space'}</span>
           <div className="flex-shrink-0">
-            <ChevronDownIcon size={16} />
+            <ChevronDown size={16} />
           </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
         <DropdownMenuItem onClick={onCreateSpace}>
           <div className="mr-2">
-            <PlusIcon size={16} />
+            <Plus size={16} />
           </div>
           <span>Create New Space</span>
         </DropdownMenuItem>
@@ -96,14 +96,14 @@ export function SpaceSelector({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onInviteToSpace}>
           <div className="mr-2">
-            <UserIcon size={16} />
+            <UserPlus size={16} />
           </div>
           <span>Invite to Space</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRenameSpace?.(spaceName)}>
           <div className="mr-2">
-            <PenIcon size={16} />
+            <Edit size={16} />
           </div>
           <span>Rename Space</span>
         </DropdownMenuItem>
