@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
-import { db } from '@/lib/db';
-import { spaceToUser } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { getUser } from '@/lib/db/queries';
+import { getUser, inviteUserToSpace } from '@/lib/db/queries';
+import { sendSpaceInviteNotificationEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -27,41 +25,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the user to invite
-    const [userToInvite] = await getUser(email);
-    if (!userToInvite) {
+    // Get the current user (inviter) for email notification
+    const [inviter] = await getUser(session.user.email!);
+    if (!inviter) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'Inviter not found' },
         { status: 404 }
       );
     }
 
-    // Check if the user is already in the space
-    const existingMembership = await db
-      .select()
-      .from(spaceToUser)
-      .where(
-        and(
-          eq(spaceToUser.spaceId, spaceId),
-          eq(spaceToUser.userId, userToInvite.id)
-        )
-      );
-
-    if (existingMembership.length > 0) {
+    // Invite user to space
+    const result = await inviteUserToSpace(spaceId, email);
+    
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'User is already a member of this space' },
+        { error: result.error },
         { status: 400 }
       );
     }
 
-    // Add the user to the space
-    await db.insert(spaceToUser).values({
-      spaceId,
-      userId: userToInvite.id,
-    });
+    // Send email notification to the invited user
+    try {
+      await sendSpaceInviteNotificationEmail(
+        result.user!.email,
+        result.space!.name,
+        inviter.email
+      );
+    } catch (emailError) {
+      console.error('Failed to send space invite notification email:', emailError);
+      // Continue without failing the invite if email fails
+      // The user was already added to the space successfully
+    }
 
     return NextResponse.json(
-      { message: 'User invited successfully' },
+      { 
+        message: 'User invited successfully',
+        spaceName: result.space!.name,
+        userEmail: result.user!.email
+      },
       { status: 200 }
     );
   } catch (error) {
