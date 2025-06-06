@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getUserByVerificationToken, verifyUserEmail, ensureDefaultSpace } from '@/lib/db/queries';
-import { sendWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -39,14 +38,6 @@ export async function POST(request: Request) {
     } catch (spaceError) {
       console.error('Failed to create default space for verified user:', spaceError);
       // Don't fail verification if space creation fails
-    }
-
-    // Send welcome email (optional, don't fail if it fails)
-    try {
-      await sendWelcomeEmail(user.email);
-    } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
-      // Don't fail verification if welcome email fails
     }
 
     return NextResponse.json(

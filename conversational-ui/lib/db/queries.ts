@@ -84,13 +84,28 @@ export async function getUserByVerificationToken(token: string): Promise<Array<U
 
 export async function verifyUserEmail(userId: string) {
   try {
-    return await db
+    const result = await db
       .update(user)
       .set({ 
         emailVerified: new Date(),
         emailVerificationToken: null 
       })
-      .where(eq(user.id, userId));
+      .where(eq(user.id, userId))
+      .returning({ email: user.email });
+
+    // Send welcome email after successful verification
+    if (result.length > 0) {
+      try {
+        const { sendWelcomeEmail } = await import('../email');
+        await sendWelcomeEmail(result[0].email);
+        console.log('📧 Welcome email sent to verified user:', result[0].email);
+      } catch (emailError) {
+        console.error('❌ Error sending welcome email:', emailError);
+        // Don't fail the verification if welcome email fails
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('Failed to verify user email in database');
     throw error;
