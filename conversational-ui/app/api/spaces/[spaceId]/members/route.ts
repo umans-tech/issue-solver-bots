@@ -32,7 +32,10 @@ export async function GET(
     // Get space members
     const members = await getSpaceMembers(spaceId);
 
-    return NextResponse.json(members, { status: 200 });
+    return NextResponse.json({ 
+      members, 
+      currentUserId: session.user.id 
+    }, { status: 200 });
   } catch (error) {
     console.error('Error fetching space members:', error);
     return NextResponse.json(

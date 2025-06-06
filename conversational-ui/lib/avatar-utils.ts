@@ -37,18 +37,3 @@ export function getInitials(name?: string | null, email?: string | null): string
   
   return '?';
 }
-
-/**
- * Generate a consistent color based on a string (email or name)
- */
-export function getAvatarColor(str: string): string {
-  // Simple hash function to generate consistent colors
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  // Convert to HSL for better color distribution
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 65%, 55%)`;
-} 

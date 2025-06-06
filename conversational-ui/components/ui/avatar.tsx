@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { getGravatarUrl, getInitials, getAvatarColor } from '@/lib/avatar-utils';
+import { getGravatarUrl, getInitials } from '@/lib/avatar-utils';
+import { generatePastelColor } from '@/lib/utils';
 
 interface AvatarProps {
   user: {
@@ -21,7 +22,7 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
   
   const { image: googleImage, name, email } = user;
   const initials = getInitials(name, email);
-  const avatarColor = getAvatarColor(email || name || '');
+  const gradientBackground = generatePastelColor(email || name || '');
   
   // If we have a Google image and it hasn't failed, show it
   if (googleImage && !imageError) {
@@ -53,7 +54,7 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
     );
   }
   
-  // Fallback to initials
+  // Fallback to initials with gradient
   return (
     <div
       className={cn(
@@ -63,7 +64,7 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
       style={{
         width: size,
         height: size,
-        backgroundColor: avatarColor,
+        backgroundImage: gradientBackground,
         fontSize: `${size * 0.4}px`, // Scale font size with avatar size
       }}
     >

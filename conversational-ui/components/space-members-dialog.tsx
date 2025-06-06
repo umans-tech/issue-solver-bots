@@ -8,12 +8,17 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { getInitials, generatePastelColor } from '@/lib/utils';
+import { Avatar } from '@/components/ui/avatar';
 
 interface SpaceMember {
   id: string;
   email: string;
   emailVerified: Date | null;
+}
+
+interface SpaceMembersResponse {
+  members: SpaceMember[];
+  currentUserId: string;
 }
 
 interface SpaceMembersDialogProps {
@@ -30,6 +35,7 @@ export function SpaceMembersDialog({
   spaceName,
 }: SpaceMembersDialogProps) {
   const [members, setMembers] = useState<SpaceMember[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,14 +51,15 @@ export function SpaceMembersDialog({
 
     try {
       const response = await fetch(`/api/spaces/${spaceId}/members`);
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to fetch members');
       }
 
-      const membersData = await response.json();
-      setMembers(membersData);
+      const data: SpaceMembersResponse = await response.json();
+      setMembers(data.members);
+      setCurrentUserId(data.currentUserId);
     } catch (error) {
       console.error('Error fetching members:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch members');
@@ -108,11 +115,19 @@ export function SpaceMembersDialog({
                     key={member.id}
                     className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white shadow-sm"
-                      style={{ backgroundImage: generatePastelColor(member.email) }}
-                    >
-                      {getInitials(member.email.split('@')[0])}
+                    <div className="relative">
+                      <Avatar
+                          user={{ email: member.email }}
+                          size={40}
+                      />
+                      {member.id === currentUserId && (
+                        <Badge
+                          variant="secondary"
+                          className="absolute -top-1 -right-1 text-xs px-1 py-0 h-5 text-[10px] font-medium"
+                        >
+                          Me
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
