@@ -48,7 +48,7 @@ const createEmailTemplate = (title: string, content: string, showLogo: boolean =
                     ${showLogo ? `
                     <!-- Header with Logo -->
                     <tr>
-                        <td align="center" style="padding: 48px 40px 32px 40px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                        <td align="center" style="padding: 48px 40px 32px 40px; background: linear-gradient(135deg, #1a1a1a 0%, #374151 100%);">
                             ${getEmailLogo()}
                         </td>
                     </tr>
