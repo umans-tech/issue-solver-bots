@@ -4,12 +4,12 @@ import { DocumentSkeleton } from '@/components/document-skeleton';
 import { Editor } from '@/components/text-editor';
 import {
   ClockRewind,
-  CopyIcon,
   MessageIcon,
   PenIcon,
   RedoIcon,
   UndoIcon,
 } from '@/components/icons';
+import { Copy } from 'lucide-react';
 import { Suggestion } from '@/lib/db/schema';
 import { toast } from 'sonner';
 import { getSuggestions } from '../actions';
@@ -143,7 +143,7 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
       },
     },
     {
-      icon: <CopyIcon size={18} />,
+      icon: <Copy size={18} />,
       description: 'Copy to clipboard',
       onClick: ({ content }) => {
         navigator.clipboard.writeText(content);
@@ -153,7 +153,7 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
   ],
   toolbar: [
     {
-      icon: <PenIcon />,
+      icon: <PenIcon size={18} />,
       description: 'Add final polish',
       onClick: ({ appendMessage }) => {
         appendMessage({

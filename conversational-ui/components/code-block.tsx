@@ -5,8 +5,8 @@ import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useTheme } from 'next-themes';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { CopyIcon } from './icons';
 import { Button } from './ui/button';
+import { Copy } from 'lucide-react';
 
 interface CodeBlockProps {
   node: any;
@@ -80,7 +80,7 @@ export function CodeBlock({
           }`}
           aria-label="Copy code"
         >
-          <CopyIcon size={16} />
+          <Copy size={16} />
         </Button>
       )}
       <Highlighter

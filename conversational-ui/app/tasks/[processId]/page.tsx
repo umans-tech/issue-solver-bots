@@ -8,7 +8,7 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { SharedHeader } from '../../../components/shared-header';
 import { ProcessTimelineView } from '../../../components/process-timeline-view';
 import { Button } from '../../../components/ui/button';
-import { CopyIcon } from '../../../components/icons';
+import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Markdown } from '../../../components/markdown';
 import { 
@@ -461,7 +461,7 @@ export default function TaskPage() {
                               className="h-8 w-8 p-0"
                               aria-label="Copy repository URL"
                             >
-                              <CopyIcon size={16} />
+                              <Copy size={16} />
                             </Button>
                           </div>
                         </div>
@@ -511,7 +511,7 @@ export default function TaskPage() {
                                   className="h-8 w-8 p-0"
                                   aria-label="Copy commit SHA"
                                 >
-                                  <CopyIcon size={16} />
+                                  <Copy size={16} />
                                 </Button>
                               </div>
                             </div>
@@ -568,7 +568,7 @@ export default function TaskPage() {
                       className="absolute top-3 right-3 z-10 h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
                       aria-label="Copy error details"
                     >
-                      <CopyIcon size={16} />
+                      <Copy size={16} />
                     </Button>
                     
                     <div className="mb-4">
