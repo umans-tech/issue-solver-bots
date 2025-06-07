@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -17,6 +17,7 @@ import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
+import { differenceInSeconds } from 'date-fns';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -234,6 +235,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     const streamContext = getStreamContext();
+    const resumeRequestedAt = new Date();
 
     if (!streamContext) {
       return new Response(null, { status: 204 });
@@ -284,12 +286,46 @@ export async function GET(request: Request) {
       execute: () => {},
     });
   
-    return new Response(
-      await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
-      {
-        status: 200,
-      },
+    const stream = await streamContext.resumableStream(
+      recentStreamId,
+      () => emptyDataStream,
     );
+  
+    /*
+     * For when the generation is streaming during SSR
+     * but the resumable stream has concluded at this point.
+     */
+    if (!stream) {
+      const messages = await getMessagesByChatId({ id: chatId });
+      const mostRecentMessage = messages.at(-1);
+  
+      if (!mostRecentMessage) {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+  
+      if (mostRecentMessage.role !== 'assistant') {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+  
+      const messageCreatedAt = new Date(mostRecentMessage.createdAt);
+  
+      if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+  
+      const restoredStream = createDataStream({
+        execute: (buffer) => {
+          buffer.writeData({
+            type: 'append-message',
+            message: JSON.stringify(mostRecentMessage),
+          });
+        },
+      });
+  
+      return new Response(restoredStream, { status: 200 });
+    }
+  
+    return new Response(stream, { status: 200 });
   }  
 
 export async function DELETE(request: Request) {
