@@ -20,6 +20,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
+import { useAutoResume } from '@/hooks/use-auto-resume';
 
 export function Chat({
   id,
@@ -75,10 +76,11 @@ export function Chat({
     input,
     setInput,
     append,
-    isLoading,
+    status,
     stop,
     reload,
     experimental_resume,
+    data,
   } = useChat({
     id,
     body: { 
@@ -100,14 +102,6 @@ export function Chat({
     },
   });
 
-  useEffect(() => {
-    if (autoResume) {
-      experimental_resume();
-    }
-
-    // note: this hook has no dependencies since it only needs to run once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
 
   const { data: votes } = useSWR<Array<Vote>>(
@@ -117,6 +111,14 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+
+  useAutoResume({
+    autoResume,
+    initialMessages,
+    experimental_resume,
+    data,
+    setMessages,
+  });
 
   return (
     <>
@@ -129,7 +131,7 @@ export function Chat({
 
         <Messages
           chatId={id}
-          isLoading={isLoading}
+          status={status}
           votes={votes}
           messages={messages}
           setMessages={setMessages}
@@ -145,7 +147,7 @@ export function Chat({
               input={input}
               setInput={setInput}
               handleSubmit={handleSubmit}
-              isLoading={isLoading}
+              status={status}
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
@@ -210,7 +212,7 @@ export function Chat({
         input={input}
         setInput={setInput}
         handleSubmit={handleSubmit}
-        isLoading={isLoading}
+        status={status}
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
