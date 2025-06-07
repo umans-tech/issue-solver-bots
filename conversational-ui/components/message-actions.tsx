@@ -3,11 +3,10 @@ import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
-import { Split } from 'lucide-react';
+import { Split, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
 
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -97,7 +96,7 @@ export function PureMessageActions({
                 toast.success('Copied to clipboard!');
               }}
             >
-              <CopyIcon />
+              <Copy />
             </Button>
           </TooltipTrigger>
           <TooltipContent sideOffset={5} side="top">Copy</TooltipContent>
@@ -166,7 +165,7 @@ export function PureMessageActions({
                         });
                       }}
                     >
-                      <ThumbUpIcon />
+                      <ThumbsUp />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={5} side="top">Upvote Response</TooltipContent>
@@ -218,7 +217,7 @@ export function PureMessageActions({
                         });
                       }}
                     >
-                      <ThumbDownIcon />
+                      <ThumbsDown />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={5} side="top">Downvote Response</TooltipContent>

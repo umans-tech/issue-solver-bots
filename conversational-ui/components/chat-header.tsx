@@ -6,7 +6,8 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { PlusIcon, CopyIcon } from './icons';
+import { PlusIcon } from './icons';
+import { Copy } from 'lucide-react';
 import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -90,7 +91,7 @@ function PureChatHeader({
                 className="order-2 md:order-1 md:px-2 px-2 md:h-fit"
                 onClick={handleCloneConversation}
               >
-                <CopyIcon />
+                <Copy />
                 <span className="ml-2 hidden md:inline">Clone Conversation</span>
               </Button>
             </TooltipTrigger>

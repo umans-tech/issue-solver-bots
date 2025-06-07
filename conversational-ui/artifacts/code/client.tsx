@@ -1,13 +1,13 @@
 import { Artifact } from '@/components/create-artifact';
 import { CodeEditor } from '@/components/code-editor';
 import {
-  CopyIcon,
   LogsIcon,
   MessageIcon,
   PlayIcon,
   RedoIcon,
   UndoIcon,
 } from '@/components/icons';
+import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateUUID } from '@/lib/utils';
 import {
@@ -242,7 +242,7 @@ export const codeArtifact = new Artifact<'code', Metadata>({
       },
     },
     {
-      icon: <CopyIcon size={18} />,
+      icon: <Copy size={18} />,
       description: 'Copy code to clipboard',
       onClick: ({ content }) => {
         navigator.clipboard.writeText(content);

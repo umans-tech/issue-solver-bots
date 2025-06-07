@@ -8,15 +8,7 @@ import { memo, useMemo, useState, useEffect } from 'react';
 import type { Vote } from '@/lib/db/schema';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
-import {
-  ChevronDownIcon,
-  LoaderIcon,
-  PencilEditIcon,
-  SparklesIcon,
-  RouteIcon,
-  SearchIcon,
-  CopyIcon,
-} from './icons';
+import { Copy, Pencil } from 'lucide-react';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
@@ -156,7 +148,7 @@ const PurePreviewMessage = ({
                                   setMode('edit');
                                 }}
                               >
-                                <PencilEditIcon />
+                                <Pencil />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Edit message</TooltipContent>
@@ -182,7 +174,7 @@ const PurePreviewMessage = ({
                                   await navigator.clipboard.writeText(textFromParts);
                                 }}
                               >
-                                <CopyIcon />
+                                <Copy />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Copy</TooltipContent>
