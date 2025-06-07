@@ -60,7 +60,8 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
         >
           <Button
             variant="ghost"
-            onClick={async () => {
+            onClick={async (event) => {
+              event.preventDefault();
               window.history.replaceState({}, '', `/chat/${chatId}`);
 
               append({

@@ -54,6 +54,7 @@ const PurePreviewMessage = ({
   setMessages,
   reload,
   isReadonly,
+  requiresScrollPadding,
 }: {
   chatId: string;
   message: UIMessage;
@@ -62,6 +63,7 @@ const PurePreviewMessage = ({
   setMessages: UseChatHelpers['setMessages'];
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
+  requiresScrollPadding: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -92,7 +94,11 @@ const PurePreviewMessage = ({
             },
           )}
         >
-          <div className="flex flex-col gap-1 w-full relative">
+          <div 
+            className={cn("flex flex-col gap-1 w-full relative", {
+              'min-h-96': message.role === 'assistant' && requiresScrollPadding,
+            })}
+          >
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
