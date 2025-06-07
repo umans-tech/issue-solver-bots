@@ -1,15 +1,16 @@
-import { PreviewMessage } from './message';
-import { useScrollToBottom } from './use-scroll-to-bottom';
-import { Vote } from '@/lib/db/schema';
-import { UIMessage } from 'ai';
+import { PreviewMessage, ThinkingMessage } from './message';
+import type { Vote } from '@/lib/db/schema';
+import type { UIMessage } from 'ai';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
-import { UIArtifact } from './artifact';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { UIArtifact } from './artifact';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import { motion } from 'framer-motion';
+import { useMessages } from '@/hooks/use-messages';
 
 interface ArtifactMessagesProps {
   chatId: string;
-  isLoading: boolean;
+  status: UseChatHelpers['status'];
   votes: Array<Vote> | undefined;
   messages: Array<UIMessage>;
   setMessages: UseChatHelpers['setMessages'];
@@ -20,16 +21,23 @@ interface ArtifactMessagesProps {
 
 function PureArtifactMessages({
   chatId,
-  isLoading,
+  status,
   votes,
   messages,
   setMessages,
   reload,
   isReadonly,
 }: ArtifactMessagesProps) {
-  const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
-
+  const {
+    containerRef: messagesContainerRef,
+    endRef: messagesEndRef,
+    onViewportEnter,
+    onViewportLeave,
+    hasSentMessage,
+  } = useMessages({
+    chatId,
+    status,
+  });
   return (
     <div
       ref={messagesContainerRef}
@@ -40,7 +48,7 @@ function PureArtifactMessages({
           chatId={chatId}
           key={message.id}
           message={message}
-          isLoading={isLoading && index === messages.length - 1}
+          isLoading={status === 'streaming' && index === messages.length - 1}
           vote={
             votes
               ? votes.find((vote) => vote.messageId === message.id)
@@ -49,12 +57,21 @@ function PureArtifactMessages({
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
+          requiresScrollPadding={
+            hasSentMessage && index === messages.length - 1
+          }
         />
       ))}
 
-      <div
+      {status === 'submitted' &&
+        messages.length > 0 &&
+        messages[messages.length - 1].role === 'user' && <ThinkingMessage />}
+
+      <motion.div
         ref={messagesEndRef}
         className="shrink-0 min-w-[24px] min-h-[24px]"
+        onViewportLeave={onViewportLeave}
+        onViewportEnter={onViewportEnter}
       />
     </div>
   );
@@ -70,8 +87,8 @@ function areEqual(
   )
     return true;
 
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
-  if (prevProps.isLoading && nextProps.isLoading) return false;
+  if (prevProps.status !== nextProps.status) return false;
+  if (prevProps.status && nextProps.status) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
 

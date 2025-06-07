@@ -31,7 +31,7 @@ import { codeArtifact } from '@/artifacts/code/client';
 import { sheetArtifact } from '@/artifacts/sheet/client';
 import { textArtifact } from '@/artifacts/text/client';
 import equal from 'fast-deep-equal';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { UseChatHelpers } from '@ai-sdk/react';
 
 export const artifactDefinitions = [
   textArtifact,
@@ -61,7 +61,7 @@ function PureArtifact({
   input,
   setInput,
   handleSubmit,
-  isLoading,
+  status,
   stop,
   attachments,
   setAttachments,
@@ -76,7 +76,7 @@ function PureArtifact({
   chatId: string;
   input: string;
   setInput: (input: string) => void;
-  isLoading: boolean;
+  status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
@@ -318,7 +318,7 @@ function PureArtifact({
               <div className="flex flex-col h-full justify-between items-center gap-4">
                 <ArtifactMessages
                   chatId={chatId}
-                  isLoading={isLoading}
+                  status={status}
                   votes={votes}
                   messages={messages}
                   setMessages={setMessages}
@@ -333,7 +333,7 @@ function PureArtifact({
                     input={input}
                     setInput={setInput}
                     handleSubmit={handleSubmit}
-                    isLoading={isLoading}
+                    status={status}
                     stop={stop}
                     attachments={attachments}
                     setAttachments={setAttachments}
@@ -480,7 +480,7 @@ function PureArtifact({
                     isToolbarVisible={isToolbarVisible}
                     setIsToolbarVisible={setIsToolbarVisible}
                     append={append}
-                    isLoading={isLoading}
+                    status={status}
                     stop={stop}
                     setMessages={setMessages}
                     artifactKind={artifact.kind}
@@ -506,7 +506,7 @@ function PureArtifact({
 }
 
 export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.status !== nextProps.status) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
