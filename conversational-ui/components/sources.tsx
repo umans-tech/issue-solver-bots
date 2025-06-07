@@ -4,6 +4,70 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
+// Favicon component with fallback support
+const FaviconImage = ({ url, className, alt = "" }: { url: string; className: string; alt?: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const fallbackUrls = getFallbackFaviconUrls(url);
+  
+  if (!fallbackUrls.length) {
+    return (
+      <div className={`${className} bg-primary/10 flex items-center justify-center rounded-sm`}>
+        <svg 
+          width="12" 
+          height="12" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+          className="text-primary"
+        >
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="9" y1="9" x2="9.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="15" y1="9" x2="15.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </div>
+    );
+  }
+  
+  const handleError = () => {
+    if (currentIndex < fallbackUrls.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      // All fallbacks failed, show globe icon
+      return;
+    }
+  };
+  
+  if (currentIndex >= fallbackUrls.length) {
+    return (
+      <div className={`${className} bg-primary/10 flex items-center justify-center rounded-sm`}>
+        <svg 
+          width="12" 
+          height="12" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+          className="text-primary"
+        >
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="9" y1="9" x2="9.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="15" y1="9" x2="15.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={fallbackUrls[currentIndex]} 
+      alt={alt}
+      className={className}
+      onError={handleError}
+    />
+  );
+};
+
 interface Source {
   id: string;
   url: string;
@@ -16,13 +80,29 @@ interface SourcesProps {
   sources: Source[];
 }
 
-// Get the site favicon for a URL
+// Get the site favicon for a URL with multiple fallbacks
 const getFaviconUrl = (url: string) => {
   try {
     const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    // Try multiple favicon services as fallbacks
+    return `https://favicon.im/${domain}?larger=true`;
   } catch (e) {
     return undefined;
+  }
+};
+
+// Fallback favicon URLs
+const getFallbackFaviconUrls = (url: string) => {
+  try {
+    const domain = new URL(url).hostname;
+    return [
+      `https://favicon.im/${domain}?larger=true`,
+      `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+      `https://${domain}/favicon.ico`,
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`
+    ];
+  } catch (e) {
+    return [];
   }
 };
 
@@ -182,15 +262,8 @@ export function Sources({ sources }: SourcesProps) {
             
             return (
               <div key={source.id} className="flex items-center">
-                {sourceType === 'web' && faviconUrl ? (
-                  <img 
-                    src={faviconUrl} 
-                    alt="" 
-                    className="w-4 h-4 rounded-sm" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                {sourceType === 'web' ? (
+                  <FaviconImage url={source.url} className="w-4 h-4 rounded-sm" />
                 ) : sourceType === 'codebase' && languageIcon ? (
                   <img 
                     src={languageIcon} 
@@ -304,14 +377,7 @@ export function Sources({ sources }: SourcesProps) {
                 <div key={source.id} className="flex flex-col gap-1 p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
-                      <img 
-                        src={getFaviconUrl(source.url)} 
-                        alt="" 
-                        className="w-5 h-5 rounded-sm" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
+                      <FaviconImage url={source.url} className="w-5 h-5 rounded-sm" />
                     </div>
                     <div className="flex flex-col gap-0">
                       <a 
