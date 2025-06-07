@@ -88,10 +88,11 @@ const PurePreviewMessage = ({
         >
           <div 
             className={cn("flex flex-col gap-1 w-full relative", {
-              'min-h-96': message.role === 'assistant' && requiresScrollPadding,
+              'min-h-[65vh]': message.role === 'assistant' && requiresScrollPadding,
             })}
           >
-            {message.experimental_attachments && (
+            {message.experimental_attachments && 
+            message.experimental_attachments.length > 0 && (
               <div className="flex flex-row justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
                   <PreviewAttachment
@@ -348,6 +349,7 @@ export const PreviewMessage = memo(
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.message.id !== nextProps.message.id) return false;
+    if (prevProps.requiresScrollPadding !== nextProps.requiresScrollPadding) return false;
     if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
 
@@ -360,7 +362,7 @@ export const ThinkingMessage = () => {
 
   return (
     <motion.div
-      className="w-full mx-auto max-w-3xl px-4 group/message "
+      className="w-full mx-auto max-w-3xl px-4 group/message min-h-96"
       initial={{ y: 5, opacity: 0 }}
       animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
       data-role={role}

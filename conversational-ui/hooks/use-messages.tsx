@@ -33,6 +33,12 @@ export function useMessages({
     }
   }, [status]);
 
+  useEffect(() => {
+    if (status === 'streaming' && hasSentMessage) {
+      scrollToBottom();
+    }
+  }, [status, hasSentMessage, scrollToBottom]);
+
   return {
     containerRef,
     endRef,
