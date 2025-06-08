@@ -30,8 +30,9 @@ export function useMessages({
   useEffect(() => {
     if (status === 'submitted') {
       setHasSentMessage(true);
+      scrollToBottom();
     }
-  }, [status]);
+  }, [status, scrollToBottom]);
 
   useEffect(() => {
     if (status === 'streaming' && hasSentMessage) {
