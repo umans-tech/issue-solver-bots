@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { GlobeIcon } from './icons';
+import { X, Earth } from 'lucide-react';
+import { getFallbackFaviconUrls } from '@/lib/utils';
 
 // Favicon component with fallback support
 const FaviconImage = ({ url, className, alt = "" }: { url: string; className: string; alt?: string }) => {
@@ -9,20 +11,28 @@ const FaviconImage = ({ url, className, alt = "" }: { url: string; className: st
   const fallbackUrls = getFallbackFaviconUrls(url);
   
   if (!fallbackUrls.length) {
-    return <GlobeIcon size={16} />;
+    return (
+      <div className={`${className} flex items-center justify-center rounded-sm`}>
+        <Earth className="w-3 h-3 text-primary" />
+      </div>
+    );
   }
   
   const handleError = () => {
     if (currentIndex < fallbackUrls.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // All fallbacks failed, show globe icon
-      return;
+      // All fallbacks failed, show Earth icon
+      setCurrentIndex(fallbackUrls.length);
     }
   };
   
   if (currentIndex >= fallbackUrls.length) {
-    return <GlobeIcon size={16} />;
+    return (
+      <div className={`${className} flex items-center justify-center rounded-sm`}>
+        <Earth className="w-3 h-3 text-primary" />
+      </div>
+    );
   }
   
   return (
@@ -61,20 +71,7 @@ const getFaviconUrl = (url: string) => {
   }
 };
 
-// Fallback favicon URLs
-const getFallbackFaviconUrls = (url: string) => {
-  try {
-    const domain = new URL(url).hostname;
-    return [
-      `https://favicon.im/${domain}?larger=true`,
-      `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-      `https://${domain}/favicon.ico`,
-      `https://icons.duckduckgo.com/ip3/${domain}.ico`
-    ];
-  } catch (e) {
-    return [];
-  }
-};
+
 
 export function FetchWebpage({ result, url }: FetchWebpageResultProps) {
   const [expanded, setExpanded] = useState(false);
@@ -136,20 +133,7 @@ export function FetchWebpage({ result, url }: FetchWebpageResultProps) {
                 setExpanded(false);
               }}
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="p-3">

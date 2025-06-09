@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Earth, CodeXml, X } from 'lucide-react';
+import { getFallbackFaviconUrls } from '@/lib/utils';
 
 // Favicon component with fallback support
 const FaviconImage = ({ url, className, alt = "" }: { url: string; className: string; alt?: string }) => {
@@ -11,20 +12,8 @@ const FaviconImage = ({ url, className, alt = "" }: { url: string; className: st
   
   if (!fallbackUrls.length) {
     return (
-      <div className={`${className} bg-primary/10 flex items-center justify-center rounded-sm`}>
-        <svg 
-          width="12" 
-          height="12" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-          className="text-primary"
-        >
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="9" y1="9" x2="9.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="15" y1="9" x2="15.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+      <div className={`${className} flex items-center justify-center rounded-sm`}>
+        <Earth className="w-3 h-3 text-primary" />
       </div>
     );
   }
@@ -33,27 +22,15 @@ const FaviconImage = ({ url, className, alt = "" }: { url: string; className: st
     if (currentIndex < fallbackUrls.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // All fallbacks failed, show globe icon
-      return;
+      // All fallbacks failed, show Earth icon
+      setCurrentIndex(fallbackUrls.length);
     }
   };
   
   if (currentIndex >= fallbackUrls.length) {
     return (
-      <div className={`${className} bg-primary/10 flex items-center justify-center rounded-sm`}>
-        <svg 
-          width="12" 
-          height="12" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-          className="text-primary"
-        >
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="9" y1="9" x2="9.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <line x1="15" y1="9" x2="15.01" y2="9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+      <div className={`${className} flex items-center justify-center rounded-sm`}>
+        <Earth className="w-3 h-3 text-primary" />
       </div>
     );
   }
@@ -91,20 +68,6 @@ const getFaviconUrl = (url: string) => {
   }
 };
 
-// Fallback favicon URLs
-const getFallbackFaviconUrls = (url: string) => {
-  try {
-    const domain = new URL(url).hostname;
-    return [
-      `https://favicon.im/${domain}?larger=true`,
-      `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-      `https://${domain}/favicon.ico`,
-      `https://icons.duckduckgo.com/ip3/${domain}.ico`
-    ];
-  } catch (e) {
-    return [];
-  }
-};
 
 // Check if URL is a web URL (has protocol) vs local file path
 const isWebUrl = (url: string): boolean => {
@@ -281,42 +244,12 @@ export function Sources({ sources }: SourcesProps) {
                   />
                 ) : sourceType === 'codebase' ? (
                   <div className="w-4 h-4 rounded-sm bg-primary/10 flex items-center justify-center fallback-icon">
-                    <svg 
-                      width="10" 
-                      height="10" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-primary"
-                    >
-                      <path 
-                        d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <CodeXml className="w-2.5 h-2.5 text-primary" />
                   </div>
                 ) : null}
                 {sourceType === 'codebase' && languageIcon && (
                   <div className="w-4 h-4 rounded-sm bg-primary/10 flex items-center justify-center fallback-icon" style={{ display: 'none' }}>
-                    <svg 
-                      width="10" 
-                      height="10" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-primary"
-                    >
-                      <path 
-                        d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <CodeXml className="w-2.5 h-2.5 text-primary" />
                   </div>
                 )}
               </div>
@@ -348,20 +281,7 @@ export function Sources({ sources }: SourcesProps) {
                 setExpanded(false);
               }}
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
           
@@ -433,42 +353,12 @@ export function Sources({ sources }: SourcesProps) {
                                 }}
                               />
                               <div className="w-3 h-3 flex items-center justify-center fallback-icon absolute top-0 left-0" style={{ display: 'none' }}>
-                                <svg 
-                                  width="8" 
-                                  height="8" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="text-primary"
-                                >
-                                  <path 
-                                    d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
+                                <CodeXml className="w-2 h-2 text-primary" />
                               </div>
                             </div>
                           ) : (
                             <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
-                              <svg 
-                                width="8" 
-                                height="8" 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="text-primary"
-                              >
-                                <path 
-                                  d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
+                              <CodeXml className="w-2 h-2 text-primary" />
                             </div>
                           )}
                           {source.title || source.url.split('/').pop() || 'Unknown file'}
