@@ -4,46 +4,9 @@ import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Earth, CodeXml, X } from 'lucide-react';
 import { getFallbackFaviconUrls } from '@/lib/utils';
+import { Favicon } from './favicon';
 
-// Favicon component with fallback support
-const FaviconImage = ({ url, className, alt = "" }: { url: string; className: string; alt?: string }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const fallbackUrls = getFallbackFaviconUrls(url);
-  
-  if (!fallbackUrls.length) {
-    return (
-      <div className={`${className} flex items-center justify-center rounded-sm`}>
-        <Earth className="w-3 h-3 text-primary" />
-      </div>
-    );
-  }
-  
-  const handleError = () => {
-    if (currentIndex < fallbackUrls.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      // All fallbacks failed, show Earth icon
-      setCurrentIndex(fallbackUrls.length);
-    }
-  };
-  
-  if (currentIndex >= fallbackUrls.length) {
-    return (
-      <div className={`${className} flex items-center justify-center rounded-sm`}>
-        <Earth className="w-3 h-3 text-primary" />
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={fallbackUrls[currentIndex]} 
-      alt={alt}
-      className={className}
-      onError={handleError}
-    />
-  );
-};
+// Note: FaviconImage replaced with centralized Favicon component
 
 interface Source {
   id: string;
@@ -57,16 +20,7 @@ interface SourcesProps {
   sources: Source[];
 }
 
-// Get the site favicon for a URL with multiple fallbacks
-const getFaviconUrl = (url: string) => {
-  try {
-    const domain = new URL(url).hostname;
-    // Try multiple favicon services as fallbacks
-    return `https://favicon.im/${domain}?larger=true`;
-  } catch (e) {
-    return undefined;
-  }
-};
+// Note: Using centralized Favicon component instead of local getFaviconUrl
 
 
 // Check if URL is a web URL (has protocol) vs local file path
@@ -219,14 +173,13 @@ export function Sources({ sources }: SourcesProps) {
         >
           {visibleSources.map((source, index) => {
             const sourceType = getSourceType(source);
-            const faviconUrl = sourceType === 'web' ? getFaviconUrl(source.url) : undefined;
             const extension = sourceType === 'codebase' ? getFileExtension(source.url) : '';
             const languageIcon = sourceType === 'codebase' ? getLanguageIcon(extension) : null;
             
             return (
               <div key={source.id} className="flex items-center">
                 {sourceType === 'web' ? (
-                  <FaviconImage url={source.url} className="w-4 h-4 rounded-sm" />
+                  <Favicon url={source.url} className="w-4 h-4 rounded-sm" />
                 ) : sourceType === 'codebase' && languageIcon ? (
                   <img 
                     src={languageIcon} 
@@ -297,7 +250,7 @@ export function Sources({ sources }: SourcesProps) {
                 <div key={source.id} className="flex flex-col gap-1 p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
-                      <FaviconImage url={source.url} className="w-5 h-5 rounded-sm" />
+                      <Favicon url={source.url} className="w-5 h-5 rounded-sm" />
                     </div>
                     <div className="flex flex-col gap-0">
                       <a 
