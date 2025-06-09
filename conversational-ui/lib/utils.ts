@@ -177,3 +177,21 @@ export const getFallbackFaviconUrls = (url: string) => {
     return [];
   }
 };
+
+/**
+ * Get favicon URL with multiple service fallbacks for better reliability
+ * Uses external services that provide better caching and processing
+ */
+export const getFaviconUrl = (url: string): string[] => {
+  try {
+    const domain = new URL(url).hostname;
+    
+    // Multiple favicon services for fallback reliability
+    return [
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`, // Alternative service
+      `https://${domain}/favicon.ico`, // Direct favicon.ico
+    ];
+  } catch (e) {
+    return [];
+  }
+};

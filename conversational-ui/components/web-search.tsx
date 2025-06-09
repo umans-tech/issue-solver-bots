@@ -3,6 +3,7 @@
 import { DataStreamWriter } from 'ai';
 import { useState, useMemo } from 'react';
 import { GlobeIcon } from './icons';
+import { Favicon } from './favicon';
 
 interface WebSource {
   title: string;
@@ -10,16 +11,6 @@ interface WebSource {
   content: string;
   publishedDate?: string;
 }
-
-// Get the site favicon for a URL
-const getFaviconUrl = (url: string) => {
-  try {
-    const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-  } catch (e) {
-    return undefined;
-  }
-};
 
 export interface WebSearchResultProps {
   result: WebSource[] | any;
@@ -59,23 +50,11 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
           className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => setExpanded(true)}
         >
-          {visibleSources.map((source, index) => {
-            const faviconUrl = getFaviconUrl(source.url);
-            return (
-              <div key={index} className="flex items-center">
-                {faviconUrl && (
-                  <img 
-                    src={faviconUrl} 
-                    alt="" 
-                    className="w-4 h-4 rounded-sm" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
+          {visibleSources.map((source, index) => (
+            <div key={index} className="flex items-center">
+              <Favicon url={source.url} className="w-4 h-4 rounded-sm" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden bg-background">
@@ -115,14 +94,7 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
               <div key={index} className="flex flex-col gap-1 p-3">
                 <div className="flex items-start gap-2">
                   <div className="flex-shrink-0 mt-0.5">
-                    <img 
-                      src={getFaviconUrl(source.url)} 
-                      alt="" 
-                      className="w-5 h-5 rounded-sm" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                    <Favicon url={source.url} className="w-5 h-5 rounded-sm" />
                   </div>
                   <div className="flex flex-col gap-0">
                     <a 
