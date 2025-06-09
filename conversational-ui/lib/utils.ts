@@ -153,3 +153,27 @@ export function getTrailingMessageId({
 
   return trailingMessage.id;
 }
+
+// Favicon utilities
+export const getFallbackFaviconUrls = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    const protocol = urlObj.protocol;
+    const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
+    
+    const fallbacks = [];
+    
+    // If URL has a path, try favicon.ico in that path first
+    if (basePath !== '/') {
+      fallbacks.push(`${protocol}//${domain}${basePath}favicon.ico`);
+    }
+    
+    // Always try the standard domain root favicon
+    fallbacks.push(`${protocol}//${domain}/favicon.ico`);
+    
+    return fallbacks;
+  } catch (e) {
+    return [];
+  }
+};
