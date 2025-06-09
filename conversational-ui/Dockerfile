@@ -1,5 +1,5 @@
 # Use multi-stage build for smaller final image
-FROM node:20-alpine AS base
+FROM node:20-bullseye-slim AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -11,6 +11,9 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
+
+# Install Playwright browsers and system dependencies
+RUN npx playwright install --with-deps chromium
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -44,8 +47,24 @@ RUN pnpm build:only
 FROM base AS runner
 WORKDIR /app
 
+# Install minimal runtime dependencies for Chromium
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libgtk-3-0 \
+    libgbm1 \
+    libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Copy Playwright browsers from deps stage
+COPY --from=deps /root/.cache/ms-playwright ./playwright-browsers
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/lib/db ./lib/db
@@ -66,6 +85,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Critical settings for App Runner
 ENV HOST="0.0.0.0"
 ENV HOSTNAME="0.0.0.0"
+# Playwright browser path
+ENV PLAYWRIGHT_BROWSERS_PATH="./playwright-browsers"
 
 EXPOSE 3000
 
