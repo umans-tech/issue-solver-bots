@@ -17,7 +17,7 @@ export const webSearch = ({ session, dataStream }: WebSearchProps) => tool({
   }),
   execute: async ({ query }) => {
     const { results } = await exa.searchAndContents(query, {
-      livecrawl: 'always',
+      livecrawl: 'preferred',
       numResults: 5,
     });
     for (const result of results) {
