@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Earth, CodeXml, X } from 'lucide-react';
 import { getFallbackFaviconUrls } from '@/lib/utils';
-import { Favicon } from './favicon';
+import { SourceFavicon } from './source-favicon';
 
 // Note: FaviconImage replaced with centralized Favicon component
 
@@ -179,7 +179,7 @@ export function Sources({ sources }: SourcesProps) {
             return (
               <div key={source.id} className="flex items-center">
                 {sourceType === 'web' ? (
-                  <Favicon url={source.url} className="w-4 h-4 rounded-sm" />
+                  <SourceFavicon url={source.url} className="w-4 h-4 rounded-sm" />
                 ) : sourceType === 'codebase' && languageIcon ? (
                   <img 
                     src={languageIcon} 
@@ -250,7 +250,7 @@ export function Sources({ sources }: SourcesProps) {
                 <div key={source.id} className="flex flex-col gap-1 p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
-                      <Favicon url={source.url} className="w-5 h-5 rounded-sm" />
+                      <SourceFavicon url={source.url} className="w-5 h-5 rounded-sm" />
                     </div>
                     <div className="flex flex-col gap-0">
                       <a 

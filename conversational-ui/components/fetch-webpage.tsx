@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { GlobeIcon } from './icons';
 import { X, Earth } from 'lucide-react';
 import { getFallbackFaviconUrls } from '@/lib/utils';
-import { Favicon } from './favicon';
+import { SourceFavicon } from './source-favicon';
 
 // Note: FaviconImage replaced with centralized Favicon component
 
@@ -63,7 +63,7 @@ export function FetchWebpage({ result, url }: FetchWebpageResultProps) {
         >
                      <div className="flex items-center gap-1.5">
              {pageUrl && (
-               <Favicon url={pageUrl} className="w-4 h-4 rounded-sm" />
+               <SourceFavicon url={pageUrl} className="w-4 h-4 rounded-sm" />
              )}
              <span className="text-xs text-muted-foreground">
                {title}
@@ -94,7 +94,7 @@ export function FetchWebpage({ result, url }: FetchWebpageResultProps) {
                          <div className="flex items-start gap-2 mb-3">
                <div className="flex-shrink-0 mt-0.5">
                  {pageUrl && (
-                   <Favicon url={pageUrl} className="w-5 h-5 rounded-sm" />
+                   <SourceFavicon url={pageUrl} className="w-5 h-5 rounded-sm" />
                  )}
                </div>
               <div className="flex flex-col gap-0">
