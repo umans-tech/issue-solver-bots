@@ -15,7 +15,7 @@ interface FaviconProps {
  * Centralized favicon component with robust fallback handling
  * Ensures consistent favicon display across all web search results
  */
-export const Favicon = ({ 
+export const SourceFavicon = ({ 
   url, 
   className = "w-4 h-4 rounded-sm", 
   alt = "",
