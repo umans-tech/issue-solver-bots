@@ -19,27 +19,34 @@ export interface SaveDocumentProps {
 export interface CreateDocumentCallbackProps {
   id: string;
   title: string;
+  content: string;
   dataStream: DataStreamWriter;
   session: Session;
 }
 
 export interface UpdateDocumentCallbackProps {
   document: Document;
-  description: string;
+  searchText: string;
+  replaceText: string;
   dataStream: DataStreamWriter;
   session: Session;
+}
+
+export interface UpdateDocumentResult {
+  success: boolean;
+  error?: string;
 }
 
 export interface DocumentHandler<T = ArtifactKind> {
   kind: T;
   onCreateDocument: (args: CreateDocumentCallbackProps) => Promise<void>;
-  onUpdateDocument: (args: UpdateDocumentCallbackProps) => Promise<void>;
+  onUpdateDocument: (args: UpdateDocumentCallbackProps) => Promise<UpdateDocumentResult>;
 }
 
 export function createDocumentHandler<T extends ArtifactKind>(config: {
   kind: T;
   onCreateDocument: (params: CreateDocumentCallbackProps) => Promise<string>;
-  onUpdateDocument: (params: UpdateDocumentCallbackProps) => Promise<string>;
+  onUpdateDocument: (params: UpdateDocumentCallbackProps) => Promise<UpdateDocumentResult>;
 }): DocumentHandler<T> {
   return {
     kind: config.kind,
@@ -47,6 +54,7 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
       const draftContent = await config.onCreateDocument({
         id: args.id,
         title: args.title,
+        content: args.content,
         dataStream: args.dataStream,
         session: args.session,
       });
@@ -64,24 +72,27 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
       return;
     },
     onUpdateDocument: async (args: UpdateDocumentCallbackProps) => {
-      const draftContent = await config.onUpdateDocument({
+      const result = await config.onUpdateDocument({
         document: args.document,
-        description: args.description,
+        searchText: args.searchText,
+        replaceText: args.replaceText,
         dataStream: args.dataStream,
         session: args.session,
       });
 
-      if (args.session?.user?.id) {
+      if (result.success && args.session?.user?.id) {
+        // Only save if the update was successful
+        const updatedContent = args.document.content?.replace(args.searchText, args.replaceText) || '';
         await saveDocument({
           id: args.document.id,
           title: args.document.title,
-          content: draftContent,
+          content: updatedContent,
           kind: config.kind,
           userId: args.session.user.id,
         });
       }
 
-      return;
+      return result;
     },
   };
 }

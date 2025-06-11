@@ -11,14 +11,13 @@ interface UpdateDocumentProps {
 
 export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
   tool({
-    description: 'Update a document with the given description.',
+    description: 'Update a document using search and replace functionality. Find exact text and replace it with new text.',
     parameters: z.object({
       id: z.string().describe('The ID of the document to update'),
-      description: z
-        .string()
-        .describe('The description of changes that need to be made'),
+      searchText: z.string().describe('The exact text block to find in the document'),
+      replaceText: z.string().describe('The text to replace the found block with'),
     }),
-    execute: async ({ id, description }) => {
+    execute: async ({ id, searchText, replaceText }) => {
       const document = await getDocumentById({ id });
 
       if (!document) {
@@ -41,20 +40,31 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         throw new Error(`No document handler found for kind: ${document.kind}`);
       }
 
-      await documentHandler.onUpdateDocument({
+      const result = await documentHandler.onUpdateDocument({
         document,
-        description,
+        searchText,
+        replaceText,
         dataStream,
         session,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });
 
-      return {
-        id,
-        title: document.title,
-        kind: document.kind,
-        content: 'The document has been updated successfully.',
-      };
+      if (result.success) {
+        return {
+          id,
+          title: document.title,
+          kind: document.kind,
+          content: 'The document has been updated successfully.',
+        };
+      } else {
+        return {
+          id,
+          title: document.title,
+          kind: document.kind,
+          content: result.error || 'Failed to update document.',
+          error: result.error,
+        };
+      }
     },
   });
