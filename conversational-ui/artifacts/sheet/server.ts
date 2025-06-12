@@ -1,5 +1,5 @@
 import { myProvider } from '@/lib/ai/models';
-import { sheetPrompt, updateDocumentPrompt } from '@/lib/ai/prompts';
+import { sheetPrompt } from '@/lib/ai/prompts';
 import { createDocumentHandler } from '@/lib/artifacts/server';
 import { streamObject } from 'ai';
 import { z } from 'zod';
@@ -43,36 +43,25 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
 
     return draftContent;
   },
-  onUpdateDocument: async ({ document, description, dataStream }) => {
-    let draftContent = '';
+  onUpdateDocument: async ({ document, searchText, replaceText, dataStream }) => {
+    const currentContent = document.content || '';
 
-    const { fullStream } = streamObject({
-      model: myProvider.languageModel('artifact-model'),
-      system: updateDocumentPrompt(document.content, 'sheet'),
-      prompt: description,
-      schema: z.object({
-        csv: z.string(),
-      }),
-    });
-
-    for await (const delta of fullStream) {
-      const { type } = delta;
-
-      if (type === 'object') {
-        const { object } = delta;
-        const { csv } = object;
-
-        if (csv) {
-          dataStream.writeData({
-            type: 'sheet-delta',
-            content: csv,
-          });
-
-          draftContent = csv;
-        }
-      }
+    if (!currentContent.includes(searchText)) {
+      return {
+        success: false,
+        error: `Could not find exact match for: "${searchText}". Please check the text and try again.`,
+      };
     }
 
-    return draftContent;
+    const updatedContent = currentContent.replace(searchText, replaceText);
+
+    dataStream.writeData({
+      type: 'sheet-delta',
+      content: updatedContent,
+    });
+
+    return {
+      success: true,
+    };
   },
 });

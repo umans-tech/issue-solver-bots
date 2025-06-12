@@ -22,22 +22,11 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
 
     return draftContent;
   },
-  onUpdateDocument: async ({ description, dataStream }) => {
-    let draftContent = '';
-
-    const { image } = await experimental_generateImage({
-      model: myProvider.imageModel('small-model'),
-      prompt: description,
-      n: 1,
-    });
-
-    draftContent = image.base64;
-
-    dataStream.writeData({
-      type: 'image-delta',
-      content: image.base64,
-    });
-
-    return draftContent;
+  onUpdateDocument: async ({ searchText }) => {
+    // Image documents do not support textual search/replace updates at the moment
+    return {
+      success: false,
+      error: 'Updating image documents via search/replace is not supported.',
+    };
   },
 });
