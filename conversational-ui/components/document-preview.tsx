@@ -81,10 +81,6 @@ export function DocumentPreview({
         }
     }
 
-    if (isDocumentsFetching) {
-        return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
-    }
-
     const document: Document | null = previewDocument
         ? previewDocument
         : artifact.status === 'streaming'
@@ -96,7 +92,21 @@ export function DocumentPreview({
                 createdAt: new Date(),
                 userId: 'noop',
             }
+            : args && args.title
+            ? {
+                title: args.title,
+                kind: (args.kind ?? artifact.kind ?? 'text') as ArtifactKind,
+                content: '',
+                id: 'temp',
+                createdAt: new Date(),
+                userId: 'noop',
+            }
             : null;
+
+    // Show skeleton only if we have no streaming content and no fetched document
+    if (!document && isDocumentsFetching) {
+        return <LoadingSkeleton artifactKind={result?.kind ?? args?.kind ?? artifact.kind} />;
+    }
 
     if (!document) return <LoadingSkeleton artifactKind={artifact.kind} />;
 
@@ -110,7 +120,7 @@ export function DocumentPreview({
             <DocumentHeader
                 title={document.title}
                 kind={document.kind}
-                isStreaming={artifact.status === 'streaming'}
+                isStreaming={artifact.status === 'streaming' || (!result && args)}
             />
             <DocumentContent document={document} />
         </div>
