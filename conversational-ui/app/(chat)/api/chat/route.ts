@@ -136,6 +136,7 @@ export async function POST(request: Request) {
                     'fetchWebpage',
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
+                toolCallStreaming: true,
                 experimental_generateMessageId: generateUUID,
                 tools: {
                     getWeather,

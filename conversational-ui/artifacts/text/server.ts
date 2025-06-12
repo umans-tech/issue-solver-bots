@@ -18,14 +18,14 @@ export const textDocumentHandler = createDocumentHandler<'text'>({
       });
       
       // Small delay to simulate streaming
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
 
     return content;
   },
-  onUpdateDocument: async ({ document, searchText, replaceText, dataStream }) => {
+  onUpdateDocument: async ({ document, searchText, replaceText }) => {
     const currentContent = document.content || '';
-    
+
     // Check if search text exists in the document
     if (!currentContent.includes(searchText)) {
       return {
@@ -33,24 +33,8 @@ export const textDocumentHandler = createDocumentHandler<'text'>({
         error: `Could not find exact match for: "${searchText}". Please check the text and try again.`,
       };
     }
-    
-    // Perform the replacement
-    const updatedContent = currentContent.replace(searchText, replaceText);
-    
-    // Stream the replacement text
-    const words = replaceText.split(' ');
-    for (const word of words) {
-      const chunk = words.indexOf(word) === 0 ? word : ' ' + word;
-      
-      dataStream.writeData({
-        type: 'text-delta',
-        content: chunk,
-      });
-      
-      // Small delay to simulate streaming
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
+
+    // Replacement is done by the wrapper; nothing to stream here – we want to show the full updated document once it's saved.
     return {
       success: true,
     };

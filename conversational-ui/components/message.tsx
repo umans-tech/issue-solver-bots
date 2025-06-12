@@ -208,7 +208,7 @@ const PurePreviewMessage = ({
                 const { toolInvocation } = part;
                 const { toolName, toolCallId, state } = toolInvocation;
                 
-                if (state === 'call') {
+                if (state === 'call' || state === 'partial-call') {
                   const { args } = toolInvocation;
 
                   return (
@@ -289,10 +289,9 @@ const PurePreviewMessage = ({
                           result={result}
                         />
                       ) : toolName === 'updateDocument' ? (
-                        <DocumentToolResult
-                          type="update"
-                          result={result}
+                        <DocumentPreview
                           isReadonly={isReadonly}
+                          result={result}
                         />
                       ) : toolName === 'requestSuggestions' ? (
                         <DocumentToolResult
