@@ -1,6 +1,7 @@
 'use client';
 
 import { ArtifactKind } from './artifact';
+import { LoaderIcon } from './icons';
 
 export const DocumentSkeleton = ({
   artifactKind,
@@ -9,10 +10,18 @@ export const DocumentSkeleton = ({
 }) => {
   return artifactKind === 'image' ? (
     <div className="flex flex-col gap-4 w-full justify-center items-center h-[calc(100dvh-60px)]">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="animate-spin"><LoaderIcon size={14} /></div>
+        Creating document… This may take a few seconds
+      </div>
       <div className="animate-pulse rounded-lg bg-muted-foreground/20 size-96" />
     </div>
   ) : (
     <div className="flex flex-col gap-4 w-full">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="animate-spin"><LoaderIcon size={14} /></div>
+        Creating document… This may take a few seconds
+      </div>
       <div className="animate-pulse rounded-lg h-12 bg-muted-foreground/20 w-1/2" />
       <div className="animate-pulse rounded-lg h-5 bg-muted-foreground/20 w-full" />
       <div className="animate-pulse rounded-lg h-5 bg-muted-foreground/20 w-full" />

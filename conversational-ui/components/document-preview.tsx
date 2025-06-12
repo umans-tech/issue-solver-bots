@@ -81,6 +81,10 @@ export function DocumentPreview({
         }
     }
 
+    if (isDocumentsFetching) {
+        return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
+    }
+
     const document: Document | null = previewDocument
         ? previewDocument
         : artifact.status === 'streaming'
@@ -92,21 +96,7 @@ export function DocumentPreview({
                 createdAt: new Date(),
                 userId: 'noop',
             }
-            : args && args.title
-            ? {
-                title: args.title,
-                kind: (args.kind ?? artifact.kind ?? 'text') as ArtifactKind,
-                content: '',
-                id: 'temp',
-                createdAt: new Date(),
-                userId: 'noop',
-            }
             : null;
-
-    // Show skeleton only if we have no streaming content and no fetched document
-    if (!document && isDocumentsFetching) {
-        return <LoadingSkeleton artifactKind={result?.kind ?? args?.kind ?? artifact.kind} />;
-    }
 
     if (!document) return <LoadingSkeleton artifactKind={artifact.kind} />;
 
@@ -120,7 +110,7 @@ export function DocumentPreview({
             <DocumentHeader
                 title={document.title}
                 kind={document.kind}
-                isStreaming={artifact.status === 'streaming' || (!result && args)}
+                isStreaming={artifact.status === 'streaming'}
             />
             <DocumentContent document={document} />
         </div>
@@ -149,6 +139,12 @@ const LoadingSkeleton = ({ artifactKind }: { artifactKind: ArtifactKind }) => (
                 <InlineDocumentSkeleton />
             </div>
         )}
+
+        {/* Status message */}
+        <div className="p-4 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="animate-spin"><LoaderIcon size={14} /></div>
+            Creating document… This may take a few seconds
+        </div>
     </div>
 );
 
