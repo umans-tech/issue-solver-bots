@@ -137,30 +137,30 @@ export function SpaceMembersDialog({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium truncate">
-                          {member.name || member.email}
-                        </span>
-                      </div>
-                      {member.name && (
-                        <div className="text-xs text-muted-foreground truncate">
-                          {member.email}
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium truncate">
+                            {member.name || member.email}
+                          </div>
+                          {member.name && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {member.email}
+                            </div>
+                          )}
                         </div>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-1">
-                        {member.emailVerified ? (
-                          <Badge variant="secondary" className="text-xs">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Verified
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
+                        <div className="flex-shrink-0 ml-2">
+                          {member.emailVerified ? (
+                            <Badge variant="secondary" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
