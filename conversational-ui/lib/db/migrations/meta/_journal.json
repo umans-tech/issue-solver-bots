@@ -78,6 +78,13 @@
       "when": 1748956958884,
       "tag": "0010_daily_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1749826459973,
+      "tag": "0011_keen_starhawk",
+      "breakpoints": true
     }
   ]
 }
