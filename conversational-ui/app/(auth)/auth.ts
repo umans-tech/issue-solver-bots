@@ -9,6 +9,7 @@ import {
   createUser,
   ensureDefaultSpace,
   verifyUserEmail,
+  updateUserProfile,
 } from '@/lib/db/queries';
 
 import { authConfig } from './auth.config';
@@ -82,29 +83,33 @@ export const {
         try {
           console.log('🔍 Checking if Google user exists:', user.email);
           
-          // Check if user exists, create if not
           const existingUsers = await getUser(user.email!);
           console.log('👤 Existing users found:', existingUsers.length);
           
           if (existingUsers.length === 0) {
             console.log('➕ Creating new OAuth user:', user.email);
             
-            // Create user without password for OAuth, but with emailVerified set
-            await createUser(user.email!, null);
+            await createUser(user.email!, null, user.name, user.image);
             console.log('✅ User created successfully');
             
-            // Add a small delay to ensure transaction is committed
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Set email as verified for OAuth users
             const [newUser] = await getUser(user.email!);
             if (newUser?.id) {
               await verifyUserEmail(newUser.id);
               console.log('✅ OAuth user email verified automatically');
             }
+          } else {
+            const dbUser = existingUsers[0];
+            if (!dbUser.name || !dbUser.image) {
+              await updateUserProfile(dbUser.id, {
+                name: user.name,
+                image: user.image
+              });
+              console.log('✅ Updated existing user profile with Google data');
+            }
           }
           
-          // Always get the database user (either existing or newly created)
           const [dbUser] = await getUser(user.email!);
           console.log('👤 Database user retrieved:', dbUser?.id);
           
@@ -113,15 +118,12 @@ export const {
             return false;
           }
           
-          // Use the database user ID for space creation
           console.log('🏠 Creating default space for database user:', dbUser.id);
           try {
             await ensureDefaultSpace(dbUser.id);
             console.log('✅ Default space created successfully');
           } catch (spaceError) {
             console.error('❌ Error creating default space:', spaceError);
-            // Don't fail the sign-in if space creation fails
-            // User can create spaces later
             console.log('⚠️ Continuing with sign-in despite space creation failure');
           }
           

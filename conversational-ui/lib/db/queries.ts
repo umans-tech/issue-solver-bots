@@ -38,7 +38,12 @@ export async function getUser(email: string): Promise<Array<User>> {
   }
 }
 
-export async function createUser(email: string, password: string | null) {
+export async function createUser(
+  email: string, 
+  password: string | null, 
+  name?: string | null, 
+  image?: string | null
+) {
   let hash = null;
   if (password) {
     const salt = genSaltSync(10);
@@ -46,7 +51,7 @@ export async function createUser(email: string, password: string | null) {
   }
 
   try {
-    return await db.insert(user).values({ email, password: hash });
+    return await db.insert(user).values({ email, password: hash, name, image });
   } catch (error) {
     console.error('Failed to create user in database');
     throw error;
@@ -743,8 +748,9 @@ export async function getSpaceMembers(spaceId: string) {
       .select({
         id: user.id,
         email: user.email,
+        name: user.name,
+        image: user.image,
         emailVerified: user.emailVerified,
-        joinedAt: spaceToUser.spaceId, // We'll use this as a placeholder for join date
       })
       .from(spaceToUser)
       .innerJoin(user, eq(spaceToUser.userId, user.id))
@@ -776,6 +782,15 @@ export async function updateUserProfileNotes(userId: string, profileNotes: strin
       .where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile notes');
+    throw error;
+  }
+}
+
+export async function updateUserProfile(userId: string, updates: { name?: string | null; image?: string | null }) {
+  try {
+    return await db.update(user).set(updates).where(eq(user.id, userId));
+  } catch (error) {
+    console.error('Failed to update user profile');
     throw error;
   }
 }
