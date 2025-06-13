@@ -30,6 +30,8 @@ export const user = pgTable('User', {
   selectedSpaceId: uuid('selectedSpaceId').references(() => space.id),
   emailVerified: timestamp('emailVerified'),
   emailVerificationToken: varchar('emailVerificationToken', { length: 255 }),
+  hasCompletedOnboarding: boolean('hasCompletedOnboarding').notNull().default(false),
+  profileNotes: text('profileNotes'),
 });
 
 export type User = InferSelectModel<typeof user>;

@@ -16,6 +16,7 @@ import { authConfig } from './auth.config';
 interface ExtendedSession extends Session {
   user: {
     id: string;
+    hasCompletedOnboarding?: boolean;
     selectedSpace?: {
       id: string;
       name: string;
@@ -137,29 +138,27 @@ export const {
     },
     async jwt({ token, user }) {
       if (user) {
-        // For OAuth users, we need to get the database user ID by email
-        // since NextAuth user.id might not match our database user.id
         const [dbUser] = await getUser(user.email!);
         if (dbUser?.id) {
           token.id = dbUser.id;
-          console.log('🔑 JWT: Using database user ID:', dbUser.id);
+          token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
         } else {
           console.error('❌ JWT: Could not find database user for email:', user.email);
-          token.id = user.id; // fallback to NextAuth ID
+          token.id = user.id;
         }
       }
         
-      // Always get the user's selected space directly from the database
-      // This ensures we always have the latest data, even during token refreshes
+      // Always refresh hasCompletedOnboarding from database for existing tokens
+      if (token.id && token.email) {
+        const [dbUser] = await getUser(token.email as string);
+        if (dbUser) {
+          token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
+        }
+      }
+
       if (token.id) {
         const selectedSpace = await getSelectedSpace(token.id as string);
         if (selectedSpace) {
-          console.log('JWT refresh: Getting latest space data from database:', {
-            id: selectedSpace.id,
-            knowledgeBaseId: selectedSpace.knowledgeBaseId,
-            processId: selectedSpace.processId,
-          });
-
           token.selectedSpace = {
             id: selectedSpace.id,
             name: selectedSpace.name,
@@ -181,6 +180,7 @@ export const {
     }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
 
         // Add selected space info to the session
         if (token.selectedSpace) {
