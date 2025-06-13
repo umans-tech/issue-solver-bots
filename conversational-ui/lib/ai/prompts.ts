@@ -103,7 +103,7 @@ export const updateDocumentPrompt = (
 ) =>
     type === 'text'
         ? `\
-Improve the following contents of the document based on the given prompt.
+Improve the following contents of the document based on the given prompt. All your responses will be used to update the document. Don't include any other text in your response.
 
 ${currentContent}
 `

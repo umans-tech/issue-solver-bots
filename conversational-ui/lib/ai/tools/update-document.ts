@@ -1,4 +1,4 @@
-import { DataStreamWriter, tool } from 'ai';
+import { DataStreamWriter, tool, type UIMessage } from 'ai';
 import { Session } from 'next-auth';
 import { z } from 'zod';
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
@@ -7,18 +7,16 @@ import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
 interface UpdateDocumentProps {
   session: Session;
   dataStream: DataStreamWriter;
+  messages: Array<UIMessage>;
 }
 
-export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
+export const updateDocument = ({ session, dataStream, messages }: UpdateDocumentProps) =>
   tool({
     description: 'Update a document with the given description.',
     parameters: z.object({
       id: z.string().describe('The ID of the document to update'),
-      description: z
-        .string()
-        .describe('The description of changes that need to be made'),
     }),
-    execute: async ({ id, description }) => {
+    execute: async ({ id }) => {
       const document = await getDocumentById({ id });
 
       if (!document) {
@@ -43,9 +41,9 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
 
       await documentHandler.onUpdateDocument({
         document,
-        description,
         dataStream,
         session,
+        messages,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });

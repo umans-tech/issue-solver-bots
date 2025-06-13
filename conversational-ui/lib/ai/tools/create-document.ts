@@ -6,13 +6,15 @@ import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
+import { type UIMessage } from 'ai';
 
 interface CreateDocumentProps {
   session: Session;
   dataStream: DataStreamWriter;
+  messages: Array<UIMessage>;
 }
 
-export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
+export const createDocument = ({ session, dataStream, messages }: CreateDocumentProps) =>
   tool({
     description:
       'Create a document for a writing or content creation activities. This tool will call other functions that will generate the contents of the document based on the title and kind.',
@@ -57,6 +59,7 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
         title,
         dataStream,
         session,
+        messages,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });

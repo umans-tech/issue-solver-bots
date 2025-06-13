@@ -1,18 +1,18 @@
 import { z } from 'zod';
-import { streamObject } from 'ai';
+import { streamObject, type UIMessage } from 'ai';
 import { myProvider } from '@/lib/ai/models';
 import { codePrompt, updateDocumentPrompt } from '@/lib/ai/prompts';
 import { createDocumentHandler } from '@/lib/artifacts/server';
 
 export const codeDocumentHandler = createDocumentHandler<'code'>({
   kind: 'code',
-  onCreateDocument: async ({ title, dataStream }) => {
+  onCreateDocument: async ({ title, dataStream, messages = [] }) => {
     let draftContent = '';
 
     const { fullStream } = streamObject({
       model: myProvider.languageModel('artifact-model'),
       system: codePrompt,
-      prompt: title,
+      messages,
       schema: z.object({
         code: z.string(),
       }),
@@ -38,13 +38,13 @@ export const codeDocumentHandler = createDocumentHandler<'code'>({
 
     return draftContent;
   },
-  onUpdateDocument: async ({ document, description, dataStream }) => {
+  onUpdateDocument: async ({ document, dataStream, messages = [] }) => {
     let draftContent = '';
 
     const { fullStream } = streamObject({
       model: myProvider.languageModel('artifact-model'),
       system: updateDocumentPrompt(document.content, 'code'),
-      prompt: description,
+      messages,
       schema: z.object({
         code: z.string(),
       }),

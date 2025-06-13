@@ -139,8 +139,16 @@ export async function POST(request: Request) {
                 experimental_generateMessageId: generateUUID,
                 tools: {
                     getWeather,
-                    createDocument: createDocument({ session, dataStream }),
-                    updateDocument: updateDocument({ session, dataStream }),
+                    createDocument: createDocument({
+                      session,
+                      dataStream,
+                      messages,
+                    }),
+                    updateDocument: updateDocument({
+                      session,
+                      dataStream,
+                      messages,
+                    }),
                     requestSuggestions: requestSuggestions({
                         session,
                         dataStream,
