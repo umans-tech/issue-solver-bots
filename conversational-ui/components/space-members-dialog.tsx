@@ -13,6 +13,8 @@ import { Avatar } from '@/components/ui/avatar';
 interface SpaceMember {
   id: string;
   email: string;
+  name: string | null;
+  image: string | null;
   emailVerified: Date | null;
 }
 
@@ -117,7 +119,11 @@ export function SpaceMembersDialog({
                   >
                     <div className="relative">
                       <Avatar
-                          user={{ email: member.email }}
+                          user={{ 
+                            email: member.email,
+                            name: member.name,
+                            image: member.image
+                          }}
                           size={40}
                       />
                       {member.id === currentUserId && (
@@ -134,9 +140,14 @@ export function SpaceMembersDialog({
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium truncate">
-                          {member.email}
+                          {member.name || member.email}
                         </span>
                       </div>
+                      {member.name && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {member.email}
+                        </div>
+                      )}
 
                       <div className="flex items-center gap-2 mt-1">
                         {member.emailVerified ? (
