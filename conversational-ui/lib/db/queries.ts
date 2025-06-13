@@ -767,3 +767,15 @@ export async function updateUserOnboarding(userId: string, hasCompletedOnboardin
     throw error;
   }
 }
+
+export async function updateUserProfileNotes(userId: string, profileNotes: string) {
+  try {
+    return await db
+      .update(user)
+      .set({ profileNotes })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error('Failed to update user profile notes');
+    throw error;
+  }
+}
