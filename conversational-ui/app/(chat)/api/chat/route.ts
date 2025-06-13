@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, updateUserOnboarding } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -206,6 +206,11 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Check if this is an onboarding conversation and mark complete
+                            if (!(session.user as any).hasCompletedOnboarding && messages.length >= 3) {
+                                await updateUserOnboarding(session.user.id, true);
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }

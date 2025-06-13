@@ -755,3 +755,15 @@ export async function getSpaceMembers(spaceId: string) {
     throw error;
   }
 }
+
+export async function updateUserOnboarding(userId: string, hasCompletedOnboarding: boolean) {
+  try {
+    return await db
+      .update(user)
+      .set({ hasCompletedOnboarding })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error('Failed to update user onboarding status');
+    throw error;
+  }
+}
