@@ -9,6 +9,7 @@ import {
   createUser,
   ensureDefaultSpace,
   verifyUserEmail,
+  updateUserProfile,
 } from '@/lib/db/queries';
 
 import { authConfig } from './auth.config';
@@ -16,6 +17,7 @@ import { authConfig } from './auth.config';
 interface ExtendedSession extends Session {
   user: {
     id: string;
+    hasCompletedOnboarding?: boolean;
     selectedSpace?: {
       id: string;
       name: string;
@@ -81,29 +83,33 @@ export const {
         try {
           console.log('🔍 Checking if Google user exists:', user.email);
           
-          // Check if user exists, create if not
           const existingUsers = await getUser(user.email!);
           console.log('👤 Existing users found:', existingUsers.length);
           
           if (existingUsers.length === 0) {
             console.log('➕ Creating new OAuth user:', user.email);
             
-            // Create user without password for OAuth, but with emailVerified set
-            await createUser(user.email!, null);
+            await createUser(user.email!, null, user.name, user.image);
             console.log('✅ User created successfully');
             
-            // Add a small delay to ensure transaction is committed
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Set email as verified for OAuth users
             const [newUser] = await getUser(user.email!);
             if (newUser?.id) {
               await verifyUserEmail(newUser.id);
               console.log('✅ OAuth user email verified automatically');
             }
+          } else {
+            const dbUser = existingUsers[0];
+            if (!dbUser.name || !dbUser.image) {
+              await updateUserProfile(dbUser.id, {
+                name: user.name,
+                image: user.image
+              });
+              console.log('✅ Updated existing user profile with Google data');
+            }
           }
           
-          // Always get the database user (either existing or newly created)
           const [dbUser] = await getUser(user.email!);
           console.log('👤 Database user retrieved:', dbUser?.id);
           
@@ -112,15 +118,12 @@ export const {
             return false;
           }
           
-          // Use the database user ID for space creation
           console.log('🏠 Creating default space for database user:', dbUser.id);
           try {
             await ensureDefaultSpace(dbUser.id);
             console.log('✅ Default space created successfully');
           } catch (spaceError) {
             console.error('❌ Error creating default space:', spaceError);
-            // Don't fail the sign-in if space creation fails
-            // User can create spaces later
             console.log('⚠️ Continuing with sign-in despite space creation failure');
           }
           
@@ -137,29 +140,27 @@ export const {
     },
     async jwt({ token, user }) {
       if (user) {
-        // For OAuth users, we need to get the database user ID by email
-        // since NextAuth user.id might not match our database user.id
         const [dbUser] = await getUser(user.email!);
         if (dbUser?.id) {
           token.id = dbUser.id;
-          console.log('🔑 JWT: Using database user ID:', dbUser.id);
+          token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
         } else {
           console.error('❌ JWT: Could not find database user for email:', user.email);
-          token.id = user.id; // fallback to NextAuth ID
+          token.id = user.id;
         }
       }
         
-      // Always get the user's selected space directly from the database
-      // This ensures we always have the latest data, even during token refreshes
+      // Always refresh hasCompletedOnboarding from database for existing tokens
+      if (token.id && token.email) {
+        const [dbUser] = await getUser(token.email as string);
+        if (dbUser) {
+          token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
+        }
+      }
+
       if (token.id) {
         const selectedSpace = await getSelectedSpace(token.id as string);
         if (selectedSpace) {
-          console.log('JWT refresh: Getting latest space data from database:', {
-            id: selectedSpace.id,
-            knowledgeBaseId: selectedSpace.knowledgeBaseId,
-            processId: selectedSpace.processId,
-          });
-
           token.selectedSpace = {
             id: selectedSpace.id,
             name: selectedSpace.name,
@@ -181,6 +182,7 @@ export const {
     }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
 
         // Add selected space info to the session
         if (token.selectedSpace) {

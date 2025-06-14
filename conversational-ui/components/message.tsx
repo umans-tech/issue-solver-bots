@@ -28,6 +28,7 @@ import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
 import { RemoteCodingAgentResult } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
+import { ChatRepoConnection } from './chat-repo-connection';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -215,11 +216,20 @@ const PurePreviewMessage = ({
                     <div
                       key={toolCallId}
                       className={cx({
-                        skeleton: ['getWeather'].includes(toolName),
+                        skeleton: ['getWeather', 'connectRepository'].includes(toolName),
                       })}
                     >
                       {toolName === 'getWeather' ? (
                         <Weather />
+                      ) : toolName === 'connectRepository' ? (
+                        <div>
+                          {(() => { console.log('🚀 Rendering ChatRepoConnection in call state'); return null; })()}
+                          <ChatRepoConnection 
+                            onConnectionComplete={() => {
+                              console.log('🎉 Repository connection completed!');
+                            }}
+                          />
+                        </div>
                       ) : toolName === 'createDocument' ? (
                         <DocumentPreview isReadonly={isReadonly} args={args} />
                       ) : toolName === 'updateDocument' ? (
@@ -283,6 +293,15 @@ const PurePreviewMessage = ({
                     <div key={toolCallId}>
                       {toolName === 'getWeather' ? (
                         <Weather weatherAtLocation={result} />
+                      ) : toolName === 'connectRepository' ? (
+                        <div>
+                          {(() => { console.log('🚀 Rendering ChatRepoConnection in result state'); return null; })()}
+                          <ChatRepoConnection 
+                            onConnectionComplete={() => {
+                              console.log('🎉 Repository connection completed!');
+                            }}
+                          />
+                        </div>
                       ) : toolName === 'createDocument' ? (
                         <DocumentPreview
                           isReadonly={isReadonly}

@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, updateUserOnboarding, updateUserProfileNotes } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -15,6 +15,7 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
+import { connectRepository } from '@/lib/ai/tools/connect-repository';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
@@ -91,21 +92,33 @@ export async function POST(request: Request) {
         });
     }
 
-    await saveMessages({
-        messages: [
-            {
-              chatId: id,
-              id: userMessage.id,
-              role: 'user',
-              parts: userMessage.parts,
-              attachments: userMessage.experimental_attachments ?? [],
-              createdAt: new Date(),
-            },
-          ],
-    });
+    // Don't save the ONBOARDING_START trigger message to keep it hidden
+    const isOnboardingTrigger = userMessage.content === 'ONBOARDING_START' || 
+                               (userMessage.parts && userMessage.parts.some(part => 
+                                 part.type === 'text' && part.text === 'ONBOARDING_START'
+                               ));
+
+    if (!isOnboardingTrigger) {
+        await saveMessages({
+            messages: [
+                {
+                  chatId: id,
+                  id: userMessage.id,
+                  role: 'user',
+                  parts: userMessage.parts,
+                  attachments: userMessage.experimental_attachments ?? [],
+                  createdAt: new Date(),
+                },
+              ],
+        });
+    }
 
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
+    
+    // Check if this is an onboarding conversation
+    const isOnboarding = !(session.user as any).hasCompletedOnboarding;
+    
     const stream = createDataStream({
         execute: (dataStream) => {
             // Collect sources written to the dataStream
@@ -120,7 +133,7 @@ export async function POST(request: Request) {
 
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
-                system: systemPrompt({ selectedChatModel }),
+                system: systemPrompt({ selectedChatModel, isOnboarding }),
                 messages,
                 maxSteps: maxSteps,
                 maxRetries: maxRetries,
@@ -134,6 +147,7 @@ export async function POST(request: Request) {
                     'webSearch',
                     'remoteCodingAgent',
                     'fetchWebpage',
+                    'connectRepository',
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
                 experimental_generateMessageId: generateUUID,
@@ -162,6 +176,10 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                     fetchWebpage: fetchWebpage({
+                        session,
+                        dataStream,
+                    }),
+                    connectRepository: connectRepository({
                         session,
                         dataStream,
                     }),
@@ -206,6 +224,32 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Handle onboarding completion and profile notes
+                            if (isOnboarding && messages.length >= 3) {
+                                // Extract profile notes from the conversation
+                                const conversationText = messages.map(m => 
+                                    `${m.role}: ${m.parts?.map(p => p.type === 'text' ? p.text : '').join(' ') || m.content}`
+                                ).join('\n');
+                                
+                                // Simple extraction of key information
+                                const profileNotes = `# User Profile (Generated from Onboarding)
+
+## Conversation Summary
+${conversationText}
+
+## Key Insights
+- Onboarding completed on ${new Date().toISOString().split('T')[0]}
+- Total messages exchanged: ${messages.length}
+
+*This profile will be enhanced as the user continues to interact with the platform.*`;
+
+                                // Update profile notes and mark onboarding complete
+                                await Promise.all([
+                                    updateUserProfileNotes(session.user.id, profileNotes),
+                                    updateUserOnboarding(session.user.id, true)
+                                ]);
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }
