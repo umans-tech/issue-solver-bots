@@ -15,6 +15,7 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
+import { connectRepository } from '@/lib/ai/tools/connect-repository';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
                     'webSearch',
                     'remoteCodingAgent',
                     'fetchWebpage',
+                    'connectRepository',
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
                 experimental_generateMessageId: generateUUID,
@@ -174,6 +176,10 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                     fetchWebpage: fetchWebpage({
+                        session,
+                        dataStream,
+                    }),
+                    connectRepository: connectRepository({
                         session,
                         dataStream,
                     }),
