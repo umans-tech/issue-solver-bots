@@ -38,13 +38,18 @@ export default async function OnboardingPage() {
   });
 
   // Create the initial AI welcome message
+  const userName = session.user.name;
+  const welcomeText = userName 
+    ? `Hi there! Welcome to umans.ai! 👋\n\nI'd like to make sure I'm addressing you correctly - should I call you ${userName}, or would you prefer something else?`
+    : `Hi there! Welcome to umans.ai! 👋\n\nWhat would you like me to call you?`;
+  
   const welcomeMessage: UIMessage = {
     id: generateUUID(),
     role: 'assistant',
-    content: "Hi there! Welcome to umans.ai! 👋 I'm excited to help you get the most out of our platform.\n\nTo start, I'd love to know a bit about you - what's your role in software development?",
+    content: welcomeText,
     parts: [{
       type: 'text',
-      text: "Hi there! Welcome to umans.ai! 👋 I'm excited to help you get the most out of our platform.\n\nTo start, I'd love to know a bit about you - what's your role in software development?"
+      text: welcomeText
     }],
     createdAt: new Date(),
   };
