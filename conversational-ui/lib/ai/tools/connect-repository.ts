@@ -13,14 +13,40 @@ export const connectRepository = ({ session, dataStream }: ConnectRepositoryProp
   parameters: z.object({
     message: z.string().optional().describe('Optional message to display with the repository connection form'),
   }),
-  execute: async ({ message }) => {
-    console.log('🔧 connectRepository tool executing...');
-    
-    // Return immediately with UI data
+  // No execute function - this will trigger the human-in-the-loop flow
+});
+
+// Separate execute function for when user submits the form
+export async function executeConnectRepository(params: {
+  repoUrl: string;
+  accessToken?: string;
+  userId: string;
+  spaceId: string;
+  knowledgeBaseId?: string;
+  processId?: string;
+  status?: string;
+}) {
+  console.log('🔧 executeConnectRepository executing with params:', params);
+  
+  // The frontend has already made the connection and passed the results
+  // We just need to format the response for the AI to understand
+  
+  if (params.knowledgeBaseId) {
+    // Repository was successfully connected by the frontend
     return {
-      action: 'show_repository_connection',
-      message: message || 'Please connect your repository to get started:',
-      status: 'pending_user_action',
+      action: 'repository_connected',
+      status: 'success',
+      knowledgeBaseId: params.knowledgeBaseId,
+      processId: params.processId,
+      repoUrl: params.repoUrl,
+      message: 'Repository connected successfully!',
     };
-  },
-}); 
+  } else {
+    // Connection failed or was cancelled
+    return {
+      action: 'repository_connection_failed',
+      status: 'error',
+      error: 'Repository connection was not completed',
+    };
+  }
+} 

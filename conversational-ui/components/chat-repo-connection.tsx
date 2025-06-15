@@ -13,6 +13,7 @@ interface ChatRepoConnectionProps {
   onConnectionStart?: () => void;
   onConnectionComplete?: (success: boolean, details?: any) => void;
   onStatusUpdate?: (status: string, message: string) => void;
+  isHumanInTheLoop?: boolean; // When true, don't make API call, just pass form data
 }
 
 interface RepositoryDetails {
@@ -29,6 +30,7 @@ export function ChatRepoConnection({
   onConnectionStart,
   onConnectionComplete,
   onStatusUpdate,
+  isHumanInTheLoop,
 }: ChatRepoConnectionProps) {
   const { data: session, update: updateSession } = useSession();
   const [repoUrl, setRepoUrl] = useState('');
@@ -149,12 +151,20 @@ export function ChatRepoConnection({
       }
       
       setConnectionStatus('success');
-      onConnectionComplete?.(true, {
+      
+      // Pass all connection details to parent
+      const connectionResult = {
         url: repoUrl,
+        accessToken,
+        userId: session.user.id,
+        spaceId: session.user.selectedSpace.id,
         knowledgeBaseId,
         processId: data.process_id,
         status: data.status
-      });
+      };
+      
+      console.log('🚀 ChatRepoConnection calling onConnectionComplete with:', connectionResult);
+      onConnectionComplete?.(true, connectionResult);
       
       // Clear form
       setRepoUrl('');
@@ -170,12 +180,17 @@ export function ChatRepoConnection({
         onConnectionComplete?.(false, {
           error: true,
           errorType: (err as any).type,
-          errorMessage: err.message
+          errorMessage: err.message,
+          url: repoUrl
         });
       } else {
         const errorMessage = err instanceof Error ? err.message : 'An error occurred';
         setError(errorMessage);
-        onConnectionComplete?.(false, { error: true, errorMessage });
+        onConnectionComplete?.(false, { 
+          error: true, 
+          errorMessage,
+          url: repoUrl
+        });
       }
     } finally {
       setIsSubmitting(false);
