@@ -49,6 +49,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
   requiresScrollPadding,
+  addToolResult,
 }: {
   chatId: string;
   message: UIMessage;
@@ -58,6 +59,7 @@ const PurePreviewMessage = ({
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -213,14 +215,36 @@ const PurePreviewMessage = ({
                   const { args } = toolInvocation;
 
                   return (
-                    <div
-                      key={toolCallId}
-                      className={cx({
-                        skeleton: ['getWeather', 'connectRepository'].includes(toolName),
-                      })}
-                    >
+                    <div key={toolCallId}>
                       {toolName === 'getWeather' ? (
-                        <Weather />
+                        <div className="flex flex-col gap-3 p-4 border rounded-lg bg-card relative z-10">
+                          <div className="text-sm text-foreground">
+                            Get weather information for location at latitude {args.latitude}, longitude {args.longitude}?
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                console.log('Weather confirmation clicked:', toolCallId);
+                                addToolResult({ toolCallId, result: 'confirmed' });
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                            >
+                              Yes, get weather
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                console.log('Weather denial clicked:', toolCallId);
+                                addToolResult({ toolCallId, result: 'denied' });
+                              }}
+                              className="border-red-300 text-red-600 hover:bg-red-50 cursor-pointer"
+                            >
+                              No, cancel
+                            </Button>
+                          </div>
+                        </div>
                       ) : toolName === 'connectRepository' ? (
                         <div>
                           {(() => { console.log('🚀 Rendering ChatRepoConnection in call state'); return null; })()}
@@ -292,7 +316,15 @@ const PurePreviewMessage = ({
                   return (
                     <div key={toolCallId}>
                       {toolName === 'getWeather' ? (
-                        <Weather weatherAtLocation={result} />
+                        result === 'denied' || result === 'Weather request was cancelled by user.' ? (
+                          <div className="flex flex-col gap-2 p-3 border rounded-lg bg-muted/50">
+                            <div className="text-sm text-muted-foreground">
+                              Weather request was cancelled.
+                            </div>
+                          </div>
+                        ) : (
+                          <Weather weatherAtLocation={result && typeof result === 'object' ? result : undefined} />
+                        )
                       ) : toolName === 'connectRepository' ? (
                         <div>
                           {(() => { console.log('🚀 Rendering ChatRepoConnection in result state'); return null; })()}

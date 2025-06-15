@@ -3,13 +3,13 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, updateUserOnboarding, updateUserProfileNotes } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateMessage, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, updateUserOnboarding, updateUserProfileNotes } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
-import { getWeather } from '@/lib/ai/tools/get-weather';
+import { getWeather, executeWeatherTool } from '@/lib/ai/tools/get-weather';
 import { codebaseAssistant } from '@/lib/ai/tools/codebase-assistant';
 import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
@@ -98,19 +98,42 @@ export async function POST(request: Request) {
                                  part.type === 'text' && part.text === 'ONBOARDING_START'
                                ));
 
-    if (!isOnboardingTrigger) {
-        await saveMessages({
-            messages: [
-                {
-                  chatId: id,
-                  id: userMessage.id,
-                  role: 'user',
-                  parts: userMessage.parts,
-                  attachments: userMessage.experimental_attachments ?? [],
-                  createdAt: new Date(),
-                },
-              ],
-        });
+    // Check if this is a tool result update (user clicking confirmation button)
+    const isToolResultUpdate = userMessage.parts?.some(part => 
+        part.type === 'tool-invocation' && part.toolInvocation.state === 'result'
+    );
+
+    if (!isOnboardingTrigger && !isToolResultUpdate) {
+        try {
+            // Check if message already exists before trying to save
+            const existingMessages = await getMessagesByChatId({ id });
+            const messageExists = existingMessages.some(msg => msg.id === userMessage.id);
+            
+            if (!messageExists) {
+                await saveMessages({
+                    messages: [
+                        {
+                          chatId: id,
+                          id: userMessage.id,
+                          role: 'user',
+                          parts: userMessage.parts,
+                          attachments: userMessage.experimental_attachments ?? [],
+                          createdAt: new Date(),
+                        },
+                      ],
+                });
+            } else {
+                console.log('User message already exists in database, skipping save:', userMessage.id);
+            }
+        } catch (error: any) {
+            // If it's a duplicate key error, log it but don't fail the request
+            if (error.code === '23505' && error.constraint_name === 'Message_v2_pkey') {
+                console.log('User message already exists in database (caught error), skipping save:', userMessage.id);
+            } else {
+                // Re-throw other errors
+                throw error;
+            }
+        }
     }
 
     const streamId = generateUUID();
@@ -120,7 +143,45 @@ export async function POST(request: Request) {
     const isOnboarding = !(session.user as any).hasCompletedOnboarding;
     
     const stream = createDataStream({
-        execute: (dataStream) => {
+        execute: async (dataStream) => {
+            // Process weather tool confirmations
+            const lastMessage = messages[messages.length - 1];
+            let messageUpdated = false;
+            
+            if (lastMessage?.parts) {
+                for (const part of lastMessage.parts) {
+                    if (part.type === 'tool-invocation' && 
+                        part.toolInvocation.state === 'result' &&
+                        part.toolInvocation.toolName === 'getWeather') {
+                        
+                        if (part.toolInvocation.result === 'confirmed') {
+                            // Execute the weather tool
+                            const weatherResult = await executeWeatherTool(part.toolInvocation.args);
+                            // Update the tool result with actual weather data
+                            part.toolInvocation.result = weatherResult;
+                            messageUpdated = true;
+                        } else if (part.toolInvocation.result === 'denied') {
+                            // User denied - provide appropriate message
+                            part.toolInvocation.result = 'Weather request was cancelled by user.';
+                            messageUpdated = true;
+                        }
+                    }
+                }
+                
+                // Update the message in database if it was modified
+                if (messageUpdated) {
+                    try {
+                        await updateMessage({
+                            id: lastMessage.id,
+                            parts: lastMessage.parts,
+                        });
+                        console.log('Updated tool result in database:', lastMessage.id);
+                    } catch (error: any) {
+                        console.error('Error updating tool result in database:', error);
+                    }
+                }
+            }
+
             // Collect sources written to the dataStream
             const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
             
@@ -211,19 +272,37 @@ export async function POST(request: Request) {
                                 });
                             }
 
-                            await saveMessages({
-                                messages: [
-                                    {
-                                      id: assistantId,
-                                      chatId: id,
-                                      role: assistantMessage.role,
-                                      parts: messageParts,
-                                      attachments:
-                                        assistantMessage.experimental_attachments ?? [],
-                                      createdAt: new Date(),
-                                    },
-                                ],
-                            });
+                            try {
+                                // Check if message already exists before trying to save
+                                const existingMessages = await getMessagesByChatId({ id });
+                                const messageExists = existingMessages.some(msg => msg.id === assistantId);
+                                
+                                if (!messageExists) {
+                                    await saveMessages({
+                                        messages: [
+                                            {
+                                              id: assistantId,
+                                              chatId: id,
+                                              role: assistantMessage.role,
+                                              parts: messageParts,
+                                              attachments:
+                                                assistantMessage.experimental_attachments ?? [],
+                                              createdAt: new Date(),
+                                            },
+                                        ],
+                                    });
+                                } else {
+                                    console.log('Message already exists in database, skipping save:', assistantId);
+                                }
+                            } catch (error: any) {
+                                // If it's a duplicate key error, log it but don't fail the request
+                                if (error.code === '23505' && error.constraint_name === 'Message_v2_pkey') {
+                                    console.log('Message already exists in database (caught error), skipping save:', assistantId);
+                                } else {
+                                    // Re-throw other errors
+                                    throw error;
+                                }
+                            }
 
                             // Handle onboarding completion and profile notes
                             if (isOnboarding && messages.length >= 3) {

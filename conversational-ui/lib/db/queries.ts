@@ -208,6 +208,24 @@ export async function saveMessages({
   }
 }
 
+export async function updateMessage({
+  id,
+  parts,
+}: {
+  id: string;
+  parts: any[];
+}) {
+  try {
+    return await db
+      .update(message)
+      .set({ parts })
+      .where(eq(message.id, id));
+  } catch (error) {
+    console.error('Failed to update message in database', error);
+    throw error;
+  }
+}
+
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
     return await db

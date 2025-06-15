@@ -60,6 +60,10 @@ function PureArtifactMessages({
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
+          addToolResult={() => {
+            // Tool results not available in artifact context
+            console.warn('Tool result functionality not available in artifact context');
+          }}
         />
       ))}
 

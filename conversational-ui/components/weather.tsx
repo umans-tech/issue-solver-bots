@@ -206,6 +206,17 @@ export function Weather({
 }: {
   weatherAtLocation?: WeatherAtLocation;
 }) {
+  // Safety check for weather data
+  if (!weatherAtLocation || !weatherAtLocation.current || !weatherAtLocation.hourly || !weatherAtLocation.daily) {
+    return (
+      <div className="flex flex-col gap-4 rounded-2xl p-4 bg-muted max-w-[500px]">
+        <div className="text-muted-foreground">
+          Weather data is not available at the moment.
+        </div>
+      </div>
+    );
+  }
+
   const currentHigh = Math.max(
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
   );
@@ -213,10 +224,12 @@ export function Weather({
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
   );
 
-  const isDay = isWithinInterval(new Date(weatherAtLocation.current.time), {
-    start: new Date(weatherAtLocation.daily.sunrise[0]),
-    end: new Date(weatherAtLocation.daily.sunset[0]),
-  });
+  const isDay = weatherAtLocation.daily.sunrise?.[0] && weatherAtLocation.daily.sunset?.[0] 
+    ? isWithinInterval(new Date(weatherAtLocation.current.time), {
+        start: new Date(weatherAtLocation.daily.sunrise[0]),
+        end: new Date(weatherAtLocation.daily.sunset[0]),
+      })
+    : true; // Default to day if sunrise/sunset data is missing
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -238,14 +251,17 @@ export function Weather({
     (time) => new Date(time) >= new Date(weatherAtLocation.current.time),
   );
 
+  // Use a safe index (fallback to 0 if not found)
+  const safeCurrentTimeIndex = currentTimeIndex >= 0 ? currentTimeIndex : 0;
+
   // Slice the arrays to get the desired number of items
   const displayTimes = weatherAtLocation.hourly.time.slice(
-    currentTimeIndex,
-    currentTimeIndex + hoursToShow,
+    safeCurrentTimeIndex,
+    safeCurrentTimeIndex + hoursToShow,
   );
   const displayTemperatures = weatherAtLocation.hourly.temperature_2m.slice(
-    currentTimeIndex,
-    currentTimeIndex + hoursToShow,
+    safeCurrentTimeIndex,
+    safeCurrentTimeIndex + hoursToShow,
   );
 
   return (

@@ -7,12 +7,15 @@ export const getWeather = tool({
     latitude: z.number(),
     longitude: z.number(),
   }),
-  execute: async ({ latitude, longitude }) => {
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`,
-    );
-
-    const weatherData = await response.json();
-    return weatherData;
-  },
+  // execute function removed to enable human-in-the-loop confirmation
 });
+
+// Separate execute function for when user confirms
+export const executeWeatherTool = async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`,
+  );
+
+  const weatherData = await response.json();
+  return weatherData;
+};
