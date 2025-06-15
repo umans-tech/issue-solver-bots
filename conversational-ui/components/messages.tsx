@@ -18,6 +18,7 @@ interface MessagesProps {
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  addToolResult?: any; // Type will be provided by useChat hook, optional
 }
 
 function PureMessages({
@@ -28,6 +29,7 @@ function PureMessages({
   setMessages,
   reload,
   isReadonly,
+  addToolResult,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -64,6 +66,7 @@ function PureMessages({
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
+          addToolResult={addToolResult}
         />
       ))}
 

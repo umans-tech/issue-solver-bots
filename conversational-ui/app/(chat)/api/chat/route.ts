@@ -15,7 +15,7 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
-import { connectRepository } from '@/lib/ai/tools/connect-repository';
+import { connectRepository, executeConnectRepository } from '@/lib/ai/tools/connect-repository';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
@@ -67,7 +67,54 @@ export async function POST(request: Request) {
         return new Response('Unauthorized', { status: 401 });
     }
 
-    const userMessage = getMostRecentUserMessage(messages);
+    // Handle tool confirmations before processing messages
+    let processedMessages = [...messages];
+    for (let i = 0; i < processedMessages.length; i++) {
+        const message = processedMessages[i];
+        if (message.role === 'user' && message.content) {
+            try {
+                const toolConfirmation = JSON.parse(message.content);
+                if (toolConfirmation.type === 'tool-result') {
+                    console.log('🔍 Processing tool confirmation:', {
+                        toolName: toolConfirmation.toolName,
+                        resultType: toolConfirmation.result?.type,
+                        hasKnowledgeBaseId: !!toolConfirmation.result?.knowledgeBaseId,
+                        fullResult: toolConfirmation.result
+                    });
+                    
+                    if (toolConfirmation.toolName === 'connectRepository') {
+                        if (toolConfirmation.result && toolConfirmation.result.type === 'connectRepository') {
+                            // User submitted the form with repository details
+                            const connectionDetails = toolConfirmation.result;
+                            console.log('📦 Connection details received:', connectionDetails);
+                            
+                            // Execute the connectRepository function with all details from frontend
+                            const result = await executeConnectRepository({
+                                repoUrl: connectionDetails.url,
+                                accessToken: connectionDetails.accessToken,
+                                userId: session.user.id,
+                                spaceId: connectionDetails.spaceId || session.user.selectedSpace?.id || '',
+                                knowledgeBaseId: connectionDetails.knowledgeBaseId,
+                                processId: connectionDetails.processId,
+                                status: connectionDetails.status
+                            });
+                            
+                            console.log('✅ ExecuteConnectRepository result:', result);
+                            
+                            // Update the tool result with actual execution result
+                            toolConfirmation.result = result;
+                            message.content = JSON.stringify(toolConfirmation);
+                        }
+                    }
+                    // Add other tool confirmations here as needed
+                }
+            } catch (e) {
+                // Not a tool confirmation, continue normal processing
+            }
+        }
+    }
+
+    const userMessage = getMostRecentUserMessage(processedMessages);
 
     if (!userMessage) {
         return new Response('No user message found', { status: 400 });
@@ -92,25 +139,47 @@ export async function POST(request: Request) {
         });
     }
 
+    // Check if this is a tool result update to avoid duplicate message saving
+    const isToolResultUpdate = processedMessages.some(message => {
+        if (message.role === 'user' && message.content) {
+            try {
+                const parsed = JSON.parse(message.content);
+                return parsed.type === 'tool-result';
+            } catch {
+                return false;
+            }
+        }
+        return false;
+    });
+
     // Don't save the ONBOARDING_START trigger message to keep it hidden
     const isOnboardingTrigger = userMessage.content === 'ONBOARDING_START' || 
                                (userMessage.parts && userMessage.parts.some(part => 
                                  part.type === 'text' && part.text === 'ONBOARDING_START'
                                ));
 
-    if (!isOnboardingTrigger) {
-        await saveMessages({
-            messages: [
-                {
-                  chatId: id,
-                  id: userMessage.id,
-                  role: 'user',
-                  parts: userMessage.parts,
-                  attachments: userMessage.experimental_attachments ?? [],
-                  createdAt: new Date(),
-                },
-              ],
-        });
+    if (!isOnboardingTrigger && !isToolResultUpdate) {
+        try {
+            await saveMessages({
+                messages: [
+                    {
+                      chatId: id,
+                      id: userMessage.id,
+                      role: 'user',
+                      parts: userMessage.parts,
+                      attachments: userMessage.experimental_attachments ?? [],
+                      createdAt: new Date(),
+                    },
+                  ],
+            });
+        } catch (error: any) {
+            // Handle PostgreSQL duplicate key error
+            if (error.code === '23505') {
+                console.log('Message already exists, skipping insertion');
+            } else {
+                throw error;
+            }
+        }
     }
 
     const streamId = generateUUID();
@@ -134,7 +203,7 @@ export async function POST(request: Request) {
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({ selectedChatModel, isOnboarding }),
-                messages,
+                messages: processedMessages,
                 maxSteps: maxSteps,
                 maxRetries: maxRetries,
                 experimental_activeTools: [
@@ -226,9 +295,9 @@ export async function POST(request: Request) {
                             });
 
                             // Handle onboarding completion and profile notes
-                            if (isOnboarding && messages.length >= 3) {
+                            if (isOnboarding && processedMessages.length >= 3) {
                                 // Extract profile notes from the conversation
-                                const conversationText = messages.map(m => 
+                                const conversationText = processedMessages.map(m => 
                                     `${m.role}: ${m.parts?.map(p => p.type === 'text' ? p.text : '').join(' ') || m.content}`
                                 ).join('\n');
                                 
@@ -240,7 +309,7 @@ ${conversationText}
 
 ## Key Insights
 - Onboarding completed on ${new Date().toISOString().split('T')[0]}
-- Total messages exchanged: ${messages.length}
+- Total messages exchanged: ${processedMessages.length}
 
 *This profile will be enhanced as the user continues to interact with the platform.*`;
 
