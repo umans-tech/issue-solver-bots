@@ -28,6 +28,8 @@ import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
 import { RemoteCodingAgentResult } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
+import { ChatRepoConnection } from './chat-repo-connection';
+import { RouteIcon } from './icons';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -48,6 +50,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
   requiresScrollPadding,
+  addToolResult,
 }: {
   chatId: string;
   message: UIMessage;
@@ -57,6 +60,7 @@ const PurePreviewMessage = ({
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  addToolResult?: any;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -220,6 +224,64 @@ const PurePreviewMessage = ({
                     >
                       {toolName === 'getWeather' ? (
                         <Weather />
+                      ) : toolName === 'connectRepository' ? (
+                        <div className="bg-white border rounded-lg p-4 my-2">
+                          {(() => { console.log('🚀 Rendering ChatRepoConnection in call state for human-in-the-loop'); return null; })()}
+                          <ChatRepoConnection 
+                            isHumanInTheLoop={true}
+                            onConnectionComplete={(success, details) => {
+                              console.log('🎉 Repository connection form submitted!', { success, details });
+                              
+                              // Only use addToolResult if it's available
+                              if (!addToolResult) {
+                                console.warn('addToolResult not available, cannot complete human-in-the-loop flow');
+                                return;
+                              }
+                              
+                              // Send the form data through addToolResult
+                              if (success && details && !details.error) {
+                                // Format as tool-result for backend processing
+                                const toolResultContent = JSON.stringify({
+                                  type: 'tool-result',
+                                  toolCallId: toolCallId,
+                                  toolName: 'connectRepository',
+                                  result: {
+                                    type: 'connectRepository',
+                                    url: details.url,
+                                    accessToken: details.accessToken,
+                                    spaceId: details.spaceId,
+                                    knowledgeBaseId: details.knowledgeBaseId,
+                                    processId: details.processId,
+                                    status: details.status
+                                  }
+                                });
+                                
+                                addToolResult({
+                                  toolCallId: toolCallId,
+                                  result: toolResultContent
+                                });
+                              } else {
+                                // Handle error case
+                                const toolResultContent = JSON.stringify({
+                                  type: 'tool-result',
+                                  toolCallId: toolCallId,
+                                  toolName: 'connectRepository', 
+                                  result: {
+                                    type: 'connectRepository',
+                                    status: 'error',
+                                    error: details?.errorMessage || 'Connection cancelled',
+                                    url: details?.url
+                                  }
+                                });
+                                
+                                addToolResult({
+                                  toolCallId: toolCallId,
+                                  result: toolResultContent
+                                });
+                              }
+                            }}
+                          />
+                        </div>
                       ) : toolName === 'createDocument' ? (
                         <DocumentPreview isReadonly={isReadonly} args={args} />
                       ) : toolName === 'updateDocument' ? (
@@ -283,6 +345,34 @@ const PurePreviewMessage = ({
                     <div key={toolCallId}>
                       {toolName === 'getWeather' ? (
                         <Weather weatherAtLocation={result} />
+                      ) : toolName === 'connectRepository' ? (
+                        <div className="bg-background border py-2 px-3 rounded-xl w-fit flex flex-row gap-3 items-center">
+                          <div className="text-muted-foreground">
+                            <RouteIcon size={16} />
+                          </div>
+                          <Link 
+                            href={`/tasks/${result.processId}`} 
+                            className="text-primary hover:text-primary/80 flex items-center gap-2 transition-colors"
+                          >
+                            <span>View repository indexing progress</span>
+                            <svg 
+                              width="14" 
+                              height="14" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="text-primary"
+                            >
+                              <path 
+                                d="M7 17L17 7M17 7H8M17 7V16" 
+                                stroke="currentColor" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </Link>
+                        </div>
                       ) : toolName === 'createDocument' ? (
                         <DocumentPreview
                           isReadonly={isReadonly}
@@ -389,3 +479,4 @@ export const ThinkingMessage = () => {
     </motion.div>
   );
 };
+

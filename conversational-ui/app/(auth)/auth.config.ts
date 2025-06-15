@@ -3,7 +3,7 @@ import type { NextAuthConfig } from 'next-auth';
 export const authConfig = {
   pages: {
     signIn: '/login',
-    newUser: '/',
+    newUser: '/onboarding',
   },
   providers: [
     // added later in auth.ts since it requires bcrypt which is only compatible with Node.js
@@ -12,32 +12,29 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isOnChat = nextUrl.pathname.startsWith('/');
       const isOnRegister = nextUrl.pathname.startsWith('/register');
       const isOnLogin = nextUrl.pathname.startsWith('/login');
       const isOnLanding = nextUrl.pathname.startsWith('/landing');
       const isOnVerifyEmail = nextUrl.pathname.startsWith('/verify-email');
       const isOnForgotPassword = nextUrl.pathname.startsWith('/forgot-password');
       const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
+      const isOnOnboarding = nextUrl.pathname.startsWith('/onboarding');
+      
+      const isOnAuthPage = isOnRegister || isOnLogin || isOnLanding || isOnVerifyEmail || isOnForgotPassword || isOnResetPassword;
 
       if (isLoggedIn && (isOnLogin || isOnRegister)) {
         return Response.redirect(new URL('/', nextUrl as unknown as URL));
       }
 
-      if (isOnRegister || isOnLogin || isOnLanding || isOnVerifyEmail || isOnForgotPassword || isOnResetPassword) {
-        return true; // Always allow access to auth pages
-      }
-
-      if (isOnChat) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+      if (isOnAuthPage || isOnOnboarding) {
+        return true;
       }
 
       if (isLoggedIn) {
-        return Response.redirect(new URL('/', nextUrl as unknown as URL));
+        return true;
       }
 
-      return true;
+      return false;
     },
   },
   trustHost: true,
