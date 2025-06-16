@@ -33,6 +33,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       startOnLoad: true,
       theme: 'default',
       securityLevel: 'loose',
+      suppressErrorRendering: true,
       themeVariables: {
         darkMode: document.documentElement.classList.contains('dark'),
       },
