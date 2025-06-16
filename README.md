@@ -29,6 +29,10 @@ Bridge the gap between what your system does, what business needs, and what your
 - [Community and Support](#community-and-support)
 - [Contributing](#contributing)
 - [License](#license)
+- [Detailed System Architecture](#detailed-system-architecture)
+  - [System Components](#system-components)
+  - [Zoom on Conversational UI](#zoom-on-conversational-ui)
+  - [Zoom on Remote Autonomous Agents (aka Issue Solver)](#zoom-on-remote-autonomous-agents-aka-issue-solver)
 
 ## Why umans.ai?
 
@@ -91,56 +95,6 @@ graph TD
     style ConvAgent fill: #f3e5f5
     style RemoteAgent fill: #e8f5e8
     style PR fill: #fff3e0
-```
-
-### System Components
-
-The platform consists of two main subsystems working together:
-
-```mermaid
-flowchart TD
-  User["👤 User<br/><i>[Person]</i><br/>Developer or team member"]
-
-  subgraph ConvUI ["Conversational UI<br/><i>[Subsystem]</i>"]
-    UI["Conversational UI<br/><i>[Container: Next.js]</i><br/>User interface for chat, tasks,<br/>and repository interactions"]
-    ConvDB[("Conversational DB<br/><i>[Container: PostgreSQL]</i><br/>Stores conversations, user data,<br/>and spaces")]
-    Redis[("Redis<br/><i>[Container: Redis]</i><br/>Manages resumable streams")]
-    Blob[("Blob Storage<br/><i>[Container: S3/Blob]</i><br/>Stores codebase data")]
-  end
-
-  subgraph IssueSolver ["Issue Solver<br/><i>[Subsystem]</i>"]
-    API["Web API<br/><i>[Container: FastAPI]</i><br/>Handles API requests<br/>and task management"]
-    Queue["Message Queue<br/><i>[Container: SQS/Redis]</i><br/>Queues tasks for processing"]
-    Worker["Worker<br/><i>[Container: Python]</i><br/>Processes issue resolution tasks"]
-    EventDB[("Event Store DB<br/><i>[Container: PostgreSQL]</i><br/>Stores task events<br/>and process data")]
-  end
-
-  Git["🔗 Git Repositories<br/><i>[External System]</i><br/>GitHub, GitLab, Self-hosted"]
-  LLM["🤖 LLM Providers<br/><i>[External System]</i><br/>OpenAI, Anthropic, etc."]
-
-  User -->|"Interacts with"| UI
-  UI -->|"Reads/writes user data<br/>and conversations"| ConvDB
-  UI -->|"Uses for resumable streams"| Redis
-  UI -->|"Stores and retrieves<br/>codebase data"| Blob
-  UI -->|"Creates and monitors tasks"| API
-  UI -->|"Uses for chat<br/>and assistance"| LLM
-  API -->|"Publishes tasks"| Queue
-  API -->|"Reads/writes task data"| EventDB
-  Queue -->|"Triggers"| Worker
-  Worker -->|"Integrates with"| Git
-  Worker -->|"Uses for code generation"| LLM
-  Worker -->|"Updates task status"| EventDB
-
-  classDef external fill:#999,stroke:#666,color:#fff,stroke-width:2px
-  classDef container fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
-  classDef database fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
-  classDef person fill:#1f4e79,stroke:#0f2e4f,color:#fff,stroke-width:2px
-  classDef system fill:#f0f0f0,stroke:#666,color:#333,stroke-width:2px,stroke-dasharray: 5 5
-
-  class Git,LLM external
-  class UI,API,Queue,Worker container
-  class ConvDB,Redis,Blob,EventDB database
-  class User person
 ```
 
 ## Getting Started
@@ -274,3 +228,115 @@ submitting pull requests.
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE)
+
+
+## Detailed System Architecture
+
+### System Components
+
+The platform consists of two main subsystems working together:
+
+```mermaid
+flowchart TD
+    User["👤 User<br/><i>[Person]</i><br/>Developer or team member"]
+    
+    ConvUI["📱 Conversational UI<br/><i>[Subsystem]</i><br/>User interface for chat, tasks,<br/>and repository interactions"]
+    
+    IssueSolver["⚙️ Issue Solver<br/><i>[Subsystem]</i><br/>Processes issue resolution tasks<br/>and manages codebase operations"]
+    
+    Git["🔗 Git Repositories<br/><i>[External System]</i><br/>GitHub, GitLab, Self-hosted"]
+    LLM["🤖 LLM Providers<br/><i>[External System]</i><br/>OpenAI, Anthropic, etc."]
+    Internet["🌐 Internet<br/><i>[External System]</i><br/>Web browsing and search"]
+    
+    User -->|"Interacts with"| ConvUI
+    ConvUI -->|"Creates and monitors tasks"| IssueSolver
+    ConvUI -->|"Explores and searches codebase"| Git
+    ConvUI -->|"Uses for chat and assistance"| LLM
+    ConvUI -->|"Browses for information"| Internet
+    IssueSolver -->|"Indexes codebase, pulls code, pushes PRs"| Git
+    IssueSolver -->|"Uses for code generation"| LLM
+    
+    classDef external fill:#999,stroke:#666,color:#fff,stroke-width:2px
+    classDef subsystem fill:#4472C4,stroke:#2E5396,color:#fff,stroke-width:3px
+    classDef person fill:#1f4e79,stroke:#0f2e4f,color:#fff,stroke-width:2px
+    
+    class Git,LLM,Internet external
+    class ConvUI,IssueSolver subsystem
+    class User person
+```
+
+### Zoom on Conversational UI
+
+```mermaid
+flowchart TD
+    User["👤 User<br/><i>[Person]</i><br/>Developer or team member"]
+    
+    subgraph ConvUI ["Conversational UI Subsystem"]
+        UI["Conversational UI<br/><i>[Container: Next.js]</i><br/>User interface for chat, tasks,<br/>and repository interactions"]
+        ConvDB[("Conversational DB<br/><i>[Container: PostgreSQL]</i><br/>Stores conversations, user data,<br/>and spaces")]
+        Redis[("Redis<br/><i>[Container: Redis]</i><br/>Manages resumable streams")]
+        Blob[("Blob Storage<br/><i>[Container: S3/Blob]</i><br/>Stores codebase data")]
+    end
+    
+    IssueSolver["⚙️ Issue Solver<br/><i>[Subsystem]</i><br/>Processes issue resolution tasks"]
+    Git["🔗 Git Repositories<br/><i>[External System]</i><br/>GitHub, GitLab, Self-hosted"]
+    LLM["🤖 LLM Providers<br/><i>[External System]</i><br/>OpenAI, Anthropic, etc."]
+    Internet["🌐 Internet<br/><i>[External System]</i><br/>Web browsing and search"]
+    
+    User -->|"Interacts with"| UI
+    User -->|"Streams from"| Redis
+    UI -->|"Reads/writes user data<br/>and conversations"| ConvDB
+    UI -->|"Creates resumable streams"| Redis
+    UI -->|"Stores and retrieves<br/>codebase data"| Blob
+    UI -->|"Creates and monitors tasks"| IssueSolver
+    UI -->|"Uses for chat<br/>and assistance"| LLM
+    UI -->|"Explores and searches<br/>codebase"| Git
+    UI -->|"Browses for information"| Internet
+    
+    classDef external fill:#999,stroke:#666,color:#fff,stroke-width:2px
+    classDef container fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+    classDef database fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+    classDef person fill:#1f4e79,stroke:#0f2e4f,color:#fff,stroke-width:2px
+    classDef subsystem fill:#4472C4,stroke:#2E5396,color:#fff,stroke-width:3px
+    
+    class Git,LLM,Internet external
+    class UI container
+    class ConvDB,Redis,Blob database
+    class User person
+    class IssueSolver subsystem
+```
+
+### Zoom on Remote Autonomous Agents (aka Issue Solver)
+
+```mermaid
+flowchart TD
+    ConvUI["📱 Conversational UI<br/><i>[Subsystem]</i><br/>User interface for chat and tasks"]
+    
+    subgraph IssueSolver ["Issue Solver Subsystem"]
+        API["Web API<br/><i>[Container: FastAPI]</i><br/>Handles API requests<br/>and task management"]
+        Queue["Message Queue<br/><i>[Container: SQS/Redis]</i><br/>Queues tasks for processing"]
+        Worker["Worker<br/><i>[Container: Python]</i><br/>Processes issue resolution tasks.<br/>Indexes codebase, pulls code,<br/>and pushes PRs"]
+        EventDB[("Event Store DB<br/><i>[Container: PostgreSQL]</i><br/>Stores task events<br/>and process data")]
+    end
+    
+    Git["🔗 Git Repositories<br/><i>[External System]</i><br/>GitHub, GitLab, Self-hosted"]
+    LLM["🤖 LLM Providers<br/><i>[External System]</i><br/>OpenAI, Anthropic, etc."]
+    
+    ConvUI -->|"Creates and monitors tasks"| API
+    API -->|"Publishes tasks"| Queue
+    API -->|"Reads/writes task data"| EventDB
+    Queue -->|"Triggers"| Worker
+    Worker -->|"Indexes codebase,<br/>pulls code, pushes PRs"| Git
+    Worker -->|"Uses for code generation"| LLM
+    Worker -->|"Updates task status"| EventDB
+    
+    classDef external fill:#999,stroke:#666,color:#fff,stroke-width:2px
+    classDef container fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+    classDef database fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+    classDef subsystem fill:#4472C4,stroke:#2E5396,color:#fff,stroke-width:3px
+    
+    class Git,LLM external
+    class API,Queue,Worker container
+    class EventDB database
+    class ConvUI subsystem
+```
