@@ -8,6 +8,27 @@ import { toast } from 'sonner';
 import { CodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
 
+// Utility function to suppress Mermaid-related console errors
+const suppressMermaidErrors = () => {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    // Only suppress errors related to Mermaid
+    const errorMessage = args[0]?.toString() || '';
+    if (
+      errorMessage.includes('mermaid') || 
+      errorMessage.includes('Mermaid') ||
+      (args[0] instanceof Error && args[0].stack?.includes('mermaid'))
+    ) {
+      // Silently ignore Mermaid errors to prevent browser extensions from showing notifications
+      return;
+    }
+    // Pass through all other errors to the original console.error
+    originalConsoleError.apply(console, args);
+  };
+  
+  return originalConsoleError;
+};
+
 interface MermaidDiagramProps {
   code: string;
   className?: string;
@@ -43,6 +64,9 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       }
     });
 
+    // Suppress Mermaid console errors and store the original console.error function
+    const originalConsoleError = suppressMermaidErrors();
+
     // Render the diagram
     const renderDiagram = async () => {
       if (!code || code.trim() === '') {
@@ -59,10 +83,10 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         // Generate a unique ID that's safe for CSS selectors
         const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
         
-        // First validate the syntax
+        // First validate the syntax - console errors will be suppressed
         await mermaid.parse(code);
         
-        // If validation passes, render the diagram
+        // If validation passes, render the diagram - console errors will be suppressed
         const { svg } = await mermaid.render(uniqueId, code);
         // Remove any error icons or messages from the SVG
         const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
@@ -79,6 +103,11 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
     if (viewMode === 'diagram') {
       renderDiagram();
     }
+
+    // Cleanup: restore the original console.error when component unmounts
+    return () => {
+      console.error = originalConsoleError;
+    };
   }, [code, viewMode]);
 
   const handleCopyCode = () => {
@@ -87,6 +116,9 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   };
 
   const handleDownloadPNG = async () => {
+    // Suppress Mermaid console errors during download operation
+    const originalConsoleError = suppressMermaidErrors();
+    
     try {
       const svgElement = diagramRef.current?.querySelector('svg');
       if (!svgElement) {
@@ -120,8 +152,14 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       // Cleanup
       URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error('Error downloading diagram:', error);
+      // We still want to log download errors, but not Mermaid-specific ones
+      if (!(error instanceof Error && error.stack?.includes('mermaid'))) {
+        console.error('Error downloading diagram:', error);
+      }
       toast.error('Failed to download diagram');
+    } finally {
+      // Restore original console.error
+      console.error = originalConsoleError;
     }
   };
 
