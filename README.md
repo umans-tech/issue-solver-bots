@@ -98,39 +98,49 @@ graph TD
 The platform consists of two main subsystems working together:
 
 ```mermaid
-C4Container
-    title umans.ai Platform Architecture
-    Person(user, "User", "Developer or team member")
+flowchart TD
+  User["👤 User<br/><i>[Person]</i><br/>Developer or team member"]
 
-    Boundary(conversationalUISystem, "Conversational UI Subsystem") {
-        Container(conversationalUI, "Conversational UI", "Next.js", "User interface for chat, tasks, and repository interactions")
-        ContainerDb(conversationalDB, "Conversational DB", "PostgreSQL", "Stores conversations, user data, and spaces")
-        ContainerDb(redis, "Redis", "Manages resumable streams")
-        ContainerDb(blobStorage, "Blob Storage", "S3/Blob", "Stores codebase data")
-    }
+  subgraph ConvUI ["Conversational UI<br/><i>[Subsystem]</i>"]
+    UI["Conversational UI<br/><i>[Container: Next.js]</i><br/>User interface for chat, tasks,<br/>and repository interactions"]
+    ConvDB[("Conversational DB<br/><i>[Container: PostgreSQL]</i><br/>Stores conversations, user data,<br/>and spaces")]
+    Redis[("Redis<br/><i>[Container: Redis]</i><br/>Manages resumable streams")]
+    Blob[("Blob Storage<br/><i>[Container: S3/Blob]</i><br/>Stores codebase data")]
+  end
 
-    Boundary(issueSolverSystem, "Issue Solver Subsystem") {
-        Container(webAPI, "Web API", "FastAPI", "Handles API requests and task management")
-        Container(messageQueue, "Message Queue", "SQS/Redis", "Queues tasks for processing")
-        Container(worker, "Worker", "Python", "Processes issue resolution tasks")
-        ContainerDb(eventStoreDB, "Event Store DB", "PostgreSQL", "Stores task events and process data")
-    }
+  subgraph IssueSolver ["Issue Solver<br/><i>[Subsystem]</i>"]
+    API["Web API<br/><i>[Container: FastAPI]</i><br/>Handles API requests<br/>and task management"]
+    Queue["Message Queue<br/><i>[Container: SQS/Redis]</i><br/>Queues tasks for processing"]
+    Worker["Worker<br/><i>[Container: Python]</i><br/>Processes issue resolution tasks"]
+    EventDB[("Event Store DB<br/><i>[Container: PostgreSQL]</i><br/>Stores task events<br/>and process data")]
+  end
 
-    System_Ext(gitSystem, "Git Repositories", "GitHub, GitLab, Self-hosted")
-    System_Ext(llmProviders, "LLM Providers", "OpenAI, Anthropic, etc.")
-    Rel(user, conversationalUI, "Interacts with")
-    Rel(conversationalUI, conversationalDB, "Reads/writes user data and conversations")
-    Rel(conversationalUI, redis, "Uses for resumable streams")
-    Rel(conversationalUI, blobStorage, "Stores and retrieves codebase data")
-    Rel(conversationalUI, webAPI, "Creates and monitors tasks")
-    Rel(conversationalUI, llmProviders, "Uses for chat and assistance")
-    Rel(webAPI, messageQueue, "Publishes tasks")
-    Rel(webAPI, eventStoreDB, "Reads/writes task data")
-    Rel(messageQueue, worker, "Triggers")
-    Rel(worker, gitSystem, "Integrates with")
-    Rel(worker, llmProviders, "Uses for code generation")
-    Rel(worker, eventStoreDB, "Updates task status")
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+  Git["🔗 Git Repositories<br/><i>[External System]</i><br/>GitHub, GitLab, Self-hosted"]
+  LLM["🤖 LLM Providers<br/><i>[External System]</i><br/>OpenAI, Anthropic, etc."]
+
+  User -->|"Interacts with"| UI
+  UI -->|"Reads/writes user data<br/>and conversations"| ConvDB
+  UI -->|"Uses for resumable streams"| Redis
+  UI -->|"Stores and retrieves<br/>codebase data"| Blob
+  UI -->|"Creates and monitors tasks"| API
+  UI -->|"Uses for chat<br/>and assistance"| LLM
+  API -->|"Publishes tasks"| Queue
+  API -->|"Reads/writes task data"| EventDB
+  Queue -->|"Triggers"| Worker
+  Worker -->|"Integrates with"| Git
+  Worker -->|"Uses for code generation"| LLM
+  Worker -->|"Updates task status"| EventDB
+
+  classDef external fill:#999,stroke:#666,color:#fff,stroke-width:2px
+  classDef container fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+  classDef database fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
+  classDef person fill:#1f4e79,stroke:#0f2e4f,color:#fff,stroke-width:2px
+  classDef system fill:#f0f0f0,stroke:#666,color:#333,stroke-width:2px,stroke-dasharray: 5 5
+
+  class Git,LLM external
+  class UI,API,Queue,Worker container
+  class ConvDB,Redis,Blob,EventDB database
+  class User person
 ```
 
 ## Getting Started
