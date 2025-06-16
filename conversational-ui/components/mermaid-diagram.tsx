@@ -7,6 +7,7 @@ import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon
 import { toast } from 'sonner';
 import { CodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
+import { ErrorBoundary } from './error-boundary';
 
 interface MermaidDiagramProps {
   code: string;
@@ -16,7 +17,22 @@ interface MermaidDiagramProps {
 const viewModes = ['code', 'diagram'] as const;
 type ViewMode = (typeof viewModes)[number];
 
-export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
+// Mermaid-specific error fallback component
+function MermaidErrorFallback() {
+  return (
+    <div className="w-full p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-background">
+      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+        Diagram rendering failed
+      </p>
+      <p className="text-sm text-muted-foreground mt-2">
+        There was a problem rendering the diagram. Please check your diagram syntax or try again later.
+      </p>
+    </div>
+  );
+}
+
+// Wrapped component with added error handling
+function MermaidDiagramContent({ code, className }: MermaidDiagramProps) {
   const diagramRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +44,28 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   const isDiagramView = viewMode === 'diagram';
 
   useEffect(() => {
-    // Initialize mermaid with dark theme support
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose',
-      suppressErrorRendering: true,
-      themeVariables: {
-        darkMode: document.documentElement.classList.contains('dark'),
-      },
-      flowchart: {
-        htmlLabels: true,
-        useMaxWidth: true,
-      }
-    });
+    // Safely initialize mermaid with dark theme support
+    try {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        suppressErrorRendering: true,
+        logLevel: 5, // "error" level - suppresses console warnings
+        themeVariables: {
+          darkMode: document.documentElement.classList.contains('dark'),
+        },
+        flowchart: {
+          htmlLabels: true,
+          useMaxWidth: true,
+        }
+      });
+    } catch (initError) {
+      console.error('Error initializing Mermaid (suppressed):', initError);
+      // Don't rethrow - we don't want to break the UI if mermaid fails to initialize
+    }
 
-    // Render the diagram
+    // Render the diagram with improved error handling
     const renderDiagram = async () => {
       if (!code || code.trim() === '') {
         setError('The diagram code is empty. Please provide valid Mermaid syntax.');
@@ -59,25 +81,58 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         // Generate a unique ID that's safe for CSS selectors
         const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
         
-        // First validate the syntax
-        await mermaid.parse(code);
+        // Wrap in a try-catch to handle syntax validation errors
+        let parseSuccess = false;
+        try {
+          // First validate the syntax
+          await mermaid.parse(code);
+          parseSuccess = true;
+        } catch (parseError: any) {
+          // Suppress the error from reaching the browser
+          const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
+          setError(`Syntax error in diagram: ${errorMessage}`);
+          console.error('Mermaid parse error (suppressed):', errorMessage);
+          setIsLoading(false);
+          return;
+        }
         
-        // If validation passes, render the diagram
-        const { svg } = await mermaid.render(uniqueId, code);
-        // Remove any error icons or messages from the SVG
-        const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
-        setSvg(cleanedSvg);
-        setError(null);
-      } catch (parseError: any) {
-        const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
-        setError(`Syntax error in diagram: ${errorMessage}`);
+        // Only try to render if parsing was successful
+        if (parseSuccess) {
+          try {
+            // If validation passes, render the diagram
+            const { svg } = await mermaid.render(uniqueId, code);
+            // Remove any error icons or messages from the SVG
+            const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
+            setSvg(cleanedSvg);
+            setError(null);
+          } catch (renderError: any) {
+            // Handle render errors separately
+            const errorMessage = renderError?.str || renderError?.message || 'Error rendering diagram';
+            setError(`Failed to render diagram: ${errorMessage}`);
+            console.error('Mermaid render error (suppressed):', errorMessage);
+          }
+        }
+      } catch (unexpectedError: any) {
+        // Catch-all for any other unexpected errors
+        const errorMessage = unexpectedError?.message || 'Unexpected error occurred';
+        setError(`Diagram error: ${errorMessage}`);
+        console.error('Unexpected Mermaid error (suppressed):', unexpectedError);
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Only try to render diagram if in diagram view mode
     if (viewMode === 'diagram') {
-      renderDiagram();
+      // Wrap the entire operation in a try-catch to prevent any uncaught errors
+      try {
+        renderDiagram();
+      } catch (criticalError) {
+        // Last resort error handler to prevent browser notifications
+        console.error('Critical Mermaid error (suppressed):', criticalError);
+        setError('Failed to process diagram. Please check your syntax.');
+        setIsLoading(false);
+      }
     }
   }, [code, viewMode]);
 
@@ -88,45 +143,85 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
 
   const handleDownloadPNG = async () => {
     try {
+      // Defensively check if diagramRef exists before proceeding
+      if (!diagramRef || !diagramRef.current) {
+        toast.error('No diagram container found');
+        return;
+      }
+
       const svgElement = diagramRef.current?.querySelector('svg');
       if (!svgElement) {
         toast.error('No diagram to download');
         return;
       }
 
-      // Create a new SVG element with proper dimensions
-      const clonedSvg = svgElement.cloneNode(true) as SVGElement;
-      const bbox = svgElement.getBBox();
-      
-      // Add padding to the SVG
-      const padding = 20;
-      const width = bbox.width + padding * 2;
-      const height = bbox.height + padding * 2;
-      
-      clonedSvg.setAttribute('width', width.toString());
-      clonedSvg.setAttribute('height', height.toString());
-      clonedSvg.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
-      
-      // Convert SVG to a data URL
-      const svgData = new XMLSerializer().serializeToString(clonedSvg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      
-      // Create downloadable link
-      const link = document.createElement('a');
-      link.download = 'diagram.svg';
-      link.href = URL.createObjectURL(svgBlob);
-      link.click();
-      
-      // Cleanup
-      URL.revokeObjectURL(link.href);
+      // Wrap all DOM operations in try-catch to prevent uncaught errors
+      try {
+        // Create a new SVG element with proper dimensions
+        const clonedSvg = svgElement.cloneNode(true) as SVGElement;
+        
+        // Safely get bounding box - getBBox might throw in some edge cases
+        let bbox;
+        try {
+          bbox = svgElement.getBBox();
+        } catch (bboxError) {
+          console.error('SVG getBBox error (suppressed):', bboxError);
+          // Fallback to a default size if getBBox fails
+          bbox = { x: 0, y: 0, width: 800, height: 600 };
+        }
+        
+        // Add padding to the SVG
+        const padding = 20;
+        const width = bbox.width + padding * 2;
+        const height = bbox.height + padding * 2;
+        
+        clonedSvg.setAttribute('width', width.toString());
+        clonedSvg.setAttribute('height', height.toString());
+        clonedSvg.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+        
+        // Convert SVG to a data URL
+        const svgData = new XMLSerializer().serializeToString(clonedSvg);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        
+        // Create downloadable link with additional error handling
+        try {
+          const link = document.createElement('a');
+          link.download = 'diagram.svg';
+          link.href = URL.createObjectURL(svgBlob);
+          link.click();
+          
+          // Cleanup
+          setTimeout(() => {
+            try {
+              URL.revokeObjectURL(link.href);
+            } catch (revokeError) {
+              console.error('URL.revokeObjectURL error (suppressed):', revokeError);
+            }
+          }, 100);
+        } catch (downloadError) {
+          console.error('Download link creation error (suppressed):', downloadError);
+          toast.error('Failed to create download link');
+        }
+      } catch (svgProcessingError) {
+        console.error('SVG processing error (suppressed):', svgProcessingError);
+        toast.error('Failed to process diagram for download');
+      }
     } catch (error) {
-      console.error('Error downloading diagram:', error);
+      // Outer catch-all to ensure no errors bubble up
+      console.error('Error downloading diagram (suppressed):', error);
       toast.error('Failed to download diagram');
     }
   };
 
   const toggleViewMode = () => {
-    setViewMode(current => current === 'code' ? 'diagram' : 'code');
+    try {
+      setViewMode(current => current === 'code' ? 'diagram' : 'code');
+    } catch (viewModeError) {
+      // Suppress any errors that might occur when toggling view mode
+      console.error('View mode toggle error (suppressed):', viewModeError);
+      // Try to force a known good state
+      setViewMode('code');
+    }
   };
 
   if (error) {
@@ -267,3 +362,13 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
     </div>
   );
 } 
+
+// Export the error-boundary-wrapped component
+export function MermaidDiagram(props: MermaidDiagramProps) {
+  // Wrap the component with our error boundary to catch any uncaught errors
+  return (
+    <ErrorBoundary fallback={<MermaidErrorFallback />}>
+      <MermaidDiagramContent {...props} />
+    </ErrorBoundary>
+  );
+}
