@@ -1,207 +1,266 @@
-# issue-solver-bots
+# umans.ai Platform
 
 ![Build Status](https://github.com/umans-tech/issue-solver-bots/actions/workflows/ci-python-project.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
+![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Ruff](https://img.shields.io/badge/code%20style-ruff-f7df1e.svg)
 ![Mypy](https://img.shields.io/badge/type%20checked-mypy-2f72bc.svg)
 ![License](https://img.shields.io/github/license/umans-tech/issue-solver-bots)
 ![GitHub Stars](https://img.shields.io/github/stars/umans-tech/issue-solver-bots?style=social)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/wBeQhw9v)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/Q5hdNrk7Rw)
 
-🚀 **Issue-solver-bots** integrates autonomous agents for software development, providing **GitLab CI** and **GitHub
-Actions** templates to automatically resolve issues from platforms like GitLab, GitHub, Jira, and Notion. Innovate your
-workflow without being locked into a single platform.
+# Deliver Value, Not Just Code
+
+Bridge the gap between what your system does, what business needs, and what your team plans to build.
 
 ## Table of Contents
 
-- [Why Use issue-solver-bots](#why-use-issue-solver-bots)
-- [Features](#features)
+- [Why umans.ai?](#why-umansai)
+- [Key Features](#key-features)
+- [Quick Demo](#quick-demo)
+- [Who Is This For?](#who-is-this-for)
+- [System Architecture](#system-architecture)
 - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-- [Usage](#usage)
-    - [GitLab CI Integration](#gitlab-ci-integration)
-    - [GitHub Actions Integration](#github-actions-integration)
+- [Development Workflow](#development-workflow)
+- [Deployment](#deployment)
 - [Supported Platforms and Agents](#supported-platforms-and-agents)
 - [Early Stage and Feedback](#early-stage-and-feedback)
-- [FAQ](#faq)
 - [Community and Support](#community-and-support)
-- [Contribution](#contribution)
+- [Contributing](#contributing)
 - [License](#license)
 
-## Why Use issue-solver-bots
+## Why umans.ai?
 
-In today's fast-paced development environment, teams often spend valuable time on "Low-Value" (or routine) tasks that
-could be automated.
-**Issue-solver-bots** empowers your team by:
+Software development is fundamentally about problem-solving, not just writing code.
 
-- **Innovate and Modernize**: Enhance development workflows without being tied to a single platform.
-- **Seamless Integration**: Improve existing infrastructure and build processes without overhauling everything or
-  compromising security.
-- **Avoid Migration Hassles**: Integrate new capabilities without the need for massive migration projects.
+We're exploring how AI can enhance the way teams work together to understand problems, align on solutions, and deliver
+value continuously. umans.ai focuses on:
 
-## Features
+- **Shared Understanding**: AI agents that help teams build and maintain collective knowledge about complex codebases
+- **Collaborative Problem-Solving**: Tools that facilitate discussion, exploration, and decision-making as a team
+- **Continuous Alignment**: Bridging the gap between what we build, what we intend, and what users actually need
+- **Augmented Teamwork**: AI that amplifies human collaboration rather than replacing human judgment
 
-- 🛠️ **CI/CD Templates**: Ready-to-use templates for **GitLab CI** 🦊 and **GitHub Actions** 🐈‍⬛ to automate issue
-  resolution using advanced agents like **SWE-agent** and **SWE-crafter**.
-- 🔍 **Flexible Issue Resolution**: Resolve issues via their ID, URL, or description (provided as a parameter or through
-  MR/PR description).
-- 🔗 **Multi-Platform Integration**: Integration with various issue tracking platforms (**GitLab**, **GitHub**). 📝 **Jira
-  and Notion integrations coming soon!** 🚧
-- 📚 **Comprehensive Documentation**: Detailed guides for quick and efficient setup.
-- ⚙️ **Customizable Agents and Models**: Choose between different agents and models to suit your needs.
+This is an exploration in how software teams can work more effectively together, with AI as a collaborative partner in
+the problem-solving process.rs with AI. It's about augmenting human capabilities in the software delivery process.
+
+## Key Features
+
+- 🤖 **AI-Powered Assistance**: Conversational interface for code understanding and development tasks
+- 🧠 **Codebase Understanding**: AI agents that analyze and understand your code structure and patterns, even for large
+  codebases
+- 👥 **Team Collaboration**: Shared workspaces for teams to collaborate on projects and share knowledge
+- 🔄 **Automated Issue Resolution**: Self-hosted solution for automated issue solving with experimental integration in
+  the conversational UI
+- 🔌 **Multi-Platform Integration**: Connect with GitHub, GitLab, and self-hosted Git repositories
+- 📊 **Task Management**: Track and monitor automated processes with a clean, intuitive interface
+
+## Quick Demo
+
+*Coming soon! Screenshots and demo videos of the platform in action will be added here.*
+
+## Who Is This For?
+
+- **Software Development Teams**: Collaborate more effectively with shared understanding of code
+- **Technical Leads**: Gain insights into complex codebases and ensure alignment with business goals
+- **Individual Developers**: Accelerate your workflow with AI assistance for coding tasks
+- **Organizations**: Improve delivery speed and quality across multiple projects and teams
+
+## System Architecture
+
+### At a Glance
+
+umans.ai explores collaborative software development through conversation and shared AI agents:
+
+```mermaid
+graph TD
+    Human[👤 You] --> Conversation[💬 Natural Conversation]
+    Conversation --> ConvAgent[🤖 Conversational Agent]
+    
+    ConvAgent --> Tools[🛠️ Instant Tools]
+    Tools --> Browse[📚 Browse Codebase]
+    Tools --> Diagram[📊 Create Diagrams]
+    Tools --> Search[🔍 Web Research]
+    
+    ConvAgent --> RemoteAgent[🔧 Remote Coding Agent]
+    RemoteAgent --> Code[💻 Write & Test Code]
+    RemoteAgent --> PR[📝 Submit PR/MR]
+    
+    style Human fill: #e1f5fe
+    style ConvAgent fill: #f3e5f5
+    style RemoteAgent fill: #e8f5e8
+    style PR fill: #fff3e0
+```
+
+### System Components
+
+The platform consists of two main subsystems working together:
+
+```mermaid
+C4Container
+    title umans.ai Platform Architecture
+    Person(user, "User", "Developer or team member")
+
+    Boundary(conversationalUISystem, "Conversational UI Subsystem") {
+        Container(conversationalUI, "Conversational UI", "Next.js", "User interface for chat, tasks, and repository interactions")
+        ContainerDb(conversationalDB, "Conversational DB", "PostgreSQL", "Stores conversations, user data, and spaces")
+        ContainerDb(redis, "Redis", "Manages resumable streams")
+        ContainerDb(blobStorage, "Blob Storage", "S3/Blob", "Stores codebase data")
+    }
+
+    Boundary(issueSolverSystem, "Issue Solver Subsystem") {
+        Container(webAPI, "Web API", "FastAPI", "Handles API requests and task management")
+        Container(messageQueue, "Message Queue", "SQS/Redis", "Queues tasks for processing")
+        Container(worker, "Worker", "Python", "Processes issue resolution tasks")
+        ContainerDb(eventStoreDB, "Event Store DB", "PostgreSQL", "Stores task events and process data")
+    }
+
+    System_Ext(gitSystem, "Git Repositories", "GitHub, GitLab, Self-hosted")
+    System_Ext(llmProviders, "LLM Providers", "OpenAI, Anthropic, etc.")
+    Rel(user, conversationalUI, "Interacts with")
+    Rel(conversationalUI, conversationalDB, "Reads/writes user data and conversations")
+    Rel(conversationalUI, redis, "Uses for resumable streams")
+    Rel(conversationalUI, blobStorage, "Stores and retrieves codebase data")
+    Rel(conversationalUI, webAPI, "Creates and monitors tasks")
+    Rel(conversationalUI, llmProviders, "Uses for chat and assistance")
+    Rel(webAPI, messageQueue, "Publishes tasks")
+    Rel(webAPI, eventStoreDB, "Reads/writes task data")
+    Rel(messageQueue, worker, "Triggers")
+    Rel(worker, gitSystem, "Integrates with")
+    Rel(worker, llmProviders, "Uses for code generation")
+    Rel(worker, eventStoreDB, "Updates task status")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
 
 ## Getting Started
 
 ### Prerequisites
 
-- **GitLab** or **GitHub** account.
-- Access to a **GitLab Runner** or **GitHub Runner** with Docker capabilities.
-- **Personal Access Tokens** and **API Keys** as required by the agents.
-- **Docker** installed on your runner (if self-hosted).
+- Node.js 18+ and pnpm (for Conversational UI)
+- Python 3.12+ (for Issue Solver)
+- Docker and Docker Compose (for local development)
+- Git
 
-- **Personal Access Tokens**: Required for agents to interact with your repositories.
+> [!TIP]
+> Make sure Docker is running before starting the development servers. The project uses Docker for local databases and
+> services.
 
-> [!TIP]  
-> Generate a token directly
-> from [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user).  
+### Project Structure
+
+```bash
+/
+├── conversational-ui/     # Next.js frontend application
+├── issue-solver/          # Python-based autonomous agent system
+├── operations/            # Infrastructure and deployment
+└── .github/workflows/     # CI/CD workflows
+```
+
+### Quick Start
+
+The project uses [just](https://github.com/casey/just) as a command runner. Each component has its own justfile with
+self-documented commands.
+
+To list all available commands in any directory with a justfile:
+
+```bash
+just --list
+```
+
+#### For Conversational UI:
+
+```bash
+cd conversational-ui
+just install      # Install dependencies
+just dev          # Start development server with backing services
+```
+
+#### For Issue Solver:
+
+```bash
+cd issue-solver
+just s            # Start backing services (LocalStack, etc.)
+just api-start    # Start the API server
+just w            # Start the worker process
+```
+
+## Development Workflow
+
+### Conversational UI
+
+```bash
+cd conversational-ui
+just lint         # Check code quality
+just lint-fix     # Fix linting issues
+just build        # Build for production
+```
+
+### Issue Solver
+
+```bash
+cd issue-solver
+just t            # Run tests
+just c            # Check typing
+just l            # Lint code
+just f            # Format code
+```
+
+## Deployment
+
+```bash
+# Provision infrastructure
+cd operations/01-provision
+just apply
+
+# Deploy applications
+cd ../02-deploy
+just apply
+```
+
 > [!NOTE]
-> Tokens expire in one month by default. To avoid frequent renewals, you can clear the expiration date field before
-> creating the token.
-
-### Installation
-
-1. **Clone this repository:**
-
-   ```bash
-   git clone https://github.com/umans-tech/issue-solver-bots.git
-   cd issue-solver-bots
-   ```
-
-2. **Review the Documentation:**
-
-    - For **GitLab CI** setup: Refer to [`docs/gitlab-ci-setup.md`](gitlab-ci/README)
-    - For **GitHub Actions** setup: Refer to [`docs/github-actions-setup.md`](docs/github-actions-setup.md)
-
-## Usage
-
-### GitLab CI Integration
-
-Integrate with GitLab CI in just a few steps:
-
-1. **Include the Template:**
-
-   Add the following to your project's `.gitlab-ci.yml` file:
-
-   ```yaml
-   include:
-     - remote: 'https://raw.githubusercontent.com/umans-tech/issue-solver-bots/main/gitlab-ci/solve-issues.yml'
-   ```
-
-2. **Set Required Environment Variables:**
-
-   In your project's **Settings > CI/CD > Variables**, add the necessary variables as per
-   the [GitLab CI Documentation](gitlab-ci/README).
-
-> [!NOTE]  
-> When creating your token
-> via [GitLab's token creation page](https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans%20GitLab%20Integration&scopes=api%2Cread_user),
-> the default expiration is one month. You can remove this value to avoid needing to regenerate the token later.
-
-3. **Trigger the Pipeline:**
-
-    - Create a new merge request with a detailed description, or
-    - Manually trigger the pipeline by specifying issue-related variables.
-
-> [!TIP]
-> Option 1 is tested and confirmed to work with GitLab.com's managed runners, making it an excellent choice
-> for users who rely on GitLab's shared CI infrastructure.
-
-### GitHub Actions Integration
-
-Integrate with GitHub Actions easily:
-
-1. **Copy the Workflow File:**
-
-   Copy the provided workflow file into your project's `.github/workflows` directory.
-
-2. **Set Required Secrets:**
-
-   In your repository's **Settings > Secrets and variables > Actions**, add the necessary secrets as per
-   the [GitHub Actions Documentation](docs/github-actions-setup.md).
-
-3. **Trigger the Workflow:**
-
-    - Open a new pull request with a detailed description, or
-    - Manually trigger the workflow via the Actions tab.
-
-> [!TIP]
-> Start by creating a pull request with a clear description of the issue to see the agent in action!
+> For production deployments, make sure to review the environment variables in the `.env.example` files and set them
+> appropriately.
 
 ## Supported Platforms and Agents
 
-- **Issue Tracking Platforms:**
+### Issue Tracking Platforms
 
-    - **GitLab**
-    - **GitHub**
-    - 📝 **Jira and Notion (coming soon!)**
+- **GitHub**: Full integration with repositories and issues
+- **GitLab**: Complete support for repositories and issue tracking
+- **Self-hosted Git**: Support for custom Git deployments
+- **Jira and Notion**: Coming soon!
 
-- **Agents:**
+### Agents
 
-    - **`SWE-agent`** (default): A general-purpose software engineering agent.
-    - **`SWE-crafter`**: An alternative agent with different capabilities.
-    - **More agents coming soon!**
+- **Conversational Agent**: Assists with code understanding and development tasks
+- **Issue Solver Agent**: Autonomously resolves issues and creates pull/merge requests
+- **Code Review Agent**: Provides feedback on code changes (coming soon)
 
 ## Early Stage and Feedback
 
-🚧 **Early Access**: Issue-solver-bots is currently in the early stages of development and is considered experimental.
-We are actively working to improve and expand its capabilities.
+🚧 **Alpha Stage**: This project is in early development. We're actively working to improve and expand its capabilities.
 
-🤗 **We Value Your Feedback**: Your insights and suggestions are crucial to us.
-Please share your feedback, report issues, or propose enhancements to help us make issue-solver-bots better.
-
-## FAQ
-
-**Q1: What permissions are required for the personal access tokens?**
-
-- **A:** The tokens must have the necessary scopes to read and write to your repositories and access issues or pull
-  requests.
-
-**Q2: Can I use this setup with self-managed GitLab or GitHub instances?**
-
-- **A:** Yes! Just ensure your runners are configured properly with Docker capabilities.
-
-**Q3: How do I obtain an OpenAI API key?**
-
-- **A:** Sign up for an API key on the [OpenAI website](https://platform.openai.com/account/api-keys).
-
-**Q4: Is there any cost associated with using the agents?**
-
-- **A:** Usage of certain models (like OpenAI's GPT models) may incur costs. Please refer to the respective provider's
-  pricing.
-
-**Q5: What if I need help or run into issues?**
-
-- **A:** Feel free to reach out on our [Discord server](#community-and-support) or open an issue on GitHub.
+🤗 **We Value Your Feedback**: Your insights and suggestions are crucial to us. Please share your feedback, report
+issues, or propose enhancements to help us make the platform better.
 
 ## Community and Support
 
-Join our community to get help, share feedback, or contribute!
+Join our community to get help, share ideas, and contribute to the project:
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/wBeQhw9v)
+- [Discord Community](https://discord.gg/Q5hdNrk7Rw)
+- [GitHub Issues](https://github.com/umans-tech/issue-solver-bots/issues)
 
-- **Discord Server:** [Join us on Discord](https://discord.gg/wBeQhw9v)
-- **GitHub Issues:** [Report issues or request features](https://github.com/umans-tech/issue-solver-bots/issues)
+## Contributing
 
-## Contribution
+We welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or
+code contributions, your help is appreciated.
 
-🤝 Contributions are welcome! Please refer to our [Contribution Guide](CONTRIBUTING.md) for details on how to participate
-in the development of this project.
+Please check out our [contributing guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for
+submitting pull requests.
 
-- **Bug Reports & Feature Requests:** Open an issue on
-  the [GitHub repository](https://github.com/umans-tech/issue-solver-bots/issues).
-- **Pull Requests:** Submit pull requests for improvements or new features.
+> [!TIP]
+> Start with small contributions to get familiar with the codebase. Good first issues are labeled in the issue tracker.
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE)
