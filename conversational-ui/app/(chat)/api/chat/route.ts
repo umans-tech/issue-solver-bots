@@ -124,6 +124,7 @@ export async function POST(request: Request) {
                 messages,
                 maxSteps: maxSteps,
                 maxRetries: maxRetries,
+                toolCallStreaming: true,
                 experimental_activeTools: [
                     'getWeather',
                     'createDocument',

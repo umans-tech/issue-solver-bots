@@ -26,7 +26,7 @@ import { UseChatHelpers } from '@ai-sdk/react';
 import Link from 'next/link';
 import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
-import { RemoteCodingAgentResult } from './remote-coding-agent';
+import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 
 // Component to display search animation
@@ -242,6 +242,8 @@ const PurePreviewMessage = ({
                         />
                       ) : toolName === 'webSearch' ? (
                         <WebSearchAnimation />
+                      ) : toolName === 'remoteCodingAgent' ? (
+                        <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpageAnimation url={args?.url} />
                       ) : null}
@@ -249,8 +251,26 @@ const PurePreviewMessage = ({
                   );
                 }
 
+                if (state === 'partial-call') {
+                  const { args } = toolInvocation;
+                  const issueTitle = args?.issue?.title ?? '';
+                  const issueDescription = args?.issue?.description ?? '';
+
+                  return toolName === 'remoteCodingAgent' ? (
+                    <RemoteCodingStream
+                      key={toolCallId}
+                      toolCallId={toolCallId}
+                      issueTitle={issueTitle}
+                      issueDescription={issueDescription}
+                      result={null}
+                    />
+                  ) : null;
+                }
+
                 if (state === 'result') {
                   const { result, args } = toolInvocation;
+                  const issueTitle = args?.issue?.title ?? '';
+                  const issueDescription = args?.issue?.description ?? '';
 
                   // Show single codebase search result normally
                   if (toolName === 'codebaseSearch') {
@@ -304,10 +324,15 @@ const PurePreviewMessage = ({
                           <div>
                           </div>
                       ) : toolName === 'remoteCodingAgent' ? (
-                          <RemoteCodingAgentResult
-                            state={state}
+                        <div>
+                          <RemoteCodingStream
+                            toolCallId={toolCallId}
+                            issueTitle={issueTitle}
+                            issueDescription={issueDescription}
+                            isStreaming={false}
                             result={result}
-                          />
+                        />
+                        </div>
                       ) : toolName === 'webSearch' ? (
                         <WebSearch result={result} query={args?.query} />
                       ) : toolName === 'codebaseSearch' ? (

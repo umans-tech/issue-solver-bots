@@ -9,8 +9,8 @@ interface RemoteCodingAgentProps {
 }
 
 const issueSchema = z.object({
-    description: z.string().describe('The description of the issue to be resolved.'),
     title: z.string().optional().describe('The title of the issue to be resolved.'),
+    description: z.string().describe('The description of the issue to be resolved.'),
 });
 
 export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) => tool({
