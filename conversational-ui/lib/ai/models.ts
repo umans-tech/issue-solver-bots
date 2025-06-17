@@ -1,18 +1,25 @@
 import {openai} from '@ai-sdk/openai';
 import {customProvider,} from 'ai';
-import {anthropic} from "@ai-sdk/anthropic";
+import {createAnthropic} from "@ai-sdk/anthropic";
 
 export const DEFAULT_CHAT_MODEL: string = 'coding-model';
+
+const anthropicBeta = createAnthropic({
+    headers: {
+      // fine-grained tool streaming opt-in
+      'anthropic-beta': 'fine-grained-tool-streaming-2025-05-14',
+    },
+});
 
 export const myProvider = customProvider({
     languageModels: {
         'chat-model-small': openai('gpt-4.1-mini'),
         'chat-model-large': openai('gpt-4.1'),
         'chat-model-reasoning': openai('o3-mini'),
-        'coding-model-light': anthropic('claude-3-5-sonnet-latest'),
-        'coding-model': anthropic('claude-3-7-sonnet-latest'),
-        'coding-model-large': anthropic('claude-sonnet-4-20250514'),
-        'coding-model-super': anthropic('claude-opus-4-20250514'),
+        'coding-model-light': anthropicBeta('claude-3-5-sonnet-latest'),
+        'coding-model': anthropicBeta('claude-3-7-sonnet-latest'),
+        'coding-model-large': anthropicBeta('claude-sonnet-4-20250514'),
+        'coding-model-super': anthropicBeta('claude-opus-4-20250514'),
         'title-model': openai('gpt-4o-mini'),
         'artifact-model': openai('gpt-4o'),
     },

@@ -618,3 +618,15 @@ button:focus-visible,
     outline: 2px solid var(--ring) !important;
     outline-offset: 2px !important;
 }
+
+@keyframes collapsible-down {
+    from { height: 0; }
+    to   { height: var(--radix-collapsible-content-height); }
+  }
+  @keyframes collapsible-up {
+    from { height: var(--radix-collapsible-content-height); }
+    to   { height: 0; }
+  }
+  
+  .animate-collapsible-down { animation: collapsible-down 300ms ease-out both; }
+  .animate-collapsible-up   { animation: collapsible-up   300ms ease-out both; }
