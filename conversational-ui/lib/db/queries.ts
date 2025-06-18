@@ -523,6 +523,7 @@ export async function getSpacesForUser(userId: string) {
       name: space.name,
       knowledgeBaseId: space.knowledgeBaseId,
       processId: space.processId,
+      connectedRepoUrl: space.connectedRepoUrl,
       createdAt: space.createdAt,
       updatedAt: space.updatedAt,
       isDefault: space.isDefault,
@@ -553,6 +554,7 @@ export async function updateSpace(
     name?: string;
     knowledgeBaseId?: string;
     processId?: string;
+    connectedRepoUrl?: string;
     isDefault?: boolean;
   },
 ) {

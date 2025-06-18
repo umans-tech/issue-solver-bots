@@ -9,6 +9,7 @@ declare module "next-auth" {
         name: string;
         knowledgeBaseId?: string | null;
         processId?: string | null;
+        connectedRepoUrl?: string | null;
         isDefault?: boolean;
       } | null;
       spaces?: Array<{
@@ -16,6 +17,7 @@ declare module "next-auth" {
         name: string;
         knowledgeBaseId?: string | null;
         processId?: string | null;
+        connectedRepoUrl?: string | null;
         isDefault?: boolean;
       }>;
     } & DefaultSession["user"];
@@ -28,6 +30,7 @@ declare module "next-auth" {
       name: string;
       knowledgeBaseId?: string | null;
       processId?: string | null;
+      connectedRepoUrl?: string | null;
       isDefault?: boolean;
     } | null;
     spaces?: Array<{
@@ -35,6 +38,7 @@ declare module "next-auth" {
       name: string;
       knowledgeBaseId?: string | null;
       processId?: string | null;
+      connectedRepoUrl?: string | null;
       isDefault?: boolean;
     }>;
   }

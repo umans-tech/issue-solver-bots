@@ -22,6 +22,7 @@ It's designed for writing, editing, and other content creation tasks. Changes ma
 - If the user has not requested a document view.
 - Immediately after creating a document — **wait for user feedback before using \`updateDocument\`**.
 
+If you need to know the connected codebase url, you don't need to call any tool. Just take a look at your tools descriptions.
 Always use \`codebaseSearch\` to gather information about the codebase when codebaseAssistant has not provided a response. Below are the instructions for using \`codebaseSearch\` and \`codebaseAssistant\`.
 
 **When to use \`codebaseAssistant\`:**
@@ -186,6 +187,8 @@ ${currentContent}
                 : '';
 
 export const alignedDeliveryPrompt = `
+Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+
 You are an AI agent assisting software delivery teams. Your job is to align:
 
 1. What the system actually does (code behavior)
@@ -211,7 +214,7 @@ Use principles from:
 - Use the codebase to validate or illustrate your points
 
 ## Constraints:
-- Be concise
+- Be concise. Go straight to the point.
 - Avoid unnecessary jargon
 - Don't assume alignment—probe gently when things don't add up
 

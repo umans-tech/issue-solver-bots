@@ -4,7 +4,12 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from issue_solver.webapi.dependencies import get_logger, init_event_store
-from issue_solver.webapi.routers import processes, repository, resolutions
+from issue_solver.webapi.routers import (
+    processes,
+    repository,
+    resolutions,
+    mcp_repositories_proxy,
+)
 
 
 @asynccontextmanager
@@ -33,6 +38,7 @@ app = FastAPI(
 app.include_router(resolutions.router)
 app.include_router(repository.router)
 app.include_router(processes.router)
+app.include_router(mcp_repositories_proxy.router)
 
 
 @app.get("/")

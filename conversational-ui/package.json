@@ -17,7 +17,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
-    "db:up": "drizzle-kit up"
+    "db:up": "drizzle-kit up",
+    "db:backfill-repo-urls": "npx tsx scripts/backfill-repo-urls.ts"
   },
   "pnpm": {
     "overrides": {
@@ -38,6 +39,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.36.4",
+    "@modelcontextprotocol/sdk": "^1.12.3",
     "@mozilla/readability": "^0.4.4",
     "@opentelemetry/api": "^1.9.0",
     "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -51,7 +53,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@radix-ui/react-visually-hidden": "^1.1.2",
-    "ai": "4.3.13",
+    "ai": "4.3.16",
     "bcrypt-ts": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
