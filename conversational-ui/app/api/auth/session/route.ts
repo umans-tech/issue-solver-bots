@@ -38,6 +38,7 @@ export async function GET() {
               name: latestSpace.name,
               knowledgeBaseId: latestSpace.knowledgeBaseId,
               processId: latestSpace.processId,
+              connectedRepoUrl: latestSpace.connectedRepoUrl,
               isDefault: latestSpace.isDefault,
             },
           },

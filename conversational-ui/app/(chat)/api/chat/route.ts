@@ -19,10 +19,13 @@ import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
+import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
 
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
+
+
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
@@ -46,7 +49,7 @@ function getStreamContext() {
 
   return globalStreamContext;
 }
-  
+
 export async function POST(request: Request) {
     const {
         id,
@@ -76,16 +79,16 @@ export async function POST(request: Request) {
 
     if (!chat) {
         const title = await generateTitleFromUserMessage({ message: userMessage });
-        
+
         // Get current user's selected space
         const currentSpace = await getCurrentUserSpace(session.user.id);
         if (!currentSpace) {
           throw new Error('Unable to determine user space');
         }
 
-        await saveChat({ 
-          id, 
-          userId: session.user.id, 
+        await saveChat({
+          id,
+          userId: session.user.id,
           title,
           spaceId: currentSpace.id
         });
@@ -106,11 +109,24 @@ export async function POST(request: Request) {
 
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
+    // Get current user's space for MCP context
+    const currentSpace = await getCurrentUserSpace(session.user.id);
+    const userContext = currentSpace ? { 
+        userId: session.user.id, 
+        spaceId: currentSpace.id 
+    } : undefined;
+    
+    // Initialize fresh MCP client with user context for this request
+    const clientWrapper = await codeRepositoryMCPClient(userContext);
+    const mcpClient = clientWrapper.client;
+    const mcpTools = await mcpClient.tools();
+
     const stream = createDataStream({
-        execute: (dataStream) => {
+        execute: async (dataStream) => {
+            
             // Collect sources written to the dataStream
             const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
-            
+
             // Wrap dataStream.writeSource to collect sources
             const originalWriteSource = dataStream.writeSource.bind(dataStream);
             dataStream.writeSource = (source) => {
@@ -135,11 +151,14 @@ export async function POST(request: Request) {
                     'webSearch',
                     'remoteCodingAgent',
                     'fetchWebpage',
+                    // @ts-ignore
+                    ...clientWrapper.activeTools()
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
                 experimental_generateMessageId: generateUUID,
                 tools: {
                     getWeather,
+                    ...mcpTools,
                     createDocument: createDocument({ session, dataStream }),
                     updateDocument: updateDocument({ session, dataStream }),
                     requestSuggestions: requestSuggestions({
@@ -175,11 +194,11 @@ export async function POST(request: Request) {
                                   (message) => message.role === 'assistant',
                                 ),
                               });
-              
+
                               if (!assistantId) {
                                 throw new Error('No assistant message found!');
                               }
-              
+
                               const [, assistantMessage] = appendResponseMessages({
                                 messages: [userMessage],
                                 responseMessages: response.messages,
@@ -212,13 +231,16 @@ export async function POST(request: Request) {
                         }
                     }
                 },
+                onError: async (error) => {
+                    console.error('Error during streaming:', error);
+                },
                 experimental_telemetry: {
                     isEnabled: true,
                     functionId: 'stream-text',
                 },
             });
 
-            result.consumeStream();
+            result.consumeStream().then(_ => {});
 
             result.mergeIntoDataStream(dataStream, {
                 sendReasoning: true,
@@ -247,57 +269,57 @@ export async function GET(request: Request) {
     if (!streamContext) {
       return new Response(null, { status: 204 });
     }
-  
+
     const { searchParams } = new URL(request.url);
     const chatId = searchParams.get('chatId');
-  
+
     if (!chatId) {
       return new Response('id is required', { status: 400 });
     }
-  
+
     const session = await auth();
-  
+
     let chat: Chat;
-    
+
     try {
       chat = await getChatById({ id: chatId });
     } catch {
       return new Response('Not found', { status: 404 });
     }
-    
-    if (!chat) {    
+
+    if (!chat) {
       return new Response('Not found', { status: 404 });
     }
-    
+
     if (chat.visibility !== 'public' && !session?.user) {
       return new Response('Unauthorized', { status: 401 });
     }
-  
+
     if (chat.visibility === 'private' && chat.userId !== session?.user.id) {
       return new Response('Forbidden', { status: 403 });
     }
-  
+
     const streamIds = await getStreamIdsByChatId({ chatId });
-  
+
     if (!streamIds.length) {
       return new Response('No streams found', { status: 404 });
     }
-  
+
     const recentStreamId = streamIds.at(-1);
-  
+
     if (!recentStreamId) {
       return new Response('No recent stream found', { status: 404 });
     }
-  
+
     const emptyDataStream = createDataStream({
       execute: () => {},
     });
-  
+
     const stream = await streamContext.resumableStream(
       recentStreamId,
       () => emptyDataStream,
     );
-  
+
     /*
      * For when the generation is streaming during SSR
      * but the resumable stream has concluded at this point.
@@ -305,21 +327,21 @@ export async function GET(request: Request) {
     if (!stream) {
       const messages = await getMessagesByChatId({ id: chatId });
       const mostRecentMessage = messages.at(-1);
-  
+
       if (!mostRecentMessage) {
         return new Response(emptyDataStream, { status: 200 });
       }
-  
+
       if (mostRecentMessage.role !== 'assistant') {
         return new Response(emptyDataStream, { status: 200 });
       }
-  
+
       const messageCreatedAt = new Date(mostRecentMessage.createdAt);
-  
+
       if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
         return new Response(emptyDataStream, { status: 200 });
       }
-  
+
       const restoredStream = createDataStream({
         execute: (buffer) => {
           buffer.writeData({
@@ -328,12 +350,12 @@ export async function GET(request: Request) {
           });
         },
       });
-  
+
       return new Response(restoredStream, { status: 200 });
     }
-  
+
     return new Response(stream, { status: 200 });
-  }  
+  }
 
 export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);

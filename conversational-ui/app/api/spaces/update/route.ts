@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     // Parse request body
-    const { spaceId, knowledgeBaseId, processId, name, isDefault } = await request.json();
+    const { spaceId, knowledgeBaseId, processId, connectedRepoUrl, name, isDefault } = await request.json();
 
     // Validate required fields
     if (!spaceId) {
@@ -28,12 +28,14 @@ export async function POST(request: Request) {
     const updates: {
       knowledgeBaseId?: string;
       processId?: string;
+      connectedRepoUrl?: string;
       name?: string;
       isDefault?: boolean;
     } = {};
 
     if (knowledgeBaseId !== undefined) updates.knowledgeBaseId = knowledgeBaseId;
     if (processId !== undefined) updates.processId = processId;
+    if (connectedRepoUrl !== undefined) updates.connectedRepoUrl = connectedRepoUrl;
     if (name !== undefined) updates.name = name;
     if (isDefault !== undefined) updates.isDefault = isDefault;
 
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
       updates: {
         knowledgeBaseId: updates.knowledgeBaseId !== undefined ? 'updated' : 'unchanged',
         processId: updates.processId !== undefined ? 'updated' : 'unchanged',
+        connectedRepoUrl: updates.connectedRepoUrl !== undefined ? 'updated' : 'unchanged',
         name: updates.name !== undefined ? 'updated' : 'unchanged',
         isDefault: updates.isDefault !== undefined ? 'updated' : 'unchanged',
       }

@@ -461,7 +461,7 @@ export function RepoConnectionDialog({
       
       // If we have the knowledge base ID, update the space
       if (knowledgeBaseId) {
-        // Update the space with the knowledge base ID
+        // Update the space with the knowledge base ID and connected repo URL
         const updateResponse = await fetch('/api/spaces/update', {
           method: 'POST',
           headers: {
@@ -471,6 +471,7 @@ export function RepoConnectionDialog({
             spaceId: session.user.selectedSpace.id,
             knowledgeBaseId: knowledgeBaseId,
             processId: data.process_id || null,
+            connectedRepoUrl: repoUrl,
           }),
         });
         
@@ -483,6 +484,7 @@ export function RepoConnectionDialog({
           ...session.user.selectedSpace,
           knowledgeBaseId: knowledgeBaseId,
           processId: data.process_id || null,
+          connectedRepoUrl: repoUrl,
         };
         
         // Update the session with the new space data
