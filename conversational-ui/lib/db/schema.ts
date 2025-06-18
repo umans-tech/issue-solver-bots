@@ -16,6 +16,7 @@ export const space = pgTable('Space', {
   name: text('name').notNull(),
   knowledgeBaseId: text('knowledgeBaseId'),
   processId: text('processId'),
+  connectedRepoUrl: text('connectedRepoUrl'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   isDefault: boolean('isDefault').notNull().default(false),

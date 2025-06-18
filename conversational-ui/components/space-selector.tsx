@@ -16,6 +16,7 @@ interface Space {
   name: string;
   knowledgeBaseId?: string | null;
   processId?: string | null;
+  connectedRepoUrl?: string | null;
   isDefault?: boolean;
 }
 

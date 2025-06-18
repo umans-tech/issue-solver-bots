@@ -23,6 +23,7 @@ interface ExtendedSession extends Session {
       name: string;
       knowledgeBaseId?: string | null;
       processId?: string | null;
+      connectedRepoUrl?: string | null;
       isDefault?: boolean;
     } | null;
   } & Omit<Session['user'], 'id'>;
@@ -166,6 +167,7 @@ export const {
             name: selectedSpace.name,
             knowledgeBaseId: selectedSpace.knowledgeBaseId,
             processId: selectedSpace.processId,
+            connectedRepoUrl: selectedSpace.connectedRepoUrl,
             isDefault: selectedSpace.isDefault,
           };
         }
@@ -191,6 +193,7 @@ export const {
             name: token.selectedSpace.name,
             knowledgeBaseId: token.selectedSpace.knowledgeBaseId,
             processId: token.selectedSpace.processId,
+            connectedRepoUrl: token.selectedSpace.connectedRepoUrl,
             // Ensure we're passing all properties from the token
             ...(token.selectedSpace.isDefault !== undefined
               ? { isDefault: token.selectedSpace.isDefault }
@@ -201,7 +204,8 @@ export const {
           // This helps ensure we always have the latest data, especially after repository connection
           const shouldFetchFromDb =
             token.selectedSpace.knowledgeBaseId === undefined ||
-            token.selectedSpace.processId === undefined;
+            token.selectedSpace.processId === undefined ||
+            token.selectedSpace.connectedRepoUrl === undefined;
 
           if (shouldFetchFromDb && token.id) {
             try {
@@ -210,7 +214,7 @@ export const {
 
               if (
                 spaceFromDb &&
-                (spaceFromDb.knowledgeBaseId || spaceFromDb.processId)
+                (spaceFromDb.knowledgeBaseId || spaceFromDb.processId || spaceFromDb.connectedRepoUrl)
               ) {
                 console.log(
                   'Session: Found extra space data in database, updating session:',
@@ -218,6 +222,7 @@ export const {
                     id: spaceFromDb.id,
                     knowledgeBaseId: spaceFromDb.knowledgeBaseId,
                     processId: spaceFromDb.processId,
+                    connectedRepoUrl: spaceFromDb.connectedRepoUrl,
                   },
                 );
 
@@ -226,6 +231,7 @@ export const {
                   ...session.user.selectedSpace,
                   knowledgeBaseId: spaceFromDb.knowledgeBaseId,
                   processId: spaceFromDb.processId,
+                  connectedRepoUrl: spaceFromDb.connectedRepoUrl,
                 };
               }
             } catch (error) {
@@ -241,6 +247,7 @@ export const {
             id: session.user.selectedSpace.id,
             knowledgeBaseId: session.user.selectedSpace.knowledgeBaseId,
             processId: session.user.selectedSpace.processId,
+            connectedRepoUrl: session.user.selectedSpace.connectedRepoUrl,
           });
         }
       }
