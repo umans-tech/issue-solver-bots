@@ -630,3 +630,13 @@ button:focus-visible,
   
   .animate-collapsible-down { animation: collapsible-down 300ms ease-out both; }
   .animate-collapsible-up   { animation: collapsible-up   300ms ease-out both; }
+
+/* Fix for numbered list spacing to prevent number cropping */
+ol {
+  padding-left: 2.5em !important;
+}
+
+ol li::before {
+  width: 2em;
+  text-align: right;
+}
