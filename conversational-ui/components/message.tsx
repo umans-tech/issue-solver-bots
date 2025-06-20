@@ -28,6 +28,7 @@ import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
+import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -64,10 +65,32 @@ const PurePreviewMessage = ({
   const allSources = useMemo(() => {
     if (!message.parts) return [];
     
-    return message.parts
+    const sources = [];
+    
+    // Get sources from message parts
+    const messageSources = message.parts
       .filter(part => part.type === 'source')
       .map(part => part.source)
       .filter(source => source !== undefined);
+    
+    sources.push(...messageSources);
+    
+    // Extract GitHub sources from tool invocations
+    const gitHubSources = message.parts
+      .filter(part => part.type === 'tool-invocation')
+      .map(part => {
+        const { toolInvocation } = part;
+        if (toolInvocation.state === 'result' && isGitHubMCPTool(toolInvocation.toolName)) {
+          return extractGitHubSources(toolInvocation.toolName, toolInvocation.result, toolInvocation.args);
+        }
+        return [];
+      })
+      .flat()
+      .filter(source => source !== undefined);
+    
+    sources.push(...gitHubSources);
+    
+    return sources;
   }, [message.parts]);
 
   return (
@@ -246,6 +269,8 @@ const PurePreviewMessage = ({
                         <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpageAnimation url={args?.url} />
+                      ) : isGitHubMCPTool(toolName) ? (
+                        <GitHubMCPAnimation toolName={toolName} args={args} />
                       ) : null}
                     </div>
                   );
@@ -271,6 +296,9 @@ const PurePreviewMessage = ({
                   const { result, args } = toolInvocation;
                   const issueTitle = args?.issue?.title ?? '';
                   const issueDescription = args?.issue?.description ?? '';
+
+                  // Debug logging for all tool results
+                  console.log(`[Tool Result] ${toolName}:`, { result, args, state });
 
                   // Show single codebase search result normally
                   if (toolName === 'codebaseSearch') {
@@ -343,6 +371,8 @@ const PurePreviewMessage = ({
                         />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpage result={result} url={args?.url} />
+                      ) : isGitHubMCPTool(toolName) ? (
+                        <GitHubMCPResult toolName={toolName} result={result} args={args} />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}
