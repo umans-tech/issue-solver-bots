@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Earth, CodeXml, X } from 'lucide-react';
 import { getFallbackFaviconUrls } from '@/lib/utils';
 import { SourceFavicon } from './source-favicon';
+import { GitIcon } from './icons';
 
 // Note: FaviconImage replaced with centralized Favicon component
 
@@ -130,7 +131,12 @@ export const getLanguageIcon = (extension: string): string | null => {
 };
 
 // Determine source type based on URL or provider metadata
-const getSourceType = (source: Source): 'web' | 'codebase' => {
+const getSourceType = (source: Source): 'web' | 'codebase' | 'github' => {
+  // Check if it's a GitHub URL
+  if (source.url.includes('github.com')) {
+    return 'github';
+  }
+  
   // Check provider metadata for hints
   if (source.providerMetadata?.exa) {
     return 'web';
@@ -160,6 +166,7 @@ export function Sources({ sources }: SourcesProps) {
   // Separate sources by type
   const webSources = uniqueSources.filter(source => getSourceType(source) === 'web');
   const codebaseSources = uniqueSources.filter(source => getSourceType(source) === 'codebase');
+  const githubSources = uniqueSources.filter(source => getSourceType(source) === 'github');
   
   // Take only the first 3 sources for collapsed view
   const visibleSources = uniqueSources.slice(0, 3);
@@ -180,6 +187,8 @@ export function Sources({ sources }: SourcesProps) {
               <div key={source.id} className="flex items-center">
                 {sourceType === 'web' ? (
                   <SourceFavicon url={source.url} className="w-4 h-4 rounded-sm" />
+                ) : sourceType === 'github' ? (
+                  <GitIcon status="none" />
                 ) : sourceType === 'codebase' && languageIcon ? (
                   <img 
                     src={languageIcon} 
@@ -221,8 +230,12 @@ export function Sources({ sources }: SourcesProps) {
             <div className="flex items-center gap-1.5 flex-grow">
               <span className="text-xs font-medium text-muted-foreground">
                 {uniqueSources.length} source{uniqueSources.length !== 1 ? 's' : ''} 
-                {webSources.length > 0 && codebaseSources.length > 0 && 
-                  ` (${webSources.length} web, ${codebaseSources.length} codebase)`
+                {(webSources.length > 0 || codebaseSources.length > 0 || githubSources.length > 0) && 
+                  ` (${[
+                    webSources.length > 0 && `${webSources.length} web`,
+                    githubSources.length > 0 && `${githubSources.length} github`,
+                    codebaseSources.length > 0 && `${codebaseSources.length} codebase`
+                  ].filter(Boolean).join(', ')})`
                 }
               </span>
             </div>
@@ -271,10 +284,43 @@ export function Sources({ sources }: SourcesProps) {
             </div>
           )}
           
+          {/* GitHub Sources Section */}
+          {githubSources.length > 0 && (
+            <div className="flex flex-col divide-y divide-border/50">
+              {(githubSources.length > 1 || webSources.length > 0) && (
+                <div className="px-3 py-1 bg-muted/20 border-t border-border/50">
+                  <span className="text-xs font-medium text-muted-foreground">GitHub Sources</span>
+                </div>
+              )}
+              {githubSources.map((source) => (
+                <div key={source.id} className="flex flex-col gap-1 p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <GitIcon status="none" />
+                    </div>
+                    <div className="flex flex-col gap-0">
+                      <a 
+                        href={source.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-base font-medium text-primary hover:underline line-clamp-1"
+                      >
+                        {source.title || 'GitHub Resource'}
+                      </a>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {source.url}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
           {/* Codebase Sources Section */}
           {codebaseSources.length > 0 && (
             <div className="flex flex-col">
-              {codebaseSources.length > 1 && webSources.length > 0 && (
+              {(codebaseSources.length > 1 || webSources.length > 0 || githubSources.length > 0) && (
                 <div className="px-3 py-1 bg-muted/20 border-t border-border/50">
                   <span className="text-xs font-medium text-muted-foreground">Codebase Sources</span>
                 </div>
