@@ -546,11 +546,7 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
   }
 
   if (!prsArray || prsArray.length === 0) {
-    return (
-      <div className="text-muted-foreground">
-        No pull requests found in {repository}
-      </div>
-    );
+    return null;
   }
 
   const displayedPRs = expanded ? prsArray : prsArray.slice(0, 3);
@@ -754,11 +750,7 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
   }
 
   if (!reposArray || reposArray.length === 0) {
-    return (
-      <div className="text-muted-foreground">
-        No repositories found{query ? ` for "${query}"` : ''}
-      </div>
-    );
+    return null;
   }
 
   const displayedRepos = expanded ? reposArray : reposArray.slice(0, 3);
@@ -994,7 +986,8 @@ const GitHubSingleFileDisplay = ({ fileData }: { fileData: any }) => {
         actualContent = fileData.content;
       }
     } catch (error) {
-      actualContent = 'Error decoding file content';
+      // Error decoding - return null like codebase search
+      return null;
     }
   }
   
@@ -1071,13 +1064,9 @@ const GitHubSingleFileDisplay = ({ fileData }: { fileData: any }) => {
             <span className="text-xs bg-muted px-2 py-0.5 rounded">{fileType}</span>
           </div>
           
-          {actualContent && !actualContent.startsWith('Error') ? (
+          {actualContent ? (
             <div className="text-sm bg-muted/20 p-3 rounded font-mono overflow-auto max-h-64">
               <pre className="whitespace-pre-wrap">{actualContent}</pre>
-            </div>
-          ) : actualContent.startsWith('Error') ? (
-            <div className="text-sm text-red-600 dark:text-red-400 mb-2">
-              {actualContent.replace('Error: ', '')}
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
@@ -1131,10 +1120,9 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   let fileUrl = '';
   let fileSize = 0;
   
-  // Handle error case
+  // Handle error case - return null like codebase search
   if (errorMessage) {
-    actualContent = `Error: ${errorMessage}`;
-    fileName = path || 'Unknown file';
+    return null;
   }
   
   if (fileData && typeof fileData === 'object') {
@@ -1153,7 +1141,8 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
           actualContent = fileData.content;
         }
       } catch (error) {
-        actualContent = 'Error decoding file content';
+        // Error decoding - return null like codebase search
+        return null;
       }
     }
     
@@ -1162,8 +1151,9 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
     fileSize = fileData.size || 0;
   } else if (typeof fileData === 'string') {
     actualContent = fileData;
-  } else if (fileData === null && errorMessage) {
-    // Already handled above
+  } else if (fileData === null) {
+    // No file data - return null like codebase search
+    return null;
   } else {
     // Debug: show the raw data structure if we can't parse it
     actualContent = `Debug: ${JSON.stringify(fileData, null, 2)}`;
@@ -1370,11 +1360,7 @@ const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: str
   }
 
   if (!resultsArray || resultsArray.length === 0) {
-    return (
-      <div className="text-muted-foreground">
-        No code found{query ? ` for "${query}"` : ''}
-      </div>
-    );
+    return null;
   }
 
   const displayedResults = expanded ? resultsArray : resultsArray.slice(0, 3);
@@ -1500,11 +1486,7 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
   }
 
   if (!issuesArray || issuesArray.length === 0) {
-    return (
-      <div className="text-muted-foreground">
-        No issues found in {repository}
-      </div>
-    );
+    return null;
   }
 
   const displayedIssues = expanded ? issuesArray : issuesArray.slice(0, 3);
