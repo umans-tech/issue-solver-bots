@@ -64,11 +64,23 @@ const createProxyMCPClient = async (userContext?: { userId?: string; spaceId?: s
             "get_me",
             "list_issues",
             "get_issue",
+            "create_issue",
+            "add_issue_comment",
+            "update_issue",
             "search_code",
             "get_file_contents",
-            "list_repositories",
             "get_pull_request",
-            "list_pull_requests"
+            "list_pull_requests",
+            "get_pull_request_files",
+            "get_pull_request_diff",
+            "get_issue_comments",
+            "create_pull_request",
+            "create_and_submit_pull_request_review",
+            "list_commits",
+            "get_commit",
+            "list_workflow_runs",
+            "get_workflow_run_logs",
+            "list_code_scanning_alerts"
         ],
     };
 }
