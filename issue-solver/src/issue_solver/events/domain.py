@@ -64,6 +64,7 @@ class IssueResolutionRequested(DomainEvent):
     issue: IssueInfo
     process_id: str
     occurred_at: datetime
+    user_id: str = "unknown-user-id"  # Default value for retro-compatibility. This can be removed in the future if not needed anymore.
 
 
 @dataclass(frozen=True, slots=True)
