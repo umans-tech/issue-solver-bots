@@ -179,6 +179,7 @@ class IssueResolutionRequestedRecord(BaseModel):
     knowledge_base_id: str
     process_id: str
     issue: IssueInfo
+    user_id: str | None = None
 
     def safe_copy(self) -> Self:
         return self.model_copy()
@@ -189,6 +190,7 @@ class IssueResolutionRequestedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             process_id=self.process_id,
             issue=self.issue,
+            user_id=self.user_id if self.user_id is not None else "unknown",
         )
 
     @classmethod
@@ -198,6 +200,7 @@ class IssueResolutionRequestedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
             issue=event.issue,
+            user_id=event.user_id,
         )
 
 
