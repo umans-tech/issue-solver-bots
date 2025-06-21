@@ -51,6 +51,10 @@ COPY --from=git-builder /git/ /usr/local/git/
 # Ensure the Git binary is in your PATH
 ENV PATH="/usr/local/git:${PATH}"
 
+# Install Node.js and Claude Code CLI
+RUN yum install -y nodejs npm && \
+    npm install -g @anthropic-ai/claude-code
+
 # Create a directory with appropriate permissions for Git operations
 RUN mkdir -p /tmp/repo && \
     chmod 777 /tmp/repo

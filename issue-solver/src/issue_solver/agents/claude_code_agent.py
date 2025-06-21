@@ -1,9 +1,15 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal, Any, Dict, Union
 import logging
 
 from claude_code_sdk import query, ClaudeCodeOptions
+from claude_code_sdk.types import (
+    UserMessage as ClaudeCodeUserMessage,
+    AssistantMessage as ClaudeCodeAssistantMessage,
+    SystemMessage as ClaudeCodeSystemMessage,
+    ResultMessage as ClaudeCodeResultMessage,
+)
 
 from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
@@ -17,8 +23,18 @@ from issue_solver.models.supported_models import (
 
 logger = logging.getLogger()
 
+# Type alias for Claude Code message types
+ClaudeCodeMessage = Union[
+    ClaudeCodeUserMessage,
+    ClaudeCodeAssistantMessage,
+    ClaudeCodeSystemMessage,
+    ClaudeCodeResultMessage,
+]
 
-class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolvingAgent):
+
+class ClaudeCodeAgent(
+    CodingAgent[SupportedAnthropicModel, Message], IssueResolvingAgent
+):
     """
     Claude Code agent that uses Anthropic's Claude Code SDK to resolve issues.
     This agent runs Claude Code as a subprocess and provides comprehensive
@@ -29,7 +45,9 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
         self,
         api_key: Optional[str] = None,
         max_turns: int = 100,
-        permission_mode: str = "acceptEdits",
+        permission_mode: Literal[
+            "default", "acceptEdits", "bypassPermissions"
+        ] = "acceptEdits",
     ):
         super().__init__()
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
@@ -44,13 +62,14 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
     async def resolve_issue(self, command: ResolveIssueCommand) -> None:
         """
         Resolve an issue using Claude Code SDK.
-        
+
         Args:
             command: ResolveIssueCommand containing issue details, repo path, and model info
         """
         # Set up environment for Claude Code
         original_api_key = os.environ.get("ANTHROPIC_API_KEY")
-        os.environ["ANTHROPIC_API_KEY"] = self.api_key
+        if self.api_key:
+            os.environ["ANTHROPIC_API_KEY"] = self.api_key
 
         repo_path = Path(command.repo_path)
         logger.info(f"Resolving issue using Claude Code in {repo_path}")
@@ -69,11 +88,11 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
             )
 
             # Run Claude Code to resolve the issue
-            messages = []
+            messages: list[ClaudeCodeMessage] = []
             async for message in query(prompt=issue_prompt, options=options):
                 messages.append(message)
                 # Log progress
-                message_type = message.get("type", "unknown")
+                message_type = self._get_message_type(message)
                 logger.info(f"Claude Code message type: {message_type}")
 
             # Validate successful completion
@@ -81,17 +100,19 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
                 raise Exception("Claude Code produced no output")
 
             final_result = messages[-1]
-            if final_result.get("type") != "result":
+            if self._get_message_type(final_result) != "result":
                 raise Exception("Claude Code did not complete with a result message")
 
-            if final_result.get("is_error", False):
-                error_msg = final_result.get("result", "Unknown error occurred")
+            if self._get_message_error_status(final_result):
+                error_msg = (
+                    self._get_message_result(final_result) or "Unknown error occurred"
+                )
                 raise Exception(f"Claude Code execution failed: {error_msg}")
 
             # Log success metrics
-            duration_ms = final_result.get("duration_ms", 0)
-            num_turns = final_result.get("num_turns", 0)
-            cost_usd = final_result.get("total_cost_usd", 0)
+            duration_ms = self._get_message_duration(final_result)
+            num_turns = self._get_message_turns(final_result)
+            cost_usd = self._get_message_cost(final_result)
             logger.info(
                 f"Claude Code completed successfully: {num_turns} turns, "
                 f"{duration_ms}ms duration, ${cost_usd:.4f} cost"
@@ -107,34 +128,82 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
             elif "ANTHROPIC_API_KEY" in os.environ:
                 del os.environ["ANTHROPIC_API_KEY"]
 
+    def _get_message_type(self, message: ClaudeCodeMessage) -> str:
+        """Extract message type from Claude Code message."""
+        if isinstance(message, ClaudeCodeUserMessage):
+            return "user"
+        elif isinstance(message, ClaudeCodeAssistantMessage):
+            return "assistant"
+        elif isinstance(message, ClaudeCodeSystemMessage):
+            return "system"
+        elif isinstance(message, ClaudeCodeResultMessage):
+            return "result"
+        else:
+            return "unknown"
+
+    def _get_message_error_status(self, message: ClaudeCodeMessage) -> bool:
+        """Extract error status from Claude Code message."""
+        if hasattr(message, "is_error"):
+            return bool(getattr(message, "is_error", False))
+        return False
+
+    def _get_message_result(self, message: ClaudeCodeMessage) -> Optional[str]:
+        """Extract result from Claude Code message."""
+        if hasattr(message, "result"):
+            result = getattr(message, "result", None)
+            return str(result) if result is not None else None
+        return None
+
+    def _get_message_duration(self, message: ClaudeCodeMessage) -> int:
+        """Extract duration from Claude Code message."""
+        if hasattr(message, "duration_ms"):
+            return int(getattr(message, "duration_ms", 0))
+        return 0
+
+    def _get_message_turns(self, message: ClaudeCodeMessage) -> int:
+        """Extract number of turns from Claude Code message."""
+        if hasattr(message, "num_turns"):
+            return int(getattr(message, "num_turns", 0))
+        return 0
+
+    def _get_message_cost(self, message: ClaudeCodeMessage) -> float:
+        """Extract cost from Claude Code message."""
+        if hasattr(message, "total_cost_usd"):
+            return float(getattr(message, "total_cost_usd", 0.0))
+        return 0.0
+
     def _build_issue_prompt(self, command: ResolveIssueCommand) -> str:
         """
         Build a comprehensive prompt for Claude Code to resolve the issue.
-        
+
         Args:
             command: ResolveIssueCommand with issue details
-            
+
         Returns:
             Formatted prompt string for Claude Code
         """
         issue = command.issue
         repo_path = command.repo_path
-        
+
         prompt_parts = [
             f"I need you to resolve the following issue in the codebase located at {repo_path}:",
             "",
         ]
 
         if issue.title:
-            prompt_parts.extend([
-                f"**Issue Title:** {issue.title}",
-                "",
-            ])
+            prompt_parts.extend(
+                [
+                    f"**Issue Title:** {issue.title}",
+                    "",
+                ]
+            )
 
-        prompt_parts.extend([
-            "**Issue Description:**",
-            issue.description,
-        ])
+        prompt_parts.extend(
+            [
+                "**Issue Description:**",
+                issue.description,
+            ]
+        )
 
         return "\n".join(prompt_parts)
 
@@ -157,7 +226,7 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
             allowed_tools=["Read", "Write", "Bash", "Edit"],
         )
 
-        response_messages = []
+        response_messages: list[ClaudeCodeMessage] = []
         try:
             async for message in query(prompt=system_message, options=options):
                 response_messages.append(message)
@@ -165,13 +234,38 @@ class ClaudeCodeAgent(CodingAgent[SupportedAnthropicModel, Message], IssueResolv
             # Return a failed turn output
             return ClaudeCodeTurnOutput([], has_error=True, error_message=str(e))
 
-        return ClaudeCodeTurnOutput(response_messages)
+        # Convert Claude Code messages to dict format for ClaudeCodeTurnOutput
+        message_dicts = [self._claude_message_to_dict(msg) for msg in response_messages]
+        return ClaudeCodeTurnOutput(message_dicts)
+
+    def _claude_message_to_dict(self, message: ClaudeCodeMessage) -> Dict[str, Any]:
+        """Convert Claude Code message to dict format."""
+        base_dict: Dict[str, Any] = {"type": self._get_message_type(message)}
+
+        # Add message content if available
+        if hasattr(message, "message"):
+            base_dict["message"] = getattr(message, "message")
+
+        # Add additional fields for result messages
+        if isinstance(message, ClaudeCodeResultMessage):
+            base_dict["is_error"] = self._get_message_error_status(message)
+            base_dict["result"] = self._get_message_result(message)
+            base_dict["duration_ms"] = self._get_message_duration(message)
+            base_dict["num_turns"] = self._get_message_turns(message)
+            base_dict["total_cost_usd"] = self._get_message_cost(message)
+
+        return base_dict
 
 
 class ClaudeCodeTurnOutput(TurnOutput[Message]):
     """Turn output wrapper for Claude Code responses."""
 
-    def __init__(self, messages: list[dict], has_error: bool = False, error_message: str = ""):
+    def __init__(
+        self,
+        messages: list[Dict[str, Any]],
+        has_error: bool = False,
+        error_message: str = "",
+    ):
         self._messages = messages
         self._has_error = has_error
         self._error_message = error_message
@@ -183,26 +277,34 @@ class ClaudeCodeTurnOutput(TurnOutput[Message]):
         if not self._messages:
             return False
         last_message = self._messages[-1]
-        return last_message.get("type") == "result" and not last_message.get("is_error", False)
+        return last_message.get("type") == "result" and not last_message.get(
+            "is_error", False
+        )
 
     def messages_history(self) -> list[Message]:
         """Return the message history as Message objects."""
         history = []
         for msg in self._messages:
             if msg.get("type") == "assistant":
-                history.append(Message(role="assistant", content=str(msg.get("message", ""))))
+                history.append(
+                    Message(role="assistant", content=str(msg.get("message", "")))
+                )
             elif msg.get("type") == "user":
-                history.append(Message(role="user", content=str(msg.get("message", ""))))
+                history.append(
+                    Message(role="user", content=str(msg.get("message", "")))
+                )
         return history
 
     def append(self, message: Message) -> None:
         """Append a message to the history."""
         # Convert Message to dict format
-        self._messages.append({
-            "type": "user" if message.role == "user" else "assistant",
-            "message": message.content
-        })
+        self._messages.append(
+            {
+                "type": "user" if message.role == "user" else "assistant",
+                "message": message.content,
+            }
+        )
 
     def turn_messages(self) -> list[Message]:
         """Return messages from this turn only."""
-        return self.messages_history() 
+        return self.messages_history()

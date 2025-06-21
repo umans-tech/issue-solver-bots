@@ -39,12 +39,11 @@ class AnthropicAgentResolutionSettings(BaseModel):
 class ClaudeCodeAgentResolutionSettings(BaseModel):
     agent: Literal["claude-code"] = "claude-code"
     max_turns: int = Field(
-        default=100, 
-        description="Maximum number of turns for Claude Code to resolve the issue"
+        default=100,
+        description="Maximum number of turns for Claude Code to resolve the issue",
     )
     permission_mode: str = Field(
-        default="acceptEdits", 
-        description="Permission mode for Claude Code operations"
+        default="acceptEdits", description="Permission mode for Claude Code operations"
     )
     history: list[MessageParam | Message] | None = Field(
         default=None,
@@ -53,8 +52,8 @@ class ClaudeCodeAgentResolutionSettings(BaseModel):
 
 
 ResolutionSettings = (
-    OpenAIAgentResolutionSettings 
-    | AnthropicAgentResolutionSettings 
+    OpenAIAgentResolutionSettings
+    | AnthropicAgentResolutionSettings
     | ClaudeCodeAgentResolutionSettings
 )
 

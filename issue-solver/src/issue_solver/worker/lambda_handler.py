@@ -9,7 +9,7 @@ import os
 import sys
 from typing import Any, Dict
 
-from issue_solver.agents.anthropic_agent import AnthropicAgent
+from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
 from issue_solver.git_operations.git_helper import GitClient
@@ -78,7 +78,7 @@ async def load_dependencies_and_process_event_message(
     dependencies = Dependencies(
         event_store=event_store,
         git_client=GitClient(),
-        coding_agent=AnthropicAgent(api_key=os.environ["ANTHROPIC_API_KEY"]),
+        coding_agent=ClaudeCodeAgent(api_key=os.environ["ANTHROPIC_API_KEY"]),
         clock=get_clock(),
     )
     await process_event_message(
