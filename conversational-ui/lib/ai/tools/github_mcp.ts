@@ -41,15 +41,23 @@ const createProxyMCPClient = async (userContext?: { userId?: string; spaceId?: s
         }
     }
 
+    // Prepare headers with user context
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+        // No Authorization header - proxy will handle token injection
+    };
+
+    // Add user ID header if available
+    if (userContext?.userId) {
+        headers['X-User-ID'] = userContext.userId;
+    }
+
     // Use custom transport to connect to our Issue-Solver proxy
     const transport = new UserContextTransport(
         new URL(`${cuduEndpoint}/mcp/repositories/proxy`),
         {
             requestInit: {
-                headers: {
-                    'Content-Type': 'application/json'
-                    // No Authorization header - proxy will handle token injection
-                }
+                headers
             }
         }
     );

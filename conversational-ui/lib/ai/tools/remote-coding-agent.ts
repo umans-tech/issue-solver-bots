@@ -45,7 +45,8 @@ export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) => tool({
             const response = await fetch(`${cuduEndpoint}/resolutions`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-User-ID': session.user?.id || 'unknown'
                 },
                 body: JSON.stringify(requestBody)
             });

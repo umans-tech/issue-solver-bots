@@ -171,13 +171,13 @@ export async function POST(request: Request) {
     const requestBody = {
       url: repoUrl,
       access_token: accessToken,
-      user_id: userId || session.user.id,
       space_id: spaceId || '',
     };
     
     console.log("Sending request to CUDU API:", {
       endpoint: `${cuduEndpoint}/repositories`,
-      body: { ...requestBody, access_token: '***REDACTED***' }
+      body: { ...requestBody, access_token: '***REDACTED***' },
+      headers: { 'X-User-ID': userId || session.user.id }
     });
 
     // Forward the request to the CUDU API with user and space information
@@ -185,6 +185,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-User-ID': userId || session.user.id,
       },
       body: JSON.stringify(requestBody),
     });
