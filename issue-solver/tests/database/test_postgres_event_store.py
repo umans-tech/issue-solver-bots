@@ -154,6 +154,7 @@ async def test_get_issue_resolution_events(
             knowledge_base_id="knowledge-base-id",
             process_id="test-process-id",
             issue=IssueInfo(description="test issue"),
+            user_id="test-user-id",
         ),
         IssueResolutionStarted(
             occurred_at=datetime.fromisoformat("2021-01-01T01:00:00"),
