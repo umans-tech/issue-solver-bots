@@ -16,8 +16,10 @@ def test_connect_repository_returns_201_and_publishes_code_repository_connected_
         json={
             "url": repo_url,
             "access_token": repo_access_token,
-            "user_id": "test-user-id",
             "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
         },
     )
 
@@ -57,8 +59,10 @@ def test_get_process_returns_200_when_the_process_is_found(
         json={
             "url": "https://github.com/test/repo",
             "access_token": "test-access-token",
-            "user_id": "test-user-id",
             "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
         },
     )
     process_id = connect_repo_response.json()["process_id"]
@@ -97,8 +101,10 @@ def test_post_repositories_index_new_changes(
         json={
             "url": "https://github.com/test/repo",
             "access_token": "test-access-token",
-            "user_id": "test-user-id",
             "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
         },
     )
     connect_repo_response_json = connect_repo_response.json()
@@ -109,8 +115,8 @@ def test_post_repositories_index_new_changes(
     # When
     response = api_client.post(
         f"/repositories/{knowledge_base_id}",
-        json={
-            "user_id": "second-user-id",
+        headers={
+            "X-User-ID": "second-user-id",
         },
     )
 
@@ -122,7 +128,7 @@ def test_post_repositories_index_new_changes(
     message_body = json.loads(messages["Messages"][0]["Body"])
     assert message_body["type"] == "repository_indexation_requested"
     assert message_body["process_id"] == process_id
-    # assert message_body["user_id"] == "second-user-id"
+    assert message_body["user_id"] == "second-user-id"
     assert message_body["occurred_at"] == "2021-01-01T00:00:00"
 
 
