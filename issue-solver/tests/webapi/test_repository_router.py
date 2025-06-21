@@ -21,7 +21,6 @@ class TestRepositoryRouterErrorHandling:
         return ConnectRepositoryRequest(
             url="https://github.com/example/repo.git",
             access_token="test-token",
-            user_id="test-user",
             space_id="test-space",
         )
 
@@ -56,6 +55,7 @@ class TestRepositoryRouterErrorHandling:
         with pytest.raises(HTTPException) as exc_info:
             await connect_repository(
                 connect_repository_request=connect_repository_request,
+                user_id="test-user",
                 event_store=event_store,
                 logger=mock_logger,
                 clock=mock_clock,
@@ -98,6 +98,7 @@ class TestRepositoryRouterErrorHandling:
         with pytest.raises(HTTPException) as exc_info:
             await connect_repository(
                 connect_repository_request=connect_repository_request,
+                user_id="test-user",
                 event_store=event_store,
                 logger=mock_logger,
                 clock=mock_clock,

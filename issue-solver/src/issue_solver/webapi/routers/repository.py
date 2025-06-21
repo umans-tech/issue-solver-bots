@@ -23,6 +23,7 @@ from issue_solver.webapi.dependencies import (
     get_event_store,
     get_logger,
     get_validation_service,
+    get_user_id_or_default,
 )
 from issue_solver.webapi.payloads import ConnectRepositoryRequest
 from openai import OpenAI
@@ -33,6 +34,7 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 @router.post("/", status_code=201)
 async def connect_repository(
     connect_repository_request: ConnectRepositoryRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
     event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
@@ -58,7 +60,7 @@ async def connect_repository(
         occurred_at=clock.now(),
         url=connect_repository_request.url,
         access_token=connect_repository_request.access_token,
-        user_id=connect_repository_request.user_id,
+        user_id=user_id,
         space_id=connect_repository_request.space_id,
         knowledge_base_id=vector_store.id,
         process_id=process_id,
@@ -92,6 +94,7 @@ def _validate_repository_access(connect_repository_request, logger, validation_s
 @router.post("/{knowledge_base_id}", status_code=200)
 async def index_new_changes(
     knowledge_base_id: str,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
     event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
@@ -119,7 +122,7 @@ async def index_new_changes(
         occurred_at=clock.now(),
         knowledge_base_id=knowledge_base_id,
         process_id=repository_connections[0].process_id,
-        user_id="unknown",
+        user_id=user_id,
     )
     await event_store.append(event.process_id, event)
     logger.info(
