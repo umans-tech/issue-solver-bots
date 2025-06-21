@@ -3,6 +3,8 @@ import os
 from typing import assert_never
 
 import asyncpg
+from fastapi import Header
+
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
@@ -22,6 +24,12 @@ logger = default_logging_config.get_logger("issue_solver.webapi.dependencies")
 
 def get_event_store(request: Request) -> EventStore:
     return request.app.state.event_store
+
+
+async def get_user_id_or_default(
+    x_user_id: str = Header(None, alias="X-User-ID"),
+) -> str:
+    return x_user_id or "unknown"
 
 
 def get_agent(setting: ResolutionSettings) -> CodingAgent:

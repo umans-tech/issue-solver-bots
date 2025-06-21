@@ -9,7 +9,12 @@ from issue_solver.events.domain import (
     IssueResolutionRequested,
 )
 from issue_solver.events.event_store import EventStore
-from issue_solver.webapi.dependencies import get_logger, get_event_store, get_clock
+from issue_solver.webapi.dependencies import (
+    get_logger,
+    get_event_store,
+    get_clock,
+    get_user_id_or_default,
+)
 from issue_solver.webapi.payloads import (
     ResolveIssueRequest,
     ProcessCreated,
@@ -22,6 +27,7 @@ router = APIRouter(prefix="/resolutions", tags=["resolutions"])
 @router.post("/", status_code=201)
 async def resolve_issue(
     request: ResolveIssueRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
     event_store: Annotated[EventStore, Depends(get_event_store)],
     clock: Annotated[Clock, Depends(get_clock)],
     logger: Annotated[
@@ -37,6 +43,7 @@ async def resolve_issue(
         knowledge_base_id=knowledge_base_id,
         process_id=process_id,
         issue=request.issue,
+        user_id=user_id,
     )
     await event_store.append(process_id, event)
     publish(event, logger)

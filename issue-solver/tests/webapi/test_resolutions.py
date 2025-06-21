@@ -146,7 +146,6 @@ def test_issue_resolution_route_should_handle_empty_user_header(
     # Then
     assert response.status_code == 201
     assert "processId" in response.json()
-    process_id = response.json()["processId"]
 
     # Verify SQS message falls back to default
     messages = receive_event_message(sqs_client, sqs_queue)
