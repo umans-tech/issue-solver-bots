@@ -6,6 +6,7 @@ import asyncpg
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
+from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.clock import Clock, UTCSystemClock
 from issue_solver.database.postgres_event_store import PostgresEventStore
 from issue_solver.events.event_store import EventStore
@@ -30,6 +31,10 @@ def get_agent(setting: ResolutionSettings) -> CodingAgent:
             return OpenAIAgent(api_key=os.environ["OPENAI_API_KEY"])
         case "anthropic-tools":
             return AnthropicAgent(
+                api_key=os.environ["ANTHROPIC_API_KEY"],
+            )
+        case "claude-code":
+            return ClaudeCodeAgent(
                 api_key=os.environ["ANTHROPIC_API_KEY"],
             )
         case _:

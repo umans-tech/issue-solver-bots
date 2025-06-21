@@ -6,6 +6,7 @@ from issue_solver.agents.swe_agents_on_docker import (
     SweAgentOnDocker,
     SweCrafterOnDocker,
 )
+from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.models.model_settings import ModelSettings
 
 
@@ -14,6 +15,7 @@ class SupportedAgent(StrEnum):
     SWE_CRAFTER = "swe-crafter"
     OPENAI_TOOLS = "openai-tools"
     ANTHROPIC_TOOLS = "anthropic-tools"
+    CLAUDE_CODE = "claude-code"
 
     @classmethod
     def get(
@@ -24,6 +26,8 @@ class SupportedAgent(StrEnum):
                 return SweAgentOnDocker(*ai_models_settings)
             case cls.SWE_CRAFTER:
                 return SweCrafterOnDocker(*ai_models_settings)
+            case cls.CLAUDE_CODE:
+                return ClaudeCodeAgent()
             case cls.OPENAI_TOOLS:
                 raise NotImplementedError(f"Agent {agent} is not implemented yet.")
             case cls.ANTHROPIC_TOOLS:

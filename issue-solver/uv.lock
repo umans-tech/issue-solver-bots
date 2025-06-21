@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.12"
 
 [[package]]
@@ -187,11 +186,23 @@ wheels = [
 ]
 
 [[package]]
+name = "claude-code-sdk"
+version = "0.0.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/12/2a/dfaa73b0e87253608341ab1d724e76f570142819579e410df5d2158a8470/claude_code_sdk-0.0.11.tar.gz", hash = "sha256:1711560b0a639cd4a766298e538bdf959dcb70b4854d003753306abc83806ce9", size = 11473 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/d8/d90842348c09d5211e4fadcb9901627e71ad5d510e63a9a0595d393c56e7/claude_code_sdk-0.0.11-py3-none-any.whl", hash = "sha256:d0ad485db36477c290ca9a4cc08f4a7eb795daf2d7646255e2f1475c28d19a0d", size = 10293 },
+]
+
+[[package]]
 name = "click"
 version = "8.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "platform_system == 'Windows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593 }
 wheels = [
@@ -525,6 +536,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "asyncpg" },
     { name = "boto3" },
+    { name = "claude-code-sdk" },
     { name = "docker" },
     { name = "fastapi", extra = ["standard"] },
     { name = "gitpython" },
@@ -556,6 +568,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.39.0" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "boto3", specifier = ">=1.37.11" },
+    { name = "claude-code-sdk", specifier = ">=0.0.11" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.4" },
     { name = "gitpython", specifier = ">=3.1.44" },
@@ -1288,7 +1301,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "platform_system == 'Windows'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
 wheels = [
