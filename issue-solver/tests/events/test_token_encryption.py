@@ -151,7 +151,47 @@ def test_different_keys_produce_different_encryption():
     with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": key2}):
         encrypted2 = _encrypt_token(token)
 
-    # Different keys should produce different encrypted values
+    # Should produce different encrypted results
     assert encrypted1 != encrypted2
     assert encrypted1 != token
     assert encrypted2 != token
+
+
+def test_token_rotated_event_encryption(encryption_key):
+    """Test that CodeRepositoryTokenRotated event encrypts/decrypts tokens correctly."""
+    from issue_solver.events.domain import CodeRepositoryTokenRotated
+    from issue_solver.events.serializable_records import (
+        CodeRepositoryTokenRotatedRecord,
+        serialize,
+    )
+
+    # Create a token rotation event
+    event = CodeRepositoryTokenRotated(
+        occurred_at=datetime.now(),
+        knowledge_base_id="kb-123",
+        new_access_token="ghp_rotated123456789",
+        user_id="test-user",
+        process_id="proc-123",
+    )
+
+    with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
+        # Test record creation encrypts the token
+        record = CodeRepositoryTokenRotatedRecord.create_from(event)
+        assert len(record.new_access_token) > len(event.new_access_token)
+        assert record.new_access_token != event.new_access_token
+
+        # Test converting back to domain event decrypts the token
+        restored_event = record.to_domain_event()
+        assert restored_event.new_access_token == event.new_access_token
+
+        # Test serialize function works with encryption
+        serialized_record = serialize(event)
+        assert isinstance(serialized_record, CodeRepositoryTokenRotatedRecord)
+        assert serialized_record.new_access_token != event.new_access_token
+
+        # Test safe_copy obfuscates the token
+        safe_record = serialized_record.safe_copy()
+        assert safe_record.new_access_token.endswith(
+            serialized_record.new_access_token[-4:]
+        )
+        assert "*" in safe_record.new_access_token

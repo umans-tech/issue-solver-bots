@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
+    CodeRepositoryTokenRotated,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
     IssueResolutionRequested,
@@ -52,8 +53,17 @@ class ProcessTimelineView(BaseModel):
 
     @classmethod
     def to_status(cls, events: list[AnyDomainEvent]) -> str:
-        events.sort(key=lambda event: event.occurred_at)
-        last_event = events[-1]
+        status_affecting_events = [
+            event
+            for event in events
+            if not isinstance(event, CodeRepositoryTokenRotated)
+        ]
+
+        if not status_affecting_events:
+            return "unknown"
+
+        status_affecting_events.sort(key=lambda event: event.occurred_at)
+        last_event = status_affecting_events[-1]
         match last_event:
             case CodeRepositoryConnected():
                 status = "connected"

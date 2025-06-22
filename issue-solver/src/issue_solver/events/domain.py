@@ -31,6 +31,15 @@ class CodeRepositoryConnected(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class CodeRepositoryTokenRotated(DomainEvent):
+    knowledge_base_id: str
+    new_access_token: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class CodeRepositoryIntegrationFailed(DomainEvent):
     url: str
     error_type: str
@@ -91,6 +100,7 @@ class IssueResolutionFailed(DomainEvent):
 
 AnyDomainEvent = (
     CodeRepositoryConnected
+    | CodeRepositoryTokenRotated
     | CodeRepositoryIntegrationFailed
     | CodeRepositoryIndexed
     | RepositoryIndexationRequested

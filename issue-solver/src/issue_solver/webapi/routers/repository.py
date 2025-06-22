@@ -10,6 +10,7 @@ from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
+    CodeRepositoryTokenRotated,
     RepositoryIndexationRequested,
 )
 from issue_solver.events.event_store import EventStore
@@ -25,7 +26,7 @@ from issue_solver.webapi.dependencies import (
     get_validation_service,
     get_user_id_or_default,
 )
-from issue_solver.webapi.payloads import ConnectRepositoryRequest
+from issue_solver.webapi.payloads import ConnectRepositoryRequest, RotateTokenRequest
 from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -136,6 +137,64 @@ async def index_new_changes(
     )
 
     return {"message": "New changes indexed successfully"}
+
+
+@router.put("/{knowledge_base_id}/token", status_code=200)
+async def rotate_token(
+    knowledge_base_id: str,
+    rotate_token_request: RotateTokenRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger("issue_solver.webapi.routers.repository.rotate_token")
+        ),
+    ],
+    clock: Annotated[Clock, Depends(get_clock)],
+    validation_service: Annotated[
+        GitValidationService, Depends(get_validation_service)
+    ],
+) -> dict[str, str]:
+    """Rotate the access token for a connected repository."""
+    logger.info(f"Rotating token for knowledge base ID: {knowledge_base_id}")
+
+    # Find the repository connection with the given knowledge_base_id
+    repository_connections = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+
+    if not repository_connections:
+        logger.error(f"No repository found with knowledge base ID: {knowledge_base_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
+        )
+
+    repository_connection = repository_connections[0]
+
+    # Validate the new token works with the repository
+    try:
+        validation_service.validate_repository_access(
+            repository_connection.url, rotate_token_request.access_token
+        )
+    except GitValidationError as e:
+        logger.error(f"Token validation failed: {e.message}")
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+    event = CodeRepositoryTokenRotated(
+        occurred_at=clock.now(),
+        knowledge_base_id=knowledge_base_id,
+        new_access_token=rotate_token_request.access_token,
+        user_id=user_id,
+        process_id=repository_connection.process_id,
+    )
+    await event_store.append(repository_connection.process_id, event)
+
+    logger.info(
+        f"Token rotated successfully for knowledge base ID: {knowledge_base_id}"
+    )
+    return {"message": "Token rotated successfully"}
 
 
 def publish(
