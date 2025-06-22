@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import pytest
@@ -208,3 +209,27 @@ async def test_get_issue_resolution_events_2(
 
     # Then
     assert retrieved_events == events
+
+
+@pytest.mark.asyncio
+async def test_get_events_with_encrypted_tokens(
+    event_store: EventStore, generated_encryption_key: str
+):
+    # Given
+    os.environ["TOKEN_ENCRYPTION_KEY"] = generated_encryption_key
+    appended_event = CodeRepositoryConnected(
+        occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+        url="https://github.com/test/repo",
+        access_token="s3c3t-3t0k3n",
+        user_id="test-user-id",
+        space_id="test-space-id",
+        knowledge_base_id="knowledge-base-id",
+        process_id="test-process-id",
+    )
+    await event_store.append("test-process-id", appended_event)
+
+    # When
+    found_events = await event_store.get("test-process-id")
+
+    # Then
+    assert found_events == [appended_event]

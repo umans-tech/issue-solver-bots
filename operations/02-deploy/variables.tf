@@ -76,3 +76,9 @@ variable "email_from" {
   type    = string
   default = "noreply@umans.ai"
 }
+
+variable "token_encryption_key" {
+  type        = string
+  sensitive   = true
+  description = "Encryption key for securing access tokens in the database"
+}

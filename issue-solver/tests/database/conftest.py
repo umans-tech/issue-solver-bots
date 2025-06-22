@@ -63,3 +63,9 @@ async def event_store(
     """Initialize and return an EventStore instance."""
     store = await init_event_store()
     return store
+
+
+@pytest.fixture(scope="function")
+def generated_encryption_key() -> str:
+    """Generate a random encryption key for testing."""
+    return "hp6ocOWdpR69r8lRUzci2cCSjwmqpntBojmnhaIJD_M="

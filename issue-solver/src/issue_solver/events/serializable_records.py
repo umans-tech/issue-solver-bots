@@ -1,6 +1,8 @@
+import os
 from datetime import datetime
 from typing import Any, Literal, Self, Type, assert_never
 
+from cryptography.fernet import Fernet
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -40,6 +42,42 @@ def get_record_type(event_type: Type[T]) -> str:
             raise Exception(f"Unknown event type: {event_type}")
 
 
+def _get_encryption_key() -> bytes | None:
+    key_str = os.environ.get("TOKEN_ENCRYPTION_KEY")
+    if not key_str:
+        return None
+    return key_str.encode()
+
+
+def _encrypt_token(plain_token: str) -> str:
+    if not plain_token:
+        return plain_token
+
+    key = _get_encryption_key()
+    if not key:
+        return plain_token
+
+    fernet = Fernet(key)
+    encrypted_bytes = fernet.encrypt(plain_token.encode())
+    return encrypted_bytes.decode()
+
+
+def _decrypt_token(token: str) -> str:
+    if not token:
+        return token
+
+    key = _get_encryption_key()
+    if not key:
+        return token
+
+    try:
+        fernet = Fernet(key)
+        decrypted_bytes = fernet.decrypt(token.encode())
+        return decrypted_bytes.decode()
+    except Exception:
+        return token
+
+
 class CodeRepositoryConnectedRecord(BaseModel):
     type: Literal["repository_connected"] = "repository_connected"
     occurred_at: datetime
@@ -57,7 +95,7 @@ class CodeRepositoryConnectedRecord(BaseModel):
         return CodeRepositoryConnected(
             occurred_at=self.occurred_at,
             url=self.url,
-            access_token=self.access_token,
+            access_token=_decrypt_token(self.access_token),
             user_id=self.user_id,
             space_id=self.space_id,
             knowledge_base_id=self.knowledge_base_id,
@@ -69,7 +107,7 @@ class CodeRepositoryConnectedRecord(BaseModel):
         return cls(
             occurred_at=event.occurred_at,
             url=event.url,
-            access_token=event.access_token,
+            access_token=_encrypt_token(event.access_token),
             user_id=event.user_id,
             space_id=event.space_id,
             knowledge_base_id=event.knowledge_base_id,
