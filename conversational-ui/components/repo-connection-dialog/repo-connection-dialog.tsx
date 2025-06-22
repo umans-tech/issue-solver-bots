@@ -100,6 +100,9 @@ export function RepoConnectionDialog({
   const [isPrefilled, setIsPrefilled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [repoDetails, setRepoDetails] = useState<RepositoryDetails | null>(null);
+  const [isRotatingToken, setIsRotatingToken] = useState(false);
+  const [newAccessToken, setNewAccessToken] = useState('');
+  const [showNewToken, setShowNewToken] = useState(false);
   
   // Get the process id from session
   const processId = session?.user?.selectedSpace?.processId;
@@ -114,6 +117,9 @@ export function RepoConnectionDialog({
     } else if (!open) {
       // Reset editing state when dialog closes
       setIsEditing(false);
+      setIsRotatingToken(false);
+      setNewAccessToken('');
+      setShowNewToken(false);
     }
   }, [open, processId]);
 
@@ -205,6 +211,45 @@ export function RepoConnectionDialog({
     setRepoUrl('');
     setAccessToken('');
     setError(null);
+  };
+
+  // Function to handle token rotation
+  const handleTokenRotation = async () => {
+    if (!newAccessToken.trim()) {
+      toast.error('Please enter a new access token');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const response = await fetch('/api/repo/token', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken: newAccessToken,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to rotate token');
+      }
+
+      toast.success('Access token updated successfully!');
+      setIsRotatingToken(false);
+      setNewAccessToken('');
+      setShowNewToken(false);
+    } catch (err) {
+      console.error('Error updating token:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to update token');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -362,7 +407,7 @@ export function RepoConnectionDialog({
           </div>
         </div>
         
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 border-b pb-3">
           <div className="font-semibold">Git Information</div>
           <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
             <span>Branch:</span>
@@ -384,6 +429,77 @@ export function RepoConnectionDialog({
               )}
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <div className="font-semibold">Access Token</div>
+          {isRotatingToken ? (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Enter your new access token:
+              </div>
+              <div className="relative">
+                <Input
+                  type={showNewToken ? 'text' : 'password'}
+                  value={newAccessToken}
+                  onChange={(e) => setNewAccessToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  disabled={isSubmitting}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setShowNewToken(!showNewToken)}
+                  disabled={isSubmitting}
+                >
+                  <EyeIcon size={16} />
+                  <span className="sr-only">
+                    {showNewToken ? 'Hide token' : 'Show token'}
+                  </span>
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleTokenRotation}
+                  disabled={isSubmitting || !newAccessToken.trim()}
+                >
+                  {isSubmitting ? 'Updating...' : 'Update Token'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsRotatingToken(false);
+                    setNewAccessToken('');
+                    setShowNewToken(false);
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">************</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 flex items-center gap-1"
+                onClick={() => setIsRotatingToken(true)}
+                disabled={isSubmitting}
+              >
+                <RedoIcon size={14} />
+                <span>Update Token</span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
