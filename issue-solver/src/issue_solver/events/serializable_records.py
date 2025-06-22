@@ -6,6 +6,7 @@ from cryptography.fernet import Fernet
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
+    CodeRepositoryTokenRotated,
     CodeRepositoryIntegrationFailed,
     CodeRepositoryIndexed,
     RepositoryIndexationRequested,
@@ -24,6 +25,8 @@ def get_record_type(event_type: Type[T]) -> str:
     match event_type:
         case type() if event_type is CodeRepositoryConnected:
             return "repository_connected"
+        case type() if event_type is CodeRepositoryTokenRotated:
+            return "repository_token_rotated"
         case type() if event_type is CodeRepositoryIntegrationFailed:
             return "repository_integration_failed"
         case type() if event_type is CodeRepositoryIndexed:
@@ -111,6 +114,39 @@ class CodeRepositoryConnectedRecord(BaseModel):
             user_id=event.user_id,
             space_id=event.space_id,
             knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+        )
+
+
+class CodeRepositoryTokenRotatedRecord(BaseModel):
+    type: Literal["repository_token_rotated"] = "repository_token_rotated"
+    occurred_at: datetime
+    knowledge_base_id: str
+    new_access_token: str
+    user_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy(
+            update={"new_access_token": obfuscate(self.new_access_token)}
+        )
+
+    def to_domain_event(self) -> CodeRepositoryTokenRotated:
+        return CodeRepositoryTokenRotated(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            new_access_token=_decrypt_token(self.new_access_token),
+            user_id=self.user_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: CodeRepositoryTokenRotated) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            new_access_token=_encrypt_token(event.new_access_token),
+            user_id=event.user_id,
             process_id=event.process_id,
         )
 
@@ -322,6 +358,7 @@ class IssueResolutionFailedRecord(BaseModel):
 
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
+    | CodeRepositoryTokenRotatedRecord
     | CodeRepositoryIntegrationFailedRecord
     | CodeRepositoryIndexedRecord
     | RepositoryIndexationRequestedRecord
@@ -340,6 +377,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
     match event:
         case CodeRepositoryConnected():
             return CodeRepositoryConnectedRecord.create_from(event)
+        case CodeRepositoryTokenRotated():
+            return CodeRepositoryTokenRotatedRecord.create_from(event)
         case CodeRepositoryIntegrationFailed():
             return CodeRepositoryIntegrationFailedRecord.create_from(event)
         case CodeRepositoryIndexed():
@@ -362,6 +401,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
     match event_type:
         case "repository_connected":
             return CodeRepositoryConnectedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "repository_token_rotated":
+            return CodeRepositoryTokenRotatedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case "repository_integration_failed":

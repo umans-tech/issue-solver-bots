@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from httpx import Response
 
 from issue_solver.events.event_store import EventStore
-from issue_solver.events.domain import CodeRepositoryConnected, most_recent_event
+from issue_solver.events.domain import (
+    CodeRepositoryConnected,
+    most_recent_event,
+)
+from issue_solver.events.code_repo_integration import (
+    get_access_token,
+)
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 
 router = APIRouter()
@@ -42,7 +48,9 @@ async def proxy_code_repo_mcp(
                 detail="No repository connected. Please connect a Code repository.",
             )
 
-        access_token = code_repo_was_connected.access_token
+        access_token = await get_access_token(
+            event_store, code_repo_was_connected.process_id
+        )
 
         if not access_token or access_token.strip() == "":
             raise HTTPException(

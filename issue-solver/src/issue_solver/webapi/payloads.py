@@ -68,6 +68,10 @@ class ConnectRepositoryRequest(BaseSchema):
     space_id: str = Field(default="")
 
 
+class RotateTokenRequest(BaseSchema):
+    access_token: str
+
+
 class ResolveIssueRequest(BaseSchema):
     knowledge_base_id: str
     issue: IssueInfo

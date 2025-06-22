@@ -21,6 +21,9 @@ from issue_solver.events.domain import (
     IssueResolutionCompleted,
     IssueResolutionFailed,
 )
+from issue_solver.events.code_repo_integration import (
+    get_access_token,
+)
 from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
     GitHelper,
@@ -70,10 +73,10 @@ async def resolve_issue(
 ) -> None:
     event_store = dependencies.event_store
     knowledge_base_id = message.knowledge_base_id
-    events = await event_store.find(
+    repo_events = await event_store.find(
         {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
     )
-    if not events:
+    if not repo_events:
         logger.error(f"Knowledge base ID {knowledge_base_id} not found in event store")
         await event_store.append(
             message.process_id,
@@ -85,9 +88,23 @@ async def resolve_issue(
             ),
         )
         return
-    code_repository_connected = events[0]
+    code_repository_connected = repo_events[0]
     url = code_repository_connected.url
-    access_token = code_repository_connected.access_token
+    access_token = await get_access_token(
+        event_store, code_repository_connected.process_id
+    )
+    if not access_token:
+        logger.error(f"No access token found for knowledge base ID {knowledge_base_id}")
+        await event_store.append(
+            message.process_id,
+            IssueResolutionFailed(
+                process_id=message.process_id,
+                occurred_at=message.occurred_at,
+                reason="no_access_token",
+                error_message="No access token found for repository.",
+            ),
+        )
+        return
     process_id = message.process_id
     repo_path = Path(f"/tmp/repo/{process_id}")
     try:
@@ -315,7 +332,9 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
         logger.warning("Missing events for process, skipping indexation")
         return
     last_indexed_commit_sha = last_indexed_event.commit_sha
-    access_token = code_repository_connected.access_token
+    access_token = await get_access_token(
+        event_store, code_repository_connected.process_id
+    )
     url = code_repository_connected.url
 
     try:

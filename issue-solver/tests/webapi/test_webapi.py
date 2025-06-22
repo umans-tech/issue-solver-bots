@@ -161,3 +161,129 @@ def receive_event_message(sqs_client, sqs_queue):
     return sqs_client.receive_message(
         QueueUrl=sqs_queue["queue_url"], MaxNumberOfMessages=1, WaitTimeSeconds=1
     )
+
+
+def test_rotate_token_returns_200_and_creates_token_rotated_event(
+    api_client, time_under_control
+):
+    # Given - Create a repository first
+    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "old-access-token",
+            "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+    process_id = connect_repo_response.json()["process_id"]
+
+    # Move time forward for the token rotation
+    time_under_control.set_from_iso_format("2021-01-01T01:00:00")
+
+    # When - Rotate the token
+    response = api_client.put(
+        f"/repositories/{knowledge_base_id}/token",
+        json={
+            "access_token": "new-access-token",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 200
+    assert response.json() == {"message": "Token rotated successfully"}
+
+    # Verify the event was created by checking the process timeline
+    process_response = api_client.get(f"/processes/{process_id}")
+    assert process_response.status_code == 200
+    process_data = process_response.json()
+
+    # Should have 2 events: repository_connected and repository_token_rotated
+    assert len(process_data["events"]) == 2
+
+    # Check the token rotation event
+    token_rotation_event = process_data["events"][1]
+    assert token_rotation_event["type"] == "repository_token_rotated"
+    assert token_rotation_event["occurred_at"] == "2021-01-01T01:00:00"
+    assert token_rotation_event["knowledge_base_id"] == knowledge_base_id
+    assert token_rotation_event["new_access_token"] == "************oken"  # Obfuscated
+    assert token_rotation_event["user_id"] == "test-user-id"
+    assert token_rotation_event["process_id"] == process_id
+
+
+def test_rotate_token_returns_404_when_repository_not_found(api_client):
+    # When
+    response = api_client.put(
+        "/repositories/nonexistent-kb/token",
+        json={
+            "access_token": "new-access-token",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 404
+    assert "No repository found" in response.json()["detail"]
+
+
+def test_rotate_token_returns_401_when_new_token_is_invalid(
+    api_client, time_under_control, repo_validation_under_control
+):
+    # Given - Create a repository first
+    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "old-access-token",
+            "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    # Configure validation to fail for the new token
+    repo_validation_under_control.add_inaccessible_repository(
+        url="https://github.com/test/repo",
+        error_type="authentication_failed",
+        status_code=401,
+    )
+
+    # When - Try to rotate with invalid token
+    response = api_client.put(
+        f"/repositories/{knowledge_base_id}/token",
+        json={
+            "access_token": "invalid-token",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 401
+
+
+def test_rotate_token_returns_400_when_payload_is_invalid(api_client):
+    # When - Send request without access_token
+    response = api_client.put(
+        "/repositories/some-kb/token",
+        json={},  # Missing access_token
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 422  # FastAPI validation error
