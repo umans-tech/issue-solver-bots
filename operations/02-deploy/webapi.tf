@@ -44,6 +44,7 @@ resource "aws_lambda_function" "webapi" {
       ANTHROPIC_API_KEY            = var.anthropic_api_key,
       GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
       PROCESS_QUEUE_URL            = aws_sqs_queue.process_queue.url,
+      TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
     }
   }
 }

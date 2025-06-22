@@ -21,6 +21,7 @@ resource "aws_lambda_function" "worker" {
       OPENAI_API_KEY               = var.openai_api_key,
       ANTHROPIC_API_KEY            = var.anthropic_api_key,
       GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
+      TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
     }
   }
 }

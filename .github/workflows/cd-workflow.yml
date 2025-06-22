@@ -213,6 +213,7 @@ jobs:
           GH_PR_NUMBER: ${{ github.event.pull_request.number }}
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -253,6 +254,7 @@ jobs:
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
+          TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
@@ -297,6 +299,7 @@ jobs:
           TF_VAR_google_generative_ai_api_key: ${{ secrets.TF_VAR_GOOGLE_GENERATIVE_AI_API_KEY }}
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
+          TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
