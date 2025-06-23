@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet';
 import { useProcessStatus } from '@/hooks/use-process-status';
 import { TokenPermissionsDisplay } from '@/components/token-permissions-display';
+import { ProactiveTokenGenerator } from '@/components/proactive-token-generator';
 
 // Simple clock icon component
 const ClockIcon = ({ size = 16 }: { size?: number }) => (
@@ -668,74 +669,84 @@ export function RepoConnectionDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
+      <SheetContent className="flex flex-col max-h-screen">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle>Connect Repository</SheetTitle>
           <SheetDescription>
             Connect a code repository to enhance your chat experience.
           </SheetDescription>
         </SheetHeader>
         
-        {isLoading ? (
-          <div className="py-8 text-center">
-            <div className="text-sm text-muted-foreground">
-              Loading repository information...
+        <div className="flex-1 overflow-y-auto px-1">
+          {isLoading ? (
+            <div className="py-8 text-center">
+              <div className="text-sm text-muted-foreground">
+                Loading repository information...
+              </div>
             </div>
-          </div>
-        ) : isPrefilled && !isEditing ? (
-          // Display comprehensive repository information
-          renderConnectedRepoInfo()
-        ) : (
-          // Display the form for editing/adding repository
-          <form onSubmit={handleSubmit} className="space-y-6 py-6">
-            <div className="space-y-2">
-              <Label htmlFor="repoUrl">Repository URL</Label>
-              <Input
-                id="repoUrl"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="https://github.com/username/repo"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="accessToken">Access Token</Label>
-              <div className="relative">
+          ) : isPrefilled && !isEditing ? (
+            // Display comprehensive repository information
+            renderConnectedRepoInfo()
+          ) : (
+            // Display the form for editing/adding repository
+            <form onSubmit={handleSubmit} className="space-y-6 py-6">
+              <div className="space-y-2">
+                <Label htmlFor="repoUrl">Repository URL</Label>
                 <Input
-                  id="accessToken"
-                  type={showToken ? 'text' : 'password'}
-                  value={accessToken}
-                  onChange={(e) => setAccessToken(e.target.value)}
-                  placeholder="ghp_xxxxxxxxxxxx"
+                  id="repoUrl"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="https://github.com/username/repo"
                   disabled={isLoading}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setShowToken(!showToken)}
-                  disabled={isLoading}
-                >
-                  <EyeIcon size={16} />
-                  <span className="sr-only">
-                    {showToken ? 'Hide token' : 'Show token'}
-                  </span>
-                </Button>
               </div>
-            </div>
-            
-            {error && (
-              <div className="text-sm text-red-500 flex items-center gap-1">
-                <CrossIcon size={12} />
-                {error}
+              
+              <div className="space-y-2">
+                <Label htmlFor="accessToken">Access Token</Label>
+                <div className="relative">
+                  <Input
+                    id="accessToken"
+                    type={showToken ? 'text' : 'password'}
+                    value={accessToken}
+                    onChange={(e) => setAccessToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setShowToken(!showToken)}
+                    disabled={isLoading}
+                  >
+                    <EyeIcon size={16} />
+                    <span className="sr-only">
+                      {showToken ? 'Hide token' : 'Show token'}
+                    </span>
+                  </Button>
+                </div>
+                
+                {/* Proactive Token Generator */}
+                {repoUrl && (
+                  <ProactiveTokenGenerator
+                    repositoryUrl={repoUrl}
+                    className="mt-2 p-2 bg-muted/30 rounded-md border"
+                  />
+                )}
               </div>
-            )}
-          </form>
-        )}
+              
+              {error && (
+                <div className="text-sm text-red-500 flex items-center gap-1">
+                  <CrossIcon size={12} />
+                  {error}
+                </div>
+              )}
+            </form>
+          )}
+        </div>
         
-        <SheetFooter className="mt-4">
+        <SheetFooter className="flex-shrink-0 mt-4">
           {isPrefilled && !isEditing ? (
             <Button
               type="button"
