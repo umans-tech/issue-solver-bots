@@ -184,7 +184,7 @@ export function Sources({ sources }: SourcesProps) {
             const languageIcon = sourceType === 'codebase' ? getLanguageIcon(extension) : null;
             
             return (
-              <div key={source.id} className="flex items-center">
+              <div key={`${source.id || source.url}-${index}`} className="flex items-center">
                 {sourceType === 'web' ? (
                   <SourceFavicon url={source.url} className="w-4 h-4 rounded-sm" />
                 ) : sourceType === 'github' ? (
@@ -259,8 +259,8 @@ export function Sources({ sources }: SourcesProps) {
                   <span className="text-xs font-medium text-muted-foreground">Web Sources</span>
                 </div>
               )}
-              {webSources.map((source) => (
-                <div key={source.id} className="flex flex-col gap-1 p-3">
+              {webSources.map((source, index) => (
+                <div key={`web-${source.id || source.url}-${index}`} className="flex flex-col gap-1 p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
                       <SourceFavicon url={source.url} className="w-5 h-5 rounded-sm" />
@@ -292,8 +292,8 @@ export function Sources({ sources }: SourcesProps) {
                   <span className="text-xs font-medium text-muted-foreground">GitHub Sources</span>
                 </div>
               )}
-              {githubSources.map((source) => (
-                <div key={source.id} className="flex flex-col gap-1 p-3">
+              {githubSources.map((source, index) => (
+                <div key={`github-${source.id || source.url}-${index}`} className="flex flex-col gap-1 p-3">
                   <div className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
                       <GitIcon status="none" />
@@ -327,12 +327,12 @@ export function Sources({ sources }: SourcesProps) {
               )}
               <div className="p-3">
                 <div className="flex flex-wrap gap-2">
-                  {codebaseSources.map((source) => {
+                  {codebaseSources.map((source, index) => {
                     const extension = getFileExtension(source.url);
                     const languageIcon = getLanguageIcon(extension);
                     
                     return (
-                    <Tooltip key={source.id}>
+                    <Tooltip key={`codebase-${source.id || source.url}-${index}`}>
                       <TooltipTrigger asChild>
                         <div className="inline-flex h-7 items-center justify-center rounded-md border border-primary/10 bg-primary/5 px-3 text-xs font-medium gap-1.5">
                           {languageIcon ? (

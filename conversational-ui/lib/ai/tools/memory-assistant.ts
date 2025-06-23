@@ -27,11 +27,26 @@ export const memoryAssistant = ({ session }: MemoryAssistantProps) => tool({
   description: `Manage persistent memory across conversations within your current space. This tool allows you to store, retrieve, and modify important information that should be remembered between different chat sessions.
 
 **When to use this tool:**
-- Store important user preferences, project context, or recurring information
-- Remember key decisions, patterns, or insights from previous conversations  
-- Track ongoing tasks, goals, or project status across sessions
-- Keep notes about code patterns, architectural decisions, or domain knowledge
-- Store user-specific context like coding style preferences or project requirements
+- **PRIORITY: Identify user's technical background** (engineer/developer vs non-technical user) as early as possible
+- **Communication preferences**: When users express how they want information presented or their preferred interaction style
+- **User corrections or feedback**: When users correct your approach or specify preferences about how to work
+- Store comprehensive conversation summaries with appropriate technical detail level based on user background
+- Remember user preferences, communication style, and specific requirements they've mentioned
+- Track ongoing tasks, project evolution, and decisions across sessions (technical or business-focused)
+- Document approaches used in the project (code patterns for developers, high-level concepts for non-technical users)
+- Keep detailed records of problems encountered, solutions implemented, and lessons learned
+- Store context about the user's working style, preferred explanation depth, and project goals
+- Remember specific details relevant to their role (file locations for developers, feature descriptions for non-technical users)
+
+**Memory Structure Guidelines:**
+Store information in a structured format similar to detailed session notes, including:
+- **User Profile**: Technical background (developer/engineer vs non-technical), experience level, and role
+- Primary requests and user intent (business goals vs technical implementation)
+- Appropriate level of detail (technical concepts for developers, high-level explanations for non-technical users)
+- File paths and code sections for developers, feature descriptions and business impact for non-technical users
+- User feedback, corrections, and communication preferences (technical depth, explanation style)
+- Problem-solving approaches and solutions (code-level for developers, conceptual for non-technical users)
+- Project context and decisions (architectural for developers, strategic for non-technical users)
 
 **Memory is scoped per space** - each space has its own isolated memory that won't interfere with other projects.`,
 
@@ -60,13 +75,37 @@ export const memoryAssistant = ({ session }: MemoryAssistantProps) => tool({
     content: z.string().optional().describe(
       `Full text content to store when using 'write' action. 
       
-Should contain well-structured information like:
-- User preferences and context
-- Project-specific knowledge  
-- Important decisions or patterns
-- Ongoing tasks or goals
-- Code style guidelines
-- Domain knowledge or terminology
+Should contain comprehensive, well-structured information including:
+
+**User Profile (CRITICAL - IDENTIFY EARLY):**
+- Technical background: Developer/Engineer vs Non-technical user (business, product, design, etc.)
+- Experience level and specific expertise areas
+- Role in the project and decision-making authority
+- Preferred communication style and explanation depth
+
+**Conversation Analysis:**
+- Primary requests and user intent (technical implementation vs business goals)
+- Implementation details (technical for developers, high-level concepts for non-technical users)
+- User feedback, corrections, and specific preferences
+- Key decisions made and reasoning behind them
+
+**Project Context (ADAPT TO USER BACKGROUND):**
+- For Developers: File paths and code sections (with line numbers like file:123), code patterns, technical approaches
+- For Non-technical: Feature descriptions, business impact, user experience considerations
+- Database schema, API endpoints, and system integrations (technical detail level based on user)
+- Error patterns encountered and solutions implemented
+
+**User Preferences:**
+- Technical detail preference (deep technical vs high-level explanations)
+- Communication style and preferred level of detail
+- Project goals and priorities (technical vs business focused)
+- Working patterns and methodologies
+
+**Documentation (ROLE-APPROPRIATE):**
+- For Developers: Tool implementations, database migrations, component structures, integration details
+- For Non-technical: Feature specifications, user stories, business requirements, workflow descriptions
+
+Structure the content like detailed session notes that would help future conversations understand the full context of the project and user interactions.
 
 Ignored for 'read' and 'edit' actions.`
     ),
@@ -186,14 +225,19 @@ async function generateMemorySummary(content: string, previousSummary?: string):
       return 'Empty memory';
     }
 
-    // If content is already short, use it as the summary
-    if (content.length <= 300) {
-      return content.trim();
-    }
-
     // Construct prompt based on whether we have a previous summary
+    const summaryGuidelines = `Create a comprehensive but concise summary that captures:
+- **User's technical background and expertise level** (CRITICAL for appropriate communication)
+- Primary requests and user intent (technical vs business focused)
+- Implementation details and approaches (adapt complexity to user background)
+- User preferences, standards, and specific requirements
+- Key information relevant to user role (code locations for developers, business requirements for non-technical)
+- Important decisions, problems encountered, and solutions
+- Project context and patterns (technical or strategic focus)
+- Communication style and preferred explanation depth`;
+
     const prompt = previousSummary 
-      ? `You are updating a memory summary. Analyze the current memory content and determine if the existing summary needs to be updated.
+      ? `You are updating a memory summary for an AI assistant's persistent memory system.
 
 **Current Memory Content:**
 ${content}
@@ -201,17 +245,23 @@ ${content}
 **Existing Summary:**
 ${previousSummary}
 
-**Instructions:**
-- If the changes are minor (typos, small additions, formatting) and don't significantly change the meaning, respond with: KEEP_EXISTING
-- If there are significant changes that warrant a new summary, create a concise summary (2-3 sentences, max 300 characters)
-- Focus on the most important information that would help understand the context in future conversations
+**Task:** 
+${summaryGuidelines}
 
-**Response:**`
-      : `Create a concise summary (2-3 sentences, max 300 characters) of the following memory content. Focus on the most important information that would help understand the context in future conversations:
+If the changes are minor (typos, small formatting, or additions that don't change the core meaning), return the existing summary exactly as-is. If there are significant changes, create a new summary that helps future AI assistants understand the full context of user interactions and project details.
 
+**Response (return existing summary unchanged OR provide comprehensive new summary):**`
+      : `Create a comprehensive but concise summary of the following memory content for an AI assistant's persistent memory system.
+
+**Memory Content:**
 ${content}
 
-Summary:`;
+**Task:**
+${summaryGuidelines}
+
+Structure the summary to provide rich context for future conversations while keeping it concise.
+
+**Summary:**`;
 
     const { text } = await generateText({
       model: myProvider.languageModel('coding-model-large'),
@@ -219,13 +269,7 @@ Summary:`;
     });
 
     const result = text.trim();
-    
-    // If AI decided to keep existing summary, return it
-    if (result === 'KEEP_EXISTING' && previousSummary) {
-      return previousSummary;
-    }
-    
-    return result || content.substring(0, 300);
+    return result || content;
   } catch (error) {
     console.error('Error generating memory summary:', error);
     // Fallback: if we have a previous summary and there's an error, keep it
