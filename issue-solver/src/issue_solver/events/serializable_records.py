@@ -90,6 +90,7 @@ class CodeRepositoryConnectedRecord(BaseModel):
     space_id: str
     knowledge_base_id: str
     process_id: str
+    token_permissions: dict | None = None
 
     def safe_copy(self) -> Self:
         return self.model_copy(update={"access_token": obfuscate(self.access_token)})
@@ -103,6 +104,7 @@ class CodeRepositoryConnectedRecord(BaseModel):
             space_id=self.space_id,
             knowledge_base_id=self.knowledge_base_id,
             process_id=self.process_id,
+            token_permissions=self.token_permissions,
         )
 
     @classmethod
@@ -115,6 +117,7 @@ class CodeRepositoryConnectedRecord(BaseModel):
             space_id=event.space_id,
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
+            token_permissions=event.token_permissions,
         )
 
 

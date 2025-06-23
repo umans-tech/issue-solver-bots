@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Self, TypeVar, cast
 
@@ -7,6 +7,7 @@ import git
 from git import Repo, cmd
 from github import Github
 from gitlab import Gitlab
+import httpx
 
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.model_settings import ModelSettings
@@ -14,7 +15,12 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+@dataclass
 class GitValidationError(Exception):
+    message: str
+    error_type: str
+    status_code: int
+
     def __init__(self, message: str, error_type: str, status_code: int = 500):
         self.message = message
         self.error_type = error_type
@@ -22,14 +28,75 @@ class GitValidationError(Exception):
         super().__init__(message)
 
 
+@dataclass
+class GitHubTokenPermissions:
+    """Represents GitHub token permissions and validation status"""
+
+    scopes: list[str]
+    has_repo: bool = False
+    has_workflow: bool = False
+    has_read_user: bool = False
+    missing_scopes: list[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        # Check for required permissions
+        self.has_repo = "repo" in self.scopes
+        self.has_workflow = "workflow" in self.scopes
+        self.has_read_user = "read:user" in self.scopes or "user" in self.scopes
+
+        # Calculate missing scopes
+        self.missing_scopes = []
+
+        if not self.has_repo:
+            self.missing_scopes.append("repo")
+        if not self.has_workflow:
+            self.missing_scopes.append("workflow")
+        if not self.has_read_user:
+            self.missing_scopes.append("read:user")
+
+    @property
+    def is_optimal(self) -> bool:
+        """Returns True if all required scopes are present"""
+        return len(self.missing_scopes) == 0
+
+
+@dataclass
+class ValidationResult:
+    """Result of repository validation including optional token permissions"""
+
+    success: bool
+    token_permissions: Optional[GitHubTokenPermissions] = None
+
+
 class GitValidationService(ABC):
     @abstractmethod
-    def validate_repository_access(self, url: str, access_token: str) -> None:
+    def validate_repository_access(
+        self, url: str, access_token: str
+    ) -> ValidationResult:
         pass
 
 
 class DefaultGitValidationService(GitValidationService):
-    def validate_repository_access(self, url: str, access_token: str) -> None:
+    def validate_repository_access(
+        self, url: str, access_token: str
+    ) -> ValidationResult:
+        # First validate repository access (existing logic)
+        self._validate_git_access(url, access_token)
+
+        # Then optionally fetch token permissions for GitHub repos
+        token_permissions = None
+        if access_token and self._is_github_repo(url):
+            try:
+                token_permissions = self._fetch_github_token_scopes(access_token)
+            except Exception:
+                # Don't fail validation if we can't fetch scopes, just log it
+                # This maintains backwards compatibility
+                pass
+
+        return ValidationResult(success=True, token_permissions=token_permissions)
+
+    def _validate_git_access(self, url: str, access_token: str) -> None:
+        """Original validation logic - unchanged"""
         try:
             stripped_url = url.removeprefix("https://")
             auth_url = (
@@ -81,6 +148,30 @@ class DefaultGitValidationService(GitValidationService):
                 "unexpected_error",
                 500,
             )
+
+    def _is_github_repo(self, url: str) -> bool:
+        """Check if the repository URL is a GitHub repository"""
+        return "github.com" in url.lower()
+
+    def _fetch_github_token_scopes(self, access_token: str) -> GitHubTokenPermissions:
+        """Fetch GitHub token scopes using the GitHub API"""
+        headers = {
+            "Authorization": f"token {access_token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+
+        # Use the GitHub API to check token scopes
+        with httpx.Client() as client:
+            response = client.get("https://api.github.com/user", headers=headers)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch token info: {response.status_code}")
+
+        # Extract scopes from the response headers
+        scopes_header = response.headers.get("X-OAuth-Scopes", "")
+        scopes = [scope.strip() for scope in scopes_header.split(",") if scope.strip()]
+
+        return GitHubTokenPermissions(scopes=scopes)
 
 
 T = TypeVar("T")
@@ -187,8 +278,8 @@ class GitHelper:
             Callable[..., T], wrapper
         )  # Cast to help mypy understand the return type
 
-    def validate_repository_access(self) -> None:
-        self.validation_service.validate_repository_access(
+    def validate_repository_access(self) -> ValidationResult:
+        return self.validation_service.validate_repository_access(
             self.settings.repository_url, self.settings.access_token
         )
 
