@@ -28,6 +28,7 @@ import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
+import { MemoryAssistant, MemoryAssistantAnimation } from './memory-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
 
 // Component to display search animation
@@ -269,6 +270,8 @@ const PurePreviewMessage = ({
                         <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpageAnimation url={args?.url} />
+                      ) : toolName === 'memoryAssistant' ? (
+                        <MemoryAssistantAnimation />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPAnimation toolName={toolName} args={args} />
                       ) : null}
@@ -289,6 +292,8 @@ const PurePreviewMessage = ({
                       issueDescription={issueDescription}
                       result={null}
                     />
+                  ) : toolName === 'memoryAssistant' ? (
+                    <MemoryAssistantAnimation />
                   ) : null;
                 }
 
@@ -371,6 +376,14 @@ const PurePreviewMessage = ({
                         />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpage result={result} url={args?.url} />
+                      ) : toolName === 'memoryAssistant' ? (
+                        <MemoryAssistant 
+                          result={result} 
+                          action={args?.action}
+                          content={args?.content}
+                          oldString={args?.old_string}
+                          newString={args?.new_string}
+                        />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
                       ) : (

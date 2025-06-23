@@ -3,7 +3,8 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, getMemorySummary } from '@/lib/db/queries';
+import { injectMemoryContext } from '@/lib/ai/memory-context';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -15,6 +16,7 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
+import { memoryAssistant } from '@/lib/ai/tools/memory-assistant';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
@@ -134,9 +136,16 @@ export async function POST(request: Request) {
                 return originalWriteSource(source);
             };
 
+            // Get enhanced system prompt with memory context
+            const memoryContext = currentSpace ? await getMemorySummary(session.user.id, currentSpace.id) : null;
+            const enhancedSystemPrompt = injectMemoryContext(
+                systemPrompt({ selectedChatModel }),
+                memoryContext
+            );
+
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
-                system: systemPrompt({ selectedChatModel }),
+                system: enhancedSystemPrompt,
                 messages,
                 maxSteps: maxSteps,
                 maxRetries: maxRetries,
@@ -151,6 +160,7 @@ export async function POST(request: Request) {
                     'webSearch',
                     'remoteCodingAgent',
                     'fetchWebpage',
+                    'memoryAssistant',
                     // @ts-ignore
                     ...clientWrapper.activeTools()
                 ],
@@ -182,6 +192,10 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                     fetchWebpage: fetchWebpage({
+                        session,
+                        dataStream,
+                    }),
+                    memoryAssistant: memoryAssistant({
                         session,
                         dataStream,
                     }),

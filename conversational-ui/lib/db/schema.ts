@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const space = pgTable('Space', {
@@ -205,3 +206,25 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const userMemory = pgTable(
+  'UserMemory',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => user.id),
+    spaceId: uuid('spaceId')
+      .notNull()
+      .references(() => space.id),
+    content: text('content').notNull().default(''),
+    summary: text('summary').notNull().default(''),
+    createdAt: timestamp('createdAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => ({
+    userSpaceUnique: unique().on(table.userId, table.spaceId),
+  }),
+);
+
+export type UserMemory = InferSelectModel<typeof userMemory>;

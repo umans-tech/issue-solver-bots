@@ -1,0 +1,1 @@
+ALTER TABLE "UserMemory" ADD CONSTRAINT "UserMemory_userId_spaceId_unique" UNIQUE("userId","spaceId");

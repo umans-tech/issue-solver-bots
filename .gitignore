@@ -3,3 +3,4 @@ __pycache__/
 **/.env
 venv/
 .env.local
+conversational-ui/.claude/settings.local.json
