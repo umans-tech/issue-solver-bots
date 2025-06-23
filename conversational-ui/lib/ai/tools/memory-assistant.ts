@@ -226,15 +226,12 @@ async function generateMemorySummary(content: string, previousSummary?: string):
     }
 
     // Construct prompt based on whether we have a previous summary
-    const summaryGuidelines = `Create a comprehensive but concise summary that captures:
+    const summaryGuidelines = `Create a concise 3-5 sentence summary that captures the most critical information:
 - **User's technical background and expertise level** (CRITICAL for appropriate communication)
 - Primary requests and user intent (technical vs business focused)
-- Implementation details and approaches (adapt complexity to user background)
-- User preferences, standards, and specific requirements
-- Key information relevant to user role (code locations for developers, business requirements for non-technical)
-- Important decisions, problems encountered, and solutions
-- Project context and patterns (technical or strategic focus)
-- Communication style and preferred explanation depth`;
+- Key user preferences, standards, and communication style
+- Important project context and decisions
+Keep it brief but comprehensive - focus on what future AI assistants need to know most.`;
 
     const prompt = previousSummary 
       ? `You are updating a memory summary for an AI assistant's persistent memory system.

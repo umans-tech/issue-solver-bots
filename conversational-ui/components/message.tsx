@@ -293,7 +293,7 @@ const PurePreviewMessage = ({
                       result={null}
                     />
                   ) : toolName === 'memoryAssistant' ? (
-                    <MemoryAssistantAnimation />
+                    <MemoryAssistantAnimation key={toolCallId} />
                   ) : toolName === 'webSearch' ? (
                     <WebSearchAnimation key={toolCallId} />
                   ) : null;
