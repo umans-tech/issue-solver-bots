@@ -28,6 +28,7 @@ class CodeRepositoryConnected(DomainEvent):
     knowledge_base_id: str
     process_id: str
     occurred_at: datetime
+    token_permissions: dict | None = None
 
 
 @dataclass(frozen=True, slots=True)

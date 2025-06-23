@@ -16,6 +16,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useProcessStatus } from '@/hooks/use-process-status';
+import { TokenPermissionsDisplay } from '@/components/token-permissions-display';
 
 // Simple clock icon component
 const ClockIcon = ({ size = 16 }: { size?: number }) => (
@@ -83,6 +84,7 @@ interface RepositoryDetails {
   error?: boolean;
   errorType?: string;
   errorMessage?: string;
+  token_permissions?: any;
 }
 
 export function RepoConnectionDialog({
@@ -187,7 +189,8 @@ export function RepoConnectionDialog({
           branch: data.branch,
           commit_sha: data.commit_sha,
           indexing_started: data.indexing_started,
-          indexing_completed: data.indexing_completed
+          indexing_completed: data.indexing_completed,
+          token_permissions: data.token_permissions
         });
       } else {
         // No existing repository, enable editing by default
@@ -501,6 +504,16 @@ export function RepoConnectionDialog({
             </div>
           )}
         </div>
+
+        {/* Token Permissions Display */}
+        {repoDetails.token_permissions && (
+          <div className="border-t pt-4 mt-4">
+            <TokenPermissionsDisplay 
+              permissions={repoDetails.token_permissions}
+              repositoryUrl={repoDetails.url}
+            />
+          </div>
+        )}
       </div>
     );
   };

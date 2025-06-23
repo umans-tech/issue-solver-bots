@@ -121,12 +121,11 @@ export async function GET(request: Request) {
       status: data.status || 'unknown',
       knowledge_base_id: repoEvent.knowledge_base_id,
       process_id: processId,
-      // Add Git information if available from the latest repository indexed event
       branch: latestRepositoryIndexedEvent?.branch,
       commit_sha: latestRepositoryIndexedEvent?.commit_sha,
-      // Add indexation timestamps
       indexing_started: indexingStartTime,
-      indexing_completed: latestRepositoryIndexedEvent?.occurred_at
+      indexing_completed: latestRepositoryIndexedEvent?.occurred_at,
+      token_permissions: repoEvent.token_permissions
     });
   } catch (error) {
     console.error('Error retrieving repository details:', error);

@@ -47,7 +47,9 @@ async def connect_repository(
     ],
 ) -> dict[str, str]:
     """Connect to a code repository."""
-    _validate_repository_access(connect_repository_request, logger, validation_service)
+    validation_result = _validate_repository_access(
+        connect_repository_request, logger, validation_service
+    )
 
     process_id = str(uuid.uuid4())
     logger.info(f"Creating new repository connection with process ID: {process_id}")
@@ -55,6 +57,19 @@ async def connect_repository(
     client = OpenAI()
     repo_name = connect_repository_request.url.split("/")[-1]
     logger.info(f"Creating vector store for repository: {repo_name}")
+
+    # Convert token permissions to JSON serializable dict
+    access_token_permissions = None
+    if validation_result and validation_result.token_permissions:
+        tp = validation_result.token_permissions
+        access_token_permissions = {
+            "scopes": tp.scopes,
+            "has_repo": tp.has_repo,
+            "has_workflow": tp.has_workflow,
+            "has_read_user": tp.has_read_user,
+            "missing_scopes": tp.missing_scopes,
+            "is_optimal": tp.is_optimal,
+        }
 
     vector_store = client.vector_stores.create(name=repo_name)
     event = CodeRepositoryConnected(
@@ -65,6 +80,7 @@ async def connect_repository(
         space_id=connect_repository_request.space_id,
         knowledge_base_id=vector_store.id,
         process_id=process_id,
+        token_permissions=access_token_permissions,
     )
     await event_store.append(process_id, event)
 
@@ -84,9 +100,10 @@ async def connect_repository(
 
 def _validate_repository_access(connect_repository_request, logger, validation_service):
     try:
-        validation_service.validate_repository_access(
+        validation_result = validation_service.validate_repository_access(
             connect_repository_request.url, connect_repository_request.access_token
         )
+        return validation_result
     except GitValidationError as e:
         logger.error(f"Repository validation failed: {e.message}")
         raise HTTPException(status_code=e.status_code, detail=e.message)
@@ -175,6 +192,7 @@ async def rotate_token(
 
     # Validate the new token works with the repository
     try:
+        # For token rotation, we just need to validate access - don't need permissions
         validation_service.validate_repository_access(
             repository_connection.url, rotate_token_request.access_token
         )

@@ -86,6 +86,7 @@ def test_get_process_returns_200_when_the_process_is_found(
                 "space_id": "test-space-id",
                 "knowledge_base_id": CREATED_VECTOR_STORE_ID,
                 "process_id": process_id,
+                "token_permissions": None,
             }
         ],
     }
@@ -155,6 +156,52 @@ def test_connect_repository_should_raise_401_when_authentication_fails(
 
     # Then
     assert response.status_code == 401
+
+
+def test_connect_github_repository_includes_token_permissions(
+    api_client, time_under_control, repo_validation_under_control
+):
+    # Given - Mock successful GitHub token validation with permissions
+    time_under_control.set_from_iso_format("2021-01-01T00:00:00")
+    repo_validation_under_control.mock_github_token_scopes(
+        url="https://github.com/test/repo",
+        access_token="github-token-with-scopes",
+        scopes=["repo", "workflow", "read:user"],
+    )
+
+    # When
+    response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "github-token-with-scopes",
+            "space_id": "test-space-id",
+        },
+        headers={
+            "X-User-ID": "test-user-id",
+        },
+    )
+
+    # Then
+    assert response.status_code == 201
+    process_id = response.json()["process_id"]
+
+    # Check that token permissions are stored in the event
+    process_response = api_client.get(f"/processes/{process_id}")
+    assert process_response.status_code == 200
+    process_data = process_response.json()
+
+    repo_event = process_data["events"][0]
+    assert repo_event["type"] == "repository_connected"
+    assert repo_event["token_permissions"] is not None
+
+    token_permissions = repo_event["token_permissions"]
+    assert token_permissions["scopes"] == ["repo", "workflow", "read:user"]
+    assert token_permissions["has_repo"] is True
+    assert token_permissions["has_workflow"] is True
+    assert token_permissions["has_read_user"] is True
+    assert token_permissions["missing_scopes"] == []
+    assert token_permissions["is_optimal"] is True
 
 
 def receive_event_message(sqs_client, sqs_queue):
