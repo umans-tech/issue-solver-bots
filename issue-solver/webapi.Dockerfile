@@ -37,7 +37,7 @@ RUN yum install -y git && \
         if [ -f "$lib" ]; then cp "$lib" /git/; fi; \
     done
 
-    FROM public.ecr.aws/lambda/python:3.12
+FROM public.ecr.aws/lambda/python:3.12
 
 # Copy the runtime dependencies from the builder stage.
 COPY --from=builder ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
