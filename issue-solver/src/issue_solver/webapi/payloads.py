@@ -1,4 +1,5 @@
-from typing import Literal
+from datetime import datetime
+from typing import Dict, List, Literal, Optional
 
 from anthropic.types import MessageParam
 from openai.types.chat import ChatCompletionMessageParam
@@ -6,6 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.coding_agent import Message
+from issue_solver.git_operations.github_token_analyzer import FeatureCompatibility, TokenPermissionsResponse
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedOpenAIModel,

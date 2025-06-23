@@ -19,6 +19,7 @@ from issue_solver.git_operations.git_helper import (
     GitValidationError,
     GitValidationService,
 )
+from issue_solver.git_operations.github_token_analyzer import GitHubTokenAnalyzer, TokenPermissionsResponse
 from issue_solver.webapi.dependencies import (
     get_clock,
     get_event_store,
@@ -195,6 +196,78 @@ async def rotate_token(
         f"Token rotated successfully for knowledge base ID: {knowledge_base_id}"
     )
     return {"message": "Token rotated successfully"}
+
+
+@router.get("/{knowledge_base_id}/token/permissions", status_code=200)
+async def get_token_permissions(
+    knowledge_base_id: str,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger("issue_solver.webapi.routers.repository.token_permissions")
+        ),
+    ],
+) -> TokenPermissionsResponse:
+    """
+    Get the permissions and capabilities of the GitHub token associated with this repository.
+    
+    This endpoint analyzes the token to determine:
+    - Current token scopes and capabilities
+    - Which platform features can be used with the current token
+    - Missing permissions needed for full functionality
+    - Token health information (rate limits, etc.)
+    """
+    logger.info(f"Analyzing token permissions for knowledge base ID: {knowledge_base_id}")
+    
+    # Find the repository connection with the given knowledge_base_id
+    repository_connections = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+    
+    if not repository_connections:
+        logger.error(f"No repository found with knowledge base ID: {knowledge_base_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
+        )
+    
+    repository_connection = repository_connections[0]
+    
+    # Get latest token if it has been rotated
+    token_rotations = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryTokenRotated
+    )
+    
+    access_token = repository_connection.access_token
+    if token_rotations:
+        # Sort by occurrence time and get the most recent token
+        latest_rotation = sorted(token_rotations, key=lambda e: e.occurred_at)[-1]
+        access_token = latest_rotation.new_access_token
+    
+    # Initialize the GitHub token analyzer
+    token_analyzer = GitHubTokenAnalyzer(logger=logger)
+    
+    try:
+        # Analyze the token
+        token_analysis = token_analyzer.analyze_token(
+            access_token=access_token,
+            repository_url=repository_connection.url
+        )
+        
+        logger.info(
+            f"Token analysis completed for knowledge base ID: {knowledge_base_id}. "
+            f"Scopes: {token_analysis.scopes}"
+        )
+        
+        return token_analysis
+        
+    except Exception as e:
+        logger.error(f"Failed to analyze token: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to analyze token permissions: {str(e)}"
+        )
 
 
 def publish(
