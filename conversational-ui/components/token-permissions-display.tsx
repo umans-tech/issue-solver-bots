@@ -1,11 +1,10 @@
 'use client';
 
-import { AlertCircle, CheckCircle, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface GitHubTokenPermissions {
   scopes: string[];
@@ -24,30 +23,24 @@ interface TokenPermissionsDisplayProps {
 const SCOPE_INFO = {
   repo: {
     name: 'Repository Access',
-    description: 'Full access to repositories, issues, and pull requests',
-    features: ['Read/write repository files', 'Create and manage issues', 'Create and manage pull requests', 'Search code']
+    description: 'Full access to repositories, issues, and pull requests'
   },
   workflow: {
     name: 'GitHub Actions',
-    description: 'Access to GitHub Actions workflows',
-    features: ['View workflow runs', 'Access workflow logs', 'Monitor CI/CD status']
+    description: 'Access to GitHub Actions workflows'
   },
   'read:user': {
-    name: 'User Profile',
-    description: 'Read user profile information',
-    features: ['Display profile information', 'Authentication validation']
+    name: 'User Profile', 
+    description: 'Read user profile information'
   }
 };
 
 export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPermissionsDisplayProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (!permissions) {
     return null;
   }
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
-  };
 
   const generateTokenUrl = () => {
     const baseUrl = 'https://github.com/settings/tokens/new';
@@ -63,155 +56,98 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
   if (!isGitHubRepo) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <CheckCircle className="h-4 w-4 text-green-500" />
             Repository Connected
           </CardTitle>
-          <CardDescription>
-            Token permissions analysis is available for GitHub repositories only.
-          </CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
+  const requiredScopes = ['repo', 'workflow', 'read:user'];
+  const totalRequired = requiredScopes.length;
+  const hasCount = requiredScopes.filter(scope => {
+    if (scope === 'read:user') return permissions.has_read_user;
+    if (scope === 'repo') return permissions.has_repo;
+    if (scope === 'workflow') return permissions.has_workflow;
+    return false;
+  }).length;
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             {permissions.is_optimal ? (
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
-              <AlertCircle className="h-5 w-5 text-amber-500" />
+              <AlertCircle className="h-4 w-4 text-amber-500" />
             )}
-            Token Permissions
-          </CardTitle>
-          <CardDescription>
-            Your GitHub token permissions and feature availability
+            <CardTitle className="text-sm">Token Permissions</CardTitle>
+            <Badge variant={permissions.is_optimal ? "default" : "secondary"}>
+              {hasCount}/{totalRequired}
+            </Badge>
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          </Button>
+        </div>
+        
+        {!permissions.is_optimal && (
+          <CardDescription className="text-xs">
+            Missing {permissions.missing_scopes.length} permission{permissions.missing_scopes.length !== 1 ? 's' : ''}
           </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Permission Status Grid */}
-          <div className="grid gap-3">
+        )}
+      </CardHeader>
+
+      {isExpanded && (
+        <CardContent className="pt-0 space-y-3">
+          {/* Permission Details */}
+          <div className="grid gap-2">
             {Object.entries(SCOPE_INFO).map(([scope, info]) => {
               const hasPermission = permissions.scopes.includes(scope) || 
                 (scope === 'read:user' && permissions.has_read_user);
               
               return (
-                <div key={scope} className="flex items-start gap-3 p-3 border rounded-lg">
+                <div key={scope} className="flex items-center gap-2 text-xs">
                   {hasPermission ? (
-                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
                   ) : (
-                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{info.name}</span>
-                      <Badge variant={hasPermission ? "default" : "destructive"} className="text-xs">
-                        {scope}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{info.description}</p>
-                    <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Enables:</span> {info.features.join(', ')}
-                    </div>
-                  </div>
+                  <span className="font-medium">{info.name}</span>
+                  <Badge variant="outline" className="text-xs h-4">
+                    {scope}
+                  </Badge>
                 </div>
               );
             })}
           </div>
 
-          {/* Raw Scopes Display */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-2">Current Token Scopes</h4>
-            <div className="flex flex-wrap gap-1">
-              {permissions.scopes.length > 0 ? (
-                permissions.scopes.map((scope) => (
-                  <Badge key={scope} variant="outline" className="text-xs">
-                    {scope}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-sm text-muted-foreground">No scopes detected</span>
-              )}
+          {/* Generate Token Button */}
+          {!permissions.is_optimal && (
+            <div className="pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-7 text-xs"
+                onClick={() => window.open(generateTokenUrl(), '_blank')}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Generate Optimal Token
+              </Button>
             </div>
-          </div>
+          )}
         </CardContent>
-      </Card>
-
-      {/* Missing Permissions Alert */}
-      {!permissions.is_optimal && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Missing Permissions</AlertTitle>
-          <AlertDescription className="mt-2">
-            <div className="space-y-2">
-              <p>
-                Your token is missing {permissions.missing_scopes.length} required permission{permissions.missing_scopes.length !== 1 ? 's' : ''}:
-                <span className="font-medium ml-1">
-                  {permissions.missing_scopes.join(', ')}
-                </span>
-              </p>
-              <p className="text-sm">
-                Some features may not work properly. Consider generating a new token with all required permissions.
-              </p>
-            </div>
-          </AlertDescription>
-        </Alert>
       )}
-
-      {/* Token Generation Guide */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Generate Optimal Token</CardTitle>
-          <CardDescription>
-            Create a GitHub personal access token with all required permissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">Required Permissions:</h4>
-            <div className="flex flex-wrap gap-1">
-              {Object.keys(SCOPE_INFO).map((scope) => (
-                <Badge key={scope} variant="secondary" className="text-xs">
-                  {scope}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              asChild
-              className="flex-1"
-            >
-              <a href={generateTokenUrl()} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Generate GitHub Token
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => copyToClipboard(generateTokenUrl())}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Instructions:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Click "Generate GitHub Token" to open GitHub settings</li>
-              <li>Set expiration date (recommended: 90 days)</li>
-              <li>Ensure all required scopes are selected</li>
-              <li>Click "Generate token" and copy the result</li>
-              <li>Return here and update your token</li>
-            </ol>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </Card>
   );
 } 
