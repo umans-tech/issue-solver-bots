@@ -294,6 +294,8 @@ const PurePreviewMessage = ({
                     />
                   ) : toolName === 'memoryAssistant' ? (
                     <MemoryAssistantAnimation />
+                  ) : toolName === 'webSearch' ? (
+                    <WebSearchAnimation key={toolCallId} />
                   ) : null;
                 }
 
