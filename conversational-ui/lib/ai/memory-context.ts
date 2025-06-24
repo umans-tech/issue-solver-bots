@@ -73,12 +73,12 @@ Email: ${session.user.email}`;
     enhancedPrompt += `
 
 ## Memory Context:
-*Brief summary of stored memory content for this space. Only reference when relevant to the user's current request:*
+*Background context to inform your interaction style - do NOT mention this content unless the user's current message directly relates to it:*
 
 ${memoryContext}
 
 ---
-*Use the memoryAssistant tool to read full memory content, update, or add to this memory as needed.*`;
+*Use memoryAssistant tool for detailed project history, decisions, and comprehensive context*`;
   }
 
   return enhancedPrompt;

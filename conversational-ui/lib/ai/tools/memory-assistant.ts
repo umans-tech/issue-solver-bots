@@ -27,26 +27,24 @@ export const memoryAssistant = ({ session }: MemoryAssistantProps) => tool({
   description: `Manage persistent memory across conversations within your current space. This tool allows you to store, retrieve, and modify important information that should be remembered between different chat sessions.
 
 **When to use this tool:**
-- **PRIORITY: Identify user's technical background** (engineer/developer vs non-technical user) as early as possible
-- **Communication preferences**: When users express how they want information presented or their preferred interaction style
-- **User corrections or feedback**: When users correct your approach or specify preferences about how to work
-- Store comprehensive conversation summaries with appropriate technical detail level based on user background
-- Remember user preferences, communication style, and specific requirements they've mentioned
-- Track ongoing tasks, project evolution, and decisions across sessions (technical or business-focused)
-- Document approaches used in the project (code patterns for developers, high-level concepts for non-technical users)
-- Keep detailed records of problems encountered, solutions implemented, and lessons learned
-- Store context about the user's working style, preferred explanation depth, and project goals
-- Remember specific details relevant to their role (file locations for developers, feature descriptions for non-technical users)
+- **PRIORITY: Identify user's technical background and communication style** as early as possible
+- **User corrections or feedback**: When users specify how they prefer to work or communicate
+- **Communication preferences**: When users express their preferred interaction style, level of detail, or explanation approach
+- **Project context updates**: When starting new work, changing focus, or major project developments
+- **Interaction style learning**: When you notice patterns in how the user likes to receive information
+- **Technical level calibration**: When determining appropriate depth of technical discussion
+- Remember user working style, preferred explanation depth, and communication patterns
+- Track current project focus and context for better assistance
+- Store user preferences about tooling, approaches, and methodologies they prefer
 
 **Memory Structure Guidelines:**
-Store information in a structured format similar to detailed session notes, including:
-- **User Profile**: Technical background (developer/engineer vs non-technical), experience level, and role
-- Primary requests and user intent (business goals vs technical implementation)
-- Appropriate level of detail (technical concepts for developers, high-level explanations for non-technical users)
-- File paths and code sections for developers, feature descriptions and business impact for non-technical users
-- User feedback, corrections, and communication preferences (technical depth, explanation style)
-- Problem-solving approaches and solutions (code-level for developers, conceptual for non-technical users)
-- Project context and decisions (architectural for developers, strategic for non-technical users)
+Store information focused on interaction and communication patterns:
+- **User Profile**: Technical background, experience level, communication style, role
+- **Current Project Context**: Brief current work focus, main objectives, recent developments  
+- **Interaction Preferences**: Preferred communication style, explanation depth, feedback approach
+- Focus on HOW to interact effectively rather than detailed conversation history
+- Keep project context brief - detailed history should be in full memory content
+- Emphasize communication patterns, working style, and preference signals from the user
 
 **Memory is scoped per space** - each space has its own isolated memory that won't interfere with other projects.`,
 
@@ -226,12 +224,13 @@ async function generateMemorySummary(content: string, previousSummary?: string):
     }
 
     // Construct prompt based on whether we have a previous summary
-    const summaryGuidelines = `Create a concise 3-5 sentence summary that captures the most critical information:
-- **User's technical background and expertise level** (CRITICAL for appropriate communication)
-- Primary requests and user intent (technical vs business focused)
-- Key user preferences, standards, and communication style
-- Important project context and decisions
-Keep it brief but comprehensive - focus on what future AI assistants need to know most.`;
+    const summaryGuidelines = `Create a structured summary for natural conversation using this exact format:
+
+**User Profile:** [Technical background, communication style, experience level - e.g. "Senior developer, prefers direct technical discussion, 5+ years Python experience"]
+**Current Project Context:** [Brief current focus/work - e.g. "Working on x library bug fixes, focusing on y feature"]
+**Interaction Preferences:** [How they like to communicate, level of detail - e.g. "Likes detailed explanations, prefers code examples, direct communication style"]
+
+Keep each section to 1-2 sentences max. Focus on HOW to interact with them, not WHAT they discussed.`;
 
     const prompt = previousSummary 
       ? `You are updating a memory summary for an AI assistant's persistent memory system.
