@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  userMemory,
+  type UserMemory,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -793,6 +795,80 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Memory-related queries
+
+/**
+ * Get memory for a specific user-space pair
+ */
+export async function getMemoryByUserSpace(userId: string, spaceId: string): Promise<UserMemory | null> {
+  try {
+    const [memory] = await db
+      .select()
+      .from(userMemory)
+      .where(and(eq(userMemory.userId, userId), eq(userMemory.spaceId, spaceId)));
+    return memory || null;
+  } catch (error) {
+    console.error('Failed to get memory by user space');
+    throw error;
+  }
+}
+
+/**
+ * Create or update memory for a user-space pair
+ */
+export async function upsertMemory(
+  userId: string, 
+  spaceId: string, 
+  content: string, 
+  summary: string
+): Promise<UserMemory> {
+  try {
+    const existingMemory = await getMemoryByUserSpace(userId, spaceId);
+    
+    if (existingMemory) {
+      const [updatedMemory] = await db
+        .update(userMemory)
+        .set({ 
+          content, 
+          summary, 
+          updatedAt: new Date() 
+        })
+        .where(and(eq(userMemory.userId, userId), eq(userMemory.spaceId, spaceId)))
+        .returning();
+      return updatedMemory;
+    } else {
+      const [newMemory] = await db
+        .insert(userMemory)
+        .values({ 
+          userId, 
+          spaceId, 
+          content, 
+          summary,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return newMemory;
+    }
+  } catch (error) {
+    console.error('Failed to upsert memory');
+    throw error;
+  }
+}
+
+/**
+ * Get memory summary for system prompt injection
+ */
+export async function getMemorySummary(userId: string, spaceId: string): Promise<string | null> {
+  try {
+    const memory = await getMemoryByUserSpace(userId, spaceId);
+    return memory?.summary || null;
+  } catch (error) {
+    console.error('Failed to get memory summary');
     throw error;
   }
 }
