@@ -248,6 +248,13 @@ export function RepoConnectionDialog({
       setIsRotatingToken(false);
       setNewAccessToken('');
       setShowNewToken(false);
+      
+      if (data.token_permissions) {
+        setRepoDetails(prev => prev ? {
+          ...prev,
+          token_permissions: data.token_permissions
+        } : null);
+      }
     } catch (err) {
       console.error('Error updating token:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to update token');

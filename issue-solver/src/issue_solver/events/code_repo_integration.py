@@ -35,3 +35,29 @@ def get_most_recent_access_token(
         return connected.access_token
 
     return None
+
+
+def get_most_recent_token_permissions(
+    domain_events: Sequence[DomainEvent],
+) -> dict | None:
+    """Get the most recent token permissions from either connected or token rotated events."""
+    token_rotated = most_recent_event(domain_events, CodeRepositoryTokenRotated)
+    connected = most_recent_event(domain_events, CodeRepositoryConnected)
+
+    if token_rotated and connected:
+        # Return permissions from the most recent event
+        if (
+            max(token_rotated.occurred_at, connected.occurred_at)
+            == token_rotated.occurred_at
+        ):
+            return token_rotated.token_permissions
+        else:
+            return connected.token_permissions
+
+    if token_rotated:
+        return token_rotated.token_permissions
+
+    if connected:
+        return connected.token_permissions
+
+    return None

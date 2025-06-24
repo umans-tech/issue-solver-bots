@@ -195,3 +195,45 @@ def test_token_rotated_event_encryption(encryption_key):
             serialized_record.new_access_token[-4:]
         )
         assert "*" in safe_record.new_access_token
+
+
+def test_token_rotated_event_with_permissions(encryption_key):
+    """Test that CodeRepositoryTokenRotated event stores and retrieves token permissions correctly."""
+    from issue_solver.events.domain import CodeRepositoryTokenRotated
+    from issue_solver.events.serializable_records import (
+        CodeRepositoryTokenRotatedRecord,
+        serialize,
+    )
+
+    # Create a token rotation event with permissions
+    permissions = {
+        "scopes": ["repo", "workflow"],
+        "has_repo": True,
+        "has_workflow": True,
+        "has_read_user": False,
+        "missing_scopes": ["read:user"],
+        "is_optimal": False,
+    }
+
+    event = CodeRepositoryTokenRotated(
+        occurred_at=datetime.now(),
+        knowledge_base_id="kb-123",
+        new_access_token="ghp_rotated123456789",
+        user_id="test-user",
+        process_id="proc-123",
+        token_permissions=permissions,
+    )
+
+    with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
+        # Test record creation preserves permissions
+        record = CodeRepositoryTokenRotatedRecord.create_from(event)
+        assert record.token_permissions == permissions
+
+        # Test converting back to domain event preserves permissions
+        restored_event = record.to_domain_event()
+        assert restored_event.token_permissions == permissions
+
+        # Test serialize function works with permissions
+        serialized_record = serialize(event)
+        assert isinstance(serialized_record, CodeRepositoryTokenRotatedRecord)
+        assert serialized_record.token_permissions == permissions

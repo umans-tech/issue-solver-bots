@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 import boto3
 from botocore.exceptions import ClientError
@@ -172,7 +172,7 @@ async def rotate_token(
     validation_service: Annotated[
         GitValidationService, Depends(get_validation_service)
     ],
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Rotate the access token for a connected repository."""
     logger.info(f"Rotating token for knowledge base ID: {knowledge_base_id}")
 
@@ -190,15 +190,17 @@ async def rotate_token(
 
     repository_connection = repository_connections[0]
 
-    # Validate the new token works with the repository
     try:
-        # For token rotation, we just need to validate access - don't need permissions
-        validation_service.validate_repository_access(
+        validation_result = validation_service.validate_repository_access(
             repository_connection.url, rotate_token_request.access_token
         )
     except GitValidationError as e:
         logger.error(f"Token validation failed: {e.message}")
         raise HTTPException(status_code=e.status_code, detail=e.message)
+
+    token_permissions = None
+    if validation_result and validation_result.token_permissions:
+        token_permissions = validation_result.token_permissions.to_dict()
 
     event = CodeRepositoryTokenRotated(
         occurred_at=clock.now(),
@@ -206,13 +208,17 @@ async def rotate_token(
         new_access_token=rotate_token_request.access_token,
         user_id=user_id,
         process_id=repository_connection.process_id,
+        token_permissions=token_permissions,
     )
     await event_store.append(repository_connection.process_id, event)
 
     logger.info(
         f"Token rotated successfully for knowledge base ID: {knowledge_base_id}"
     )
-    return {"message": "Token rotated successfully"}
+    return {
+        "message": "Token rotated successfully",
+        "token_permissions": token_permissions,
+    }
 
 
 def publish(

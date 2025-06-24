@@ -38,6 +38,7 @@ class CodeRepositoryTokenRotated(DomainEvent):
     user_id: str
     process_id: str
     occurred_at: datetime
+    token_permissions: dict | None = None
 
 
 @dataclass(frozen=True, slots=True)

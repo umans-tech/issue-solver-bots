@@ -128,6 +128,7 @@ class CodeRepositoryTokenRotatedRecord(BaseModel):
     new_access_token: str
     user_id: str
     process_id: str
+    token_permissions: dict | None = None
 
     def safe_copy(self) -> Self:
         return self.model_copy(
@@ -141,6 +142,7 @@ class CodeRepositoryTokenRotatedRecord(BaseModel):
             new_access_token=_decrypt_token(self.new_access_token),
             user_id=self.user_id,
             process_id=self.process_id,
+            token_permissions=self.token_permissions,
         )
 
     @classmethod
@@ -151,6 +153,7 @@ class CodeRepositoryTokenRotatedRecord(BaseModel):
             new_access_token=_encrypt_token(event.new_access_token),
             user_id=event.user_id,
             process_id=event.process_id,
+            token_permissions=event.token_permissions,
         )
 
 

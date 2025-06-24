@@ -245,7 +245,9 @@ def test_rotate_token_returns_200_and_creates_token_rotated_event(
 
     # Then
     assert response.status_code == 200
-    assert response.json() == {"message": "Token rotated successfully"}
+    result = response.json()
+    assert result["message"] == "Token rotated successfully"
+    assert "token_permissions" in result
 
     # Verify the event was created by checking the process timeline
     process_response = api_client.get(f"/processes/{process_id}")

@@ -114,6 +114,22 @@ export async function GET(request: Request) {
     // otherwise use the repository connected event
     const indexingStartTime = latestIndexationRequestedEvent?.occurred_at || repoEvent.occurred_at;
     
+    // Get the most recent token permissions (from either initial connection or token rotation)
+    const tokenRotatedEvents = data.events.filter((e: any) => e.type === 'repository_token_rotated');
+    let mostRecentTokenPermissions = repoEvent.token_permissions;
+    
+    if (tokenRotatedEvents.length > 0) {
+      // Find the most recent token rotation event
+      const mostRecentTokenRotation = tokenRotatedEvents.reduce((latest: any, current: any) => {
+        return new Date(current.occurred_at) > new Date(latest.occurred_at) ? current : latest;
+      });
+      
+      // If the token rotation is more recent than the original connection, use its permissions
+      if (new Date(mostRecentTokenRotation.occurred_at) > new Date(repoEvent.occurred_at)) {
+        mostRecentTokenPermissions = mostRecentTokenRotation.token_permissions || mostRecentTokenPermissions;
+      }
+    }
+
     // Return the repository URL and other details (but mask the access token)
     return NextResponse.json({
       connected: true,
@@ -125,7 +141,7 @@ export async function GET(request: Request) {
       commit_sha: latestRepositoryIndexedEvent?.commit_sha,
       indexing_started: indexingStartTime,
       indexing_completed: latestRepositoryIndexedEvent?.occurred_at,
-      token_permissions: repoEvent.token_permissions
+      token_permissions: mostRecentTokenPermissions
     });
   } catch (error) {
     console.error('Error retrieving repository details:', error);

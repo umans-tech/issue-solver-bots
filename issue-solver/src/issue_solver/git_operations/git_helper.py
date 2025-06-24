@@ -59,13 +59,24 @@ class GitHubTokenPermissions:
         """Returns True if all required scopes are present"""
         return len(self.missing_scopes) == 0
 
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to a dictionary for serialization"""
+        return {
+            "scopes": self.scopes,
+            "has_repo": self.has_repo,
+            "has_workflow": self.has_workflow,
+            "has_read_user": self.has_read_user,
+            "missing_scopes": self.missing_scopes,
+            "is_optimal": self.is_optimal,
+        }
+
 
 @dataclass
 class ValidationResult:
     """Result of repository validation including optional token permissions"""
 
     success: bool
-    token_permissions: Optional[GitHubTokenPermissions] = None
+    token_permissions: GitHubTokenPermissions | None = None
 
 
 class GitValidationService(ABC):

@@ -156,7 +156,8 @@ async def test_rotate_token_success(
     )
 
     # Then
-    assert result == {"message": "Token rotated successfully"}
+    assert result["message"] == "Token rotated successfully"
+    assert "token_permissions" in result
 
     # Verify event store interactions
     mock_event_store.find.assert_called_once_with(
