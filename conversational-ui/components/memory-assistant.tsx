@@ -25,20 +25,7 @@ export function MemoryAssistant({ result, action, content, oldString, newString 
     return null;
   }
   
-  // Parse the action from the result text to determine the operation
-  const getActionType = () => {
-    const resultLower = result.toLowerCase();
-    if (resultLower.includes('memory updated successfully') || resultLower.includes('overwrote')) {
-      return 'write';
-    } else if (resultLower.includes('edited successfully') || resultLower.includes('replaced')) {
-      return 'edit';
-    } else if (resultLower.includes('current memory content') || resultLower.includes('no memory stored')) {
-      return 'read';
-    }
-    return 'unknown';
-  };
-
-  const actionType = getActionType();
+  const actionType = action || 'unknown';
   
 
   const getActionLabel = () => {

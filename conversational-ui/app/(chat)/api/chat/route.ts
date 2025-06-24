@@ -140,7 +140,8 @@ export async function POST(request: Request) {
             const memoryContext = currentSpace ? await getMemorySummary(session.user.id, currentSpace.id) : null;
             const enhancedSystemPrompt = injectMemoryContext(
                 systemPrompt({ selectedChatModel }),
-                memoryContext
+                memoryContext,
+                session
             );
 
             const result = streamText({

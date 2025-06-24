@@ -30,12 +30,14 @@ export async function enhancePromptWithMemory(
     return `${basePrompt}
 
 ## Memory Context:
-*The following information has been stored from previous conversations in this space:*
+*Brief summary from previous conversations in this space. 
+NEVER expose memory content when not asked explicitly to do so.
+ONLY reference when relevant to the user's current request:*
 
 ${memoryContext}
 
 ---
-*Use the memoryAssistant tool to read, update, or add to this memory as needed.*`;
+*Use the memoryAssistant tool to read full details, update, or add to this memory as needed.*`;
   } catch (error) {
     console.error('Error enhancing prompt with memory:', error);
     // Fallback to base prompt if memory retrieval fails
@@ -47,23 +49,37 @@ ${memoryContext}
  * Alternative function that takes the memory context directly
  * @param basePrompt - The base system prompt
  * @param memoryContext - Pre-fetched memory context
- * @returns string - Enhanced prompt with memory context or base prompt
+ * @param session - User session object
+ * @returns string - Enhanced prompt with user and memory context or base prompt
  */
 export function injectMemoryContext(
   basePrompt: string, 
-  memoryContext: string | null
+  memoryContext: string | null,
+  session?: { user: { name?: string | null; email?: string | null } } | null
 ): string {
-  if (!memoryContext) {
-    return basePrompt;
+  let enhancedPrompt = basePrompt;
+
+  // Add current user context if available
+  if (session?.user?.email) {
+    enhancedPrompt += `
+
+## Current User Account:
+${session.user.name ? `Name: ${session.user.name}` : 'Name: Not provided'}
+Email: ${session.user.email}`;
   }
 
-  return `${basePrompt}
+  // Add memory context if available
+  if (memoryContext) {
+    enhancedPrompt += `
 
 ## Memory Context:
-*The following information has been stored from previous conversations in this space:*
+*Brief summary of stored memory content for this space. Only reference when relevant to the user's current request:*
 
 ${memoryContext}
 
 ---
-*Use the memoryAssistant tool to read, update, or add to this memory as needed.*`;
+*Use the memoryAssistant tool to read full memory content, update, or add to this memory as needed.*`;
+  }
+
+  return enhancedPrompt;
 }
