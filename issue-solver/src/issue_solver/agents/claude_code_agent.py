@@ -15,6 +15,9 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     ResolveIssueCommand,
 )
+from issue_solver.agents.resolution_approaches import (
+    pragmatic_coding_agent_system_prompt,
+)
 
 
 class ClaudeCodeAgent(IssueResolvingAgent):
@@ -31,23 +34,18 @@ class ClaudeCodeAgent(IssueResolvingAgent):
             cwd=str(repo_location),
             model=str(command.model),
             max_turns=100,
-            allowed_tools=["Read", "Write", "Bash", "Edit"],
             permission_mode="bypassPermissions",
-            system_prompt=f"You are a coding assistant. Resolve this issue: {issue_description}",
+            system_prompt=pragmatic_coding_agent_system_prompt(),
         )
 
         prompt = f"""
         Please analyze and resolve this issue in the repository:
         
-        Issue: {issue_description}
-        
         Repository location: {repo_location}
         
-        Steps to follow:
-        1. Explore the codebase to understand the structure
-        2. Identify the root cause of the issue
-        3. Implement the necessary changes
-        4. Test your changes if possible
+        Issue: {command.issue.title}
+        {issue_description}
+
         """
 
         try:
