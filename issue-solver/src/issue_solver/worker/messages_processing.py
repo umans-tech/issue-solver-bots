@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from shutil import rmtree
 
 from openai import OpenAI
 
@@ -108,6 +109,10 @@ async def resolve_issue(
     process_id = message.process_id
     repo_path = Path(f"/tmp/repo/{process_id}")
     try:
+        if repo_path.exists():
+            logger.info(f"Repository path {repo_path} already exists, removing it")
+            rmtree(repo_path)
+
         new_branch_name = (
             f"auto/{process_id}/{(message.issue.title or '').replace(' ', '_')[:50]}"
         )
