@@ -448,7 +448,7 @@ class GitSettings(BaseSettings):
         description="Token used for CI/CD runner to push changes to the repository.",
     )
     user_mail: str = Field(
-        default="ai.agent@umans.tech",
+        default="agent@umans.ai",
         description="Email address used for Git commits.",
     )
     user_name: str = Field(
