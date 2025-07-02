@@ -59,12 +59,28 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
   description: `Search the codebase using hybrid semantic search to find relevant code snippets. ${session.user?.selectedSpace?.connectedRepoUrl ? `The user connected this repository: ${session.user?.selectedSpace?.connectedRepoUrl}. Keep this in mind if the user refer to a codebase.` : 'The user has not connected any code repo yet.'}`,
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
-    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
+    filters: z.union([filterSchema, z.string()]).optional().describe('Optional filters to narrow down search results based on file attributes. Can be provided as an object or JSON string. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or as JSON string: "{\\"type\\":\\"eq\\",\\"key\\":\\"file_name\\",\\"value\\":\\"index.js\\"}" or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
   }),
   execute: async ({ query, filters }) => {
+    // Preprocess filters: handle both string and object formats
+    let processedFilters = filters;
+    if (typeof filters === 'string' && filters.trim()) {
+      try {
+        processedFilters = JSON.parse(filters);
+        logSearchOperation('FILTER_PARSING', { originalFilters: filters, parsedFilters: processedFilters });
+      } catch (parseError) {
+        logSearchOperation('FILTER_PARSE_ERROR', { 
+          originalFilters: filters, 
+          parseError: parseError instanceof Error ? parseError.message : String(parseError) 
+        });
+        return `Error parsing filters: Invalid JSON format. Please provide filters as a valid JSON object.`;
+      }
+    }
+
     try {
-      // Log the search request
-      logSearchOperation('REQUEST', { query, filters });
+
+      // Log the search request with processed filters
+      logSearchOperation('REQUEST', { query, filters: processedFilters });
 
       // Get the knowledge base ID from the session object, checking session locations
       // @ts-ignore - Accessing properties that TypeScript doesn't know about
@@ -82,7 +98,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       const searchResults = await client.vectorStores.search(knowledgeBaseId, {
         query: query,
         rewrite_query: true,
-        filters: filters,
+        filters: processedFilters,
       });
       console.timeEnd('codebaseSearch:execution');
 
@@ -109,7 +125,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       logSearchOperation('ERROR', {
         error: error instanceof Error ? error.message : String(error),
         query,
-        filters
+        filters: processedFilters
       });
       console.error('Error searching codebase:', error);
       return `Error searching codebase: ${error instanceof Error ? error.message : String(error)}`;
