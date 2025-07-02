@@ -27,8 +27,12 @@ const compoundFilterSchema = z.object({
   )
 });
 
-// Combined filter schema for accepting either type
-const filterSchema = z.union([comparisonFilterSchema, compoundFilterSchema]).optional();
+// Combined filter schema for accepting either type (including string format)
+const filterSchema = z.union([
+  comparisonFilterSchema, 
+  compoundFilterSchema,
+  z.string() // Allow string format that will be parsed
+]).optional();
 
 // Interface for codebaseSearch props
 interface CodebaseSearchProps {
@@ -63,8 +67,38 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
   }),
   execute: async ({ query, filters }) => {
     try {
+      // Parse filters if they are provided as a string
+      let parsedFilters = filters;
+      if (typeof filters === 'string') {
+        try {
+          parsedFilters = JSON.parse(filters);
+          logSearchOperation('FILTER_PARSED', { originalFilters: filters, parsedFilters });
+        } catch (parseError) {
+          logSearchOperation('FILTER_PARSE_ERROR', { 
+            originalFilters: filters, 
+            error: parseError instanceof Error ? parseError.message : String(parseError) 
+          });
+          return `Error parsing filters: ${parseError instanceof Error ? parseError.message : String(parseError)}. Please provide valid JSON format.`;
+        }
+      }
+
+      // Validate parsed filters against our schema
+      if (parsedFilters !== undefined) {
+        try {
+          // Use the original schema (without string option) to validate the parsed object
+          const validationSchema = z.union([comparisonFilterSchema, compoundFilterSchema]).optional();
+          parsedFilters = validationSchema.parse(parsedFilters);
+        } catch (validationError) {
+          logSearchOperation('FILTER_VALIDATION_ERROR', { 
+            parsedFilters, 
+            error: validationError instanceof Error ? validationError.message : String(validationError) 
+          });
+          return `Error validating filters: ${validationError instanceof Error ? validationError.message : String(validationError)}. Please check the filter format.`;
+        }
+      }
+
       // Log the search request
-      logSearchOperation('REQUEST', { query, filters });
+      logSearchOperation('REQUEST', { query, filters: parsedFilters });
 
       // Get the knowledge base ID from the session object, checking session locations
       // @ts-ignore - Accessing properties that TypeScript doesn't know about
@@ -82,7 +116,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       const searchResults = await client.vectorStores.search(knowledgeBaseId, {
         query: query,
         rewrite_query: true,
-        filters: filters,
+        filters: parsedFilters,
       });
       console.timeEnd('codebaseSearch:execution');
 
@@ -109,7 +143,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       logSearchOperation('ERROR', {
         error: error instanceof Error ? error.message : String(error),
         query,
-        filters
+        filters: parsedFilters
       });
       console.error('Error searching codebase:', error);
       return `Error searching codebase: ${error instanceof Error ? error.message : String(error)}`;
