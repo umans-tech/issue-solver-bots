@@ -55,16 +55,41 @@ function logSearchOperation(operation: string, data: any) {
   console.log(`[${timestamp}] CodebaseSearch ${operation}:`, JSON.stringify(data, null, 2));
 }
 
+// Helper function to parse filters parameter that may come as string or object
+function parseFilters(filters: any) {
+  if (!filters) return undefined;
+  
+  // If filters is already an object, return as-is
+  if (typeof filters === 'object' && filters !== null) {
+    return filters;
+  }
+  
+  // If filters is a string, try to parse it as JSON
+  if (typeof filters === 'string') {
+    try {
+      return JSON.parse(filters);
+    } catch (error) {
+      console.warn('Failed to parse filters JSON string:', error);
+      return undefined;
+    }
+  }
+  
+  return undefined;
+}
+
 export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => tool({
   description: `Search the codebase using hybrid semantic search to find relevant code snippets. ${session.user?.selectedSpace?.connectedRepoUrl ? `The user connected this repository: ${session.user?.selectedSpace?.connectedRepoUrl}. Keep this in mind if the user refer to a codebase.` : 'The user has not connected any code repo yet.'}`,
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
-    filters: filterSchema.describe('Optional filters to narrow down search results based on file attributes. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
+    filters: z.union([z.string(), filterSchema]).optional().describe('Optional filters to narrow down search results based on file attributes. Can be provided as JSON string or object. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
   }),
   execute: async ({ query, filters }) => {
     try {
+      // Parse filters to handle both string and object formats
+      const parsedFilters = parseFilters(filters);
+      
       // Log the search request
-      logSearchOperation('REQUEST', { query, filters });
+      logSearchOperation('REQUEST', { query, filters: parsedFilters });
 
       // Get the knowledge base ID from the session object, checking session locations
       // @ts-ignore - Accessing properties that TypeScript doesn't know about
@@ -82,7 +107,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       const searchResults = await client.vectorStores.search(knowledgeBaseId, {
         query: query,
         rewrite_query: true,
-        filters: filters,
+        filters: parsedFilters,
       });
       console.timeEnd('codebaseSearch:execution');
 
@@ -109,7 +134,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       logSearchOperation('ERROR', {
         error: error instanceof Error ? error.message : String(error),
         query,
-        filters
+        filters: parseFilters(filters)
       });
       console.error('Error searching codebase:', error);
       return `Error searching codebase: ${error instanceof Error ? error.message : String(error)}`;
