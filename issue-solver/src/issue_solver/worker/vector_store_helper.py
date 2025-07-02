@@ -41,6 +41,7 @@ SUPPORTED_EXTENSIONS = {
     ".py",
     ".rb",
     ".tex",
+    ".tf",
     ".ts",
     ".txt",
     ".webp",
