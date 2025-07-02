@@ -35,6 +35,7 @@ from issue_solver.git_operations.git_helper import (
 from issue_solver.models.supported_models import (
     QualifiedAIModel,
     SupportedAnthropicModel,
+    LATEST_CLAUDE_4_VERSION,
 )
 from issue_solver.webapi.dependencies import (
     get_clock,
@@ -148,9 +149,10 @@ async def resolve_issue(
         await dependencies.coding_agent.resolve_issue(
             ResolveIssueCommand(
                 model=QualifiedAIModel(
-                    ai_model=SupportedAnthropicModel.CLAUDE_37_SONNET, version="latest"
+                    ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
+                    version=LATEST_CLAUDE_4_VERSION,
                 ),
-                issue=(message.issue),
+                issue=message.issue,
                 repo_path=repo_path,
             )
         )
