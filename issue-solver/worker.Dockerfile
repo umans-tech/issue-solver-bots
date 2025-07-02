@@ -30,31 +30,23 @@ FROM public.ecr.aws/lambda/python:3.12 AS node-builder
 RUN set -eux \
  && dnf -y update \
  && dnf -y install nodejs npm git \
- \
- # ─── Claude Code CLI ────────────────────────────────────────────────────────
  && npm install -g @anthropic-ai/claude-code \
- \
- # ─── discover npm paths ────────────────────────────────────────────────────
+ # Discover npm paths
  && NPM_BIN="$(npm bin -g)" \
  && NPM_PREFIX="$(npm prefix -g)" \
- \
- # ─── staging dirs we’ll copy out later ─────────────────────────────────────
+ # Staging dirs we’ll copy out later ─
  && mkdir -p /nodejs/bin /nodejs/lib /nodejs/lib64 /git \
- \
- # ─── executables: node, npm, claude, claude-code ───────────────────────────
+ # Copy executables: node, npm, claude, claude-code
  && cp -a "${NPM_BIN}/." /nodejs/bin/ \
  && cp /usr/bin/node /usr/bin/npm /nodejs/bin/ \
- \
- # ─── global node_modules tree (CLI code) ───────────────────────────────────
+ # Copy global node_modules tree (CLI code)
  && cp -a "${NPM_PREFIX}/lib/node_modules" /nodejs/lib/ \
- \
- # ─── Node’s shared library + its own deps ──────────────────────────────────
+ # Node’s shared library + its own deps
  && cp /usr/lib64/libnode.so* /nodejs/lib64/ \
  && for lib in $(ldd /usr/lib64/libnode.so* | awk '/=>/ {print $3}' | sort -u); do \
         [ -f "$lib" ] && cp "$lib" /nodejs/lib64/; \
     done \
- \
- # ─── minimal Git for HTTPS interactions ────────────────────────────────────
+ # Copy Git binary and its dependencies (minimal Git for HTTPS interactions)
  && cp /usr/bin/git /git/ \
  && cp /usr/libexec/git-core/git-remote-https /git/ \
  && for lib in $(ldd /usr/bin/git /usr/libexec/git-core/git-remote-https | \
