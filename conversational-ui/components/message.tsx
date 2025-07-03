@@ -289,6 +289,8 @@ const PurePreviewMessage = ({
                       issueDescription={issueDescription}
                       result={null}
                     />
+                  ) : isGitHubMCPTool(toolName) ? (
+                    <GitHubMCPAnimation toolName={toolName} args={args} />
                   ) : null;
                 }
 
