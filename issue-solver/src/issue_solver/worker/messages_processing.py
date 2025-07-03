@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from pathlib import Path
 from shutil import rmtree
 
@@ -50,6 +51,37 @@ from issue_solver.worker.vector_store_helper import (
 )
 
 logger = logging.getLogger()
+
+
+def sanitize_branch_name(name: str) -> str:
+    """Sanitize a string to be a valid Git branch name.
+
+    Git branch names cannot contain:
+    - Spaces, ~, ^, :, ?, *, [, ]
+    - Start or end with /, ., or -
+    - Contain consecutive dots ..
+    - End with .lock
+    - Contain @{
+    - Be empty or contain only whitespace
+    """
+    if not name or not name.strip():
+        return "resolution"
+
+    # Replace invalid characters with hyphens
+    sanitized = re.sub(r"[^a-zA-Z0-9._-]", "-", name.strip())
+
+    # Remove consecutive hyphens/dots/underscores
+    sanitized = re.sub(r"[-_.]{2,}", "-", sanitized)
+
+    # Remove leading/trailing invalid characters
+    sanitized = sanitized.strip("-._")
+
+    # Ensure it's not empty after sanitization
+    if not sanitized:
+        return "resolution"
+
+    # Truncate to reasonable length and ensure it doesn't end with invalid chars
+    return sanitized[:50].rstrip("-._")
 
 
 class Dependencies:
@@ -114,7 +146,8 @@ async def resolve_issue(
             logger.info(f"Repository path {repo_path} already exists, removing it")
             rmtree(repo_path)
 
-        new_branch_name = f"auto/{process_id}/{(message.issue.title or 'resolution').replace(' ', '_')[:50]}"
+        title_part = sanitize_branch_name(message.issue.title or "resolution")
+        new_branch_name = f"auto/{process_id}/{title_part}"
         dependencies.git_client.clone_repository(
             url=url,
             access_token=access_token,
