@@ -196,6 +196,10 @@ const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) =>
       return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
     case 'get_issue':
       return <GitHubIssueDetail issue={result} />;
+    case 'create_issue':
+      return <GitHubIssueDetail issue={result} />;
+    case 'update_issue':
+      return <GitHubIssueDetail issue={result} />;
     case 'search_issues':
       return <GitHubIssuesList issues={result} repository="search results" />;
     default:
