@@ -114,9 +114,7 @@ async def resolve_issue(
             logger.info(f"Repository path {repo_path} already exists, removing it")
             rmtree(repo_path)
 
-        new_branch_name = (
-            f"auto/{process_id}/{(message.issue.title or '').replace(' ', '_')[:50]}"
-        )
+        new_branch_name = f"auto/{process_id}/{(message.issue.title or 'resolution').replace(' ', '_')[:50]}"
         dependencies.git_client.clone_repository(
             url=url,
             access_token=access_token,
