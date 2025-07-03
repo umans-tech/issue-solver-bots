@@ -22,7 +22,14 @@ export function MessageEditor({
 }: MessageEditorProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const [draftContent, setDraftContent] = useState<string>(message.content);
+  const [draftContent, setDraftContent] = useState<string>(() => {
+    const textParts = message.parts
+      ?.filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n')
+      .trim();
+    return textParts || '';
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
