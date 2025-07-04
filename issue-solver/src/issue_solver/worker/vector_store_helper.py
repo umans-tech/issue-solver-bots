@@ -23,6 +23,8 @@ SUPPORTED_EXTENSIONS = {
     ".css",
     ".csv",
     ".doc",
+    ".dockerfile",
+    ".Dockerfile",
     ".docx",
     ".gif",
     ".go",
@@ -97,6 +99,25 @@ def is_valid_code_file(file_path: str) -> bool:
 
 
 def prepare_file_path_to_upload(file_path: str) -> str:
+    """
+    Prepare file path for upload by ensuring it has a supported extension.
+    
+    Special handling for:
+    - Dockerfiles without extensions (e.g., "Dockerfile")
+    - Files with supported extensions
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        str: Path with supported extension
+    """
+    # Check if it's a Dockerfile without extension
+    file_name = os.path.basename(file_path)
+    if file_name.lower() == "dockerfile":
+        return file_path
+    
+    # Check if file has a supported extension
     is_supported_extension = file_path.endswith(tuple(SUPPORTED_EXTENSIONS))
     if is_supported_extension:
         return file_path
