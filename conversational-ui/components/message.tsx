@@ -4,6 +4,7 @@ import type { UIMessage } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -193,10 +194,12 @@ const PurePreviewMessage = ({
                                     .trim();
 
                                   if (!textFromParts) {
+                                    toast.error("There's no text to copy!");
                                     return;
                                   }
 
                                   await navigator.clipboard.writeText(textFromParts);
+                                  toast.success('Copied to clipboard!');
                                 }}
                               >
                                 <Copy />
