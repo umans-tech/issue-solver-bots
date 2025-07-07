@@ -14,7 +14,7 @@ const issueSchema = z.object({
 });
 
 export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) => tool({
-    description: "A tool for that launch a remote instance of a coding agent to resolve an issue by submitting a PR/MR.",
+    description: "A tool that launches a remote instance of a coding agent to resolve an issue by submitting a PR/MR.",
     parameters: z.object({
         issue: issueSchema,
     }),
