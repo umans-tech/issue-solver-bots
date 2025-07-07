@@ -9,12 +9,12 @@ interface RemoteCodingAgentProps {
 }
 
 const issueSchema = z.object({
-    title: z.string().optional().describe('The title of the issue to be resolved.'),
-    description: z.string().describe('The description of the issue to be resolved.'),
+    title: z.string().optional().describe('The title of the issue to be resolved. Must be a JSON string value.'),
+    description: z.string().describe('The description of the issue to be resolved. Must be a JSON string value.'),
 });
 
 export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) => tool({
-    description: "A tool that launches a remote instance of a coding agent to resolve an issue by submitting a PR/MR.",
+    description: "A tool that launches a remote instance of a coding agent to resolve an issue by submitting a PR/MR. IMPORTANT: Use strict JSON format for parameters. Example: {\"issue\": {\"title\": \"Fix bug in authentication\", \"description\": \"The login form shows incorrect error messages\"}}",
     parameters: z.object({
         issue: issueSchema,
     }),
