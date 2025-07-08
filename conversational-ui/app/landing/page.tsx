@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { IconUmansLogo } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Settings } from 'lucide-react';
+import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Settings, DollarSign, Calendar, MessageSquare, Mail } from 'lucide-react';
 
 export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -275,6 +275,105 @@ export default function LandingPage() {
             >
               Start Building
             </Link>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Pricing Transparency Section */}
+      <div className="relative z-10 bg-muted/30 py-24">
+        <div className="mx-auto max-w-4xl px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-4">Transparent Pricing</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              We believe in honest, transparent pricing. Help us build the right model for you.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            {/* Current Status */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-sm font-medium">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Currently Free
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">While we build something amazing</h3>
+              <p className="text-muted-foreground">
+                Get full access to all current features while we develop and refine the platform.
+                No limits, no hidden costs - just pure innovation.
+              </p>
+            </motion.div>
+
+            {/* Future Plans */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+            >
+              <div className="mb-4">
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Paid Plans Coming
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-4">Q3-Q4 2025</h3>
+              <p className="text-muted-foreground mb-4">
+                Early users get special pricing when we launch our subscription model.
+                You'll be grandfathered into the best rates.
+              </p>
+              <div className="inline-flex items-center px-3 py-1 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs font-medium">
+                Early Access Advantage
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Feedback Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <div className="rounded-2xl bg-card p-8 shadow-sm border border-border">
+              <div className="mb-6">
+                <MessageSquare className="w-8 h-8 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-foreground mb-2">Help Shape Our Pricing</h3>
+                <p className="text-muted-foreground">
+                  Your input matters. Tell us what pricing model would work best for your team.
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                <a
+                  href="https://docs.google.com/forms/d/e/1FAIpQLScKnZwyFyizdnt3gBKOY7EFdnIHnuYWYGaaxqMpV1fWQk-szw/viewform?usp=header"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
+                >
+                  Share Your Feedback
+                </a>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Questions? <a href="mailto:contact@umans.ai" className="ml-1 text-primary hover:underline">contact@umans.ai</a>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
