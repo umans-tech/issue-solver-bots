@@ -205,3 +205,21 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const tokenUsage = pgTable('token_usage', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  spaceId: varchar('space_id', { length: 255 }).notNull(),
+  chatId: varchar('chat_id', { length: 255 }),
+  provider: varchar('provider', { length: 50 }).notNull(),
+  model: varchar('model', { length: 100 }).notNull(),
+  inputTokens: varchar('input_tokens').notNull().default('0'),
+  outputTokens: varchar('output_tokens').notNull().default('0'),
+  totalTokens: varchar('total_tokens').notNull().default('0'),
+  costUsd: varchar('cost_usd').notNull().default('0'),
+  operationType: varchar('operation_type', { length: 50 }).notNull(),
+  operationId: varchar('operation_id', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type TokenUsage = InferSelectModel<typeof tokenUsage>;

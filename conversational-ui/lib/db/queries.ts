@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -793,6 +795,163 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Token usage queries
+
+/**
+ * Record token usage for a chat interaction
+ */
+export async function recordTokenUsage({
+  userId,
+  spaceId,
+  chatId,
+  provider,
+  model,
+  inputTokens,
+  outputTokens,
+  totalTokens,
+  costUsd,
+  operationType,
+  operationId,
+}: {
+  userId: string;
+  spaceId: string;
+  chatId?: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  operationType: string;
+  operationId?: string;
+}) {
+  try {
+    return await db.insert(tokenUsage).values({
+      userId,
+      spaceId,
+      chatId,
+      provider,
+      model,
+      inputTokens: inputTokens.toString(),
+      outputTokens: outputTokens.toString(),
+      totalTokens: totalTokens.toString(),
+      costUsd: costUsd.toString(),
+      operationType,
+      operationId,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error('Failed to record token usage:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by user ID
+ */
+export async function getTokenUsageByUserId({
+  userId,
+  limit = 100,
+}: {
+  userId: string;
+  limit?: number;
+}) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.userId, userId))
+      .orderBy(desc(tokenUsage.createdAt))
+      .limit(limit);
+  } catch (error) {
+    console.error('Failed to get token usage by user ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by space ID
+ */
+export async function getTokenUsageBySpaceId({
+  spaceId,
+  limit = 100,
+}: {
+  spaceId: string;
+  limit?: number;
+}) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.spaceId, spaceId))
+      .orderBy(desc(tokenUsage.createdAt))
+      .limit(limit);
+  } catch (error) {
+    console.error('Failed to get token usage by space ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by chat ID
+ */
+export async function getTokenUsageByChatId({
+  chatId,
+}: {
+  chatId: string;
+}) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.chatId, chatId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage aggregated by user
+ */
+export async function getTokenUsageAggregatedByUser({
+  userId,
+  startDate,
+  endDate,
+}: {
+  userId: string;
+  startDate?: Date;
+  endDate?: Date;
+}) {
+  try {
+    let query = db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.userId, userId));
+
+    if (startDate) {
+      query = query.where(and(
+        eq(tokenUsage.userId, userId),
+        gte(tokenUsage.createdAt, startDate)
+      ));
+    }
+
+    if (endDate) {
+      query = query.where(and(
+        eq(tokenUsage.userId, userId),
+        ...(startDate ? [gte(tokenUsage.createdAt, startDate)] : []),
+        gt(tokenUsage.createdAt, endDate)
+      ));
+    }
+
+    return await query.orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get aggregated token usage by user:', error);
     throw error;
   }
 }

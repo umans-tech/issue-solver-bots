@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, recordTokenUsage } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -20,10 +20,29 @@ import { createResumableStreamContext, type ResumableStreamContext } from 'resum
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
+import { calculateCost } from '@/lib/utils/cost-calculator';
 
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
+
+// Helper function to determine provider and model from selectedChatModel
+function getProviderAndModel(selectedChatModel: string): { provider: 'openai' | 'anthropic', model: string } {
+  // Map custom model names to actual provider models
+  const modelMapping: Record<string, { provider: 'openai' | 'anthropic', model: string }> = {
+    'chat-model-small': { provider: 'openai', model: 'gpt-4.1-mini' },
+    'chat-model-large': { provider: 'openai', model: 'gpt-4.1' },
+    'chat-model-reasoning': { provider: 'openai', model: 'o3-mini' },
+    'coding-model-light': { provider: 'anthropic', model: 'claude-3-5-sonnet-latest' },
+    'coding-model': { provider: 'anthropic', model: 'claude-3-7-sonnet-latest' },
+    'coding-model-large': { provider: 'anthropic', model: 'claude-sonnet-4-20250514' },
+    'coding-model-super': { provider: 'anthropic', model: 'claude-opus-4-20250514' },
+    'title-model': { provider: 'openai', model: 'gpt-4o-mini' },
+    'artifact-model': { provider: 'openai', model: 'gpt-4o' },
+  };
+
+  return modelMapping[selectedChatModel] || { provider: 'openai', model: selectedChatModel };
+}
 
 
 
@@ -186,7 +205,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +245,29 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage
+                            if (usage && currentSpace) {
+                                const { provider, model } = getProviderAndModel(selectedChatModel);
+                                const inputTokens = usage.promptTokens || 0;
+                                const outputTokens = usage.completionTokens || 0;
+                                const totalTokens = usage.totalTokens || (inputTokens + outputTokens);
+                                const costUsd = calculateCost(provider, model, inputTokens, outputTokens);
+
+                                await recordTokenUsage({
+                                    userId: session.user.id,
+                                    spaceId: currentSpace.id,
+                                    chatId: id,
+                                    provider,
+                                    model,
+                                    inputTokens,
+                                    outputTokens,
+                                    totalTokens,
+                                    costUsd,
+                                    operationType: 'chat',
+                                    operationId: id,
+                                });
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }
@@ -236,7 +278,13 @@ export async function POST(request: Request) {
                 },
                 experimental_telemetry: {
                     isEnabled: true,
-                    functionId: 'stream-text',
+                    functionId: `chat-${session.user.id}`,
+                    metadata: { 
+                        userId: session.user.id, 
+                        spaceId: currentSpace?.id,
+                        chatId: id,
+                        model: selectedChatModel,
+                    },
                 },
             });
 
