@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
 
 export const space = pgTable('Space', {
@@ -205,3 +206,38 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const tokenUsage = pgTable('TokenUsage', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  spaceId: uuid('spaceId').references(() => space.id),
+  model: varchar('model', { length: 255 }).notNull(),
+  provider: varchar('provider', { length: 100 }).notNull(),
+  
+  // Standard token counts
+  promptTokens: integer('promptTokens'),
+  completionTokens: integer('completionTokens'),
+  totalTokens: integer('totalTokens'),
+  
+  // Provider-specific token counts
+  reasoningTokens: integer('reasoningTokens'), // OpenAI reasoning tokens
+  thinkingTokens: integer('thinkingTokens'), // Anthropic thinking tokens
+  thinkingBudgetTokens: integer('thinkingBudgetTokens'), // Anthropic thinking budget tokens
+  
+  // Caching token counts
+  cachedTokens: integer('cachedTokens'),
+  cacheCreationTokens: integer('cacheCreationTokens'),
+  cacheReadTokens: integer('cacheReadTokens'),
+  
+  // Raw usage data for future analysis
+  rawUsageData: json('rawUsageData'),
+  
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type TokenUsage = InferSelectModel<typeof tokenUsage>;

@@ -1,0 +1,157 @@
+{
+  "id": "0014_token_usage_table",
+  "prevId": "0013_gifted_silver_centurion",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "TokenUsage": {
+      "name": "TokenUsage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chatId": {
+          "name": "chatId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spaceId": {
+          "name": "spaceId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "promptTokens": {
+          "name": "promptTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completionTokens": {
+          "name": "completionTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totalTokens": {
+          "name": "totalTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reasoningTokens": {
+          "name": "reasoningTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thinkingTokens": {
+          "name": "thinkingTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thinkingBudgetTokens": {
+          "name": "thinkingBudgetTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cachedTokens": {
+          "name": "cachedTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cacheCreationTokens": {
+          "name": "cacheCreationTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cacheReadTokens": {
+          "name": "cacheReadTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rawUsageData": {
+          "name": "rawUsageData",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "TokenUsage_chatId_Chat_id_fk": {
+          "name": "TokenUsage_chatId_Chat_id_fk",
+          "tableFrom": "TokenUsage",
+          "tableTo": "Chat",
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TokenUsage_userId_User_id_fk": {
+          "name": "TokenUsage_userId_User_id_fk",
+          "tableFrom": "TokenUsage",
+          "tableTo": "User",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "TokenUsage_spaceId_Space_id_fk": {
+          "name": "TokenUsage_spaceId_Space_id_fk",
+          "tableFrom": "TokenUsage",
+          "tableTo": "Space",
+          "columnsFrom": ["spaceId"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

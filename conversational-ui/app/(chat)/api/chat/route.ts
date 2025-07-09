@@ -20,6 +20,7 @@ import { createResumableStreamContext, type ResumableStreamContext } from 'resum
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
+import { recordTokenUsage } from '@/lib/token-usage';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage, experimental_telemetry }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +227,22 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage
+                            if (usage || experimental_telemetry) {
+                                try {
+                                    await recordTokenUsage(
+                                        { usage, experimental_telemetry },
+                                        id,
+                                        session.user.id,
+                                        currentSpace?.id,
+                                        selectedChatModel
+                                    );
+                                } catch (tokenError) {
+                                    console.error('Failed to record token usage:', tokenError);
+                                    // Don't fail the entire operation if token recording fails
+                                }
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }
@@ -237,6 +254,12 @@ export async function POST(request: Request) {
                 experimental_telemetry: {
                     isEnabled: true,
                     functionId: 'stream-text',
+                    metadata: {
+                        chatId: id,
+                        userId: session.user.id,
+                        spaceId: currentSpace?.id,
+                        model: selectedChatModel,
+                    },
                 },
             });
 

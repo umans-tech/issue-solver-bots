@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -793,6 +795,122 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Token usage queries
+
+/**
+ * Save token usage data to database
+ */
+export async function saveTokenUsage(usageData: {
+  chatId: string;
+  userId: string;
+  spaceId?: string;
+  model: string;
+  provider: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  reasoningTokens?: number;
+  thinkingTokens?: number;
+  thinkingBudgetTokens?: number;
+  cachedTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  rawUsageData?: any;
+}) {
+  try {
+    return await db.insert(tokenUsage).values({
+      chatId: usageData.chatId,
+      userId: usageData.userId,
+      spaceId: usageData.spaceId,
+      model: usageData.model,
+      provider: usageData.provider,
+      promptTokens: usageData.promptTokens,
+      completionTokens: usageData.completionTokens,
+      totalTokens: usageData.totalTokens,
+      reasoningTokens: usageData.reasoningTokens,
+      thinkingTokens: usageData.thinkingTokens,
+      thinkingBudgetTokens: usageData.thinkingBudgetTokens,
+      cachedTokens: usageData.cachedTokens,
+      cacheCreationTokens: usageData.cacheCreationTokens,
+      cacheReadTokens: usageData.cacheReadTokens,
+      rawUsageData: usageData.rawUsageData,
+    });
+  } catch (error) {
+    console.error('Failed to save token usage:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by chat ID
+ */
+export async function getTokenUsageByChatId({ chatId }: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.chatId, chatId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by user ID
+ */
+export async function getTokenUsageByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.userId, userId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by user ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by space ID
+ */
+export async function getTokenUsageBySpaceId({ spaceId }: { spaceId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.spaceId, spaceId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by space ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by user ID and space ID
+ */
+export async function getTokenUsageByUserIdAndSpaceId({ 
+  userId, 
+  spaceId 
+}: { 
+  userId: string;
+  spaceId: string;
+}) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(and(eq(tokenUsage.userId, userId), eq(tokenUsage.spaceId, spaceId)))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by user and space ID:', error);
     throw error;
   }
 }
