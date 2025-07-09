@@ -335,9 +335,7 @@ class GitHelper:
     def _commit_changes(self, repo: Repo, issue_info: IssueInfo) -> None:
         repo.git.add(A=True)  # Equivalent to `git add --all`
         if repo.is_dirty(untracked_files=True):
-            commit_message = (
-                f"Automated resolution of '{issue_info.title}' (automated change 🤖✨)"
-            )
+            commit_message = f"feat: automated resolution of '{issue_info.title}' (automated change 🤖✨)"
             repo.index.commit(commit_message)
 
     def _push_changes(self, repo: Repo) -> None:
