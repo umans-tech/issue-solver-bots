@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -793,6 +795,80 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+export async function saveTokenUsage({
+  userId,
+  spaceId,
+  messageId,
+  chatId,
+  provider,
+  model,
+  operationType,
+  operationId,
+  rawUsageData,
+  providerMetadata,
+  finishReason,
+  requestId,
+}: {
+  userId: string;
+  spaceId?: string | null;
+  messageId: string;
+  chatId?: string | null;
+  provider: string;
+  model: string;
+  operationType: string;
+  operationId?: string | null;
+  rawUsageData: any;
+  providerMetadata?: any;
+  finishReason?: string | null;
+  requestId?: string | null;
+}) {
+  try {
+    return await db.insert(tokenUsage).values({
+      userId,
+      spaceId,
+      messageId,
+      chatId,
+      provider,
+      model,
+      operationType,
+      operationId,
+      rawUsageData,
+      providerMetadata,
+      finishReason,
+      requestId,
+    });
+  } catch (error) {
+    console.error('Failed to save token usage in database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageByMessageId({ messageId }: { messageId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.messageId, messageId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by message id from database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageByChatId({ chatId }: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.chatId, chatId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat id from database');
     throw error;
   }
 }

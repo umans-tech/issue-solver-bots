@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 
 export const space = pgTable('Space', {
@@ -205,3 +206,22 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const tokenUsage = pgTable('token_usage', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: text('user_id').notNull(),
+  spaceId: text('space_id'),
+  messageId: uuid('message_id').notNull().references(() => message.id),
+  chatId: text('chat_id'),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  operationType: text('operation_type').notNull(),
+  operationId: text('operation_id'),
+  rawUsageData: jsonb('raw_usage_data').notNull(),
+  providerMetadata: jsonb('provider_metadata'),
+  finishReason: text('finish_reason'),
+  requestId: text('request_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type TokenUsage = InferSelectModel<typeof tokenUsage>;

@@ -3,7 +3,7 @@ import { createDataStream, UIMessage, appendResponseMessages, smoothStream, stre
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId, saveTokenUsage } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage, experimental_providerMetadata }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +226,25 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Save token usage data
+                            if (usage) {
+                                const currentSpace = await getCurrentUserSpace(session.user.id);
+                                await saveTokenUsage({
+                                    userId: session.user.id,
+                                    spaceId: currentSpace?.id || null,
+                                    messageId: assistantId,
+                                    chatId: id,
+                                    provider: selectedChatModel.includes('gpt') ? 'openai' : 'anthropic',
+                                    model: selectedChatModel,
+                                    operationType: 'chat',
+                                    operationId: streamId,
+                                    rawUsageData: usage,
+                                    providerMetadata: experimental_providerMetadata || null,
+                                    finishReason: response.finishReason || null,
+                                    requestId: response.requestId || null,
+                                });
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }
