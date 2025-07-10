@@ -20,6 +20,7 @@ import { createResumableStreamContext, type ResumableStreamContext } from 'resum
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
+import { recordTokenUsage, handleTelemetryData } from '@/lib/utils/token-usage';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, experimental_telemetry }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +227,24 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage if telemetry data is available
+                            if (experimental_telemetry) {
+                                const telemetryData = handleTelemetryData(experimental_telemetry);
+                                if (telemetryData) {
+                                    try {
+                                        await recordTokenUsage(
+                                            assistantId,
+                                            id,
+                                            selectedChatModel,
+                                            telemetryData
+                                        );
+                                    } catch (tokenError) {
+                                        console.error('Failed to record token usage:', tokenError);
+                                        // Don't fail the entire request if token recording fails
+                                    }
+                                }
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }

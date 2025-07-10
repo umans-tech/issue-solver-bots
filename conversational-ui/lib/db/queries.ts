@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, desc, eq, gt, gte, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -145,6 +147,7 @@ export async function saveChat({
 export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
+    await db.delete(tokenUsage).where(eq(tokenUsage.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
     await db.delete(stream).where(eq(stream.chatId, id));
 
@@ -793,6 +796,118 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Token usage queries
+
+export async function getTokenUsageByMessageId({ messageId }: { messageId: string }) {
+  try {
+    const [usage] = await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.messageId, messageId));
+    return usage;
+  } catch (error) {
+    console.error('Failed to get token usage by message id from database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageByChatId({ chatId }: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.chatId, chatId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat id from database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select({
+        id: tokenUsage.id,
+        messageId: tokenUsage.messageId,
+        chatId: tokenUsage.chatId,
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        promptTokens: tokenUsage.promptTokens,
+        completionTokens: tokenUsage.completionTokens,
+        totalTokens: tokenUsage.totalTokens,
+        inputCost: tokenUsage.inputCost,
+        outputCost: tokenUsage.outputCost,
+        totalCost: tokenUsage.totalCost,
+        providerMetadata: tokenUsage.providerMetadata,
+        createdAt: tokenUsage.createdAt,
+        chatTitle: chat.title,
+      })
+      .from(tokenUsage)
+      .innerJoin(chat, eq(tokenUsage.chatId, chat.id))
+      .where(eq(chat.userId, userId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by user id from database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageBySpaceId({ spaceId }: { spaceId: string }) {
+  try {
+    return await db
+      .select({
+        id: tokenUsage.id,
+        messageId: tokenUsage.messageId,
+        chatId: tokenUsage.chatId,
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        promptTokens: tokenUsage.promptTokens,
+        completionTokens: tokenUsage.completionTokens,
+        totalTokens: tokenUsage.totalTokens,
+        inputCost: tokenUsage.inputCost,
+        outputCost: tokenUsage.outputCost,
+        totalCost: tokenUsage.totalCost,
+        providerMetadata: tokenUsage.providerMetadata,
+        createdAt: tokenUsage.createdAt,
+        chatTitle: chat.title,
+        userId: chat.userId,
+      })
+      .from(tokenUsage)
+      .innerJoin(chat, eq(tokenUsage.chatId, chat.id))
+      .where(eq(chat.spaceId, spaceId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by space id from database');
+    throw error;
+  }
+}
+
+export async function getTokenUsageSummaryByUserId({ userId }: { userId: string }) {
+  try {
+    const result = await db
+      .select({
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        totalMessages: sql<number>`count(*)`.mapWith(Number),
+        totalPromptTokens: sql<number>`sum(${tokenUsage.promptTokens})`.mapWith(Number),
+        totalCompletionTokens: sql<number>`sum(${tokenUsage.completionTokens})`.mapWith(Number),
+        totalTokens: sql<number>`sum(${tokenUsage.totalTokens})`.mapWith(Number),
+        totalCost: sql<number>`sum(${tokenUsage.totalCost})`.mapWith(Number),
+      })
+      .from(tokenUsage)
+      .innerJoin(chat, eq(tokenUsage.chatId, chat.id))
+      .where(eq(chat.userId, userId))
+      .groupBy(tokenUsage.provider, tokenUsage.model)
+      .orderBy(desc(sql`sum(${tokenUsage.totalTokens})`));
+    
+    return result;
+  } catch (error) {
+    console.error('Failed to get token usage summary by user id from database');
     throw error;
   }
 }
