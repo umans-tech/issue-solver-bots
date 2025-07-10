@@ -1,11 +1,22 @@
-import { createDataStream, UIMessage, appendResponseMessages, smoothStream, streamText, } from 'ai';
+import { appendResponseMessages, createDataStream, smoothStream, streamText, UIMessage, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
 import { systemPrompt } from '@/lib/ai/prompts';
-import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
+import {
+    createStreamId,
+    deleteChatById,
+    getChatById,
+    getCurrentUserSpace,
+    getMessagesByChatId,
+    getStreamIdsByChatId,
+    saveChat,
+    saveMessages,
+    updateChatTitleById
+} from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
+import { extractModel, recordTokenUsage } from '@/lib/token-usage';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
@@ -19,7 +30,7 @@ import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
-import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
+import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -111,9 +122,9 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
     // Get current user's space for MCP context
     const currentSpace = await getCurrentUserSpace(session.user.id);
-    const userContext = currentSpace ? { 
-        userId: session.user.id, 
-        spaceId: currentSpace.id 
+    const userContext = currentSpace ? {
+        userId: session.user.id,
+        spaceId: currentSpace.id
     } : undefined;
     
     // Initialize fresh MCP client with user context for this request
@@ -186,7 +197,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage, experimental_providerMetadata }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +237,18 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage if available
+                            if (usage && assistantId) {
+                                const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
+                                await recordTokenUsage({
+                                    messageId: assistantId,
+                                    provider: chatModelProvider,
+                                    model: chatModelName,
+                                    rawUsageData: usage,
+                                    providerMetadata: experimental_providerMetadata,
+                                });
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }

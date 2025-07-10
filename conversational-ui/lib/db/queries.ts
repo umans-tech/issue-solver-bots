@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -793,6 +795,77 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Token usage queries
+export async function getTokenUsageByUser(userId: string): Promise<Array<TokenUsage & { chatId: string }>> {
+  try {
+    return await db
+      .select({
+        id: tokenUsage.id,
+        messageId: tokenUsage.messageId,
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        rawUsageData: tokenUsage.rawUsageData,
+        providerMetadata: tokenUsage.providerMetadata,
+        createdAt: tokenUsage.createdAt,
+        chatId: chat.id,
+      })
+      .from(tokenUsage)
+      .innerJoin(message, eq(tokenUsage.messageId, message.id))
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(eq(chat.userId, userId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by user');
+    throw error;
+  }
+}
+
+export async function getTokenUsageBySpace(spaceId: string): Promise<Array<TokenUsage & { chatId: string }>> {
+  try {
+    return await db
+      .select({
+        id: tokenUsage.id,
+        messageId: tokenUsage.messageId,
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        rawUsageData: tokenUsage.rawUsageData,
+        providerMetadata: tokenUsage.providerMetadata,
+        createdAt: tokenUsage.createdAt,
+        chatId: chat.id,
+      })
+      .from(tokenUsage)
+      .innerJoin(message, eq(tokenUsage.messageId, message.id))
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(eq(chat.spaceId, spaceId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by space');
+    throw error;
+  }
+}
+
+export async function getTokenUsageByChat(chatId: string): Promise<Array<TokenUsage>> {
+  try {
+    return await db
+      .select({
+        id: tokenUsage.id,
+        messageId: tokenUsage.messageId,
+        provider: tokenUsage.provider,
+        model: tokenUsage.model,
+        rawUsageData: tokenUsage.rawUsageData,
+        providerMetadata: tokenUsage.providerMetadata,
+        createdAt: tokenUsage.createdAt,
+      })
+      .from(tokenUsage)
+      .innerJoin(message, eq(tokenUsage.messageId, message.id))
+      .where(eq(message.chatId, chatId))
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat');
     throw error;
   }
 }
