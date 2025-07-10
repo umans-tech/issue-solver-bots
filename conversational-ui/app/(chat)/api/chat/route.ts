@@ -6,6 +6,7 @@ import { systemPrompt } from '@/lib/ai/prompts';
 import { deleteChatById, getChatById, saveChat, saveMessages, updateChatTitleById, createStreamId, getStreamIdsByChatId, getCurrentUserSpace, getMessagesByChatId } from '@/lib/db/queries';
 import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
+import { recordTokenUsage, extractProvider } from '@/lib/utils/token-usage';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage, experimental_providerMetadata }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,6 +227,17 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage if available
+                            if (usage && assistantId) {
+                                await recordTokenUsage({
+                                    messageId: assistantId,
+                                    provider: extractProvider(selectedChatModel),
+                                    model: selectedChatModel,
+                                    rawUsageData: usage,
+                                    providerMetadata: experimental_providerMetadata,
+                                });
+                            }
                         } catch (error) {
                             console.error('Failed to save chat');
                         }
