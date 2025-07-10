@@ -18,6 +18,8 @@ import {
   space,
   spaceToUser,
   stream,
+  tokenUsage,
+  type TokenUsage,
 } from './schema';
 import { ArtifactKind } from '@/components/artifact';
 
@@ -145,6 +147,7 @@ export async function saveChat({
 export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
+    await db.delete(tokenUsage).where(eq(tokenUsage.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
     await db.delete(stream).where(eq(stream.chatId, id));
 
@@ -793,6 +796,99 @@ export async function updateUserProfile(userId: string, updates: { name?: string
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
     console.error('Failed to update user profile');
+    throw error;
+  }
+}
+
+// Token usage queries
+
+/**
+ * Save token usage data to the database
+ */
+export async function saveTokenUsage({
+  tokenUsageData,
+}: {
+  tokenUsageData: Array<Omit<TokenUsage, 'id' | 'createdAt'>>;
+}) {
+  try {
+    return await db.insert(tokenUsage).values(
+      tokenUsageData.map(data => ({
+        ...data,
+        createdAt: new Date(),
+      }))
+    );
+  } catch (error) {
+    console.error('Failed to save token usage in database', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by chat ID
+ */
+export async function getTokenUsageByChatId({ chatId }: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.chatId, chatId))
+      .orderBy(asc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by chat id from database', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by user ID and optional space ID
+ */
+export async function getTokenUsageByUser({ 
+  userId, 
+  spaceId 
+}: { 
+  userId: string;
+  spaceId?: string;
+}) {
+  try {
+    const conditions = spaceId 
+      ? and(eq(tokenUsage.userId, userId), eq(tokenUsage.spaceId, spaceId))
+      : eq(tokenUsage.userId, userId);
+      
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(conditions)
+      .orderBy(desc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by user from database', error);
+    throw error;
+  }
+}
+
+/**
+ * Get token usage by message ID
+ */
+export async function getTokenUsageByMessageId({ messageId }: { messageId: string }) {
+  try {
+    return await db
+      .select()
+      .from(tokenUsage)
+      .where(eq(tokenUsage.messageId, messageId))
+      .orderBy(asc(tokenUsage.createdAt));
+  } catch (error) {
+    console.error('Failed to get token usage by message id from database', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete token usage records by chat ID
+ */
+export async function deleteTokenUsageByChatId({ chatId }: { chatId: string }) {
+  try {
+    return await db.delete(tokenUsage).where(eq(tokenUsage.chatId, chatId));
+  } catch (error) {
+    console.error('Failed to delete token usage by chat id from database', error);
     throw error;
   }
 }

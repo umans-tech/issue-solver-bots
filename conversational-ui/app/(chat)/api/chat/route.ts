@@ -20,6 +20,7 @@ import { createResumableStreamContext, type ResumableStreamContext } from 'resum
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import {codeRepositoryMCPClient} from "@/lib/ai/tools/github_mcp";
+import { recordTokenUsage, extractTokenUsageFromTelemetry } from '@/lib/utils/token-usage';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response }) => {
+                onFinish: async ({ response, usage, telemetry }) => {
                     if (session.user?.id) {
                         try {
                             const assistantId = getTrailingMessageId({
@@ -226,8 +227,33 @@ export async function POST(request: Request) {
                                     },
                                 ],
                             });
+
+                            // Record token usage if telemetry and usage data are available
+                            if (telemetry && usage && currentSpace) {
+                                const tokenUsageData = extractTokenUsageFromTelemetry({
+                                    usage,
+                                    model: { provider: selectedChatModel.split('/')[0], modelId: selectedChatModel },
+                                    operationType: 'stream-text',
+                                    timestamp: new Date().toISOString(),
+                                    response: {
+                                        finishReason: response.finishReason,
+                                        id: response.responseId,
+                                    },
+                                    ...telemetry,
+                                });
+
+                                if (tokenUsageData) {
+                                    await recordTokenUsage({
+                                        userId: session.user.id,
+                                        spaceId: currentSpace.id,
+                                        messageId: assistantId,
+                                        chatId: id,
+                                        ...tokenUsageData,
+                                    });
+                                }
+                            }
                         } catch (error) {
-                            console.error('Failed to save chat');
+                            console.error('Failed to save chat or record token usage:', error);
                         }
                     }
                 },
@@ -237,6 +263,12 @@ export async function POST(request: Request) {
                 experimental_telemetry: {
                     isEnabled: true,
                     functionId: 'stream-text',
+                    metadata: {
+                        chatId: id,
+                        userId: session.user.id,
+                        spaceId: currentSpace?.id,
+                        model: selectedChatModel,
+                    },
                 },
             });
 
