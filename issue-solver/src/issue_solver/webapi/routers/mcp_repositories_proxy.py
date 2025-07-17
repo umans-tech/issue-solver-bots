@@ -4,8 +4,11 @@ import logging
 from typing import Annotated, Any
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from httpx import Response
+from starlette.responses import StreamingResponse
+from starlette.responses import Response as StarletteResponse
 
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.domain import (
@@ -20,23 +23,52 @@ from issue_solver.webapi.dependencies import get_event_store, get_logger
 router = APIRouter()
 
 
+@router.get("/mcp/repositories/proxy")
+async def proxy_code_repo_mcp_stream(request: Request) -> StarletteResponse:  # type: ignore[name-defined]
+    session_id = request.headers.get("mcp-session-id")
+    if session_id is None:
+        # According to the spec the header is mandatory for the stream
+        return JSONResponse(
+            status_code=400, content={"detail": "Missing mcp-session-id header"}
+        )
+
+    headers = {
+        "mcp-session-id": session_id,
+        "User-Agent": "Issue-Solver-MCP-Proxy/1.0",
+        "Accept": "text/event-stream",
+    }
+
+    async def event_stream():
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream(
+                "GET", "https://api.githubcopilot.com/mcp/", headers=headers
+            ) as resp:
+                resp.raise_for_status()
+                async for chunk in resp.aiter_bytes():
+                    yield chunk
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
 @router.post("/mcp/repositories/proxy")
 async def proxy_code_repo_mcp(
-    request: dict[str, Any],
+    raw_request: Request,
     event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.github_mcp")),
     ],
-) -> dict[str, Any]:
+) -> JSONResponse:
     """Proxy for Code Repository MCP requests to Remote MCP server.
     (So far, only GitHub MCP is supported)"""
 
     logger.info("Processing GitHub MCP proxy request")
 
     try:
-        user_id = request.get("meta", {}).get("user_id")
-        space_id = request.get("meta", {}).get("space_id")
+        payload: dict[str, Any] = await raw_request.json()
+        incoming_session_id: str | None = raw_request.headers.get("mcp-session-id")
+        user_id = payload.get("meta", {}).get("user_id")
+        space_id = payload.get("meta", {}).get("space_id")
 
         code_repo_was_connected = await get_connected_repo_event(
             event_store, space_id, user_id
@@ -63,9 +95,15 @@ async def proxy_code_repo_mcp(
         )
 
         if "github.com" in code_repo_was_connected.url.lower():
-            result = await proxy_github_mcp(access_token, request)
+            result, outgoing_session_id = await proxy_github_mcp(
+                access_token, payload, incoming_session_id
+            )
             logger.info("Successfully proxied GitHub MCP request")
-            return result
+
+            response_json = JSONResponse(content=result)
+            if outgoing_session_id:
+                response_json.headers["mcp-session-id"] = outgoing_session_id
+            return response_json
         else:
             raise HTTPException(
                 status_code=400,
@@ -86,15 +124,20 @@ async def proxy_code_repo_mcp(
         )
 
 
-async def proxy_github_mcp(access_token, request):
+async def proxy_github_mcp(
+    access_token: str, payload: dict[str, Any], incoming_session_id: str | None = None
+) -> tuple[dict[str, Any], str | None]:
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "User-Agent": "Issue-Solver-MCP-Proxy/1.0",
     }
+
+    if incoming_session_id:
+        headers["mcp-session-id"] = incoming_session_id
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
-            "https://api.githubcopilot.com/mcp/", json=request, headers=headers
+            "https://api.githubcopilot.com/mcp/", json=payload, headers=headers
         )
 
         if response.status_code == 401:
@@ -109,7 +152,9 @@ async def proxy_github_mcp(access_token, request):
                 detail=f"GitHub MCP server error: {response.text}",
             )
 
-        return await format_response(response)
+        formatted_response = await format_response(response)
+        outgoing_session_id = response.headers.get("mcp-session-id")
+        return formatted_response, outgoing_session_id
 
 
 async def get_connected_repo_event(
