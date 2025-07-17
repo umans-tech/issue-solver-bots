@@ -16,6 +16,7 @@ from issue_solver.git_operations.git_helper import (
     GitValidationService,
 )
 from issue_solver.logging_config import default_logging_config
+from issue_solver.token_usage import TokenUsageTracker, PostgresTokenUsageStorage
 from issue_solver.webapi.payloads import ResolutionSettings
 from starlette.requests import Request
 
@@ -64,3 +65,12 @@ async def init_event_store() -> EventStore:
             os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
         )
     )
+
+
+async def init_token_usage_tracker() -> TokenUsageTracker:
+    """Initialize a token usage tracker with PostgreSQL storage."""
+    connection = await asyncpg.connect(
+        os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
+    )
+    storage = PostgresTokenUsageStorage(connection)
+    return TokenUsageTracker(storage)

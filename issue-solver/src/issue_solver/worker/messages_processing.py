@@ -10,6 +10,8 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     ResolveIssueCommand,
 )
+from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
+from issue_solver.token_usage import TokenUsageTracker
 from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     AnyDomainEvent,
@@ -42,6 +44,7 @@ from issue_solver.webapi.dependencies import (
     get_clock,
     get_validation_service,
     init_event_store,
+    init_token_usage_tracker,
 )
 from issue_solver.worker.vector_store_helper import (
     get_obsolete_files_ids,
@@ -91,11 +94,13 @@ class Dependencies:
         git_client: GitClient,
         coding_agent: IssueResolvingAgent,
         clock: Clock,
+        token_usage_tracker: TokenUsageTracker | None = None,
     ):
         self._event_store = event_store
         self.git_client = git_client
         self.coding_agent = coding_agent
         self.clock = clock
+        self.token_usage_tracker = token_usage_tracker
 
     @property
     def event_store(self) -> EventStore:
@@ -185,6 +190,7 @@ async def resolve_issue(
                 ),
                 issue=message.issue,
                 repo_path=repo_path,
+                process_id=message.process_id,
             )
         )
     except Exception as e:

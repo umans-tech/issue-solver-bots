@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from pathlib import Path
 from claude_code_sdk import (
     AssistantMessage,
@@ -18,11 +19,13 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.resolution_approaches import (
     pragmatic_coding_agent_system_prompt,
 )
+from issue_solver.token_usage import TokenUsage, TokenUsageTracker
 
 
 class ClaudeCodeAgent(IssueResolvingAgent):
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, token_usage_tracker: TokenUsageTracker | None = None):
         self.api_key = api_key
+        self.token_usage_tracker = token_usage_tracker
         os.environ["ANTHROPIC_API_KEY"] = api_key
 
     async def resolve_issue(self, command: ResolveIssueCommand) -> None:
@@ -48,6 +51,8 @@ class ClaudeCodeAgent(IssueResolvingAgent):
 
         """
 
+        operation_counter = 0
+        
         try:
             async for message in query(prompt=prompt, options=options):
                 if isinstance(message, AssistantMessage):
@@ -69,6 +74,25 @@ class ClaudeCodeAgent(IssueResolvingAgent):
                         and message.total_cost_usd > 0
                     ):
                         print(f"Cost: ${message.total_cost_usd:.4f}")
+                        
+                        # Record usage for this operation if tracker is available
+                        if self.token_usage_tracker:
+                            await self.token_usage_tracker.record_usage(
+                                TokenUsage(
+                                    process_id=command.process_id,
+                                    operation_id=f"op_{operation_counter}",
+                                    provider="anthropic",
+                                    model=command.model,
+                                    raw_usage_data={
+                                        "total_cost_usd": message.total_cost_usd,
+                                        "message_type": "ResultMessage",
+                                        # Store any other available usage data from the message
+                                    },
+                                    total_cost_usd=message.total_cost_usd,
+                                    occurred_at=datetime.now(),
+                                )
+                            )
+                            operation_counter += 1
                 elif isinstance(message, UserMessage):
                     print(f"User: {message.content}")
                 elif isinstance(message, SystemMessage):

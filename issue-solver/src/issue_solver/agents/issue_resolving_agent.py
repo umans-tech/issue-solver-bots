@@ -18,6 +18,7 @@ class ResolveIssueCommand:
     model: VersionedAIModel
     issue: IssueInfo
     repo_path: Path
+    process_id: str
 
 
 class IssueResolvingAgent(ABC):
