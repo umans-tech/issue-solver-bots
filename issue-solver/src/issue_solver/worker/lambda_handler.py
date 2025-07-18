@@ -13,7 +13,11 @@ from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
 from issue_solver.git_operations.git_helper import GitClient
-from issue_solver.webapi.dependencies import init_event_store, get_clock
+from issue_solver.webapi.dependencies import (
+    init_event_store,
+    get_clock,
+    init_agent_message_store,
+)
 from issue_solver.worker.messages_processing import (
     logger,
     process_event_message,
@@ -75,10 +79,13 @@ async def load_dependencies_and_process_event_message(
     event_record: AnyDomainEvent,
 ) -> None:
     event_store = await init_event_store()
+    agent_message_store = await init_agent_message_store()
     dependencies = Dependencies(
         event_store=event_store,
         git_client=GitClient(),
-        coding_agent=ClaudeCodeAgent(api_key=os.environ["ANTHROPIC_API_KEY"]),
+        coding_agent=ClaudeCodeAgent(
+            api_key=os.environ["ANTHROPIC_API_KEY"], agent_messages=agent_message_store
+        ),
         clock=get_clock(),
     )
     await process_event_message(

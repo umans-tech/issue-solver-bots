@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from typing import assert_never
 
 from issue_solver.agents.issue_resolving_agent import ResolveIssueCommand
@@ -28,6 +29,7 @@ async def main(settings: SolveCommandSettings) -> None:
             model=settings.versioned_ai_model,
             issue=issue_info,
             repo_path=settings.repo_path,
+            process_id=str(uuid.uuid4()),
         )
     )
     GitHelper.of(settings.git, settings.model_settings).commit_and_push(
