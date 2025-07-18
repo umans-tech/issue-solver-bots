@@ -8,8 +8,10 @@ import pytest
 import pytest_asyncio
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+
+from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.events.event_store import EventStore
-from issue_solver.webapi.dependencies import init_event_store
+from issue_solver.webapi.dependencies import init_event_store, init_agent_message_store
 from testcontainers.postgres import PostgresContainer
 from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 
@@ -63,6 +65,14 @@ async def event_store(
     """Initialize and return an EventStore instance."""
     store = await init_event_store()
     return store
+
+
+@pytest_asyncio.fixture(scope="function")
+async def agent_message_store(
+    postgres_container: PostgresContainer, run_migrations
+) -> AgentMessageStore:
+    """Initialize and return an AgentMessageStore instance."""
+    return await init_agent_message_store()
 
 
 @pytest.fixture(scope="function")

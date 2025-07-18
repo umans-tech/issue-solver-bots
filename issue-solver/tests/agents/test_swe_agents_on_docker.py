@@ -60,6 +60,7 @@ def sample_command(tmp_path, sample_issue) -> ResolveIssueCommand:
         model=VersionedAIModel(SupportedOpenAIModel.GPT4O),
         issue=sample_issue,
         repo_path=repo_dir,
+        process_id="test-process-id-12345",
     )
 
 

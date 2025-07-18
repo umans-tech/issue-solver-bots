@@ -5,10 +5,12 @@ from typing import assert_never
 import asyncpg
 from fastapi import Header
 
+from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
 from issue_solver.clock import Clock, UTCSystemClock
+from issue_solver.database.postgres_agent_message_store import PostgresAgentMessageStore
 from issue_solver.database.postgres_event_store import PostgresEventStore
 from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
@@ -64,3 +66,12 @@ async def init_event_store() -> EventStore:
             os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
         )
     )
+
+
+async def init_agent_message_store() -> AgentMessageStore:
+    agent_message_store = PostgresAgentMessageStore(
+        connection=await asyncpg.connect(
+            os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
+        )
+    )
+    return agent_message_store

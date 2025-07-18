@@ -179,6 +179,7 @@ async def resolve_issue(
     try:
         await dependencies.coding_agent.resolve_issue(
             ResolveIssueCommand(
+                process_id=message.process_id,
                 model=QualifiedAIModel(
                     ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
                     version=LATEST_CLAUDE_4_VERSION,
