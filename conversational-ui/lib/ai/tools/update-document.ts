@@ -12,7 +12,7 @@ interface UpdateDocumentProps {
 export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
   tool({
     description: 'Update a document with the given description.',
-    parameters: z.object({
+    inputSchema: z.object({
       id: z.string().describe('The ID of the document to update'),
       description: z
         .string()

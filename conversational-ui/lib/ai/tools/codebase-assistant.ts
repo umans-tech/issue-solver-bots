@@ -34,7 +34,7 @@ interface CodebaseAssistantProps {
 
 export const codebaseAssistant = ({session}: CodebaseAssistantProps) => tool({
     description: 'Retrieve information about the codebase of the current project.',
-    parameters: z.object({
+    inputSchema: z.object({
         query: QueryTypeEnum.describe(
             'The type of codebase information to retrieve: \n' +
             '- codebase_summary: ' + queryTypeDescriptions.codebase_summary + '\n' +
