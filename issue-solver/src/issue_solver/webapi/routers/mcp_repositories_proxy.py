@@ -11,12 +11,9 @@ from starlette.responses import StreamingResponse
 from starlette.responses import Response as StarletteResponse
 
 from issue_solver.events.event_store import EventStore
-from issue_solver.events.domain import (
-    CodeRepositoryConnected,
-    most_recent_event,
-)
 from issue_solver.events.code_repo_integration import (
     get_access_token,
+    get_connected_repo_event,
 )
 from issue_solver.webapi.dependencies import get_event_store, get_logger
 
@@ -70,14 +67,18 @@ async def proxy_code_repo_mcp(
         user_id = payload.get("meta", {}).get("user_id")
         space_id = payload.get("meta", {}).get("space_id")
 
-        code_repo_was_connected = await get_connected_repo_event(
-            event_store, space_id, user_id
-        )
+        if not space_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing space_id. MCP tools require a valid space context.",
+            )
+
+        code_repo_was_connected = await get_connected_repo_event(event_store, space_id)
 
         if not code_repo_was_connected:
             raise HTTPException(
-                status_code=401,
-                detail="No repository connected. Please connect a Code repository.",
+                status_code=404,
+                detail="No repository connected to this space. Please connect a Code repository to enable MCP tools.",
             )
 
         access_token = await get_access_token(
@@ -117,11 +118,13 @@ async def proxy_code_repo_mcp(
             detail="Unable to connect to GitHub MCP server. Please try again later.",
         )
     except Exception as e:
-        logger.error(f"Unexpected error in GitHub MCP proxy: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error while processing GitHub MCP request.",
-        )
+        if not isinstance(e, HTTPException):
+            logger.error(f"Unexpected error in GitHub MCP proxy: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail="Internal server error while processing GitHub MCP request.",
+            )
+        raise e
 
 
 async def proxy_github_mcp(
@@ -155,18 +158,6 @@ async def proxy_github_mcp(
         formatted_response = await format_response(response)
         outgoing_session_id = response.headers.get("mcp-session-id")
         return formatted_response, outgoing_session_id
-
-
-async def get_connected_repo_event(
-    event_store, space_id, user_id
-) -> CodeRepositoryConnected | None:
-    connected_repo_event = None
-    if user_id and space_id:
-        events = await event_store.find(
-            {"user_id": user_id, "space_id": space_id}, CodeRepositoryConnected
-        )
-        connected_repo_event = most_recent_event(events, CodeRepositoryConnected)
-    return connected_repo_event
 
 
 @router.get("/api/mcp/github/health")

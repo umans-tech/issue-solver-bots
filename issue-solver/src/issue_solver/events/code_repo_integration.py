@@ -61,3 +61,14 @@ def get_most_recent_token_permissions(
         return connected.token_permissions
 
     return None
+
+
+async def get_connected_repo_event(
+    event_store, space_id
+) -> CodeRepositoryConnected | None:
+    connected_repo_event = None
+    if space_id:
+        # Find any repository connected to this space, regardless of which user connected it
+        events = await event_store.find({"space_id": space_id}, CodeRepositoryConnected)
+        connected_repo_event = most_recent_event(events, CodeRepositoryConnected)
+    return connected_repo_event
