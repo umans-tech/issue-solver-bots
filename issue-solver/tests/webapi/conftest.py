@@ -7,9 +7,16 @@ from typing import Any, Generator
 import asyncpg
 import boto3
 import pytest
+import pytest_asyncio
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
-from issue_solver.webapi.dependencies import get_clock, get_validation_service
+
+from issue_solver.agents.agent_message_store import AgentMessageStore
+from issue_solver.webapi.dependencies import (
+    get_clock,
+    get_validation_service,
+    init_agent_message_store,
+)
 from issue_solver.webapi.main import app
 from pytest_httpserver import HTTPServer
 from starlette.testclient import TestClient
@@ -111,10 +118,15 @@ async def _check_connection(db_url: str) -> None:
 
 
 @pytest.fixture
-def run_migrations(postgres_container) -> Generator[None, Any, None]:
+def db_url(postgres_container) -> str:
+    """Return the database URL for the PostgreSQL container."""
+    return f"postgresql+asyncpg://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
+
+
+@pytest.fixture
+def run_migrations(db_url) -> Generator[None, Any, None]:
     """Run migrations on a PostgreSQL container."""
     config = Config(ALEMBIC_INI_LOCATION)
-    db_url = f"postgresql+asyncpg://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
     os.environ["DATABASE_URL"] = db_url
     config.set_section_option(
         section="alembic",
@@ -160,6 +172,14 @@ def time_under_control() -> ControllableClock:
 @pytest.fixture
 def repo_validation_under_control() -> NoopGitValidationService:
     return NoopGitValidationService()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def agent_message_store(
+    postgres_container: PostgresContainer, run_migrations
+) -> AgentMessageStore:
+    """Initialize and return an AgentMessageStore instance."""
+    return await init_agent_message_store()
 
 
 @pytest.fixture

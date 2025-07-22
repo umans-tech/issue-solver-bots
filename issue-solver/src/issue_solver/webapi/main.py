@@ -3,7 +3,11 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI
-from issue_solver.webapi.dependencies import get_logger, init_event_store
+from issue_solver.webapi.dependencies import (
+    get_logger,
+    init_event_store,
+    init_agent_message_store,
+)
 from issue_solver.webapi.routers import (
     processes,
     repository,
@@ -20,10 +24,12 @@ async def lifespan(fastapi_app: FastAPI):
 
     # Initialize the event store
     fastapi_app.state.event_store = await init_event_store()
+    fastapi_app.state.agent_message_store = await init_agent_message_store()
     logger.info("Application started, event store initialized")
     yield
     # Cleanup
     del fastapi_app.state.event_store
+    del fastapi_app.state.agent_message_store
     logger.info("Application shutdown, event store cleaned up")
 
 

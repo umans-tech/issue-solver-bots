@@ -28,6 +28,10 @@ def get_event_store(request: Request) -> EventStore:
     return request.app.state.event_store
 
 
+def get_agent_message_store(request: Request) -> AgentMessageStore:
+    return request.app.state.agent_message_store
+
+
 async def get_user_id_or_default(
     x_user_id: str = Header(None, alias="X-User-ID"),
 ) -> str:

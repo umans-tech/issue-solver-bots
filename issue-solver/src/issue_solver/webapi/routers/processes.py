@@ -1,7 +1,11 @@
+import json
 import logging
 from typing import Annotated, Self
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from starlette.responses import StreamingResponse
+
+from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -18,7 +22,11 @@ from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
 )
-from issue_solver.webapi.dependencies import get_event_store, get_logger
+from issue_solver.webapi.dependencies import (
+    get_event_store,
+    get_logger,
+    get_agent_message_store,
+)
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/processes", tags=["processes"])
@@ -216,3 +224,28 @@ async def get_process(
     process_timeline_view = ProcessTimelineView.create_from(process_id, process_events)
     logger.info(f"Found process with {len(process_events)} events")
     return process_timeline_view
+
+
+@router.get("/{process_id}/messages")
+async def stream_process_messages(
+    process_id: str,
+    agent_message_store: Annotated[AgentMessageStore, Depends(get_agent_message_store)],
+) -> StreamingResponse:
+    async def message_generator():
+        historical_messages = await agent_message_store.get(
+            process_id=process_id,
+        )
+
+        for one_historical_message in historical_messages:
+            yield json.dumps(
+                {
+                    "agent": one_historical_message.get("agent"),
+                    "id": one_historical_message.get("message_id"),
+                    "model": one_historical_message.get("model"),
+                    "payload": one_historical_message.get("message", {}),
+                    "turn": one_historical_message.get("turn"),
+                    "type": one_historical_message.get("message_type"),
+                }
+            )
+
+    return StreamingResponse(message_generator(), media_type="application/json")
