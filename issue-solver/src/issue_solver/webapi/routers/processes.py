@@ -231,21 +231,32 @@ async def stream_process_messages(
     process_id: str,
     agent_message_store: Annotated[AgentMessageStore, Depends(get_agent_message_store)],
 ) -> StreamingResponse:
+    """Stream messages for a specific process."""
+
     async def message_generator():
         historical_messages = await agent_message_store.get(
             process_id=process_id,
         )
-
         for one_historical_message in historical_messages:
-            yield json.dumps(
-                {
-                    "agent": one_historical_message.get("agent"),
-                    "id": one_historical_message.get("message_id"),
-                    "model": one_historical_message.get("model"),
-                    "payload": one_historical_message.get("message", {}),
-                    "turn": one_historical_message.get("turn"),
-                    "type": one_historical_message.get("message_type"),
-                }
+            yield (
+                json.dumps(
+                    {
+                        "agent": one_historical_message.get("agent"),
+                        "id": one_historical_message.get("message_id"),
+                        "model": one_historical_message.get("model"),
+                        "payload": one_historical_message.get("message", {}),
+                        "turn": one_historical_message.get("turn"),
+                        "type": one_historical_message.get("message_type"),
+                    }
+                )
+                + "\n"
             )
 
-    return StreamingResponse(message_generator(), media_type="application/json")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+    }
+
+    return StreamingResponse(
+        message_generator(), media_type="application/x-ndjson", headers=headers
+    )
