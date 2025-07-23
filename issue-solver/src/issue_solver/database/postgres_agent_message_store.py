@@ -1,7 +1,7 @@
 import json
 from dataclasses import asdict
 
-from issue_solver.agents.agent_message_store import AgentMessageStore
+from issue_solver.agents.agent_message_store import AgentMessageStore, AgentMessage
 from issue_solver.models.supported_models import VersionedAIModel
 
 
@@ -41,7 +41,7 @@ class PostgresAgentMessageStore(AgentMessageStore):
             message.__class__.__name__,
         )
 
-    async def get(self, process_id: str) -> list[dict]:
+    async def get(self, process_id: str) -> list[AgentMessage]:
         rows = await self.connection.fetch(
             """
             SELECT message_id, process_id, agent, model, turn, message, message_type, created_at
@@ -52,18 +52,16 @@ class PostgresAgentMessageStore(AgentMessageStore):
             process_id,
         )
 
-        messages = []
+        messages: list[AgentMessage] = []
         for row in rows:
             messages.append(
-                {
-                    "message_id": row["message_id"],
-                    "process_id": row["process_id"],
-                    "agent": row["agent"],
-                    "model": row["model"],
-                    "turn": row["turn"],
-                    "message": json.loads(row["message"]),
-                    "message_type": row["message_type"],
-                    "created_at": row["created_at"],
-                }
+                AgentMessage(
+                    id=str(row["message_id"]),
+                    type=row["message_type"],
+                    turn=row["turn"],
+                    agent=row["agent"],
+                    model=row["model"],
+                    payload=json.loads(row["message"]),
+                )
             )
         return messages

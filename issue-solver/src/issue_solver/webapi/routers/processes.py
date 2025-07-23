@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import Annotated, Self
+from dataclasses import asdict
+from typing import Annotated, Self, AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.responses import StreamingResponse
@@ -226,31 +227,22 @@ async def get_process(
     return process_timeline_view
 
 
-@router.get("/{process_id}/messages")
+@router.get(
+    "/{process_id}/messages",
+)
 async def stream_process_messages(
     process_id: str,
     agent_message_store: Annotated[AgentMessageStore, Depends(get_agent_message_store)],
 ) -> StreamingResponse:
-    """Stream messages for a specific process."""
+    """Stream messages for a specific process.
+    This endpoint returns a stream of messages in newline-delimited JSON format."""
 
-    async def message_generator():
+    async def message_generator() -> AsyncGenerator[str, None]:
         historical_messages = await agent_message_store.get(
             process_id=process_id,
         )
         for one_historical_message in historical_messages:
-            yield (
-                json.dumps(
-                    {
-                        "agent": one_historical_message.get("agent"),
-                        "id": one_historical_message.get("message_id"),
-                        "model": one_historical_message.get("model"),
-                        "payload": one_historical_message.get("message", {}),
-                        "turn": one_historical_message.get("turn"),
-                        "type": one_historical_message.get("message_type"),
-                    }
-                )
-                + "\n"
-            )
+            yield json.dumps(asdict(one_historical_message)) + "\n"
 
     headers = {
         "Cache-Control": "no-cache",
