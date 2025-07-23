@@ -29,6 +29,7 @@ async def test_get_process_messages_streaming_with_one_historical_message(
         ),
         turn=1,
         message=SystemMessage(data=original_message_data, subtype="init"),
+        agent="CLAUDE_CODE",
     )
 
     # When
@@ -69,6 +70,7 @@ async def test_get_process_messages_streaming_with_two_historical_messages(
         ),
         turn=1,
         message=SystemMessage(data=original_message_data, subtype="init \n"),
+        agent="CLAUDE_CODE",
     )
 
     second_message_data = {
@@ -86,6 +88,7 @@ async def test_get_process_messages_streaming_with_two_historical_messages(
         ),
         turn=2,
         message=SystemMessage(data=second_message_data, subtype="follow_up"),
+        agent="CLAUDE_CODE",
     )
 
     # When

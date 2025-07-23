@@ -1,4 +1,5 @@
 import json
+import uuid
 from dataclasses import asdict
 
 from issue_solver.agents.agent_message_store import AgentMessageStore, AgentMessage
@@ -10,8 +11,9 @@ class PostgresAgentMessageStore(AgentMessageStore):
         self.connection = connection
 
     async def append(
-        self, process_id: str, model: VersionedAIModel, turn: int, message
-    ):
+        self, process_id: str, model: VersionedAIModel, turn: int, message, agent: str
+    ) -> str:
+        message_id = str(uuid.uuid4())
         await self.connection.execute(
             """
             INSERT INTO agent_message_store (message_id,
@@ -23,23 +25,25 @@ class PostgresAgentMessageStore(AgentMessageStore):
                                         message_type,
                                         created_at)
             VALUES (
-                gen_random_uuid(),
                 $1,
                 $2,
                 $3,
                 $4,
                 $5,
                 $6,
+                $7,
                 CURRENT_TIMESTAMP
             )
             """,
+            message_id,
             process_id,
-            "CLAUDE_CODE",
+            agent,
             str(model),
             turn,
             json.dumps(asdict(message)),
             message.__class__.__name__,
         )
+        return message_id
 
     async def get(self, process_id: str) -> list[AgentMessage]:
         rows = await self.connection.fetch(

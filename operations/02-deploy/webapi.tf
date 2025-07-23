@@ -45,6 +45,7 @@ resource "aws_lambda_function" "webapi" {
       GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
       PROCESS_QUEUE_URL            = aws_sqs_queue.process_queue.url,
       TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
+      REDIS_URL                    = data.terraform_remote_state.provision.outputs.redis_connection_string,
     }
   }
 }
@@ -109,12 +110,12 @@ resource "aws_route53_record" "api_cert_validation" {
     for dvo in aws_acm_certificate.api_regional.domain_validation_options :
     dvo.domain_name => dvo
   }
-  
+
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name            = each.value.resource_record_name
   type            = each.value.resource_record_type
-  records         = [each.value.resource_record_value]
+  records = [each.value.resource_record_value]
   ttl             = 60
 }
 
