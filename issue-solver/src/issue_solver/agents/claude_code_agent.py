@@ -56,7 +56,7 @@ class ClaudeCodeAgent(IssueResolvingAgent):
             async for message in query(prompt=prompt, options=options):
                 turn += 1
                 await self.agent_messages.append(
-                    command.process_id, command.model, turn, message
+                    command.process_id, command.model, turn, message, "CLAUDE_CODE"
                 )
 
                 if isinstance(message, AssistantMessage):

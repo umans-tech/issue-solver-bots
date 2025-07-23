@@ -4,8 +4,12 @@ from typing import assert_never
 
 import asyncpg
 from fastapi import Header
+from redis import Redis
 
-from issue_solver.agents.agent_message_store import AgentMessageStore
+from issue_solver.agents.agent_message_store import (
+    AgentMessageStore,
+    StreamingAgentMessageStore,
+)
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.coding_agent import CodingAgent
 from issue_solver.agents.openai_agent import OpenAIAgent
@@ -30,6 +34,10 @@ def get_event_store(request: Request) -> EventStore:
 
 def get_agent_message_store(request: Request) -> AgentMessageStore:
     return request.app.state.agent_message_store
+
+
+def get_redis_client(request: Request) -> Redis:
+    return request.app.state.redis_client
 
 
 async def get_user_id_or_default(
@@ -73,9 +81,13 @@ async def init_event_store() -> EventStore:
 
 
 async def init_agent_message_store() -> AgentMessageStore:
-    agent_message_store = PostgresAgentMessageStore(
-        connection=await asyncpg.connect(
-            os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
-        )
+    agent_message_store = StreamingAgentMessageStore(
+        PostgresAgentMessageStore(
+            connection=await asyncpg.connect(
+                os.environ["DATABASE_URL"].replace("+asyncpg", ""),
+                statement_cache_size=0,
+            )
+        ),
+        redis_client=Redis.from_url(os.environ["REDIS_URL"]),
     )
     return agent_message_store

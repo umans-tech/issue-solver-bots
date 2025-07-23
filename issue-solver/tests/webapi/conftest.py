@@ -10,6 +10,7 @@ import pytest
 import pytest_asyncio
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from testcontainers.redis import RedisContainer
 
 from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.webapi.dependencies import (
@@ -174,9 +175,26 @@ def repo_validation_under_control() -> NoopGitValidationService:
     return NoopGitValidationService()
 
 
+@pytest.fixture(scope="module")
+def redis_container() -> Generator[Any, None, None]:
+    """Start a Redis container."""
+    with RedisContainer("redis:7.2-alpine") as redis_container:
+        yield redis_container
+
+
+@pytest.fixture(scope="module")
+def set_redis_url(redis_container: RedisContainer) -> None:
+    """Set the REDIS_URL environment variable."""
+    os.environ["REDIS_URL"] = (
+        f"redis://{redis_container.get_container_host_ip()}:{redis_container.get_exposed_port(6379)}"
+    )
+
+
 @pytest_asyncio.fixture(scope="function")
 async def agent_message_store(
-    postgres_container: PostgresContainer, run_migrations
+    set_redis_url,
+    run_migrations,
+    redis_container: RedisContainer,
 ) -> AgentMessageStore:
     """Initialize and return an AgentMessageStore instance."""
     return await init_agent_message_store()
@@ -189,6 +207,7 @@ def api_client(
     mock_openai,
     time_under_control,
     run_migrations,
+    set_redis_url,
     repo_validation_under_control,
 ) -> Generator[TestClient, Any, None]:
     app.dependency_overrides[get_clock] = lambda: time_under_control

@@ -40,6 +40,7 @@ async def test_append_and_get_agent_result_message(
         model=VersionedAIModel(SupportedAnthropicModel.CLAUDE_SONNET_4),
         turn=16,
         message=message,
+        agent="CLAUDE_CODE",
     )
 
     # When

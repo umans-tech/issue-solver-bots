@@ -51,6 +51,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis-umans-backend
+    ports:
+      - "63799:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   postgres_data:
-  localstack_data: 
+  localstack_data:
+  redis_data:

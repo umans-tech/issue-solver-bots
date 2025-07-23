@@ -243,6 +243,7 @@ async def stream_process_messages(
         )
         for one_historical_message in historical_messages:
             yield json.dumps(asdict(one_historical_message)) + "\n"
+        # subscribe
 
     headers = {
         "Cache-Control": "no-cache",

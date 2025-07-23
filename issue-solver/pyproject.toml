@@ -23,6 +23,7 @@ dependencies = [
     "pygithub>=2.6.1",
     "cryptography>=45.0.2",
     "claude-code-sdk>=0.0.14",
+    "redis>=6.2.0",
 ]
 
 [project.scripts]
