@@ -423,6 +423,51 @@ export default function TaskPage() {
     }
   };
 
+  // Terminal output component for tool results
+  const TerminalOutput = ({ content, isError, toolName }: { content: string; isError: boolean; toolName?: string }) => {
+    const handleCopy = () => {
+      navigator.clipboard.writeText(content);
+      toast.success('Copied to clipboard!');
+    };
+
+    return (
+      <div className="w-full rounded-lg overflow-hidden border dark:border-zinc-700 border-zinc-200">
+        {/* Terminal header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b dark:border-zinc-700 border-zinc-200">
+          <div className="flex items-center gap-2 text-sm">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">{toolName || 'Terminal'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isError ? (
+              <span className="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300 text-xs rounded">
+                ❌ Error
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300 text-xs rounded">
+                ✅ Success
+              </span>
+            )}
+            <Button
+              onClick={handleCopy}
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Copy output"
+            >
+              <Copy size={14} />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Terminal content */}
+        <div className="bg-zinc-900 dark:bg-zinc-950 text-zinc-100 p-4 font-mono text-sm max-h-96 overflow-auto">
+          <pre className="whitespace-pre-wrap break-words">{content}</pre>
+        </div>
+      </div>
+    );
+  };
+
   // Render message content
   const renderMessageContent = (message: any) => {
     const payload = message.payload;
@@ -460,21 +505,12 @@ export default function TaskPage() {
           }
           
           return (
-            <div key={index} className="text-sm">
-              <div className="flex items-center gap-2 mb-2">
-                {isError ? (
-                  <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
-                    ❌ Error
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                    ✅ Success
-                  </span>
-                )}
-              </div>
-              <div className="prose prose-sm max-w-none">
-                <Markdown>{resultContent}</Markdown>
-              </div>
+            <div key={index}>
+              <TerminalOutput 
+                content={resultContent} 
+                isError={isError}
+                toolName="Tool Output"
+              />
             </div>
           );
         }
@@ -499,7 +535,7 @@ export default function TaskPage() {
       });
     }
 
-    // Handle ResultMessage with result field
+        // Handle ResultMessage with result field
     if (messageType === 'ResultMessage' && payload.result) {
       let resultContent = payload.result;
       if (typeof resultContent !== 'string') {
@@ -507,17 +543,12 @@ export default function TaskPage() {
       }
       
       return (
-        <div className="text-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-              ✅ Success
-            </span>
-          </div>
-          <div className="prose prose-sm max-w-none">
-            <Markdown>{resultContent}</Markdown>
-          </div>
-        </div>
-            );
+        <TerminalOutput 
+          content={resultContent} 
+          isError={false}
+          toolName="Process Result"
+        />
+      );
     }
 
     // Handle SystemMessage with tools
