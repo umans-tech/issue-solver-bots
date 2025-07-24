@@ -6,7 +6,7 @@ from typing import Annotated, Self, AsyncGenerator
 from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.responses import StreamingResponse
 
-from issue_solver.agents.agent_message_store import AgentMessageStore
+from issue_solver.agents.agent_message_store import AgentMessageStore, AgentMessage
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -229,6 +229,21 @@ async def get_process(
 
 @router.get(
     "/{process_id}/messages",
+)
+async def get_process_messages(
+    process_id: str,
+    agent_message_store: Annotated[AgentMessageStore, Depends(get_agent_message_store)],
+) -> list[AgentMessage]:
+    """Get existing messages for a specific process."""
+
+    historical_messages = await agent_message_store.get(
+        process_id=process_id,
+    )
+    return historical_messages
+
+
+@router.get(
+    "/{process_id}/messages/stream",
 )
 async def stream_process_messages(
     process_id: str,
