@@ -468,6 +468,48 @@ export default function TaskPage() {
     );
   };
 
+  // Console command component for tool calls
+  const ConsoleCommand = ({ command, description, toolName }: { command: string; description?: string; toolName?: string }) => {
+    const handleCopy = () => {
+      navigator.clipboard.writeText(command);
+      toast.success('Command copied to clipboard!');
+    };
+
+    return (
+      <div className="w-full rounded-lg overflow-hidden border dark:border-zinc-700 border-zinc-200">
+        {/* Console header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b dark:border-zinc-700 border-zinc-200">
+          <div className="flex items-center gap-2 text-sm">
+            <Terminal className="h-4 w-4 text-blue-600" />
+            <span className="text-muted-foreground">{description || toolName || 'Command'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs rounded">
+              🔄 Executing
+            </span>
+            <Button
+              onClick={handleCopy}
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Copy command"
+            >
+              <Copy size={14} />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Console content */}
+        <div className="bg-zinc-900 dark:bg-zinc-950 text-zinc-100 p-4 font-mono text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">$</span>
+            <span className="text-zinc-100">{command}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render message content
   const renderMessageContent = (message: any) => {
     const payload = message.payload;
@@ -481,6 +523,20 @@ export default function TaskPage() {
       return payload.content.map((block: any, index: number) => {
         // Handle ToolUseBlock (id, name, input)
         if (block.id && block.name && block.input) {
+          // Special handling for Bash/Terminal commands
+          if (block.name.toLowerCase() === 'bash' && block.input.command) {
+            return (
+              <div key={index}>
+                <ConsoleCommand 
+                  command={block.input.command}
+                  description={block.input.description}
+                  toolName={block.name}
+                />
+              </div>
+            );
+          }
+          
+          // Default handling for other tools
           return (
             <div key={index} className="text-sm">
               <div className="font-medium text-blue-600 mb-2">{block.name}</div>
