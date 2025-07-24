@@ -28,7 +28,11 @@ import {
   ExternalLink, 
   AlertCircle, 
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Settings,
+  User,
+  Bot,
+  Wrench
 } from 'lucide-react';
 
 interface ProcessData {
@@ -83,6 +87,8 @@ export default function TaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   // Animation variants for collapsible description
   const descriptionVariants = {
@@ -125,6 +131,23 @@ export default function TaskPage() {
         } catch (repoError) {
           console.warn('Could not fetch repository information:', repoError);
           // Don't fail the whole page if repo info can't be fetched
+        }
+
+        // Fetch process messages
+        try {
+          setMessagesLoading(true);
+          const messagesResponse = await fetch(`/api/processes/${processId}/messages`);
+          if (messagesResponse.ok) {
+            const messagesData = await messagesResponse.json();
+            // Sort messages by turn
+            const sortedMessages = messagesData.sort((a: any, b: any) => (a.turn || 0) - (b.turn || 0));
+            setMessages(sortedMessages);
+          }
+        } catch (messagesError) {
+          console.warn('Could not fetch process messages:', messagesError);
+          // Don't fail the whole page if messages can't be fetched
+        } finally {
+          setMessagesLoading(false);
         }
         
         setError(null);
@@ -290,6 +313,101 @@ export default function TaskPage() {
     // Check if any repository-related events exist
     const repoEvents = ['repository_connected', 'repository_indexation_requested', 'repository_indexed', 'repository_integration_failed'];
     return processData.events.some(event => repoEvents.includes(event.type));
+  };
+
+  // Get message type icon and color
+  const getMessageTypeDetails = (message: any) => {
+    const role = message.payload?.role;
+    
+    switch (role) {
+      case 'system':
+        return {
+          icon: <Settings className="h-4 w-4" />,
+          color: 'text-muted-foreground',
+          bgColor: 'bg-muted/10',
+          label: 'System'
+        };
+      case 'user':
+        return {
+          icon: <User className="h-4 w-4" />,
+          color: 'text-blue-500',
+          bgColor: 'bg-blue-500/10',
+          label: 'User'
+        };
+      case 'assistant':
+        return {
+          icon: <Bot className="h-4 w-4" />,
+          color: 'text-primary',
+          bgColor: 'bg-primary/10',
+          label: 'Assistant'
+        };
+      default:
+        // Tool results or other types
+        return {
+          icon: <Wrench className="h-4 w-4" />,
+          color: 'text-green-600',
+          bgColor: 'bg-green-600/10',
+          label: 'Tool'
+        };
+    }
+  };
+
+  // Render message content
+  const renderMessageContent = (message: any) => {
+    const payload = message.payload;
+    
+    if (!payload) return null;
+
+    // Handle different message types
+    if (payload.role === 'assistant' && payload.content) {
+      // Assistant messages with thinking or regular content
+      if (Array.isArray(payload.content)) {
+        return payload.content.map((content: any, index: number) => (
+          <div key={index} className="prose prose-sm max-w-none">
+            <Markdown>{content.text || content}</Markdown>
+          </div>
+        ));
+      } else {
+        return (
+          <div className="prose prose-sm max-w-none">
+            <Markdown>{payload.content}</Markdown>
+          </div>
+        );
+      }
+    } else if (payload.role === 'user' && payload.content) {
+      return (
+        <div className="prose prose-sm max-w-none">
+          <Markdown>{payload.content}</Markdown>
+        </div>
+      );
+    } else if (payload.role === 'system' && payload.content) {
+      return (
+        <div className="text-sm text-muted-foreground">
+          {payload.content}
+        </div>
+      );
+    } else if (payload.type === 'tool_result') {
+      // Tool result messages
+      return (
+        <div className="text-sm">
+          <div className="font-medium text-green-600 mb-1">
+            {payload.tool_use_id ? `Tool: ${payload.tool_use_id}` : 'Tool Result'}
+          </div>
+          <div className="prose prose-sm max-w-none">
+            <Markdown>{payload.content || 'Tool executed successfully'}</Markdown>
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback for unknown message types
+    return (
+      <div className="text-sm text-muted-foreground">
+        <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      </div>
+    );
   };
 
   return (
@@ -460,7 +578,52 @@ export default function TaskPage() {
                 </CardContent>
               </Card>
 
-
+              {/* Agent Progress Card - Show process messages */}
+              {messages.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bot className="h-5 w-5" />
+                      Agent Progress
+                    </CardTitle>
+                    <CardDescription>
+                      Step-by-step progress of the agent working on this task
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {messages.map((message, index) => {
+                        const { icon, color, bgColor, label } = getMessageTypeDetails(message);
+                        
+                        return (
+                          <div key={message.id || index} className="flex gap-3">
+                            <div className={cn("flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center", bgColor)}>
+                              <div className={color}>
+                                {icon}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={cn("text-sm font-medium mb-1", color)}>
+                                {label}
+                              </div>
+                              <div className="text-sm">
+                                {renderMessageContent(message)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {messagesLoading && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="animate-spin h-4 w-4" />
+                          <span className="text-sm">Loading messages...</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Repository Information Card - Show only for repository integration tasks */}
               {isRepositoryTask() && (repoInfo?.connected || getRepoInfoFromEvents()) && (
