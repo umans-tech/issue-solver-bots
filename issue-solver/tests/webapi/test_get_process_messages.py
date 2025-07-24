@@ -1,4 +1,3 @@
-import json
 from unittest.mock import ANY
 
 import pytest
@@ -12,7 +11,7 @@ from issue_solver.models.supported_models import (
 
 
 @pytest.mark.asyncio
-async def test_get_process_messages_streaming_with_one_historical_message(
+async def test_get_process_messages_with_one_historical_message(
     agent_message_store: AgentMessageStore, api_client
 ):
     # Given
@@ -38,22 +37,24 @@ async def test_get_process_messages_streaming_with_one_historical_message(
     # Then
     assert response.status_code == 200, response.text
 
-    messages_data = response.json()
-    message = {
-        "id": ANY,
-        "type": "SystemMessage",
-        "turn": 1,
-        "agent": "CLAUDE_CODE",
-        "model": "claude-sonnet-4-20250514",
-        "payload": original_message,
-    }
-    assert messages_data == message, (
-        f"Expected message {message} not found in {messages_data}"
+    retrieved_process_messages = response.json()
+    expected_process_messages = [
+        {
+            "id": ANY,
+            "type": "SystemMessage",
+            "turn": 1,
+            "agent": "CLAUDE_CODE",
+            "model": "claude-sonnet-4-20250514",
+            "payload": original_message,
+        }
+    ]
+    assert retrieved_process_messages == expected_process_messages, (
+        f"Expected messages {expected_process_messages} not found in {retrieved_process_messages}"
     )
 
 
 @pytest.mark.asyncio
-async def test_get_process_messages_streaming_with_two_historical_messages(
+async def test_get_process_messages_with_two_historical_messages(
     agent_message_store: AgentMessageStore, api_client
 ):
     # Given
@@ -92,38 +93,51 @@ async def test_get_process_messages_streaming_with_two_historical_messages(
     )
 
     # When
-    received_messages = []
-    with api_client.stream("GET", f"/processes/{process_id}/messages") as response:
-        status_code = response.status_code
-        for chunk in response.iter_lines():
-            if chunk:
-                received_messages.append(json.loads(chunk))
+    response = api_client.get(f"/processes/{process_id}/messages")
 
     # Then
-    assert status_code == 200
+    assert response.status_code == 200, response.text
 
-    first_message = {
-        "id": ANY,
-        "type": "SystemMessage",
-        "turn": 1,
-        "agent": "CLAUDE_CODE",
-        "model": "claude-sonnet-4-20250514",
-        "payload": original_message,
-    }
-    second_message_expected = {
-        "id": ANY,
-        "type": "SystemMessage",
-        "turn": 2,
-        "agent": "CLAUDE_CODE",
-        "model": "claude-sonnet-4-20250514",
-        "payload": second_message,
-    }
-
-    assert first_message in received_messages, (
-        f"Expected first message {first_message} not found in {received_messages}"
+    retrieved_process_messages = response.json()
+    expected_process_messages = [
+        {
+            "id": ANY,
+            "type": "SystemMessage",
+            "turn": 1,
+            "agent": "CLAUDE_CODE",
+            "model": "claude-sonnet-4-20250514",
+            "payload": original_message,
+        },
+        {
+            "id": ANY,
+            "type": "SystemMessage",
+            "turn": 2,
+            "agent": "CLAUDE_CODE",
+            "model": "claude-sonnet-4-20250514",
+            "payload": second_message,
+        },
+    ]
+    assert retrieved_process_messages == expected_process_messages, (
+        f"Expected messages {expected_process_messages} not found in {retrieved_process_messages}"
     )
-    assert second_message_expected in received_messages, (
-        f"Expected second message {second_message_expected} not found in {received_messages}"
+
+
+@pytest.mark.asyncio
+async def test_get_process_messages_with_no_historical_messages(
+    agent_message_store: AgentMessageStore, api_client
+):
+    # Given
+    process_id = "process-3"
+
+    # When
+    response = api_client.get(f"/processes/{process_id}/messages")
+
+    # Then
+    assert response.status_code == 200, response.text
+
+    retrieved_process_messages = response.json()
+    assert not retrieved_process_messages, (
+        f"Expected no messages but found {retrieved_process_messages}"
     )
 
 
