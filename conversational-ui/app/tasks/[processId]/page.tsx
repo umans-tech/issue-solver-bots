@@ -32,7 +32,14 @@ import {
   Settings,
   User,
   Bot,
-  Wrench
+  Wrench,
+  Terminal,
+  Search,
+  Globe,
+  FileText,
+  Edit3,
+  PenTool,
+  BookOpen
 } from 'lucide-react';
 
 interface ProcessData {
@@ -317,95 +324,177 @@ export default function TaskPage() {
 
   // Get message type icon and color
   const getMessageTypeDetails = (message: any) => {
+    // Use the top-level 'type' field from cudu API
+    const messageType = message.type;
     const role = message.payload?.role;
     
-    switch (role) {
-      case 'system':
-        return {
-          icon: <Settings className="h-4 w-4" />,
-          color: 'text-muted-foreground',
-          bgColor: 'bg-muted/10',
-          label: 'System'
-        };
-      case 'user':
-        return {
-          icon: <User className="h-4 w-4" />,
-          color: 'text-blue-500',
-          bgColor: 'bg-blue-500/10',
-          label: 'User'
-        };
-      case 'assistant':
-        return {
-          icon: <Bot className="h-4 w-4" />,
-          color: 'text-primary',
-          bgColor: 'bg-primary/10',
-          label: 'Assistant'
-        };
-      default:
-        // Tool results or other types
-        return {
-          icon: <Wrench className="h-4 w-4" />,
-          color: 'text-green-600',
-          bgColor: 'bg-green-600/10',
-          label: 'Tool'
-        };
+    // Handle different message types based on cudu API structure
+    if (messageType === 'SystemMessage' || role === 'system') {
+      return {
+        icon: <Settings className="h-4 w-4" />,
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted/10',
+        label: 'System'
+      };
+    } else if (messageType === 'UserMessage' || role === 'user') {
+      return {
+        icon: <User className="h-4 w-4" />,
+        color: 'text-blue-500',
+        bgColor: 'bg-blue-500/10',
+        label: 'User'
+      };
+    } else if (messageType === 'AssistantMessage' || role === 'assistant') {
+      return {
+        icon: <Bot className="h-4 w-4" />,
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+        label: 'Assistant'
+      };
+    } else if (messageType === 'ResultMessage' || message.payload?.type === 'tool_result') {
+      return {
+        icon: <Wrench className="h-4 w-4" />,
+        color: 'text-green-600',
+        bgColor: 'bg-green-600/10',
+        label: 'Tool Result'
+      };
+    } else {
+      // Default fallback
+      return {
+        icon: <Wrench className="h-4 w-4" />,
+        color: 'text-green-600',
+        bgColor: 'bg-green-600/10',
+        label: 'Tool'
+      };
+    }
+  };
+
+  // Get tool icon based on tool name
+  const getToolIcon = (toolName: string) => {
+    const lowerTool = toolName.toLowerCase();
+    
+    if (lowerTool.includes('bash') || lowerTool.includes('terminal')) {
+      return <Terminal className="h-3 w-3" />;
+    } else if (lowerTool.includes('search') || lowerTool.includes('grep')) {
+      return <Search className="h-3 w-3" />;
+    } else if (lowerTool.includes('web') || lowerTool.includes('fetch')) {
+      return <Globe className="h-3 w-3" />;
+    } else if (lowerTool.includes('read') || lowerTool.includes('notebook')) {
+      return <BookOpen className="h-3 w-3" />;
+    } else if (lowerTool.includes('edit') || lowerTool.includes('write')) {
+      return <Edit3 className="h-3 w-3" />;
+    } else if (lowerTool.includes('todo')) {
+      return <PenTool className="h-3 w-3" />;
+    } else if (lowerTool.includes('file') || lowerTool.includes('glob') || lowerTool.includes('ls')) {
+      return <FileText className="h-3 w-3" />;
+    } else {
+      return <Wrench className="h-3 w-3" />;
     }
   };
 
   // Render message content
   const renderMessageContent = (message: any) => {
     const payload = message.payload;
+    const messageType = message.type;
     
     if (!payload) return null;
 
-    // Handle different message types
-    if (payload.role === 'assistant' && payload.content) {
-      // Assistant messages with thinking or regular content
-      if (Array.isArray(payload.content)) {
-        return payload.content.map((content: any, index: number) => (
-          <div key={index} className="prose prose-sm max-w-none">
-            <Markdown>{content.text || content}</Markdown>
-          </div>
-        ));
-      } else {
+    // Check for content property first (as requested)
+    if (payload.content) {
+      // For SystemMessage, show minimal content with tools
+      if (messageType === 'SystemMessage' || payload.role === 'system') {
+        const tools = payload.tools || [];
         return (
-          <div className="prose prose-sm max-w-none">
-            <Markdown>{payload.content}</Markdown>
+          <div className="text-sm">
+            <div className="text-muted-foreground mb-2">Initialisation</div>
+            {tools.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tools.map((tool: string, index: number) => (
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded text-xs">
+                    {getToolIcon(tool)}
+                    {tool}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         );
       }
-    } else if (payload.role === 'user' && payload.content) {
-      return (
-        <div className="prose prose-sm max-w-none">
-          <Markdown>{payload.content}</Markdown>
-        </div>
-      );
-    } else if (payload.role === 'system' && payload.content) {
-      return (
-        <div className="text-sm text-muted-foreground">
-          {payload.content}
-        </div>
-      );
-    } else if (payload.type === 'tool_result') {
-      // Tool result messages
+      
+      // For other message types with content, display as markdown
+      if (Array.isArray(payload.content)) {
+        return payload.content.map((content: any, index: number) => {
+          // Extract text content safely
+          let textContent = '';
+          if (typeof content === 'string') {
+            textContent = content;
+          } else if (content && typeof content.text === 'string') {
+            textContent = content.text;
+          } else if (content && typeof content === 'object') {
+            textContent = JSON.stringify(content);
+          }
+          
+          return (
+            <div key={index} className="prose prose-sm max-w-none">
+              <Markdown>{textContent}</Markdown>
+            </div>
+          );
+        });
+      } else {
+        // Ensure payload.content is a string
+        let textContent = '';
+        if (typeof payload.content === 'string') {
+          textContent = payload.content;
+        } else if (payload.content && typeof payload.content === 'object') {
+          textContent = JSON.stringify(payload.content, null, 2);
+        }
+        
+        return (
+          <div className="prose prose-sm max-w-none">
+            <Markdown>{textContent}</Markdown>
+          </div>
+        );
+      }
+    }
+
+    // Handle tool results
+    if (messageType === 'ResultMessage' || payload.type === 'tool_result') {
+      // Ensure we have a string for tool result content
+      let resultContent = 'Tool executed successfully';
+      const rawContent = payload.content || payload.result;
+      
+      if (typeof rawContent === 'string') {
+        resultContent = rawContent;
+      } else if (rawContent && typeof rawContent === 'object') {
+        resultContent = JSON.stringify(rawContent, null, 2);
+      }
+      
       return (
         <div className="text-sm">
           <div className="font-medium text-green-600 mb-1">
             {payload.tool_use_id ? `Tool: ${payload.tool_use_id}` : 'Tool Result'}
           </div>
           <div className="prose prose-sm max-w-none">
-            <Markdown>{payload.content || 'Tool executed successfully'}</Markdown>
+            <Markdown>{resultContent}</Markdown>
           </div>
         </div>
       );
     }
 
-    // Fallback for unknown message types
+    // Fallback - try to find any meaningful text content
+    if (payload.text) {
+      const textContent = typeof payload.text === 'string' ? payload.text : JSON.stringify(payload.text);
+      return (
+        <div className="prose prose-sm max-w-none">
+          <Markdown>{textContent}</Markdown>
+        </div>
+      );
+    }
+
+    // Last resort - show minimal info instead of raw JSON
     return (
       <div className="text-sm text-muted-foreground">
-        <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
-          {JSON.stringify(payload, null, 2)}
-        </pre>
+        <span>Message received</span>
+        {messageType && <span className="ml-1">({messageType})</span>}
       </div>
     );
   };
@@ -811,4 +900,4 @@ export default function TaskPage() {
       </div>
     </div>
   );
-} 
+}
