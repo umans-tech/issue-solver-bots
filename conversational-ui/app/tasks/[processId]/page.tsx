@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Markdown } from '../../../components/markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../lib/utils';
+import { DiffView } from '../../../components/diffview';
 import { 
   AlertDialog,
   AlertDialogContent,
@@ -510,6 +511,54 @@ export default function TaskPage() {
     );
   };
 
+  // GitHub-style diff display component for edit tool calls
+  const DiffDisplay = ({ filePath, oldString, newString, toolName }: { 
+    filePath: string; 
+    oldString: string; 
+    newString: string; 
+    toolName?: string; 
+  }) => {
+    const handleCopyDiff = () => {
+      const diffContent = `--- a/${filePath}\n+++ b/${filePath}\n${oldString.split('\n').map(line => `- ${line}`).join('\n')}\n${newString.split('\n').map(line => `+ ${line}`).join('\n')}`;
+      navigator.clipboard.writeText(diffContent);
+      toast.success('Diff copied to clipboard!');
+    };
+
+    return (
+      <div className="w-full rounded-lg overflow-hidden border dark:border-zinc-700 border-zinc-200">
+        {/* Diff header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b dark:border-zinc-700 border-zinc-200">
+          <div className="flex items-center gap-2 text-sm">
+            <Edit3 className="h-4 w-4 text-purple-600" />
+            <span className="text-muted-foreground">Editing: {filePath}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 text-xs rounded">
+              ✏️ Modifying
+            </span>
+            <Button
+              onClick={handleCopyDiff}
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              aria-label="Copy diff"
+            >
+              <Copy size={14} />
+            </Button>
+          </div>
+        </div>
+        
+        {/* GitHub-style diff content using existing DiffView component */}
+        <div className="max-h-96 overflow-auto p-4 bg-background">
+          <DiffView 
+            oldContent={oldString || ''} 
+            newContent={newString || ''} 
+          />
+        </div>
+      </div>
+    );
+  };
+
   // Render message content
   const renderMessageContent = (message: any) => {
     const payload = message.payload;
@@ -530,6 +579,21 @@ export default function TaskPage() {
                 <ConsoleCommand 
                   command={block.input.command}
                   description={block.input.description}
+                  toolName={block.name}
+                />
+              </div>
+            );
+          }
+          
+          // Special handling for Edit tool calls
+          if (block.name.toLowerCase() === 'edit' && block.input.file_path && 
+              (block.input.old_string || block.input.new_string)) {
+            return (
+              <div key={index}>
+                <DiffDisplay 
+                  filePath={block.input.file_path}
+                  oldString={block.input.old_string || ''}
+                  newString={block.input.new_string || ''}
                   toolName={block.name}
                 />
               </div>
