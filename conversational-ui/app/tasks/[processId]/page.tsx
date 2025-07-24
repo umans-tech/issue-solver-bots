@@ -11,6 +11,8 @@ import { Button } from '../../../components/ui/button';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Markdown } from '../../../components/markdown';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../../lib/utils';
 import { 
   AlertDialog,
   AlertDialogContent,
@@ -23,10 +25,10 @@ import {
 import { 
   Check, 
   Code, 
-  Info, 
   ExternalLink, 
   AlertCircle, 
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 
 interface ProcessData {
@@ -80,6 +82,23 @@ export default function TaskPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+
+  // Animation variants for collapsible description
+  const descriptionVariants = {
+    collapsed: {
+      height: 0,
+      opacity: 0,
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    expanded: {
+      height: 'auto',
+      opacity: 1,
+      marginTop: '1rem',
+      marginBottom: '0.5rem',
+    },
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -130,6 +149,14 @@ export default function TaskPage() {
 
   // Function to format task type into a readable title
   const getTaskTitle = (data: ProcessData) => {
+    // For issue resolution tasks, use the actual issue title
+    if (data.type === 'issue_resolution' || data.processType === 'issue_resolution') {
+      const issueInfo = getIssueInfo();
+      if (issueInfo?.title) {
+        return issueInfo.title;
+      }
+    }
+    
     // Use type field if available
     if (data.type) {
       // Convert snake_case to Title Case
@@ -387,6 +414,41 @@ export default function TaskPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Issue Description (collapsible) - Only show for issue resolution tasks */}
+                    {(processData.type === 'issue_resolution' || processData.processType === 'issue_resolution') && getIssueInfo() && (
+                      <div className="space-y-2">
+                        {/* Description header with toggle */}
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                        >
+                          <h3 className="font-medium text-sm text-muted-foreground">Description</h3>
+                          <div className={cn("transition-transform", isDescriptionExpanded ? "rotate-180" : "")}>
+                            <ChevronDown size={16} />
+                          </div>
+                        </div>
+
+                        {/* Description content (collapsible) */}
+                        <AnimatePresence initial={false}>
+                          {isDescriptionExpanded && (
+                            <motion.div
+                              key="description-content"
+                              initial="collapsed"
+                              animate="expanded"
+                              exit="collapsed"
+                              variants={descriptionVariants}
+                              transition={{ duration: 0.2, ease: 'easeInOut' }}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <div className="prose prose-sm max-w-none">
+                                <Markdown>{getIssueInfo()?.description || 'No description provided'}</Markdown>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                     
                     {processData.status === 'in_progress' && (
                       <div className="flex items-center gap-2 text-blue-500 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -398,37 +460,7 @@ export default function TaskPage() {
                 </CardContent>
               </Card>
 
-              {/* Issue Information Card - Only show for issue resolution tasks */}
-              {(processData.type === 'issue_resolution' || processData.processType === 'issue_resolution') && getIssueInfo() && (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Info className="h-5 w-5" />
-                      Issue Details
-                    </CardTitle>
-                    <CardDescription>
-                      Information about the issue being resolved
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {getIssueInfo()?.title && (
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Issue Title</h4>
-                          <p className="text-lg font-medium">{getIssueInfo()?.title}</p>
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h4 className="font-semibold text-sm text-muted-foreground mb-2">Issue Description</h4>
-                        <div className="prose prose-sm max-w-none">
-                          <Markdown>{getIssueInfo()?.description || 'No description provided'}</Markdown>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+
 
               {/* Repository Information Card - Show only for repository integration tasks */}
               {isRepositoryTask() && (repoInfo?.connected || getRepoInfoFromEvents()) && (
