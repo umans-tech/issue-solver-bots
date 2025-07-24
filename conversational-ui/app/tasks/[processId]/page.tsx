@@ -324,9 +324,9 @@ export default function TaskPage() {
 
   // Get message type icon and color
   const getMessageTypeDetails = (message: any) => {
-    // Use the top-level 'type' field from cudu API
     const messageType = message.type;
     const role = message.payload?.role;
+    const payload = message.payload;
     
     // Handle different message types based on cudu API structure
     if (messageType === 'SystemMessage' || role === 'system') {
@@ -336,36 +336,68 @@ export default function TaskPage() {
         bgColor: 'bg-muted/10',
         label: 'System'
       };
-    } else if (messageType === 'UserMessage' || role === 'user') {
+    }
+    
+    // Check for tool calls (ToolUseBlock with id, name, input)
+    if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
+        block?.id && block?.name && block?.input)) {
+      return {
+        icon: <Wrench className="h-4 w-4" />,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-600/10',
+        label: 'Tool Call'
+      };
+    }
+    
+    // Check for tool results (ToolResultBlock with tool_use_id)
+    if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
+        block?.tool_use_id)) {
+      return {
+        icon: <Wrench className="h-4 w-4" />,
+        color: 'text-green-600',
+        bgColor: 'bg-green-600/10',
+        label: 'Tool Output'
+      };
+    }
+    
+    // Check for result messages (ResultMessage type)
+    if (messageType === 'ResultMessage' && payload?.result) {
+      return {
+        icon: <Wrench className="h-4 w-4" />,
+        color: 'text-green-600',
+        bgColor: 'bg-green-600/10',
+        label: 'Tool Output'
+      };
+    }
+    
+    // Check for user messages
+    if (messageType === 'UserMessage' || role === 'user') {
       return {
         icon: <User className="h-4 w-4" />,
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10',
         label: 'User'
       };
-    } else if (messageType === 'AssistantMessage' || role === 'assistant') {
+    }
+    
+    // Check for assistant messages (TextBlock with text field)
+    if ((messageType === 'AssistantMessage' || role === 'assistant') && 
+        (payload?.text || (Array.isArray(payload?.content) && payload.content.some((block: any) => block?.text)))) {
       return {
         icon: <Bot className="h-4 w-4" />,
         color: 'text-primary',
         bgColor: 'bg-primary/10',
         label: 'Assistant'
       };
-    } else if (messageType === 'ResultMessage' || message.payload?.type === 'tool_result') {
-      return {
-        icon: <Wrench className="h-4 w-4" />,
-        color: 'text-green-600',
-        bgColor: 'bg-green-600/10',
-        label: 'Tool Result'
-      };
-    } else {
-      // Default fallback
-      return {
-        icon: <Wrench className="h-4 w-4" />,
-        color: 'text-green-600',
-        bgColor: 'bg-green-600/10',
-        label: 'Tool'
-      };
     }
+    
+    // Default fallback for unrecognized types
+    return {
+      icon: <Wrench className="h-4 w-4" />,
+      color: 'text-muted-foreground',
+      bgColor: 'bg-muted/10',
+      label: `Unknown (${messageType || 'No Type'})`
+    };
   };
 
   // Get tool icon based on tool name
@@ -395,92 +427,120 @@ export default function TaskPage() {
   const renderMessageContent = (message: any) => {
     const payload = message.payload;
     const messageType = message.type;
+    const role = message.payload?.role;
     
     if (!payload) return null;
 
-    // Check for content property first (as requested)
-    if (payload.content) {
-      // For SystemMessage, show minimal content with tools
-      if (messageType === 'SystemMessage' || payload.role === 'system') {
-        const tools = payload.tools || [];
-        return (
-          <div className="text-sm">
-            <div className="text-muted-foreground mb-2">Initialisation</div>
-            {tools.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {tools.map((tool: string, index: number) => (
-                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded text-xs">
-                    {getToolIcon(tool)}
-                    {tool}
-                  </span>
-                ))}
+    // Handle content blocks
+    if (Array.isArray(payload.content)) {
+      return payload.content.map((block: any, index: number) => {
+        // Handle ToolUseBlock (id, name, input)
+        if (block.id && block.name && block.input) {
+          return (
+            <div key={index} className="text-sm">
+              <div className="font-medium text-blue-600 mb-2">{block.name}</div>
+              <div className="bg-muted/20 p-2 rounded text-xs">
+                <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
               </div>
-            )}
-          </div>
-        );
-      }
-      
-      // For other message types with content, display as markdown
-      if (Array.isArray(payload.content)) {
-        return payload.content.map((content: any, index: number) => {
-          // Extract text content safely
-          let textContent = '';
-          if (typeof content === 'string') {
-            textContent = content;
-          } else if (content && typeof content.text === 'string') {
-            textContent = content.text;
-          } else if (content && typeof content === 'object') {
-            textContent = JSON.stringify(content);
+            </div>
+          );
+        }
+        
+        // Handle ToolResultBlock (tool_use_id, content, is_error)
+        if (block.tool_use_id) {
+          let resultContent = 'Tool executed successfully';
+          let isError = block.is_error || false;
+          
+          if (block.content) {
+            if (typeof block.content === 'string') {
+              resultContent = block.content;
+            } else {
+              resultContent = JSON.stringify(block.content, null, 2);
+            }
           }
           
           return (
-            <div key={index} className="prose prose-sm max-w-none">
-              <Markdown>{textContent}</Markdown>
+            <div key={index} className="text-sm">
+              <div className="flex items-center gap-2 mb-2">
+                {isError ? (
+                  <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                    ❌ Error
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                    ✅ Success
+                  </span>
+                )}
+              </div>
+              <div className="prose prose-sm max-w-none">
+                <Markdown>{resultContent}</Markdown>
+              </div>
             </div>
           );
-        });
-      } else {
-        // Ensure payload.content is a string
-        let textContent = '';
-        if (typeof payload.content === 'string') {
-          textContent = payload.content;
-        } else if (payload.content && typeof payload.content === 'object') {
-          textContent = JSON.stringify(payload.content, null, 2);
         }
         
+        // Handle TextBlock (text)
+        if (block.text) {
+          return (
+            <div key={index} className="prose prose-sm max-w-none">
+              <Markdown>{block.text}</Markdown>
+            </div>
+          );
+        }
+        
+        // Fallback for unknown block types
         return (
-          <div className="prose prose-sm max-w-none">
-            <Markdown>{textContent}</Markdown>
+          <div key={index} className="text-sm text-muted-foreground">
+            <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
+              {JSON.stringify(block, null, 2)}
+            </pre>
           </div>
         );
-      }
+      });
     }
 
-    // Handle tool results
-    if (messageType === 'ResultMessage' || payload.type === 'tool_result') {
-      // Ensure we have a string for tool result content
-      let resultContent = 'Tool executed successfully';
-      const rawContent = payload.content || payload.result;
-      
-      if (typeof rawContent === 'string') {
-        resultContent = rawContent;
-      } else if (rawContent && typeof rawContent === 'object') {
-        resultContent = JSON.stringify(rawContent, null, 2);
+    // Handle ResultMessage with result field
+    if (messageType === 'ResultMessage' && payload.result) {
+      let resultContent = payload.result;
+      if (typeof resultContent !== 'string') {
+        resultContent = JSON.stringify(resultContent, null, 2);
       }
       
       return (
         <div className="text-sm">
-          <div className="font-medium text-green-600 mb-1">
-            {payload.tool_use_id ? `Tool: ${payload.tool_use_id}` : 'Tool Result'}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+              ✅ Success
+            </span>
           </div>
           <div className="prose prose-sm max-w-none">
             <Markdown>{resultContent}</Markdown>
           </div>
         </div>
+            );
+    }
+
+    // Handle SystemMessage with tools
+    if (messageType === 'SystemMessage' || payload.role === 'system') {
+      const tools = payload.tools || [];
+      return (
+        <div className="text-sm">
+          <div className="text-muted-foreground mb-2">Initialisation</div>
+          {tools.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tools.map((tool: string, index: number) => (
+                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded text-xs">
+                  {getToolIcon(tool)}
+                  {tool}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       );
     }
 
-    // Fallback - try to find any meaningful text content
+    // Handle direct text field (for backwards compatibility)
     if (payload.text) {
       const textContent = typeof payload.text === 'string' ? payload.text : JSON.stringify(payload.text);
       return (
@@ -490,11 +550,19 @@ export default function TaskPage() {
       );
     }
 
-    // Last resort - show minimal info instead of raw JSON
+    // Handle simple string content
+    if (typeof payload.content === 'string') {
+      return (
+        <div className="prose prose-sm max-w-none">
+          <Markdown>{payload.content}</Markdown>
+        </div>
+      );
+    }
+
+    // Fallback for unhandled message types
     return (
       <div className="text-sm text-muted-foreground">
-        <span>Message received</span>
-        {messageType && <span className="ml-1">({messageType})</span>}
+        <span>Unhandled message type: {messageType}</span>
       </div>
     );
   };
