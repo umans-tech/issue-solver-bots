@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { IconUmansLogo } from '@/components/icons';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { LandingNavbar } from '@/components/landing-navbar';
 import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Settings, DollarSign, Calendar, MessageSquare, Mail } from 'lucide-react';
 
 export default function LandingPage() {
@@ -29,6 +29,9 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      {/* Navigation Bar */}
+      <LandingNavbar />
+
       {/* Dynamic gradient background */}
       <div 
         className="absolute inset-0 transition-opacity duration-500"
@@ -39,33 +42,23 @@ export default function LandingPage() {
         }}
       />
 
-      {/* Header with Logo and Theme Toggle */}
-      <header className="relative z-20 flex justify-between items-center pt-4 px-6 lg:px-8">
-        <div></div> {/* Spacer for centering logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <IconUmansLogo className="h-20 w-auto" />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          <ThemeToggle />
-        </motion.div>
-      </header>
-
       {/* Hero Section */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 -mt-8">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="max-w-4xl text-center"
         >
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="mb-8"
+          >
+            <IconUmansLogo className="h-20 w-auto mx-auto" />
+          </motion.div>
+          
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
           Deliver Value, Not Just Code
           </h1>
