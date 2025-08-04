@@ -43,22 +43,13 @@ export default function LandingPage() {
       />
 
       {/* Hero Section */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-20">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="max-w-4xl text-center"
         >
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="mb-8"
-          >
-            <IconUmansLogo className="h-20 w-auto mx-auto" />
-          </motion.div>
-          
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
           Deliver Value, Not Just Code
           </h1>
