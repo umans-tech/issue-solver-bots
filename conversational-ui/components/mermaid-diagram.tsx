@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTheme } from 'next-themes';
 import mermaid from 'mermaid';
 import { Button } from './ui/button';
 import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon, XIcon } from './icons';
@@ -17,25 +18,50 @@ const viewModes = ['code', 'diagram'] as const;
 type ViewMode = (typeof viewModes)[number];
 
 export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
+  const { theme, resolvedTheme } = useTheme();
   const diagramRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('diagram');
   const [isLoading, setIsLoading] = useState(true);
   const [isFullPage, setIsFullPage] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const isCodeView = viewMode === 'code';
   const isDiagramView = viewMode === 'diagram';
+  
+  // Get the actual theme to use for Mermaid
+  const currentTheme = mounted ? (resolvedTheme || theme) : 'light';
+
+  // Handle mounting to avoid hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    // Initialize mermaid with dark theme support
+    if (!mounted) return;
+    
+    // Determine the Mermaid theme based on the current theme
+    const mermaidTheme = currentTheme === 'dark' ? 'dark' : 'default';
+    
+    // Initialize mermaid with proper theme configuration
     mermaid.initialize({
       startOnLoad: true,
-      theme: 'default',
+      theme: mermaidTheme,
       securityLevel: 'loose',
       suppressErrorRendering: true,
       themeVariables: {
-        darkMode: document.documentElement.classList.contains('dark'),
+        darkMode: currentTheme === 'dark',
+        primaryColor: currentTheme === 'dark' ? '#bb86fc' : '#6366f1',
+        primaryTextColor: currentTheme === 'dark' ? '#ffffff' : '#1f2937',
+        primaryBorderColor: currentTheme === 'dark' ? '#6b7280' : '#d1d5db',
+        lineColor: currentTheme === 'dark' ? '#9ca3af' : '#4b5563',
+        secondaryColor: currentTheme === 'dark' ? '#374151' : '#f3f4f6',
+        tertiaryColor: currentTheme === 'dark' ? '#1f2937' : '#ffffff',
+        background: currentTheme === 'dark' ? '#111827' : '#ffffff',
+        mainBkg: currentTheme === 'dark' ? '#1f2937' : '#ffffff',
+        secondBkg: currentTheme === 'dark' ? '#374151' : '#f9fafb',
+        tertiaryBkg: currentTheme === 'dark' ? '#4b5563' : '#f3f4f6',
       },
       flowchart: {
         htmlLabels: true,
@@ -79,7 +105,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
     if (viewMode === 'diagram') {
       renderDiagram();
     }
-  }, [code, viewMode]);
+  }, [code, viewMode, currentTheme, mounted]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
@@ -239,7 +265,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         ) : (
           <div
             className={cn(
-              `${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
+              `mermaid ${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
               isFullPage && "min-w-[800px] w-auto h-auto mx-auto my-8"
             )}
             style={isFullPage ? { transform: 'scale(1.5)', transformOrigin: 'top center' } : undefined}

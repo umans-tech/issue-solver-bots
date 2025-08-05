@@ -640,3 +640,163 @@ ol li::before {
   width: 2em;
   text-align: right;
 }
+
+/* Mermaid diagram styling overrides for improved visibility */
+/* Light mode Mermaid overrides */
+:not(.dark) .mermaid svg {
+  background-color: transparent !important;
+}
+
+:not(.dark) .mermaid .node rect,
+:not(.dark) .mermaid .node circle,
+:not(.dark) .mermaid .node ellipse,
+:not(.dark) .mermaid .node polygon {
+  stroke: #374151 !important;
+  stroke-width: 2px !important;
+}
+
+:not(.dark) .mermaid .edgePath path {
+  stroke: #4b5563 !important;
+  stroke-width: 2px !important;
+}
+
+:not(.dark) .mermaid .arrowheadPath {
+  fill: #4b5563 !important;
+  stroke: #4b5563 !important;
+}
+
+:not(.dark) .mermaid .edgeLabel {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+}
+
+:not(.dark) .mermaid .nodeLabel,
+:not(.dark) .mermaid .edgeLabel text {
+  fill: #1f2937 !important;
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+/* Dark mode Mermaid overrides */
+.dark .mermaid svg {
+  background-color: transparent !important;
+}
+
+.dark .mermaid .node rect,
+.dark .mermaid .node circle,
+.dark .mermaid .node ellipse,
+.dark .mermaid .node polygon {
+  stroke: #d1d5db !important;
+  stroke-width: 2px !important;
+  fill: #374151 !important;
+}
+
+.dark .mermaid .edgePath path {
+  stroke: #9ca3af !important;
+  stroke-width: 2px !important;
+}
+
+.dark .mermaid .arrowheadPath {
+  fill: #9ca3af !important;
+  stroke: #9ca3af !important;
+}
+
+.dark .mermaid .edgeLabel {
+  background-color: rgba(31, 41, 55, 0.9) !important;
+  color: #f9fafb !important;
+  border: 1px solid #6b7280 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+}
+
+.dark .mermaid .nodeLabel,
+.dark .mermaid .edgeLabel text {
+  fill: #f9fafb !important;
+  color: #f9fafb !important;
+  font-weight: 500 !important;
+}
+
+/* Additional overrides for specific diagram types */
+/* Flowchart specific overrides - Light mode */
+:not(.dark) .mermaid .flowchart-link {
+  stroke: #4b5563 !important;
+  stroke-width: 2px !important;
+}
+
+:not(.dark) .mermaid .marker {
+  fill: #4b5563 !important;
+  stroke: #4b5563 !important;
+}
+
+/* Flowchart specific overrides - Dark mode */
+.dark .mermaid .flowchart-link {
+  stroke: #9ca3af !important;
+  stroke-width: 2px !important;
+}
+
+.dark .mermaid .marker {
+  fill: #9ca3af !important;
+  stroke: #9ca3af !important;
+}
+
+/* Sequence diagram overrides - Light mode */
+:not(.dark) .mermaid .actor {
+  stroke: #374151 !important;
+  stroke-width: 2px !important;
+}
+
+:not(.dark) .mermaid .messageLine0,
+:not(.dark) .mermaid .messageLine1 {
+  stroke: #4b5563 !important;
+  stroke-width: 2px !important;
+}
+
+/* Sequence diagram overrides - Dark mode */
+.dark .mermaid .actor {
+  stroke: #d1d5db !important;
+  stroke-width: 2px !important;
+  fill: #374151 !important;
+}
+
+.dark .mermaid .messageLine0,
+.dark .mermaid .messageLine1 {
+  stroke: #9ca3af !important;
+  stroke-width: 2px !important;
+}
+
+/* Class diagram overrides - Light mode */
+:not(.dark) .mermaid .relation {
+  stroke: #4b5563 !important;
+  stroke-width: 2px !important;
+}
+
+/* Class diagram overrides - Dark mode */
+.dark .mermaid .relation {
+  stroke: #9ca3af !important;
+  stroke-width: 2px !important;
+}
+
+/* State diagram overrides - Light mode */
+:not(.dark) .mermaid .stateGroup .state-title {
+  fill: #1f2937 !important;
+  font-weight: 500 !important;
+}
+
+:not(.dark) .mermaid .transition {
+  stroke: #4b5563 !important;
+  stroke-width: 2px !important;
+}
+
+/* State diagram overrides - Dark mode */
+.dark .mermaid .stateGroup .state-title {
+  fill: #f9fafb !important;
+  font-weight: 500 !important;
+}
+
+.dark .mermaid .transition {
+  stroke: #9ca3af !important;
+  stroke-width: 2px !important;
+}
