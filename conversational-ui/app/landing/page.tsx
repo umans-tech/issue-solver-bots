@@ -37,10 +37,22 @@ export default function LandingPage() {
         className="absolute inset-0 transition-opacity duration-500"
         style={{
           background: `radial-gradient(circle at ${mousePosition.x * 100}% ${mousePosition.y * 100}%, 
-            rgba(99, 102, 241, 0.15) 0%, 
-            rgba(99, 102, 241, 0) 50%)`,
+            rgba(99, 102, 241, 0.25) 0%, 
+            rgba(147, 51, 234, 0.15) 35%,
+            rgba(99, 102, 241, 0) 70%)`,
         }}
       />
+      
+      {/* Additional background elements for visual interest */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-3/4 right-1/4 w-96 h-96 bg-gradient-to-br from-blue-500/8 to-indigo-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-3/4 w-48 h-48 bg-gradient-to-br from-violet-500/12 to-purple-500/12 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }} />
+        
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
+      </div>
 
       {/* Hero Section */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-8">
@@ -104,10 +116,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Brain className="w-8 h-8 text-primary" />
+                <Brain className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Deep Codebase Understanding</h3>
               <p className="text-muted-foreground">
@@ -121,10 +133,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Zap className="w-8 h-8 text-primary" />
+                <Zap className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Automated Issue Resolution</h3>
               <p className="text-muted-foreground">
@@ -138,10 +150,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Users className="w-8 h-8 text-primary" />
+                <Users className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Multi-User Collaboration</h3>
               <p className="text-muted-foreground">
@@ -176,10 +188,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <FileText className="w-8 h-8 text-primary" />
+                <FileText className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Collaborative Executable Modeling</h3>
               <p className="text-muted-foreground">
@@ -193,10 +205,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <BarChart3 className="w-8 h-8 text-primary" />
+                <BarChart3 className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Production Intelligence</h3>
               <p className="text-muted-foreground">
@@ -210,10 +222,10 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Bot className="w-8 h-8 text-primary" />
+                <Bot className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Complex Task Automation</h3>
               <p className="text-muted-foreground">
@@ -286,7 +298,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
                 <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-sm font-medium">
@@ -307,7 +319,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-card p-8 shadow-sm border border-border"
+              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
                 <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium">
@@ -334,9 +346,9 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mt-12"
           >
-            <div className="rounded-2xl bg-card p-8 shadow-sm border border-border">
+            <div className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm">
               <div className="mb-6">
-                <MessageSquare className="w-8 h-8 text-primary mx-auto mb-4" />
+                <MessageSquare className="w-8 h-8 text-primary mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
                 <h3 className="text-xl font-bold text-foreground mb-2">Help Shape Our Pricing</h3>
                 <p className="text-muted-foreground">
                   Your input matters. Tell us what pricing model would work best for your team.

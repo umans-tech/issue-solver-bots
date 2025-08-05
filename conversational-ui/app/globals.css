@@ -677,3 +677,42 @@ ol li::before {
   width: 2em;
   text-align: right;
 }
+
+/* Landing page specific enhancements */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.dark .bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Enhanced landing page cards for dark mode - more vibrant default state */
+.dark .landing-feature-card {
+  background: linear-gradient(135deg, 
+    hsl(240, 12%, 22%) 0%,
+    hsl(245, 15%, 25%) 30%,
+    hsl(250, 18%, 24%) 70%,
+    hsl(240, 12%, 23%) 100%) !important;
+  border: 1px solid hsla(245, 25%, 35%, 0.4) !important;
+  box-shadow: 
+    0 4px 12px hsla(240, 20%, 8%, 0.4),
+    inset 0 1px 0 hsla(250, 30%, 40%, 0.1) !important;
+}
+
+.dark .landing-feature-card:hover {
+  background: linear-gradient(135deg, 
+    hsl(240, 12%, 26%) 0%,
+    hsl(245, 18%, 29%) 30%,
+    hsl(250, 22%, 28%) 70%,
+    hsl(240, 12%, 27%) 100%) !important;
+  border: 1px solid hsla(245, 30%, 40%, 0.6) !important;
+  box-shadow: 
+    0 8px 24px hsla(240, 25%, 6%, 0.5),
+    inset 0 1px 0 hsla(250, 35%, 45%, 0.15) !important;
+}
