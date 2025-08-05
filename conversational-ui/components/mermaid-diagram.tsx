@@ -27,59 +27,84 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   const isCodeView = viewMode === 'code';
   const isDiagramView = viewMode === 'diagram';
 
+  // Render the diagram with dynamic theme detection
+  const renderDiagram = async () => {
+    if (!code || code.trim() === '') {
+      setError('The diagram code is empty. Please provide valid Mermaid syntax.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSvg('');
+
+      // Dynamic theme detection
+      const isDark = document.documentElement.classList.contains('dark');
+      const currentTheme = isDark ? 'dark' : 'base';
+
+      // Re-initialize Mermaid with current theme on each render
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: currentTheme,
+        securityLevel: 'loose',
+        suppressErrorRendering: true,
+        flowchart: {
+          htmlLabels: true,
+          useMaxWidth: true,
+        }
+      });
+
+      // Generate a unique ID that's safe for CSS selectors
+      const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
+      
+      // First validate the syntax
+      await mermaid.parse(code);
+      
+      // If validation passes, render the diagram
+      const { svg } = await mermaid.render(uniqueId, code);
+      // Remove any error icons or messages from the SVG
+      const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
+      setSvg(cleanedSvg);
+      setError(null);
+    } catch (parseError: any) {
+      const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
+      setError(`Syntax error in diagram: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Initialize mermaid with dark theme support
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose',
-      suppressErrorRendering: true,
-      themeVariables: {
-        darkMode: document.documentElement.classList.contains('dark'),
-      },
-      flowchart: {
-        htmlLabels: true,
-        useMaxWidth: true,
-      }
-    });
-
-    // Render the diagram
-    const renderDiagram = async () => {
-      if (!code || code.trim() === '') {
-        setError('The diagram code is empty. Please provide valid Mermaid syntax.');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        setSvg('');
-
-        // Generate a unique ID that's safe for CSS selectors
-        const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
-        
-        // First validate the syntax
-        await mermaid.parse(code);
-        
-        // If validation passes, render the diagram
-        const { svg } = await mermaid.render(uniqueId, code);
-        // Remove any error icons or messages from the SVG
-        const cleanedSvg = svg.replace(/<g class="error-icon">.*?<\/g>/g, '');
-        setSvg(cleanedSvg);
-        setError(null);
-      } catch (parseError: any) {
-        const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
-        setError(`Syntax error in diagram: ${errorMessage}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (viewMode === 'diagram') {
       renderDiagram();
     }
   }, [code, viewMode]);
+
+  // Add new useEffect for theme changes
+  useEffect(() => {
+    if (viewMode !== 'diagram') return;
+
+    // Create MutationObserver to watch for class changes on document.documentElement
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          // Re-render diagram when theme changes
+          renderDiagram();
+        }
+      });
+    });
+
+    // Start observing
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    // Cleanup observer on unmount
+    return () => observer.disconnect();
+  }, [viewMode]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
