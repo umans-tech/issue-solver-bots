@@ -24,24 +24,24 @@
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
+        --background: 240 12% 96%;
         --foreground: 240 10% 3.9%;
-        --card: 0 0% 100%;
+        --card: 240 12% 98%;
         --card-foreground: 240 10% 3.9%;
-        --popover: 0 0% 100%;
+        --popover: 240 12% 98%;
         --popover-foreground: 240 10% 3.9%;
         --primary: 240 5.9% 10%;
         --primary-foreground: 0 0% 98%;
-        --secondary: 240 4.8% 95.9%;
+        --secondary: 240 12% 92%;
         --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
+        --muted: 240 12% 92%;
         --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
+        --accent: 240 12% 88%;
         --accent-foreground: 240 5.9% 10%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
+        --border: 240 12% 85%;
+        --input: 240 12% 85%;
         --ring: 240 10% 3.9%;
         --chart-1: 12 76% 61%;
         --chart-2: 173 58% 39%;
@@ -59,37 +59,37 @@
         --sidebar-ring: 217.2 91.2% 59.8%;
     }
     .dark {
-        --background: 270 50% 10%;
+        --background: 240 12% 19%;
         --foreground: 0 0% 98%;
-        --card: 270 50% 8%;
+        --card: 240 12% 17%;
         --card-foreground: 0 0% 98%;
-        --popover: 270 50% 8%;
+        --popover: 240 12% 17%;
         --popover-foreground: 0 0% 98%;
         --primary: 0 0% 98%;
-        --primary-foreground: 240 5.9% 10%;
-        --secondary: 270 35% 15%;
+        --primary-foreground: 240 12% 12%;
+        --secondary: 240 12% 23%;
         --secondary-foreground: 0 0% 98%;
-        --muted: 270 35% 15%;
-        --muted-foreground: 240 5% 64.9%;
-        --accent: 270 40% 20%;
+        --muted: 240 12% 23%;
+        --muted-foreground: 0 0% 65%;
+        --accent: 240 14% 28%;
         --accent-foreground: 0 0% 98%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
-        --border: 270 40% 20%;
-        --input: 270 40% 20%;
-        --ring: 240 4.9% 83.9%;
+        --border: 240 14% 28%;
+        --input: 240 14% 28%;
+        --ring: 240 10% 84%;
         --chart-1: 290 70% 60%;
         --chart-2: 250 70% 60%;
         --chart-3: 230 70% 60%;
         --chart-4: 310 70% 60%;
         --chart-5: 270 70% 60%;
-        --sidebar-background: 270 50% 6% / 0.85;
-        --sidebar-foreground: 240 4.8% 95.9%;
+        --sidebar-background: 240 12% 15% / 0.9;
+        --sidebar-foreground: 0 0% 96%;
         --sidebar-primary: 280 80% 60%;
         --sidebar-primary-foreground: 0 0% 100%;
-        --sidebar-accent: 260 40% 20%;
-        --sidebar-accent-foreground: 240 4.8% 95.9%;
-        --sidebar-border: 270 40% 20% / 0.3;
+        --sidebar-accent: 240 14% 28%;
+        --sidebar-accent-foreground: 0 0% 96%;
+        --sidebar-border: 240 14% 28% / 0.3;
         --sidebar-ring: 280 80% 60%;
     }
 }
@@ -210,40 +210,40 @@
 
 /* Override any Tailwind border utilities - light mode */
 :not(.dark) form textarea[class*="border"] {
-    border: 1px solid hsla(280, 70%, 85%, 0.4) !important;
+    border: 1px solid hsla(240, 12%, 82%, 0.5) !important;
 }
 
 /* Add glow effect when textarea is focused - light mode */
 :not(.dark) form textarea:focus {
-    background-color: hsla(270, 50%, 99%, 0.9) !important;
-    border: 1px solid hsla(280, 80%, 75%, 0.5) !important;
-    box-shadow: 0 4px 20px hsla(280, 80%, 70%, 0.15), 
-                inset 0 0 10px hsla(280, 80%, 90%, 0.2);
+    background-color: hsla(240, 12%, 97%, 0.9) !important;
+    border: 1px solid hsla(240, 12%, 70%, 0.6) !important;
+    box-shadow: 0 4px 20px hsla(240, 12%, 75%, 0.15), 
+                inset 0 0 10px hsla(240, 12%, 88%, 0.2);
     outline: none !important;
 }
 
 /* Custom scrollbar for textarea - light mode */
 :not(.dark) form textarea::-webkit-scrollbar-track {
-    background-color: hsla(270, 30%, 95%, 0.6);
+    background-color: hsla(240, 12%, 94%, 0.6);
     border-radius: 10px;
 }
 
 :not(.dark) form textarea::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, hsla(280, 70%, 80%, 0.5), hsla(260, 70%, 75%, 0.5));
+    background: hsla(240, 12%, 78%, 0.7);
     border-radius: 10px;
 }
 
-/* Add gradient to light mode */
+/* Add matte violet background to light mode */
 :not(.dark) body {
-    background: linear-gradient(135deg, hsla(270, 50%, 97%, 1) 0%, hsla(280, 50%, 98%, 1) 50%, hsla(290, 50%, 99%, 1) 100%);
+    background: hsl(240, 12%, 96%);
 }
 
 /* Add translucent effect to sidebar in light mode */
 :not(.dark) [role="dialog"],
 :not(.dark) nav {
-    background-color: hsla(270, 30%, 98%, 0.8) !important;
+    background-color: hsla(240, 12%, 96%, 0.9) !important;
     backdrop-filter: blur(12px);
-    border-right: 1px solid hsla(280, 30%, 85%, 0.5);
+    border-right: 1px solid hsla(240, 12%, 82%, 0.5);
 }
 
 /* Apply gradient to sidebar - light mode */
@@ -267,30 +267,30 @@
     pointer-events: none;
 }
 
-/* Glass morphism to message container - light mode */
+/* Matte violet background to message container - light mode */
 :not(.dark) .bg-muted {
-    background-color: hsla(270, 30%, 98%, 0.6) !important;
+    background-color: hsla(240, 12%, 92%, 0.8) !important;
     backdrop-filter: blur(8px);
 }
 
-/* Add subtle purple glow to icons in light mode */
+/* Add subtle violet glow to icons in light mode */
 :not(.dark) svg {
-    filter: drop-shadow(0 0 1px hsla(280, 80%, 70%, 0.1));
+    filter: drop-shadow(0 0 1px hsla(240, 60%, 65%, 0.15)) contrast(1.05);
 }
 
-/* Add color gradients to buttons in light mode */
+/* Add matte violet hover backgrounds to buttons in light mode */
 :not(.dark) button:hover {
-    background: linear-gradient(135deg, hsla(270, 50%, 90%, 0.7), hsla(280, 50%, 88%, 0.7)) !important;
+    background: hsla(240, 12%, 88%, 0.8) !important;
 }
 
 :not(.dark) [role="button"]:hover {
-    background: linear-gradient(135deg, hsla(270, 50%, 90%, 0.7), hsla(280, 50%, 88%, 0.7)) !important;
+    background: hsla(240, 12%, 88%, 0.8) !important;
 }
 
 /* Add subtle glow to active elements - light mode */
 :not(.dark) *:focus,
 :not(.dark) button:focus {
-    box-shadow: 0 0 0 2px hsla(280, 70%, 80%, 0.2) !important;
+    box-shadow: 0 0 0 2px hsla(240, 12%, 70%, 0.3) !important;
 }
 
 /* Target specific Tailwind textarea classes - light mode */
@@ -299,35 +299,35 @@
 :not(.dark) .border-input,
 :not(.dark) .focus-visible\:ring-1,
 :not(.dark) .focus-visible\:ring-ring {
-    border-color: hsla(280, 70%, 85%, 0.3) !important;
-    --tw-ring-color: hsla(280, 80%, 70%, 0.3) !important;
+    border-color: hsla(240, 12%, 82%, 0.4) !important;
+    --tw-ring-color: hsla(240, 12%, 70%, 0.4) !important;
     --tw-ring-shadow: none !important;
     --tw-ring-offset-shadow: none !important;
 }
 
 /* Make message bubbles more elegant - light mode */
 :not(.dark) [data-message] {
-    border: 1px solid hsla(280, 40%, 90%, 0.3);
-    background: linear-gradient(135deg, hsla(270, 50%, 97%, 0.8), hsla(280, 50%, 98%, 0.8));
+    border: 1px solid hsla(240, 12%, 82%, 0.4);
+    background: hsla(240, 12%, 96%, 0.8);
     backdrop-filter: blur(8px);
     border-radius: 16px;
-    box-shadow: 0 2px 8px hsla(280, 30%, 80%, 0.2);
+    box-shadow: 0 2px 8px hsla(240, 12%, 85%, 0.3);
 }
 
 /* Add subtle hover effect for buttons without borders - light mode */
 :not(.dark) button:hover,
 :not(.dark) [role="button"]:hover {
-    background: linear-gradient(135deg, hsla(270, 50%, 90%, 0.7), hsla(280, 50%, 88%, 0.7)) !important;
-    box-shadow: 0 2px 8px hsla(280, 30%, 80%, 0.3) !important;
+    background: hsla(240, 12%, 88%, 0.8) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 85%, 0.4) !important;
     transform: translateY(-1px);
     transition: all 0.2s ease;
 }
 
-/* Add beautiful button effect on active/pressed state - light mode */
+/* Add matte violet button effect on active/pressed state - light mode */
 :not(.dark) button:active,
 :not(.dark) [role="button"]:active {
     transform: translateY(1px);
-    box-shadow: 0 1px 2px hsla(280, 30%, 80%, 0.2) !important;
+    box-shadow: 0 1px 2px hsla(240, 12%, 85%, 0.3) !important;
 }
 
 /* Fix hover text color in dialog - light mode */
@@ -358,15 +358,15 @@
 
 /* Override any Tailwind border utilities - dark mode */
 .dark form textarea[class*="border"] {
-    border: 1px solid hsla(280, 50%, 40%, 0.4) !important;
+    border: 1px solid hsla(240, 14%, 35%, 0.4) !important;
 }
 
 /* Add glow effect when textarea is focused - dark mode */
 .dark form textarea:focus {
-    background-color: hsla(270, 50%, 15%, 0.7) !important;
-    border: 1px solid hsla(280, 80%, 50%, 0.4) !important;
-    box-shadow: 0 4px 20px hsla(280, 80%, 50%, 0.2), 
-                inset 0 0 10px hsla(280, 80%, 30%, 0.1);
+    background-color: hsla(240, 12%, 21%, 0.8) !important;
+    border: 1px solid hsla(240, 16%, 47%, 0.5) !important;
+    box-shadow: 0 4px 20px hsla(240, 16%, 42%, 0.15), 
+                inset 0 0 10px hsla(240, 14%, 32%, 0.1);
     outline: none !important;
 }
 
@@ -382,47 +382,38 @@ form textarea::-webkit-scrollbar {
 
 /* Custom scrollbar for textarea - dark mode */
 .dark form textarea::-webkit-scrollbar-track {
-    background-color: hsla(270, 50%, 10%, 0.2);
+    background-color: hsla(240, 12%, 17%, 0.3);
     border-radius: 10px;
 }
 
 .dark form textarea::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, hsla(280, 70%, 40%, 0.4), hsla(260, 70%, 30%, 0.4));
+    background: hsla(240, 14%, 37%, 0.6);
     border-radius: 10px;
 }
 
-/* Add gradient to dark mode */
+/* Add matte violet background to dark mode */
 .dark body {
-    background: linear-gradient(135deg, hsla(260, 50%, 6%, 1) 0%, hsla(270, 50%, 8%, 1) 50%, hsla(280, 50%, 10%, 1) 100%);
+    background: hsl(240, 12%, 19%);
 }
 
 /* Add translucent effect to sidebar in dark mode */
 .dark [role="dialog"],
 .dark nav {
-    background-color: hsla(270, 50%, 7%, 0.7) !important;
+    background-color: hsla(240, 12%, 15%, 0.9) !important;
     backdrop-filter: blur(12px);
-    border-right: 1px solid hsla(280, 50%, 25%, 0.2);
+    border-right: 1px solid hsla(240, 14%, 32%, 0.3);
 }
 
-/* Apply gradient to sidebar - dark mode */
+/* Apply matte violet background to sidebar - dark mode */
 .dark [data-sidebar="sidebar"] {
-    background: linear-gradient(175deg, hsla(270, 60%, 7%, 1) 0%, hsla(280, 60%, 10%, 1) 50%, hsla(290, 70%, 12%, 1) 100%) !important;
-    border-right: 1px solid hsla(280, 60%, 30%, 0.3) !important;
-    box-shadow: 2px 0 16px hsla(275, 80%, 5%, 0.4);
+    background: hsl(240, 12%, 15%) !important;
+    border-right: 1px solid hsla(240, 14%, 32%, 0.3) !important;
+    box-shadow: 2px 0 16px hsla(240, 12%, 8%, 0.4);
 }
 
-/* Add subtle animation to sidebar in dark mode */
+/* Remove gradient animation from sidebar in dark mode for matte finish */
 .dark [data-sidebar="sidebar"]::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(210deg, transparent 0%, hsla(285, 70%, 15%, 0.1) 50%, transparent 100%);
-    background-size: 200% 200%;
-    animation: gradientMove 15s ease infinite;
-    pointer-events: none;
+    display: none;
 }
 
 @keyframes gradientMove {
@@ -431,30 +422,56 @@ form textarea::-webkit-scrollbar {
     100% { background-position: 0% 0%; }
 }
 
-/* Glass morphism to message container - dark mode */
+/* Matte violet background to message container - dark mode */
 .dark .bg-muted {
-    background-color: hsla(270, 35%, 20%, 0.6) !important;
+    background-color: hsla(240, 12%, 23%, 0.8) !important;
     backdrop-filter: blur(8px);
 }
 
-/* Add subtle purple glow to icons in dark mode */
+/* Add enhanced violet glow to icons in dark mode for better visibility */
 .dark svg {
-    filter: drop-shadow(0 0 1px hsla(280, 100%, 70%, 0.2));
+    filter: drop-shadow(0 0 2px hsla(240, 60%, 80%, 0.3)) brightness(1.25) contrast(1.1);
 }
 
-/* Add color gradients to buttons in dark mode */
+/* Ensure important icons are highly visible in dark mode */
+.dark svg[data-icon],
+.dark .icon,
+.dark [class*="icon"] svg {
+    filter: drop-shadow(0 0 2px hsla(240, 60%, 85%, 0.4)) brightness(1.3) contrast(1.15);
+}
+
+/* Enhance Mermaid diagram visibility in dark mode */
+.dark .mermaid svg {
+    filter: none !important; /* Let Mermaid dark theme handle colors */
+}
+
+/* Improve text contrast in dark components */
+.dark .mermaid text,
+.dark svg text {
+    fill: #e0e0e0 !important;
+    stroke: none !important;
+}
+
+/* Enhance diagram arrows and lines visibility */
+.dark .mermaid path,
+.dark .mermaid line {
+    stroke: #b0b0b0 !important;
+    stroke-width: 1.5px !important;
+}
+
+/* Add matte violet hover backgrounds to buttons in dark mode */
 .dark button:hover {
-    background: linear-gradient(135deg, hsla(260, 50%, 20%, 0.7), hsla(280, 50%, 25%, 0.7)) !important;
+    background: hsla(240, 12%, 26%, 0.8) !important;
 }
 
 .dark [role="button"]:hover {
-    background: linear-gradient(135deg, hsla(260, 50%, 20%, 0.7), hsla(280, 50%, 25%, 0.7)) !important;
+    background: hsla(240, 12%, 26%, 0.8) !important;
 }
 
 /* Add subtle glow to active elements - dark mode */
 .dark *:focus,
 .dark button:focus {
-    box-shadow: 0 0 0 2px hsla(280, 70%, 50%, 0.2) !important;
+    box-shadow: 0 0 0 2px hsla(240, 16%, 52%, 0.3) !important;
 }
 
 /* Target specific Tailwind textarea classes - dark mode */
@@ -463,19 +480,19 @@ form textarea::-webkit-scrollbar {
 .dark .border-input,
 .dark .focus-visible\:ring-1,
 .dark .focus-visible\:ring-ring {
-    border-color: hsla(280, 70%, 15%, 0.15) !important;
-    --tw-ring-color: hsla(280, 80%, 50%, 0.4) !important;
+    border-color: hsla(240, 14%, 28%, 0.4) !important;
+    --tw-ring-color: hsla(240, 16%, 52%, 0.4) !important;
     --tw-ring-shadow: none !important;
     --tw-ring-offset-shadow: none !important;
 }
 
 /* Make message bubbles more elegant - dark mode */
 .dark [data-message] {
-    border: 1px solid hsla(280, 60%, 20%, 0.1);
-    background: linear-gradient(135deg, hsla(270, 50%, 12%, 0.6), hsla(280, 50%, 15%, 0.6));
+    border: 1px solid hsla(240, 14%, 32%, 0.2);
+    background: hsla(240, 12%, 21%, 0.8);
     backdrop-filter: blur(8px);
     border-radius: 16px;
-    box-shadow: 0 2px 8px hsla(275, 80%, 5%, 0.2);
+    box-shadow: 0 2px 8px hsla(240, 12%, 8%, 0.3);
 }
 
 /* Remove subtle button frames in light mode */
@@ -499,17 +516,17 @@ form textarea::-webkit-scrollbar {
 /* Add subtle hover effect for buttons without borders - dark mode */
 .dark button:hover,
 .dark [role="button"]:hover {
-    background: linear-gradient(135deg, hsla(260, 50%, 20%, 0.7), hsla(280, 50%, 25%, 0.7)) !important;
-    box-shadow: 0 2px 8px hsla(275, 80%, 10%, 0.2) !important;
+    background: hsla(240, 12%, 26%, 0.8) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 11%, 0.3) !important;
     transform: translateY(-1px);
     transition: all 0.2s ease;
 }
 
-/* Add beautiful button effect on active/pressed state - dark mode */
+/* Add matte violet button effect on active/pressed state - dark mode */
 .dark button:active,
 .dark [role="button"]:active {
     transform: translateY(1px);
-    box-shadow: 0 1px 2px hsla(275, 80%, 10%, 0.1) !important;
+    box-shadow: 0 1px 2px hsla(240, 12%, 11%, 0.2) !important;
 }
 
 /* Fix hover text color in dialog - dark mode */
@@ -553,15 +570,19 @@ form textarea::-webkit-scrollbar {
 
 .dark [data-sidebar] li a:hover,
 .dark [data-sidebar] li button:hover {
-    background: linear-gradient(135deg, hsla(260, 50%, 15%, 0.5), hsla(280, 50%, 18%, 0.5)) !important;
+    background: hsla(240, 12%, 25%, 0.8) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 11%, 0.3) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
 }
 
 .dark [data-sidebar] li a[aria-selected="true"],
 .dark [data-sidebar] li a[data-selected="true"],
 .dark [data-sidebar] li a[data-state="selected"],
 .dark [data-sidebar] li button[data-selected="true"] {
-    background: linear-gradient(135deg, hsla(270, 60%, 15%, 0.7), hsla(280, 60%, 18%, 0.7)) !important;
-    border-left: 2px solid hsla(280, 70%, 50%, 0.7) !important;
+    background: hsla(240, 12%, 28%, 0.9) !important;
+    border-left: 2px solid hsla(240, 16%, 52%, 0.8) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 11%, 0.2) !important;
 }
 
 /* Style dropdown menu items - light mode */
@@ -579,7 +600,8 @@ form textarea::-webkit-scrollbar {
 :not(.dark) [role="menuitem"][aria-selected="true"],
 :not(.dark) [role="option"][data-highlighted],
 :not(.dark) [role="option"][aria-selected="true"] {
-    background: linear-gradient(135deg, hsla(270, 60%, 88%, 0.7), hsla(280, 60%, 90%, 0.7)) !important;
+    background: hsla(240, 12%, 85%, 0.9) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 80%, 0.2) !important;
 }
 
 /* Style dropdown menu items - dark mode */
@@ -590,7 +612,10 @@ form textarea::-webkit-scrollbar {
 
 .dark [role="menuitem"]:hover,
 .dark [role="option"]:hover {
-    background: linear-gradient(135deg, hsla(260, 50%, 15%, 0.5), hsla(280, 50%, 18%, 0.5)) !important;
+    background: hsla(240, 12%, 26%, 0.8) !important;
+    box-shadow: 0 2px 8px hsla(240, 12%, 11%, 0.3) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
 }
 
 .dark [role="menuitem"][data-highlighted],
