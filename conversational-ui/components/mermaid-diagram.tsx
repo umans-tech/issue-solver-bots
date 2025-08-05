@@ -239,6 +239,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         ) : (
           <div
             className={cn(
+              "mermaid-diagram-container",
               `${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
               isFullPage && "min-w-[800px] w-auto h-auto mx-auto my-8"
             )}

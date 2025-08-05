@@ -638,7 +638,7 @@ export default function TaskPage() {
         // Handle TextBlock (text)
         if (block.text) {
           return (
-            <div key={index} className="prose prose-sm max-w-none">
+            <div key={index}>
               <Markdown>{block.text}</Markdown>
             </div>
           );
@@ -695,7 +695,7 @@ export default function TaskPage() {
     if (payload.text) {
       const textContent = typeof payload.text === 'string' ? payload.text : JSON.stringify(payload.text);
       return (
-        <div className="prose prose-sm max-w-none">
+        <div>
           <Markdown>{textContent}</Markdown>
         </div>
       );
@@ -704,7 +704,7 @@ export default function TaskPage() {
     // Handle simple string content
     if (typeof payload.content === 'string') {
       return (
-        <div className="prose prose-sm max-w-none">
+        <div>
           <Markdown>{payload.content}</Markdown>
         </div>
       );
@@ -867,7 +867,7 @@ export default function TaskPage() {
                               transition={{ duration: 0.2, ease: 'easeInOut' }}
                               style={{ overflow: 'hidden' }}
                             >
-                              <div className="prose prose-sm max-w-none">
+                              <div>
                                 <Markdown>{getIssueInfo()?.description || 'No description provided'}</Markdown>
                               </div>
                             </motion.div>
