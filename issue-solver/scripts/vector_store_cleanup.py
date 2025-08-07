@@ -126,12 +126,11 @@ class VectorStoreCleanup:
         """Get detailed information about a vector store."""
         try:
             store = self.client.vector_stores.retrieve(store_id)
-            files = self.client.vector_stores.files.list(vector_store_id=store_id)
 
             return VectorStoreInfo(
                 id=store.id,
                 name=store.name or f"Vector Store {store.id[:8]}",
-                file_counts=len(files.data),
+                file_counts=store.file_counts.total,
                 usage_bytes=store.usage_bytes,
                 created_at=store.created_at,
                 last_active_at=store.last_active_at,
@@ -147,9 +146,7 @@ class VectorStoreCleanup:
 
         stores = []
         try:
-            vector_stores = self.client.vector_stores.list(limit=100)
-
-            for store in vector_stores.data:
+            for store in self.client.vector_stores.list(limit=100):
                 store_info = self._get_vector_store_info(store.id)
                 if store_info:
                     stores.append(store_info)
@@ -246,7 +243,7 @@ class VectorStoreCleanup:
             print("\n✅ STORES TO KEEP (Production + Recent):")
             for store in sorted(
                 plan.stores_to_keep, key=lambda x: x.usage_bytes, reverse=True
-            )[:10]:
+            ):
                 created_date = datetime.fromtimestamp(store.created_at).strftime(
                     "%Y-%m-%d"
                 )
@@ -255,9 +252,6 @@ class VectorStoreCleanup:
                 print(
                     f"   • {store.name[:40]:<40} | {store.id[:12]} | {created_date} | {size_mb:8.1f} MB | {store.file_counts:4} files{prod_flag}"
                 )
-
-            if len(plan.stores_to_keep) > 10:
-                print(f"   ... and {len(plan.stores_to_keep) - 10} more stores")
 
         print("=" * 80)
 
@@ -272,8 +266,9 @@ class VectorStoreCleanup:
                 return True
 
             # Delete all files in the vector store first
-            files = self.client.vector_stores.files.list(vector_store_id=store.id)
-            for file in files.data:
+            for file in self.client.vector_stores.files.list(
+                vector_store_id=store.id, limit=100
+            ):
                 try:
                     self.client.vector_stores.files.delete(
                         vector_store_id=store.id, file_id=file.id
