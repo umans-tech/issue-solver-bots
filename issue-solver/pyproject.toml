@@ -5,25 +5,25 @@ description = "A tool to specify, solve issues and review code in a repository u
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=0.39.0",
-    "docker>=7.1.0",
-    "fastapi[standard]>=0.115.4",
-    "gitpython>=3.1.44",
-    "httpx>=0.27.0",
-    "mangum>=0.19.0",
-    "openai>=1.54.3",
-    "pydantic-settings>=2.7.1",
-    "pydantic>=2.9.2",
-    "python-gitlab>=5.3.0",
-    "boto3>=1.37.11",
-    "alembic>=1.15.1",
-    "asyncpg>=0.30.0",
-    "greenlet>=3.1.1",
-    "tenacity>=9.0.0",
-    "pygithub>=2.6.1",
-    "cryptography>=45.0.2",
-    "claude-code-sdk>=0.0.17",
-    "redis>=6.2.0",
+    "anthropic",
+    "docker",
+    "fastapi[standard]",
+    "gitpython",
+    "httpx",
+    "mangum",
+    "openai",
+    "pydantic-settings",
+    "pydantic",
+    "python-gitlab",
+    "boto3",
+    "alembic",
+    "asyncpg",
+    "greenlet",
+    "tenacity",
+    "pygithub",
+    "cryptography",
+    "claude-code-sdk",
+    "redis",
 ]
 
 [project.scripts]
@@ -36,14 +36,14 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.14.1",
-    "pytest-asyncio>=0.25.2",
-    "pytest-httpserver>=1.1.2",
-    "pytest>=8.3.3",
-    "pytest-cov>=4.1.0",
-    "requests-mock>=1.12.1",
-    "ruff>=0.7.3",
-    "testcontainers>=4.9.2",
+    "mypy",
+    "pytest-asyncio",
+    "pytest-httpserver",
+    "pytest",
+    "pytest-cov",
+    "requests-mock",
+    "ruff",
+    "testcontainers",
 ]
 
 [tool.mypy]
