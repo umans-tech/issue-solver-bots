@@ -22,7 +22,7 @@ The cleanup system provides a two-phase approach:
 ### Prerequisites
 
 1. **OpenAI API Key**: Set the `OPENAI_API_KEY` environment variable
-2. **Production Store IDs**: Update `production_vector_stores.csv` with your production vector store IDs
+2. **Production Store IDs**: Update `issue-solver/scripts/production_vector_stores.csv` with your production vector store IDs
 
 ### Basic Usage
 
@@ -86,7 +86,7 @@ Performs all steps except actual deletion, useful for:
 
 ### Production Vector Stores
 
-Edit `production_vector_stores.csv` to list production vector store IDs (one per line):
+Edit `issue-solver/scripts/production_vector_stores.csv` to list production vector store IDs (one per line):
 
 ```csv
 vs_prod_123abc4567890def
@@ -106,7 +106,7 @@ The current cleanup strategy:
 ## Safety Measures
 
 ### Production Protection
-- Vector stores listed in `production_vector_stores.csv` are **never** deleted
+- Vector stores listed in `issue-solver/scripts/production_vector_stores.csv` are **never** deleted
 - The system clearly marks production stores in all reports
 
 ### User Confirmation
@@ -222,7 +222,7 @@ Monitor your OpenAI storage usage:
    - Set your OpenAI API key: `export OPENAI_API_KEY=your_key_here`
 
 2. **"Production CSV file not found"**
-   - Create `production_vector_stores.csv` or specify correct path
+   - Create `issue-solver/scripts/production_vector_stores.csv` or specify correct path
    - File can be empty if no production stores exist
 
 3. **"Error fetching vector stores"**
@@ -254,7 +254,7 @@ If cleanup fails partially:
 ## Best Practices
 
 1. **Always Plan First**: Run `just plan-cleanup` before actual cleanup
-2. **Review Production List**: Regularly update `production_vector_stores.csv`
+2. **Review Production List**: Regularly update `issue-solver/scripts/production_vector_stores.csv`
 3. **Start with Dry Run**: Use `--dry-run` when testing changes
 4. **Monitor Reports**: Review cleanup reports for patterns and issues
 5. **Regular Maintenance**: Schedule periodic cleanups to prevent storage overflow

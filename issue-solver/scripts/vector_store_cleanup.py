@@ -94,11 +94,10 @@ class VectorStoreCleanup:
 
     def _load_production_ids(self, csv_path: Optional[str]) -> Set[str]:
         """Load production vector store IDs from CSV file."""
-        if not csv_path:
-            csv_path = "production_vector_stores.csv"
-
+        # Default to CSV located next to this script if not explicitly provided
+        default_csv_path = Path(__file__).parent / "production_vector_stores.csv"
         production_ids: set[str] = set()
-        csv_file = Path(csv_path)
+        csv_file = Path(csv_path) if csv_path else default_csv_path
 
         if not csv_file.exists():
             logger.warning(f"Production CSV file not found: {csv_path}")
@@ -419,7 +418,7 @@ def main():
     plan_parser.add_argument(
         "--production-csv",
         help="Path to CSV file containing production vector store IDs",
-        default="production_vector_stores.csv",
+        default=None,
     )
 
     # Cleanup command
@@ -429,7 +428,7 @@ def main():
     cleanup_parser.add_argument(
         "--production-csv",
         help="Path to CSV file containing production vector store IDs",
-        default="production_vector_stores.csv",
+        default=None,
     )
     cleanup_parser.add_argument(
         "--dry-run",
