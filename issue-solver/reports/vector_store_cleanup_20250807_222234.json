@@ -1,0 +1,1490 @@
+{
+  "plan": {
+    "total_stores": 99,
+    "production_stores": 31,
+    "non_production_stores": 68,
+    "total_size_bytes": 295919111,
+    "estimated_savings_bytes": 166075082,
+    "estimated_savings_gb": 0.1546694729477167,
+    "stores_to_delete": [
+      {
+        "id": "vs_684d8b60acc081918708025bc0cfa723",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749912416,
+        "last_active_at": 1749912426,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d8a42e99c8191899630e2da6b2599",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749912130,
+        "last_active_at": 1749912140,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d87a62ad48191a9cd1f0344e4fc7c",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749911462,
+        "last_active_at": 1749911471,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d864d45ac8191a182d8bf638c3d9f",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749911117,
+        "last_active_at": 1749911126,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d85721e0c8191bbd1b49a21de0aae",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749910898,
+        "last_active_at": 1749910906,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d8473d0388191b3673c2e821c745a",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749910643,
+        "last_active_at": 1749910653,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d844370008191ad27feea95ab1ced",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749910595,
+        "last_active_at": 1749910604,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d82ca17b481918311386708082ded",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749910218,
+        "last_active_at": 1749910226,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d8212118c8191837b59b1d06171aa",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749910034,
+        "last_active_at": 1749910043,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d813887208191b23f0e33f0e9f60f",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749909816,
+        "last_active_at": 1749909825,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d80ba94a08191a9dd56951e72ed08",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749909690,
+        "last_active_at": 1749909699,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d805dcb2081918688b84bfaf3c914",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749909597,
+        "last_active_at": 1749909606,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d7f657d488191bb2a89897b05bee4",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749909349,
+        "last_active_at": 1749909358,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d7ea1dffc8191bdeded102b67afa7",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749909153,
+        "last_active_at": 1749909162,
+        "is_production": false
+      },
+      {
+        "id": "vs_684d768c7e7c8191b695c3341e9b3ab9",
+        "name": "issue-solver-bots.git",
+        "file_counts": 361,
+        "usage_bytes": 3494392,
+        "created_at": 1749907084,
+        "last_active_at": 1750093030,
+        "is_production": false
+      },
+      {
+        "id": "vs_684989391688819194ca73be913a3265",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1749649721,
+        "last_active_at": 1749740009,
+        "is_production": false
+      },
+      {
+        "id": "vs_68468904f2188191bb86757b5eb2d504",
+        "name": "issue-solver-bots.git",
+        "file_counts": 358,
+        "usage_bytes": 3451037,
+        "created_at": 1749453060,
+        "last_active_at": 1749595582,
+        "is_production": false
+      },
+      {
+        "id": "vs_68421bb7783881919ceaeed48b4d1f7f",
+        "name": "gitingest.git",
+        "file_counts": 65,
+        "usage_bytes": 356483,
+        "created_at": 1749162935,
+        "last_active_at": 1749162945,
+        "is_production": false
+      },
+      {
+        "id": "vs_68421af19bb88191b387d050355f0a2f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 355,
+        "usage_bytes": 3430481,
+        "created_at": 1749162737,
+        "last_active_at": 1749162843,
+        "is_production": false
+      },
+      {
+        "id": "vs_6841599d0a9c8191b51512c77ca25365",
+        "name": "issue-solver-bots.git",
+        "file_counts": 351,
+        "usage_bytes": 3408454,
+        "created_at": 1749113245,
+        "last_active_at": 1749387647,
+        "is_production": false
+      },
+      {
+        "id": "vs_68401c2ea75081919d6221d63bc2d88f",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1749031982,
+        "last_active_at": 1749038706,
+        "is_production": false
+      },
+      {
+        "id": "vs_6840131b414c819186ffb5ecf6fa530f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 404,
+        "usage_bytes": 4080010,
+        "created_at": 1749029659,
+        "last_active_at": 1751533715,
+        "is_production": false
+      },
+      {
+        "id": "vs_683ff7c2a738819197497ca830d7829e",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1749022658,
+        "last_active_at": 1749022837,
+        "is_production": false
+      },
+      {
+        "id": "vs_683f603c4ac881919f462fd0755ba7ec",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1748983868,
+        "last_active_at": 1748983889,
+        "is_production": false
+      },
+      {
+        "id": "vs_683f12d0ef748191ad2b3c62b4f7782a",
+        "name": "SWE-agent",
+        "file_counts": 370,
+        "usage_bytes": 7304060,
+        "created_at": 1748964048,
+        "last_active_at": 1748964985,
+        "is_production": false
+      },
+      {
+        "id": "vs_683f12925c308191a5d3ca4293657626",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 356483,
+        "created_at": 1748963986,
+        "last_active_at": 1748963999,
+        "is_production": false
+      },
+      {
+        "id": "vs_683ca0789d28819189bc5ab28a839394",
+        "name": "issue-solver-bots.git",
+        "file_counts": 340,
+        "usage_bytes": 2157001,
+        "created_at": 1748803704,
+        "last_active_at": 1748807088,
+        "is_production": false
+      },
+      {
+        "id": "vs_6838a4ad03848191b1a77dd6963b54f8",
+        "name": "issue-solver-bots.git",
+        "file_counts": 330,
+        "usage_bytes": 3147897,
+        "created_at": 1748542637,
+        "last_active_at": 1748555641,
+        "is_production": false
+      },
+      {
+        "id": "vs_683771f519a481919eb549b7db376e8b",
+        "name": "issue-solver-bots.git",
+        "file_counts": 324,
+        "usage_bytes": 3060498,
+        "created_at": 1748464117,
+        "last_active_at": 1748467369,
+        "is_production": false
+      },
+      {
+        "id": "vs_68370fcb599c8191855c30b2b166e194",
+        "name": "issue-solver-bots.git",
+        "file_counts": 324,
+        "usage_bytes": 3057908,
+        "created_at": 1748438987,
+        "last_active_at": 1748461792,
+        "is_production": false
+      },
+      {
+        "id": "vs_68347a6dadb88191a1f9cbd6f57fb752",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1748269677,
+        "last_active_at": 1748271391,
+        "is_production": false
+      },
+      {
+        "id": "vs_683304df2d6881919de1aea3bd14bafc",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 378473,
+        "created_at": 1748174047,
+        "last_active_at": 1748174091,
+        "is_production": false
+      },
+      {
+        "id": "vs_6832fc9ce9ac81918546342512acde63",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 378473,
+        "created_at": 1748171932,
+        "last_active_at": 1748171985,
+        "is_production": false
+      },
+      {
+        "id": "vs_68302caff690819186964525d1b83e58",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1747987631,
+        "last_active_at": 1748961852,
+        "is_production": false
+      },
+      {
+        "id": "vs_682fc540e76c8191ab98fdcdef23ffc1",
+        "name": "issue-solver-bots.git",
+        "file_counts": 320,
+        "usage_bytes": 3039161,
+        "created_at": 1747961152,
+        "last_active_at": 1747963588,
+        "is_production": false
+      },
+      {
+        "id": "vs_682cfcf2f7808191825aa1abccd0c7ee",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747778802,
+        "last_active_at": 1747923138,
+        "is_production": false
+      },
+      {
+        "id": "vs_682ca664f10c8191a12689b86fc0cb3f",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747756644,
+        "last_active_at": 1747757093,
+        "is_production": false
+      },
+      {
+        "id": "vs_682c62d716d48191b02f7159c56cc86a",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1747739351,
+        "last_active_at": 1747739624,
+        "is_production": false
+      },
+      {
+        "id": "vs_68234797600c8191aea9ecd67764bb25",
+        "name": "issue-solver-bots.git",
+        "file_counts": 360,
+        "usage_bytes": 3347960,
+        "created_at": 1747142551,
+        "last_active_at": 1749029580,
+        "is_production": false
+      },
+      {
+        "id": "vs_68233a5648188191b9dde0ebdc43d718",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747139158,
+        "last_active_at": 1747139221,
+        "is_production": false
+      },
+      {
+        "id": "vs_6821bfcee840819192f3fded7de4753e",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747042254,
+        "last_active_at": 1747126691,
+        "is_production": false
+      },
+      {
+        "id": "vs_681e680c9cb88191869fc6c781be369d",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1746823180,
+        "last_active_at": 1746823198,
+        "is_production": false
+      },
+      {
+        "id": "vs_681e2d103768819181f2178d0b026e61",
+        "name": "issue-solver-bots.git",
+        "file_counts": 322,
+        "usage_bytes": 3047820,
+        "created_at": 1746808080,
+        "last_active_at": 1748272525,
+        "is_production": false
+      },
+      {
+        "id": "vs_681e1e95ef6c8191a08e95168a76d8ca",
+        "name": "issue-solver-bots.git",
+        "file_counts": 298,
+        "usage_bytes": 2799767,
+        "created_at": 1746804373,
+        "last_active_at": 1746804415,
+        "is_production": false
+      },
+      {
+        "id": "vs_6813831a4c9c81918c4a02504f7efb77",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1746109210,
+        "last_active_at": 1746110124,
+        "is_production": false
+      },
+      {
+        "id": "vs_67fbb76fde24819183d85e3c2e8db4f2",
+        "name": "issue-solver-bots",
+        "file_counts": 293,
+        "usage_bytes": 2770411,
+        "created_at": 1744549743,
+        "last_active_at": 1744549783,
+        "is_production": false
+      },
+      {
+        "id": "vs_67fb91adb8f48191a37a9b6c6b980a41",
+        "name": "issue-solver-bots.git",
+        "file_counts": 298,
+        "usage_bytes": 2799767,
+        "created_at": 1744540077,
+        "last_active_at": 1746801901,
+        "is_production": false
+      },
+      {
+        "id": "vs_67fb031f23ec819196b2c4c446d8cb93",
+        "name": "issue-solver-bots.git",
+        "file_counts": 293,
+        "usage_bytes": 2770411,
+        "created_at": 1744503583,
+        "last_active_at": 1744575337,
+        "is_production": false
+      },
+      {
+        "id": "vs_67fb0319e7ac819182264165181f7622",
+        "name": "issue-solver-bots.git",
+        "file_counts": 293,
+        "usage_bytes": 2770411,
+        "created_at": 1744503577,
+        "last_active_at": 1744503636,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f878972c288191a1a50dbda306531d",
+        "name": "SWE-agent",
+        "file_counts": 368,
+        "usage_bytes": 8339377,
+        "created_at": 1744337047,
+        "last_active_at": 1744337602,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f863055c308191935e79772d95adf4",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 377107,
+        "created_at": 1744331525,
+        "last_active_at": 1744333117,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f862f4b2e48191adc51e3203d8d7cb",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 377107,
+        "created_at": 1744331508,
+        "last_active_at": 1744331526,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f81b0ba3a88191b12d7f503b51658d",
+        "name": "SWE-agent",
+        "file_counts": 368,
+        "usage_bytes": 8339377,
+        "created_at": 1744313099,
+        "last_active_at": 1744464810,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f6f43e46448191a288c1c0dd10d2c8",
+        "name": "vscode-slides",
+        "file_counts": 47,
+        "usage_bytes": 652641,
+        "created_at": 1744237630,
+        "last_active_at": 1744320102,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f6d3a284f88191ba508392779b585a",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1744229282,
+        "last_active_at": 1744234596,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f6d388de8481919dd26e15e05feee7",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1744229256,
+        "last_active_at": 1744229268,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f6973ec000819186369193c4ba3b19",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1744213822,
+        "last_active_at": 1744230932,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f65b9dc8c48191ac1a183a84cc4ec5",
+        "name": "issue-solver-bots.git",
+        "file_counts": 280,
+        "usage_bytes": 2674932,
+        "created_at": 1744198557,
+        "last_active_at": 1744202888,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f59c1c51f08191be85fc505d879d47",
+        "name": "smooth.git",
+        "file_counts": 3470,
+        "usage_bytes": 25772511,
+        "created_at": 1744149532,
+        "last_active_at": 1744150339,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f59b96cf4c8191ae711692e942822b",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 377107,
+        "created_at": 1744149398,
+        "last_active_at": 1744149458,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f59617338c81918ce394ba5fdbcbd1",
+        "name": "ollamazure.git",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1744147991,
+        "last_active_at": 1744206684,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f595dafa5c8191b27e7f2b48dfe982",
+        "name": "ollamazure.git",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1744147930,
+        "last_active_at": 1744147930,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f5957b415481919c550002f5e8903a",
+        "name": "smooth.git",
+        "file_counts": 3468,
+        "usage_bytes": 25763500,
+        "created_at": 1744147835,
+        "last_active_at": 1744148442,
+        "is_production": false
+      },
+      {
+        "id": "vs_67f5951d40ac81919901c6edf490198a",
+        "name": "ollamazure.git",
+        "file_counts": 39,
+        "usage_bytes": 1584171,
+        "created_at": 1744147741,
+        "last_active_at": 1744147751,
+        "is_production": false
+      }
+    ],
+    "stores_to_keep": [
+      {
+        "id": "vs_6894a2fa756081918495c900747e5b34",
+        "name": "issue-solver-bots.git",
+        "file_counts": 378,
+        "usage_bytes": 0,
+        "created_at": 1754571514,
+        "last_active_at": 1754575554,
+        "is_production": true
+      },
+      {
+        "id": "vs_689481177c108191a40664a5cdc1abea",
+        "name": "gitingest.git",
+        "file_counts": 121,
+        "usage_bytes": 0,
+        "created_at": 1754562839,
+        "last_active_at": 1754562897,
+        "is_production": true
+      },
+      {
+        "id": "vs_68947c945e98819186ca7cf108ab37bb",
+        "name": "issue-solver-bots.git",
+        "file_counts": 756,
+        "usage_bytes": 0,
+        "created_at": 1754561684,
+        "last_active_at": 1754571095,
+        "is_production": true
+      },
+      {
+        "id": "vs_68935db5a0e88191b8e9babcec2743e0",
+        "name": "turn-me-off.git",
+        "file_counts": 10,
+        "usage_bytes": 91761,
+        "created_at": 1754488245,
+        "last_active_at": 1754488463,
+        "is_production": true
+      },
+      {
+        "id": "vs_68935c4d96f48191a4fe97a6e3b36d93",
+        "name": "woob.git",
+        "file_counts": 2152,
+        "usage_bytes": 15169847,
+        "created_at": 1754487885,
+        "last_active_at": 1754488225,
+        "is_production": true
+      },
+      {
+        "id": "vs_68797db6fb7c81919ec427fa571f005e",
+        "name": "issue-solver-bots.git",
+        "file_counts": 386,
+        "usage_bytes": 4164639,
+        "created_at": 1752792502,
+        "last_active_at": 1754584292,
+        "is_production": true
+      },
+      {
+        "id": "vs_68760f77807c81919adfd4a5c49079ab",
+        "name": "papaours-gestion-back",
+        "file_counts": 2041,
+        "usage_bytes": 6914121,
+        "created_at": 1752567671,
+        "last_active_at": 1752576287,
+        "is_production": true
+      },
+      {
+        "id": "vs_686678bec0e48191a96102448ec448bb",
+        "name": "issue-solver-bots.git",
+        "file_counts": 386,
+        "usage_bytes": 4248694,
+        "created_at": 1751546046,
+        "last_active_at": 1754561279,
+        "is_production": true
+      },
+      {
+        "id": "vs_686663ef79bc8191b759c5a97a0c395a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 362,
+        "usage_bytes": 3934942,
+        "created_at": 1751540719,
+        "last_active_at": 1751541119,
+        "is_production": true
+      },
+      {
+        "id": "vs_685bc63d89188191839933fe31cbf42e",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1750844989,
+        "last_active_at": 1751472576,
+        "is_production": true
+      },
+      {
+        "id": "vs_685bbf26c6108191ae4185e5d9b809bc",
+        "name": "excalidraw.git",
+        "file_counts": 855,
+        "usage_bytes": 22911992,
+        "created_at": 1750843174,
+        "last_active_at": 1750873857,
+        "is_production": true
+      },
+      {
+        "id": "vs_6856b8347d008191bc9c9c06b122ec5f",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1750513716,
+        "last_active_at": 1753708781,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d8b850bf081919108d0677447e84f",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749912453,
+        "last_active_at": 1749912461,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d799ca37081918a93d55319f3bf51",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749907868,
+        "last_active_at": 1749907877,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d6305dc388191a6f65b3514bd4338",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749902085,
+        "last_active_at": 1749902095,
+        "is_production": true
+      },
+      {
+        "id": "vs_684991e3653c8191a9da832aad360326",
+        "name": "tractor-v2-module-federation",
+        "file_counts": 96,
+        "usage_bytes": 2371099,
+        "created_at": 1749651939,
+        "last_active_at": 1749652154,
+        "is_production": true
+      },
+      {
+        "id": "vs_6840637920e08191a47bd0710415e5dc",
+        "name": "QuantLib.git",
+        "file_counts": 2879,
+        "usage_bytes": 30260691,
+        "created_at": 1749050233,
+        "last_active_at": 1754578990,
+        "is_production": true
+      },
+      {
+        "id": "vs_68405e419ff4819194708205f1c0f1ba",
+        "name": "issue-solver-bots.git",
+        "file_counts": 351,
+        "usage_bytes": 3408448,
+        "created_at": 1749048897,
+        "last_active_at": 1749050179,
+        "is_production": true
+      },
+      {
+        "id": "vs_6840063395908191bf341f3a3c4d767f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 350,
+        "usage_bytes": 3403660,
+        "created_at": 1749026355,
+        "last_active_at": 1749026509,
+        "is_production": true
+      },
+      {
+        "id": "vs_684004513e248191a49d662c2a02ea5d",
+        "name": "issue-solver-bots.git",
+        "file_counts": 350,
+        "usage_bytes": 3403660,
+        "created_at": 1749025873,
+        "last_active_at": 1749026022,
+        "is_production": true
+      },
+      {
+        "id": "vs_683f0993106c8191ac6d11349dc30520",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 356483,
+        "created_at": 1748961683,
+        "last_active_at": 1748961742,
+        "is_production": true
+      },
+      {
+        "id": "vs_683dcbaa40a08191a6d95a2261122895",
+        "name": "issue-solver-bots.git",
+        "file_counts": 360,
+        "usage_bytes": 2425021,
+        "created_at": 1748880298,
+        "last_active_at": 1749026272,
+        "is_production": true
+      },
+      {
+        "id": "vs_68302bc0b96c8191b77816909c050b0a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1747987392,
+        "last_active_at": 1748178675,
+        "is_production": true
+      },
+      {
+        "id": "vs_6828da5415dc81919d5f03959df0c01e",
+        "name": "gpt-engineer.git",
+        "file_counts": 167,
+        "usage_bytes": 2080972,
+        "created_at": 1747507796,
+        "last_active_at": 1747983669,
+        "is_production": true
+      },
+      {
+        "id": "vs_682613325af88191a7c7f765f3b99f04",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747325746,
+        "last_active_at": 1747986248,
+        "is_production": true
+      },
+      {
+        "id": "vs_6825fcc40e2081918ced9998216f243f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1747320004,
+        "last_active_at": 1748177224,
+        "is_production": true
+      },
+      {
+        "id": "vs_6825e82bfcb48191b12ac237d04f6d5d",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747314731,
+        "last_active_at": 1747319615,
+        "is_production": true
+      },
+      {
+        "id": "vs_6800155a81608191b1f485949ebe046b",
+        "name": "build-with-ai-tech-screen-app",
+        "file_counts": 7,
+        "usage_bytes": 21481,
+        "created_at": 1744835930,
+        "last_active_at": 1744835985,
+        "is_production": true
+      },
+      {
+        "id": "vs_67fe9f3dd0e481919b49fbf5254bba7f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 340,
+        "usage_bytes": 2666948,
+        "created_at": 1744740157,
+        "last_active_at": 1748880181,
+        "is_production": true
+      },
+      {
+        "id": "vs_67f8f63890d481919155da2c5d47d678",
+        "name": "ai-chatbot.git",
+        "file_counts": 153,
+        "usage_bytes": 1471437,
+        "created_at": 1744369208,
+        "last_active_at": 1744369691,
+        "is_production": true
+      },
+      {
+        "id": "vs_67f8f3be5bd08191926294999912e6a7",
+        "name": "SWE-agent",
+        "file_counts": 368,
+        "usage_bytes": 8339377,
+        "created_at": 1744368574,
+        "last_active_at": 1749313408,
+        "is_production": true
+      },
+      {
+        "id": "vs_6894b34924cc81918850ba3f725813bb",
+        "name": "images-hunter-api",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1754575689,
+        "last_active_at": 1754575797,
+        "is_production": false
+      },
+      {
+        "id": "vs_6894ac7499b8819199b8e4a4b088b275",
+        "name": "openai-cookbook",
+        "file_counts": 636,
+        "usage_bytes": 0,
+        "created_at": 1754573940,
+        "last_active_at": 1754574512,
+        "is_production": false
+      },
+      {
+        "id": "vs_68947b8f7840819181b21fa58a0512d9",
+        "name": "issue-solver-bots.git",
+        "file_counts": 378,
+        "usage_bytes": 0,
+        "created_at": 1754561423,
+        "last_active_at": 1754562089,
+        "is_production": false
+      },
+      {
+        "id": "vs_689476e3aebc81918ab892b3f1c92452",
+        "name": "issue-solver-bots.git",
+        "file_counts": 378,
+        "usage_bytes": 0,
+        "created_at": 1754560227,
+        "last_active_at": 1754574545,
+        "is_production": false
+      }
+    ]
+  },
+  "execution_started": "2025-08-07T19:15:27.082907",
+  "execution_completed": "2025-08-07T22:22:34.509080",
+  "deleted_stores": [
+    {
+      "id": "vs_684d8b60acc081918708025bc0cfa723",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749912416,
+      "last_active_at": 1749912426,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d8a42e99c8191899630e2da6b2599",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749912130,
+      "last_active_at": 1749912140,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d87a62ad48191a9cd1f0344e4fc7c",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749911462,
+      "last_active_at": 1749911471,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d864d45ac8191a182d8bf638c3d9f",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749911117,
+      "last_active_at": 1749911126,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d85721e0c8191bbd1b49a21de0aae",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749910898,
+      "last_active_at": 1749910906,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d8473d0388191b3673c2e821c745a",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749910643,
+      "last_active_at": 1749910653,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d844370008191ad27feea95ab1ced",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749910595,
+      "last_active_at": 1749910604,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d82ca17b481918311386708082ded",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749910218,
+      "last_active_at": 1749910226,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d8212118c8191837b59b1d06171aa",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749910034,
+      "last_active_at": 1749910043,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d813887208191b23f0e33f0e9f60f",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749909816,
+      "last_active_at": 1749909825,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d80ba94a08191a9dd56951e72ed08",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749909690,
+      "last_active_at": 1749909699,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d805dcb2081918688b84bfaf3c914",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749909597,
+      "last_active_at": 1749909606,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d7f657d488191bb2a89897b05bee4",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749909349,
+      "last_active_at": 1749909358,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d7ea1dffc8191bdeded102b67afa7",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 367088,
+      "created_at": 1749909153,
+      "last_active_at": 1749909162,
+      "is_production": false
+    },
+    {
+      "id": "vs_684d768c7e7c8191b695c3341e9b3ab9",
+      "name": "issue-solver-bots.git",
+      "file_counts": 361,
+      "usage_bytes": 3494392,
+      "created_at": 1749907084,
+      "last_active_at": 1750093030,
+      "is_production": false
+    },
+    {
+      "id": "vs_684989391688819194ca73be913a3265",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1749649721,
+      "last_active_at": 1749740009,
+      "is_production": false
+    },
+    {
+      "id": "vs_68468904f2188191bb86757b5eb2d504",
+      "name": "issue-solver-bots.git",
+      "file_counts": 358,
+      "usage_bytes": 3451037,
+      "created_at": 1749453060,
+      "last_active_at": 1749595582,
+      "is_production": false
+    },
+    {
+      "id": "vs_68421bb7783881919ceaeed48b4d1f7f",
+      "name": "gitingest.git",
+      "file_counts": 65,
+      "usage_bytes": 356483,
+      "created_at": 1749162935,
+      "last_active_at": 1749162945,
+      "is_production": false
+    },
+    {
+      "id": "vs_68421af19bb88191b387d050355f0a2f",
+      "name": "issue-solver-bots.git",
+      "file_counts": 355,
+      "usage_bytes": 3430481,
+      "created_at": 1749162737,
+      "last_active_at": 1749162843,
+      "is_production": false
+    },
+    {
+      "id": "vs_6841599d0a9c8191b51512c77ca25365",
+      "name": "issue-solver-bots.git",
+      "file_counts": 351,
+      "usage_bytes": 3408454,
+      "created_at": 1749113245,
+      "last_active_at": 1749387647,
+      "is_production": false
+    },
+    {
+      "id": "vs_68401c2ea75081919d6221d63bc2d88f",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1749031982,
+      "last_active_at": 1749038706,
+      "is_production": false
+    },
+    {
+      "id": "vs_6840131b414c819186ffb5ecf6fa530f",
+      "name": "issue-solver-bots.git",
+      "file_counts": 404,
+      "usage_bytes": 4080010,
+      "created_at": 1749029659,
+      "last_active_at": 1751533715,
+      "is_production": false
+    },
+    {
+      "id": "vs_683ff7c2a738819197497ca830d7829e",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1749022658,
+      "last_active_at": 1749022837,
+      "is_production": false
+    },
+    {
+      "id": "vs_683f603c4ac881919f462fd0755ba7ec",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1748983868,
+      "last_active_at": 1748983889,
+      "is_production": false
+    },
+    {
+      "id": "vs_683f12d0ef748191ad2b3c62b4f7782a",
+      "name": "SWE-agent",
+      "file_counts": 370,
+      "usage_bytes": 7304060,
+      "created_at": 1748964048,
+      "last_active_at": 1748964985,
+      "is_production": false
+    },
+    {
+      "id": "vs_683f12925c308191a5d3ca4293657626",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 356483,
+      "created_at": 1748963986,
+      "last_active_at": 1748963999,
+      "is_production": false
+    },
+    {
+      "id": "vs_683ca0789d28819189bc5ab28a839394",
+      "name": "issue-solver-bots.git",
+      "file_counts": 340,
+      "usage_bytes": 2157001,
+      "created_at": 1748803704,
+      "last_active_at": 1748807088,
+      "is_production": false
+    },
+    {
+      "id": "vs_6838a4ad03848191b1a77dd6963b54f8",
+      "name": "issue-solver-bots.git",
+      "file_counts": 330,
+      "usage_bytes": 3147897,
+      "created_at": 1748542637,
+      "last_active_at": 1748555641,
+      "is_production": false
+    },
+    {
+      "id": "vs_683771f519a481919eb549b7db376e8b",
+      "name": "issue-solver-bots.git",
+      "file_counts": 324,
+      "usage_bytes": 3060498,
+      "created_at": 1748464117,
+      "last_active_at": 1748467369,
+      "is_production": false
+    },
+    {
+      "id": "vs_68370fcb599c8191855c30b2b166e194",
+      "name": "issue-solver-bots.git",
+      "file_counts": 324,
+      "usage_bytes": 3057908,
+      "created_at": 1748438987,
+      "last_active_at": 1748461792,
+      "is_production": false
+    },
+    {
+      "id": "vs_68347a6dadb88191a1f9cbd6f57fb752",
+      "name": "issue-solver-bots.git",
+      "file_counts": 321,
+      "usage_bytes": 3047820,
+      "created_at": 1748269677,
+      "last_active_at": 1748271391,
+      "is_production": false
+    },
+    {
+      "id": "vs_683304df2d6881919de1aea3bd14bafc",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 378473,
+      "created_at": 1748174047,
+      "last_active_at": 1748174091,
+      "is_production": false
+    },
+    {
+      "id": "vs_6832fc9ce9ac81918546342512acde63",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 378473,
+      "created_at": 1748171932,
+      "last_active_at": 1748171985,
+      "is_production": false
+    },
+    {
+      "id": "vs_68302caff690819186964525d1b83e58",
+      "name": "issue-solver-bots.git",
+      "file_counts": 321,
+      "usage_bytes": 3047820,
+      "created_at": 1747987631,
+      "last_active_at": 1748961852,
+      "is_production": false
+    },
+    {
+      "id": "vs_682fc540e76c8191ab98fdcdef23ffc1",
+      "name": "issue-solver-bots.git",
+      "file_counts": 320,
+      "usage_bytes": 3039161,
+      "created_at": 1747961152,
+      "last_active_at": 1747963588,
+      "is_production": false
+    },
+    {
+      "id": "vs_682cfcf2f7808191825aa1abccd0c7ee",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1747778802,
+      "last_active_at": 1747923138,
+      "is_production": false
+    },
+    {
+      "id": "vs_682ca664f10c8191a12689b86fc0cb3f",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1747756644,
+      "last_active_at": 1747757093,
+      "is_production": false
+    },
+    {
+      "id": "vs_682c62d716d48191b02f7159c56cc86a",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1747739351,
+      "last_active_at": 1747739624,
+      "is_production": false
+    },
+    {
+      "id": "vs_68234797600c8191aea9ecd67764bb25",
+      "name": "issue-solver-bots.git",
+      "file_counts": 360,
+      "usage_bytes": 3347960,
+      "created_at": 1747142551,
+      "last_active_at": 1749029580,
+      "is_production": false
+    },
+    {
+      "id": "vs_68233a5648188191b9dde0ebdc43d718",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1747139158,
+      "last_active_at": 1747139221,
+      "is_production": false
+    },
+    {
+      "id": "vs_6821bfcee840819192f3fded7de4753e",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1747042254,
+      "last_active_at": 1747126691,
+      "is_production": false
+    },
+    {
+      "id": "vs_681e680c9cb88191869fc6c781be369d",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1746823180,
+      "last_active_at": 1746823198,
+      "is_production": false
+    },
+    {
+      "id": "vs_681e2d103768819181f2178d0b026e61",
+      "name": "issue-solver-bots.git",
+      "file_counts": 322,
+      "usage_bytes": 3047820,
+      "created_at": 1746808080,
+      "last_active_at": 1748272525,
+      "is_production": false
+    },
+    {
+      "id": "vs_681e1e95ef6c8191a08e95168a76d8ca",
+      "name": "issue-solver-bots.git",
+      "file_counts": 298,
+      "usage_bytes": 2799767,
+      "created_at": 1746804373,
+      "last_active_at": 1746804415,
+      "is_production": false
+    },
+    {
+      "id": "vs_6813831a4c9c81918c4a02504f7efb77",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1746109210,
+      "last_active_at": 1746110124,
+      "is_production": false
+    },
+    {
+      "id": "vs_67fbb76fde24819183d85e3c2e8db4f2",
+      "name": "issue-solver-bots",
+      "file_counts": 293,
+      "usage_bytes": 2770411,
+      "created_at": 1744549743,
+      "last_active_at": 1744549783,
+      "is_production": false
+    },
+    {
+      "id": "vs_67fb91adb8f48191a37a9b6c6b980a41",
+      "name": "issue-solver-bots.git",
+      "file_counts": 298,
+      "usage_bytes": 2799767,
+      "created_at": 1744540077,
+      "last_active_at": 1746801901,
+      "is_production": false
+    },
+    {
+      "id": "vs_67fb031f23ec819196b2c4c446d8cb93",
+      "name": "issue-solver-bots.git",
+      "file_counts": 293,
+      "usage_bytes": 2770411,
+      "created_at": 1744503583,
+      "last_active_at": 1744575337,
+      "is_production": false
+    },
+    {
+      "id": "vs_67fb0319e7ac819182264165181f7622",
+      "name": "issue-solver-bots.git",
+      "file_counts": 293,
+      "usage_bytes": 2770411,
+      "created_at": 1744503577,
+      "last_active_at": 1744503636,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f878972c288191a1a50dbda306531d",
+      "name": "SWE-agent",
+      "file_counts": 368,
+      "usage_bytes": 8339377,
+      "created_at": 1744337047,
+      "last_active_at": 1744337602,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f863055c308191935e79772d95adf4",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 377107,
+      "created_at": 1744331525,
+      "last_active_at": 1744333117,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f862f4b2e48191adc51e3203d8d7cb",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 377107,
+      "created_at": 1744331508,
+      "last_active_at": 1744331526,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f81b0ba3a88191b12d7f503b51658d",
+      "name": "SWE-agent",
+      "file_counts": 368,
+      "usage_bytes": 8339377,
+      "created_at": 1744313099,
+      "last_active_at": 1744464810,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f6f43e46448191a288c1c0dd10d2c8",
+      "name": "vscode-slides",
+      "file_counts": 47,
+      "usage_bytes": 652641,
+      "created_at": 1744237630,
+      "last_active_at": 1744320102,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f6d3a284f88191ba508392779b585a",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1744229282,
+      "last_active_at": 1744234596,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f6d388de8481919dd26e15e05feee7",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1744229256,
+      "last_active_at": 1744229268,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f6973ec000819186369193c4ba3b19",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1744213822,
+      "last_active_at": 1744230932,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f65b9dc8c48191ac1a183a84cc4ec5",
+      "name": "issue-solver-bots.git",
+      "file_counts": 280,
+      "usage_bytes": 2674932,
+      "created_at": 1744198557,
+      "last_active_at": 1744202888,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f59c1c51f08191be85fc505d879d47",
+      "name": "smooth.git",
+      "file_counts": 3470,
+      "usage_bytes": 25772511,
+      "created_at": 1744149532,
+      "last_active_at": 1744150339,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f59b96cf4c8191ae711692e942822b",
+      "name": "gitingest",
+      "file_counts": 65,
+      "usage_bytes": 377107,
+      "created_at": 1744149398,
+      "last_active_at": 1744149458,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f59617338c81918ce394ba5fdbcbd1",
+      "name": "ollamazure.git",
+      "file_counts": 0,
+      "usage_bytes": 0,
+      "created_at": 1744147991,
+      "last_active_at": 1744206684,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f595dafa5c8191b27e7f2b48dfe982",
+      "name": "ollamazure.git",
+      "file_counts": 0,
+      "usage_bytes": 0,
+      "created_at": 1744147930,
+      "last_active_at": 1744147930,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f5957b415481919c550002f5e8903a",
+      "name": "smooth.git",
+      "file_counts": 3468,
+      "usage_bytes": 25763500,
+      "created_at": 1744147835,
+      "last_active_at": 1744148442,
+      "is_production": false
+    },
+    {
+      "id": "vs_67f5951d40ac81919901c6edf490198a",
+      "name": "ollamazure.git",
+      "file_counts": 39,
+      "usage_bytes": 1584171,
+      "created_at": 1744147741,
+      "last_active_at": 1744147751,
+      "is_production": false
+    }
+  ],
+  "failed_deletions": [],
+  "actual_savings_bytes": 166075082,
+  "actual_savings_gb": 0.1546694729477167,
+  "success_rate": 100.0,
+  "dry_run": false
+}
