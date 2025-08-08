@@ -24,6 +24,7 @@ dependencies = [
     "cryptography",
     "claude-code-sdk",
     "redis",
+    "morphcloud>=0.1.85",
 ]
 
 [project.scripts]
