@@ -3,7 +3,10 @@
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { ChatRequestOptions, CreateMessage, Message } from 'ai';
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { RepoConnectionDialog } from './repo-connection-dialog';
+import { Plug } from 'lucide-react';
 
 interface SuggestedActionsProps {
   chatId: string;
@@ -14,6 +17,12 @@ interface SuggestedActionsProps {
 }
 
 function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
+  const { data: session } = useSession();
+  const [showRepoDialog, setShowRepoDialog] = useState(false);
+  const hasConnectedRepo = Boolean(
+    session?.user?.selectedSpace?.connectedRepoUrl,
+  );
+
   const suggestedActions = [
     {
       title: 'Onboard',
@@ -47,38 +56,74 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
     },
   ];
 
-  return (
-    <div className="grid sm:grid-cols-2 gap-2 w-full">
-      {suggestedActions.map((suggestedAction, index) => (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ delay: 0.05 * index }}
-          key={`suggested-action-${suggestedAction.title}-${index}`}
-          className={index > 1 ? 'hidden sm:block' : 'block'}
-        >
-          <Button
-            variant="ghost"
-            onClick={async (event) => {
-              event.preventDefault();
-              window.history.replaceState({}, '', `/chat/${chatId}`);
+  const connectRepoTile = (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ delay: 0.02 }}
+      key="connect-repository"
+    >
+      <Button
+        variant="ghost"
+        onClick={(event) => {
+          event.preventDefault();
+          setShowRepoDialog(true);
+        }}
+        className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+      >
+        <span className="font-medium flex items-center gap-2">
+          <Plug className="h-4 w-4" />
+          Connect Repository
+        </span>
+        <span className="text-muted-foreground">
+          Unlock code-aware assistance for this space
+        </span>
+      </Button>
+    </motion.div>
+  );
 
-              append({
-                role: 'user',
-                content: suggestedAction.action,
-              });
-            }}
-            className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
-          >
-            <span className="font-medium">{suggestedAction.title}</span>
-            <span className="text-muted-foreground">
-              {suggestedAction.label}
-            </span>
-          </Button>
-        </motion.div>
-      ))}
-    </div>
+  return (
+    <>
+      <div className="grid sm:grid-cols-2 gap-2 w-full">
+        {!hasConnectedRepo
+          ? connectRepoTile
+          : suggestedActions.map((suggestedAction, index) => (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ delay: 0.05 * index }}
+                key={`suggested-action-${suggestedAction.title}-${index}`}
+                className={index > 1 ? 'hidden sm:block' : 'block'}
+              >
+                <Button
+                  variant="ghost"
+                  onClick={async (event) => {
+                    event.preventDefault();
+                    window.history.replaceState({}, '', `/chat/${chatId}`);
+
+                    append({
+                      role: 'user',
+                      content: suggestedAction.action,
+                    });
+                  }}
+                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+                >
+                  <span className="font-medium">{suggestedAction.title}</span>
+                  <span className="text-muted-foreground">
+                    {suggestedAction.label}
+                  </span>
+                </Button>
+              </motion.div>
+            ))}
+      </div>
+
+      <RepoConnectionDialog
+        open={showRepoDialog}
+        onOpenChange={setShowRepoDialog}
+      />
+    </>
   );
 }
 
