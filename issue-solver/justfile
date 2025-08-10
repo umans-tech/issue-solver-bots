@@ -138,7 +138,8 @@ cleanup-dry-run:
     @echo "Running vector store cleanup in dry-run mode..."
     @uv run python scripts/vector_store_cleanup.py cleanup --dry-run
 
-# Create a VM snapshot
-create-dev-snapshot:
-   @uv run python scripts/create_snapshot.py
+# 🏗️ Create development environment snapshot
+create-dev-snapshot id="" deps="" commands="":
+    @echo "Creating development environment snapshot..."
+    uv run python scripts/create_snapshot.py --deps="{{deps}}" --commands="{{commands}}" --knowledge-base-id="{{id}}"
 
