@@ -65,6 +65,10 @@ class SolveCommandSettings(BaseSettings):
         default=Path("."),
         description="Path to the repository where the issue is located.",
     )
+    process_id: str | None = Field(
+        default=None,
+        description="Process ID for the issue solving. If not provided, a new UUID will be generated",
+    )
 
     @property
     def selected_issue_tracker(self) -> IssueSourceSettings | None:

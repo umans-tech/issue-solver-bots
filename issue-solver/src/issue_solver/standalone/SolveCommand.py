@@ -29,7 +29,7 @@ async def main(settings: SolveCommandSettings) -> None:
             model=settings.versioned_ai_model,
             issue=issue_info,
             repo_path=settings.repo_path,
-            process_id=str(uuid.uuid4()),
+            process_id=settings.process_id or str(uuid.uuid4()),
         )
     )
     GitHelper.of(settings.git, settings.model_settings).commit_and_push(
