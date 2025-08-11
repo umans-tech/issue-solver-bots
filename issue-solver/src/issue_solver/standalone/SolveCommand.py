@@ -35,6 +35,10 @@ async def main(settings: SolveCommandSettings) -> None:
     issue_info = describe(settings.issue)
     dependencies = await init_command_dependencies(settings)
     process_id = settings.process_id or str(uuid.uuid4())
+    print(
+        f"[solve] 🧩 Solving issue='{issue_info.title}' with agent={settings.agent} in repo={settings.repo_path} with process_id={process_id}"
+    )
+
     try:
         await dependencies.coding_agent.resolve_issue(
             ResolveIssueCommand(
@@ -76,6 +80,7 @@ async def main(settings: SolveCommandSettings) -> None:
                 occurred_at=UTCSystemClock().now(),
             ),
         )
+        raise e
 
 
 async def init_command_dependencies(settings: SolveCommandSettings) -> Dependencies:
@@ -100,6 +105,9 @@ async def init_command_dependencies(settings: SolveCommandSettings) -> Dependenc
 
 
 async def init_event_store(database_url: str | None) -> EventStore:
+    print(
+        f"[init_event_store] Initializing event store with database_url={database_url}"
+    )
     if database_url:
         return PostgresEventStore(
             connection=await asyncpg.connect(
@@ -107,6 +115,7 @@ async def init_event_store(database_url: str | None) -> EventStore:
                 statement_cache_size=0,
             )
         )
+    print("No database URL provided, using in-memory event store for events.")
     return InMemoryEventStore()
 
 

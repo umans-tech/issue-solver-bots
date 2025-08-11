@@ -1,3 +1,4 @@
+import pytest
 from pydantic import AnyUrl
 
 from issue_solver.agents.anthropic_agent import AnthropicAgent
@@ -92,3 +93,22 @@ def test_supported_agent_get_claude_code() -> None:
     # Assert
     assert isinstance(agent, ClaudeCodeAgent)
     assert agent.api_key == "s3cr3t-k3y"
+
+
+def test_supported_agent_get_should_raise_an_error_when_claude_code_agent_with_openai_settings() -> (
+    None
+):
+    # Arrange
+    open_ai_settings = OpenAISettings(
+        api_key="s3cr3t-k3y",
+        base_url=AnyUrl("https://api.openai.com/v1"),
+    )
+    # Act & Assert
+    with pytest.raises(ValueError) as exc_info:
+        SupportedAgent.get(
+            SupportedAgent.CLAUDE_CODE,
+            open_ai_settings,
+        )
+    assert str(exc_info.value) == (
+        "Claude Code Agent requires AnthropicSettings for model settings, but OpenAISettings were provided."
+    )

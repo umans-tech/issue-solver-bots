@@ -10,7 +10,7 @@ from issue_solver.agents.swe_agents_on_docker import (
     SweAgentOnDocker,
     SweCrafterOnDocker,
 )
-from issue_solver.models.model_settings import ModelSettings
+from issue_solver.models.model_settings import ModelSettings, AnthropicSettings
 
 
 class SupportedAgent(StrEnum):
@@ -43,8 +43,14 @@ class SupportedAgent(StrEnum):
                     base_url=str(ai_models_settings[0].base_url),
                 )
             case cls.CLAUDE_CODE:
+                model_settings = ai_models_settings[0]
+                if not isinstance(model_settings, AnthropicSettings):
+                    raise ValueError(
+                        f"Claude Code Agent requires AnthropicSettings for model settings, "
+                        f"but {model_settings.__class__.__name__} were provided."
+                    )
                 return ClaudeCodeAgent(
-                    api_key=ai_models_settings[0].api_key,
+                    api_key=model_settings.api_key,
                     agent_messages=agent_messages,
                 )
             case _:
