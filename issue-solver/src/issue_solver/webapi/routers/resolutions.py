@@ -19,7 +19,7 @@ from issue_solver.webapi.payloads import (
     ResolveIssueRequest,
     ProcessCreated,
 )
-from issue_solver.webapi.routers.repository import publish
+from issue_solver.queueing.sqs_events_publishing import publish
 
 router = APIRouter(prefix="/resolutions", tags=["resolutions"])
 
