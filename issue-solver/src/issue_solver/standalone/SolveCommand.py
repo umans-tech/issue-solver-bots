@@ -2,22 +2,13 @@ import asyncio
 import uuid
 from typing import assert_never
 
-import asyncpg
-
 from issue_solver.clock import UTCSystemClock
-from issue_solver.database.postgres_event_store import PostgresEventStore
 from issue_solver.events.domain import IssueResolutionFailed, IssueResolutionCompleted
-from issue_solver.events.event_store import InMemoryEventStore, EventStore
-from issue_solver.streaming.streaming_agent_message_store import (
-    init_agent_message_store,
-)
+from issue_solver.standalone.dependencies import init_command_dependencies
 from issue_solver.agents.issue_resolving_agent import ResolveIssueCommand
-from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import SolveCommandSettings, IssueSettings
-from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.issues.trackers.supported_issue_trackers import SupportedIssueTracker
-from issue_solver.worker.messages_processing import Dependencies
 
 
 class SolveCommand(SolveCommandSettings):
@@ -81,42 +72,6 @@ async def main(settings: SolveCommandSettings) -> None:
             ),
         )
         raise e
-
-
-async def init_command_dependencies(settings: SolveCommandSettings) -> Dependencies:
-    database_url = settings.database_url
-    agent_message_store = await init_agent_message_store(
-        database_url, settings.redis_url
-    )
-    agent = SupportedAgent.get(
-        settings.agent,
-        settings.model_settings,
-        agent_messages=agent_message_store,
-    )
-    git_client = GitClient()
-    clock = UTCSystemClock()
-    event_store = await init_event_store(database_url)
-    return Dependencies(
-        coding_agent=agent,
-        git_client=git_client,
-        clock=clock,
-        event_store=event_store,
-    )
-
-
-async def init_event_store(database_url: str | None) -> EventStore:
-    print(
-        f"[init_event_store] Initializing event store with database_url={database_url}"
-    )
-    if database_url:
-        return PostgresEventStore(
-            connection=await asyncpg.connect(
-                database_url.replace("+asyncpg", ""),
-                statement_cache_size=0,
-            )
-        )
-    print("No database URL provided, using in-memory event store for events.")
-    return InMemoryEventStore()
 
 
 def describe(issue: IssueInfo | IssueSettings) -> IssueInfo:
