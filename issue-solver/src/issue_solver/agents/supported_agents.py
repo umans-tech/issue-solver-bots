@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import assert_never
 
+from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.agents.anthropic_agent import AnthropicAgent
 from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
@@ -21,7 +22,10 @@ class SupportedAgent(StrEnum):
 
     @classmethod
     def get(
-        cls, agent: "SupportedAgent", *ai_models_settings: ModelSettings
+        cls,
+        agent: "SupportedAgent",
+        *ai_models_settings: ModelSettings,
+        agent_messages: AgentMessageStore | None = None,
     ) -> IssueResolvingAgent:
         match agent:
             case cls.SWE_AGENT:
@@ -41,6 +45,7 @@ class SupportedAgent(StrEnum):
             case cls.CLAUDE_CODE:
                 return ClaudeCodeAgent(
                     api_key=ai_models_settings[0].api_key,
+                    agent_messages=agent_messages,
                 )
             case _:
                 assert_never(agent)

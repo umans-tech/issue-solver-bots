@@ -70,6 +70,16 @@ class SolveCommandSettings(BaseSettings):
         description="Process ID for the issue solving. If not provided, a new UUID will be generated",
     )
 
+    database_url: str | None = Field(
+        default=None,
+        description="Database URL for storing events and messages related to issue resolution process. If not provided, no database will be used.",
+    )
+
+    redis_url: str | None = Field(
+        default=None,
+        description="Redis URL to stream messages related to issue resolution process. If not provided, no Redis will be used.",
+    )
+
     @property
     def selected_issue_tracker(self) -> IssueSourceSettings | None:
         if isinstance(self.issue, IssueSettings):
