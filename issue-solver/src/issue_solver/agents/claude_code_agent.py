@@ -23,7 +23,9 @@ from issue_solver.agents.resolution_approaches import (
 
 
 class ClaudeCodeAgent(IssueResolvingAgent):
-    def __init__(self, api_key: str, agent_messages: AgentMessageStore) -> None:
+    def __init__(
+        self, api_key: str, agent_messages: AgentMessageStore | None = None
+    ) -> None:
         self.agent_messages = agent_messages
         self.api_key = api_key
         os.environ["ANTHROPIC_API_KEY"] = api_key
@@ -55,9 +57,10 @@ class ClaudeCodeAgent(IssueResolvingAgent):
             turn = 0
             async for message in query(prompt=prompt, options=options):
                 turn += 1
-                await self.agent_messages.append(
-                    command.process_id, command.model, turn, message, "CLAUDE_CODE"
-                )
+                if self.agent_messages:
+                    await self.agent_messages.append(
+                        command.process_id, command.model, turn, message, "CLAUDE_CODE"
+                    )
 
                 if isinstance(message, AssistantMessage):
                     for block in message.content:

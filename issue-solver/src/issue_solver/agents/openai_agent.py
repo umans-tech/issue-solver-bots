@@ -18,6 +18,10 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from issue_solver.agents.coding_agent import TurnOutput, CodingAgent, Message
+from issue_solver.agents.issue_resolving_agent import (
+    IssueResolvingAgent,
+    ResolveIssueCommand,
+)
 from issue_solver.agents.tools.bash import BashTool
 from issue_solver.agents.tools.collection import ToolCollection
 from issue_solver.agents.tools.edit import EditTool
@@ -31,7 +35,12 @@ from issue_solver.models.supported_models import (
 )
 
 
-class OpenAIAgent(CodingAgent[SupportedOpenAIModel, ChatCompletionMessageParam]):
+class OpenAIAgent(
+    CodingAgent[SupportedOpenAIModel, ChatCompletionMessageParam], IssueResolvingAgent
+):
+    async def resolve_issue(self, command: ResolveIssueCommand) -> None:
+        pass
+
     def __init__(
         self,
         api_key: str,
