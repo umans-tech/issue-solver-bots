@@ -39,18 +39,12 @@ async def main(settings: SolveCommandSettings) -> None:
                 process_id=process_id,
             )
         )
-        dependencies.git_client.commit_and_push(
+        pr_reference = dependencies.git_client.commit_and_submit_pr(
             issue_info=issue_info,
             repo_path=settings.repo_path,
-            url=settings.git.access_token,
-            access_token=settings.git.repository_url,
-        )
-        pr_reference = dependencies.git_client.submit_pull_request(
-            repo_path=settings.repo_path,
-            title=issue_info.title or f"automatic issue resolution {process_id}",
-            body=issue_info.description,
+            git_repository_url=settings.git.repository_url,
             access_token=settings.git.access_token,
-            url=settings.git.repository_url,
+            process_id=process_id,
         )
         await dependencies.event_store.append(
             process_id,

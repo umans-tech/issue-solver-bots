@@ -495,6 +495,30 @@ class GitClient:
         ).clone_repository(to_path=to_path, new_branch_name=new_branch_name)
 
     @classmethod
+    def commit_and_submit_pr(
+        cls,
+        access_token,
+        git_repository_url,
+        issue_info,
+        process_id,
+        repo_path,
+    ):
+        cls.commit_and_push(
+            issue_info=issue_info,
+            repo_path=repo_path,
+            url=git_repository_url,
+            access_token=access_token,
+        )
+        pr_reference = cls.submit_pull_request(
+            repo_path=repo_path,
+            title=issue_info.title or f"automatic issue resolution {process_id}",
+            body=issue_info.description,
+            access_token=access_token,
+            url=git_repository_url,
+        )
+        return pr_reference
+
+    @classmethod
     def commit_and_push(
         cls,
         issue_info: IssueInfo,
