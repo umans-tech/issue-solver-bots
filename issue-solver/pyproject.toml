@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cudu = "issue_solver.standalone.__main__:run_main"
+cudu = "issue_solver.cli.__main__:run_main"
 
 [build-system]
 requires = ["hatchling"]

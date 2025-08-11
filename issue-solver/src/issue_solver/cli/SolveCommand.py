@@ -4,7 +4,7 @@ from typing import assert_never
 
 from issue_solver.clock import UTCSystemClock
 from issue_solver.events.domain import IssueResolutionFailed, IssueResolutionCompleted
-from issue_solver.standalone.dependencies import init_command_dependencies
+from issue_solver.cli.dependencies import init_command_dependencies
 from issue_solver.agents.issue_resolving_agent import ResolveIssueCommand
 from issue_solver.app_settings import SolveCommandSettings, IssueSettings
 from issue_solver.issues.issue import IssueInfo

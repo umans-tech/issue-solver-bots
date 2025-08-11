@@ -3,8 +3,8 @@ import sys
 from pydantic import ValidationError
 from pydantic_settings import CliApp, SettingsError
 
-from issue_solver.standalone.ReviewCommand import ReviewSettings
-from issue_solver.standalone.SolveCommand import SolveCommand
+from issue_solver.cli.ReviewCommand import ReviewSettings
+from issue_solver.cli.SolveCommand import SolveCommand
 
 
 class CuduCLI:

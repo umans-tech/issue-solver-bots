@@ -1,4 +1,4 @@
-from issue_solver.standalone.CuduCli import CuduCLI
+from issue_solver.cli.CuduCli import CuduCLI
 
 
 def run_main() -> None:

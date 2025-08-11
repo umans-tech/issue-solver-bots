@@ -40,7 +40,7 @@ set dotenv-load := true
 api-start:
     uv run fastapi dev src/issue_solver/webapi/main.py
 
-# ▶️ Run standalone issue solver
+# ▶️ Run cli issue solver
 run:
     uv run cudu help
 
