@@ -8,6 +8,8 @@ from redis import Redis
 
 from issue_solver.agents.agent_message_store import (
     AgentMessageStore,
+)
+from issue_solver.streaming.streaming_agent_message_store import (
     StreamingAgentMessageStore,
 )
 from issue_solver.agents.anthropic_agent import AnthropicAgent
