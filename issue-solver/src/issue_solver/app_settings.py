@@ -80,6 +80,11 @@ class SolveCommandSettings(BaseSettings):
         description="Redis URL to stream messages related to issue resolution process. If not provided, no Redis will be used.",
     )
 
+    process_queue_url: str | None = Field(
+        default=None,
+        description="SQS Queue URL to stream messages related to issue resolution process. If not provided, no SQS will be used.",
+    )
+
     @property
     def selected_issue_tracker(self) -> IssueSourceSettings | None:
         if isinstance(self.issue, IssueSettings):
