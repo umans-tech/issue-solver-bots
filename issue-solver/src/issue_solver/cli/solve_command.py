@@ -3,7 +3,11 @@ import uuid
 from typing import assert_never
 
 from issue_solver.clock import UTCSystemClock
-from issue_solver.events.domain import IssueResolutionFailed, IssueResolutionCompleted
+from issue_solver.events.domain import (
+    IssueResolutionFailed,
+    IssueResolutionStarted,
+    IssueResolutionCompleted,
+)
 from issue_solver.cli.dependencies import init_command_dependencies
 from issue_solver.agents.issue_resolving_agent import ResolveIssueCommand
 from issue_solver.app_settings import SolveCommandSettings, IssueSettings
@@ -31,6 +35,13 @@ async def main(settings: SolveCommandSettings) -> None:
     )
 
     try:
+        await dependencies.event_store.append(
+            process_id,
+            IssueResolutionStarted(
+                process_id=process_id,
+                occurred_at=UTCSystemClock().now(),
+            ),
+        )
         await dependencies.coding_agent.resolve_issue(
             ResolveIssueCommand(
                 model=settings.versioned_ai_model,
