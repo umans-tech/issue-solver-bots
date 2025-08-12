@@ -46,6 +46,11 @@ run:
 
 # 🧩 Run cudu cli to solve issue
 solve:
+    uv run cudu solve
+
+# 🧩 Run cudu cli to solve issue with sudo (for privileged operations like  swe-agent in docker)
+solve-priveleged:
+    @echo "Running cudu solve with sudo..."
     sudo uv run cudu solve
 
 # 🐳 Build WebAPI Container image 🐳🌐📦
