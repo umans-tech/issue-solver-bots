@@ -346,7 +346,7 @@ export default function TaskPage() {
         icon: <Wrench className="h-4 w-4" />,
         color: 'text-blue-600',
         bgColor: 'bg-blue-600/10',
-        label: 'Agent Action'
+        label: '' // Empty label - show the tool display but no section title
       };
     }
     
@@ -1021,9 +1021,11 @@ export default function TaskPage() {
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className={cn("text-sm font-medium mb-1", color)}>
-                                {label}
-                              </div>
+                              {label && (
+                                <div className={cn("text-sm font-medium mb-1", color)}>
+                                  {label}
+                                </div>
+                              )}
                               <div className="text-sm">
                                 {renderMessageContent(message, index, messages)}
                               </div>
