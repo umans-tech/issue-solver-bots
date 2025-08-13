@@ -43,7 +43,7 @@ interface ChatModel {
 export const chatModels: Array<ChatModel> = [
     {
         id: 'chat-model-small',
-        name: 'Analysis Light',
+        name: 'Quick Analysis',
         description: 'Fast analysis for quick insights and lightweight tasks',
         provider: 'openai',
         providerDisplayName: 'GPT-5 mini',
