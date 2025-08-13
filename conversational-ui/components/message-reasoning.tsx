@@ -1,20 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDownIcon, LoaderIcon } from './icons';
+import { useState, useMemo } from 'react';
+import { ChevronDownIcon } from './icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Markdown } from './markdown';
 
 interface MessageReasoningProps {
   isLoading: boolean;
   reasoning: string;
+  isStreaming?: boolean;
 }
+
 
 export function MessageReasoning({
   isLoading,
   reasoning,
+  isStreaming = false,
 }: MessageReasoningProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const hasContent = reasoning && reasoning.trim().length > 0;
 
   const variants = {
     collapsed: {
@@ -33,14 +38,24 @@ export function MessageReasoning({
 
   return (
     <div className="flex flex-col">
-      {isLoading ? (
+      {/* Show animated state while streaming, completed state when done */}
+      {isStreaming && hasContent ? (
         <div className="flex flex-row gap-2 items-center">
-          <div className="font-medium">Reasoning</div>
-          <div className="animate-spin">
-            <LoaderIcon />
+          <span className="animate-pulse font-medium text-muted-foreground">Reasoning...</span>
+          <div
+            className="cursor-pointer"
+            onClick={() => {
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            <ChevronDownIcon />
           </div>
         </div>
-      ) : (
+      ) : isStreaming && !hasContent ? (
+        <div className="flex flex-row gap-2 items-center">
+          <span className="animate-pulse font-medium text-muted-foreground">Reasoning...</span>
+        </div>
+      ) : hasContent ? (
         <div className="flex flex-row gap-2 items-center">
           <div className="font-medium">Reasoned for a few seconds</div>
           <div
@@ -52,10 +67,10 @@ export function MessageReasoning({
             <ChevronDownIcon />
           </div>
         </div>
-      )}
+      ) : null}
 
       <AnimatePresence initial={false}>
-        {isExpanded && (
+        {isExpanded && hasContent && (
           <motion.div
             key="content"
             initial="collapsed"

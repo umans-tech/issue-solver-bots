@@ -95,6 +95,44 @@ const PurePreviewMessage = ({
     return sources;
   }, [message.parts]);
 
+  // Combine ALL reasoning parts and filter out non-reasoning parts for rendering
+  const { combinedReasoning, nonReasoningParts } = useMemo(() => {
+    if (!message.parts) return { combinedReasoning: '', nonReasoningParts: [] };
+    
+    // Extract all reasoning parts
+    const allReasoningParts = message.parts
+      .filter(part => part.type === 'reasoning')
+      .map((p: any) => p.reasoning)
+      .filter((r: string) => r && r.trim());
+    
+    // Combine all reasoning content
+    const combined = allReasoningParts.join('\n\n');
+    
+    // Get all non-reasoning parts with their original indices
+    const nonReasoning = message.parts
+      .map((part, index) => ({ part, index }))
+      .filter(({ part }) => part.type !== 'reasoning');
+    
+    return {
+      combinedReasoning: combined,
+      nonReasoningParts: nonReasoning,
+    };
+  }, [message.parts]);
+
+  // Check if we should show reasoning placeholder
+  const shouldShowReasoningPlaceholder = isLoading && message.role === 'assistant' && !message.parts?.some(part => part.type === 'reasoning');
+  
+  // Detect if reasoning is still streaming
+  const hasReasoningParts = message.parts?.some(part => part.type === 'reasoning') || false;
+  const hasTextParts = message.parts?.some(part => part.type === 'text') || false;
+  
+  // Reasoning is considered streaming if:
+  // 1. Message is loading AND has reasoning parts AND
+  // 2. Either there are no text parts yet (reasoning/tools only)
+  //    OR the last part is reasoning (more reasoning might come)
+  const lastPartIsReasoning = message.parts && message.parts.length > 0 && message.parts[message.parts.length - 1].type === 'reasoning';
+  const reasoningIsStreaming = isLoading && hasReasoningParts && (!hasTextParts || lastPartIsReasoning);
+
   return (
     <AnimatePresence>
       <motion.div
@@ -129,19 +167,20 @@ const PurePreviewMessage = ({
               </div>
             )}
 
-            {message.parts?.map((part, index) => {
-              const { type } = part;
-              const key = `message-${message.id}-part-${index}`;
+            {/* Show single combined reasoning component */}
+            {(shouldShowReasoningPlaceholder || combinedReasoning) && (
+              <MessageReasoning
+                key={`${message.id}-reasoning-combined`}
+                isLoading={shouldShowReasoningPlaceholder}
+                reasoning={combinedReasoning}
+                isStreaming={shouldShowReasoningPlaceholder || reasoningIsStreaming}
+              />
+            )}
 
-              if (type === 'reasoning') {
-                return (
-                  <MessageReasoning
-                    key={key}
-                    isLoading={isLoading}
-                    reasoning={part.reasoning}
-                  />
-                );
-              }
+            {/* Render all non-reasoning parts */}
+            {nonReasoningParts.map(({ part, index }) => {
+              const key = `message-${message.id}-part-${index}`;
+              const { type } = part;
 
               if (type === 'source') {
                 // Skip individual source rendering - we'll show all sources consolidated at the end
@@ -403,6 +442,8 @@ const PurePreviewMessage = ({
                   );
                 }
               }
+
+              return null;
             })}
 
             {/* Render all sources consolidated at the end */}
