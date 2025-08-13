@@ -346,7 +346,7 @@ export default function TaskPage() {
         icon: <Wrench className="h-4 w-4" />,
         color: 'text-blue-600',
         bgColor: 'bg-blue-600/10',
-        label: '' // Empty label - show the tool display but no section title
+        label: 'Tool Call' // This will be bypassed by special rendering logic
       };
     }
     
@@ -1013,6 +1013,17 @@ export default function TaskPage() {
                         
                         const { icon, color, bgColor, label } = messageDetails;
                         
+                        // Special handling for tool calls - render grouped display directly
+                        if (Array.isArray(message.payload?.content) && 
+                            message.payload.content.some((block: any) => block?.id && block?.name && block?.input)) {
+                          return (
+                            <div key={message.id || index} className="text-sm">
+                              {renderMessageContent(message, index, messages)}
+                            </div>
+                          );
+                        }
+                        
+                        // Regular message rendering
                         return (
                           <div key={message.id || index} className="flex gap-3">
                             <div className={cn("flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center", bgColor)}>
