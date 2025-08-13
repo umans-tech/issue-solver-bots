@@ -339,26 +339,22 @@ export default function TaskPage() {
       };
     }
     
-    // Check for tool calls (ToolUseBlock with id, name, input)
+    // Check for tool calls (ToolUseBlock with id, name, input) - these will be grouped with results
     if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
         block?.id && block?.name && block?.input)) {
       return {
         icon: <Wrench className="h-4 w-4" />,
         color: 'text-blue-600',
         bgColor: 'bg-blue-600/10',
-        label: 'Tool Call'
+        label: 'Agent Action'
       };
     }
     
-    // Check for tool results (ToolResultBlock with tool_use_id)
+    // Check for tool results (ToolResultBlock with tool_use_id) - skip these as they'll be grouped with calls
     if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
         block?.tool_use_id)) {
-      return {
-        icon: <Wrench className="h-4 w-4" />,
-        color: 'text-green-600',
-        bgColor: 'bg-green-600/10',
-        label: 'Tool Output'
-      };
+      // Skip rendering separate label for tool results since they'll be shown with their tool calls
+      return null;
     }
     
     // Check for result messages (ResultMessage type)
@@ -559,8 +555,24 @@ export default function TaskPage() {
     );
   };
 
-  // Render message content
-  const renderMessageContent = (message: any) => {
+  // Helper function to find tool result for a given tool call ID across all messages
+  const findToolResultForCall = (toolCallId: string, allMessages: any[], currentMessageIndex: number) => {
+    // Look in subsequent messages for the tool result
+    for (let i = currentMessageIndex + 1; i < allMessages.length; i++) {
+      const message = allMessages[i];
+      if (Array.isArray(message.payload?.content)) {
+        for (const block of message.payload.content) {
+          if (block.tool_use_id === toolCallId) {
+            return block;
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Render message content with cross-message tool call grouping
+  const renderMessageContent = (message: any, messageIndex: number, allMessages: any[]) => {
     const payload = message.payload;
     const messageType = message.type;
     const role = message.payload?.role;
@@ -570,49 +582,143 @@ export default function TaskPage() {
     // Handle content blocks
     if (Array.isArray(payload.content)) {
       return payload.content.map((block: any, index: number) => {
-        // Handle ToolUseBlock (id, name, input)
+        const key = `block-${index}`;
+        
+        // Handle tool calls with potential results in later messages
         if (block.id && block.name && block.input) {
-          // Special handling for Bash/Terminal commands
-          if (block.name.toLowerCase() === 'bash' && block.input.command) {
+          const toolResult = findToolResultForCall(block.id, allMessages, messageIndex);
+          
+          if (toolResult) {
+            // Render grouped tool call with result
+            let resultContent = 'Tool executed successfully';
+            let isError = toolResult.is_error || false;
+            
+            if (toolResult.content) {
+              if (typeof toolResult.content === 'string') {
+                resultContent = toolResult.content;
+              } else {
+                resultContent = JSON.stringify(toolResult.content, null, 2);
+              }
+            }
+            
             return (
-              <div key={index}>
-                <ConsoleCommand 
-                  command={block.input.command}
-                  description={block.input.description}
-                  toolName={block.name}
-                />
+              <div key={key} className="border rounded-lg mb-4 overflow-hidden">
+                {/* Tool Call Header */}
+                <div className="bg-gray-50 px-4 py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-blue-600">🔧 Tool Call</span>
+                    <span className="text-sm font-semibold">{block.name}</span>
+                  </div>
+                </div>
+                
+                {/* Tool Call Content */}
+                <div className="p-4 bg-white">
+                  {/* Special handling for Bash/Terminal commands */}
+                  {block.name.toLowerCase() === 'bash' && block.input.command ? (
+                    <ConsoleCommand 
+                      command={block.input.command}
+                      description={block.input.description}
+                      toolName={block.name}
+                    />
+                  ) : 
+                  /* Special handling for Edit tool calls */
+                  block.name.toLowerCase() === 'edit' && block.input.file_path && 
+                  (block.input.old_string || block.input.new_string) ? (
+                    <DiffDisplay 
+                      filePath={block.input.file_path}
+                      oldString={block.input.old_string || ''}
+                      newString={block.input.new_string || ''}
+                      toolName={block.name}
+                    />
+                  ) : (
+                    /* Default handling for other tools */
+                    <div className="bg-muted/20 p-2 rounded text-xs">
+                      <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Tool Result */}
+                <div className="border-t">
+                  <div className="bg-gray-50 px-4 py-2">
+                    <span className="text-sm font-medium text-green-600">📤 Tool Output</span>
+                  </div>
+                  <div className="p-4">
+                    <TerminalOutput 
+                      content={resultContent} 
+                      isError={isError}
+                      toolName="Output"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          } else {
+            // Tool call without result (still pending)
+            return (
+              <div key={key} className="border rounded-lg mb-4 overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-blue-600">🔧 Tool Call</span>
+                    <span className="text-sm font-semibold">{block.name}</span>
+                    <span className="text-xs text-orange-500 ml-auto">Pending...</span>
+                  </div>
+                </div>
+                <div className="p-4">
+                  {/* Special handling for Bash/Terminal commands */}
+                  {block.name.toLowerCase() === 'bash' && block.input.command ? (
+                    <ConsoleCommand 
+                      command={block.input.command}
+                      description={block.input.description}
+                      toolName={block.name}
+                    />
+                  ) : 
+                  /* Special handling for Edit tool calls */
+                  block.name.toLowerCase() === 'edit' && block.input.file_path && 
+                  (block.input.old_string || block.input.new_string) ? (
+                    <DiffDisplay 
+                      filePath={block.input.file_path}
+                      oldString={block.input.old_string || ''}
+                      newString={block.input.new_string || ''}
+                      toolName={block.name}
+                    />
+                  ) : (
+                    /* Default handling for other tools */
+                    <div className="bg-muted/20 p-2 rounded text-xs">
+                      <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           }
-          
-          // Special handling for Edit tool calls
-          if (block.name.toLowerCase() === 'edit' && block.input.file_path && 
-              (block.input.old_string || block.input.new_string)) {
-            return (
-              <div key={index}>
-                <DiffDisplay 
-                  filePath={block.input.file_path}
-                  oldString={block.input.old_string || ''}
-                  newString={block.input.new_string || ''}
-                  toolName={block.name}
-                />
-              </div>
-            );
-          }
-          
-          // Default handling for other tools
+        }
+        
+        // Handle text blocks
+        if (block.text) {
           return (
-            <div key={index} className="text-sm">
-              <div className="font-medium text-blue-600 mb-2">{block.name}</div>
-              <div className="bg-muted/20 p-2 rounded text-xs">
-                <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
-              </div>
+            <div key={key}>
+              <Markdown>{block.text}</Markdown>
             </div>
           );
         }
         
-        // Handle ToolResultBlock (tool_use_id, content, is_error)
+        // Skip tool results that have already been paired with tool calls
         if (block.tool_use_id) {
+          // Check if this result was already rendered with its tool call
+          for (let i = 0; i < messageIndex; i++) {
+            const prevMessage = allMessages[i];
+            if (Array.isArray(prevMessage.payload?.content)) {
+              for (const prevBlock of prevMessage.payload.content) {
+                if (prevBlock.id === block.tool_use_id) {
+                  // This result was already rendered with its tool call
+                  return null;
+                }
+              }
+            }
+          }
+          
+          // Orphaned tool result - render it standalone
           let resultContent = 'Tool executed successfully';
           let isError = block.is_error || false;
           
@@ -625,34 +731,31 @@ export default function TaskPage() {
           }
           
           return (
-            <div key={index}>
-              <TerminalOutput 
-                content={resultContent} 
-                isError={isError}
-                toolName="Tool Output"
-              />
-            </div>
-          );
-        }
-        
-        // Handle TextBlock (text)
-        if (block.text) {
-          return (
-            <div key={index}>
-              <Markdown>{block.text}</Markdown>
+            <div key={key} className="border rounded-lg mb-4 overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2">
+                <span className="text-sm font-medium text-green-600">📤 Tool Output</span>
+                <span className="text-xs text-orange-500 ml-2">(No matching call found)</span>
+              </div>
+              <div className="p-4">
+                <TerminalOutput 
+                  content={resultContent} 
+                  isError={isError}
+                  toolName="Output"
+                />
+              </div>
             </div>
           );
         }
         
         // Fallback for unknown block types
         return (
-          <div key={index} className="text-sm text-muted-foreground">
+          <div key={key} className="text-sm text-muted-foreground">
             <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
               {JSON.stringify(block, null, 2)}
             </pre>
           </div>
         );
-      });
+      }).filter(Boolean); // Remove null entries
     }
 
         // Handle ResultMessage with result field
@@ -901,7 +1004,14 @@ export default function TaskPage() {
                   <CardContent>
                     <div className="space-y-4">
                       {messages.map((message, index) => {
-                        const { icon, color, bgColor, label } = getMessageTypeDetails(message);
+                        const messageDetails = getMessageTypeDetails(message);
+                        
+                        // Skip messages that return null (e.g., tool results that will be grouped)
+                        if (!messageDetails) {
+                          return null;
+                        }
+                        
+                        const { icon, color, bgColor, label } = messageDetails;
                         
                         return (
                           <div key={message.id || index} className="flex gap-3">
@@ -915,12 +1025,12 @@ export default function TaskPage() {
                                 {label}
                               </div>
                               <div className="text-sm">
-                                {renderMessageContent(message)}
+                                {renderMessageContent(message, index, messages)}
                               </div>
                             </div>
                           </div>
                         );
-                      })}
+                      }).filter(Boolean)}
                       
                       {messagesLoading && (
                         <div className="flex items-center gap-2 text-muted-foreground">
