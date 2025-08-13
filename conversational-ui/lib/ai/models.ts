@@ -1,8 +1,12 @@
-import {openai} from '@ai-sdk/openai';
+import {openai, createOpenAI} from '@ai-sdk/openai';
 import {customProvider,} from 'ai';
 import {createAnthropic} from "@ai-sdk/anthropic";
 
 export const DEFAULT_CHAT_MODEL: string = 'coding-model';
+
+const openaiProvider = createOpenAI({
+    compatibility: 'strict',
+});
 
 const anthropicBeta = createAnthropic({
     headers: {
@@ -13,9 +17,8 @@ const anthropicBeta = createAnthropic({
 
 export const myProvider = customProvider({
     languageModels: {
-        'chat-model-small': openai('gpt-4.1-mini'),
-        'chat-model-large': openai('gpt-4.1'),
-        'chat-model-reasoning': openai('o3-mini'),
+        'chat-model-small': openaiProvider.responses('gpt-5-mini'),
+        'chat-model-large': openaiProvider.responses('gpt-5'),
         'coding-model-light': anthropicBeta('claude-3-5-sonnet-latest'),
         'coding-model': anthropicBeta('claude-3-7-sonnet-latest'),
         'coding-model-large': anthropicBeta('claude-sonnet-4-20250514'),
@@ -43,14 +46,14 @@ export const chatModels: Array<ChatModel> = [
         name: 'Analysis Light',
         description: 'Fast analysis for quick insights and lightweight tasks',
         provider: 'openai',
-        providerDisplayName: 'GPT-4.1 mini',
+        providerDisplayName: 'GPT-5 mini',
     },
     {
         id: 'chat-model-large',
         name: 'Analysis',
         description: 'Deep analysis for complex, multi-step business problems',
         provider: 'openai',
-        providerDisplayName: 'GPT-4.1',
+        providerDisplayName: 'GPT-5',
     },
     {
         id: 'coding-model',

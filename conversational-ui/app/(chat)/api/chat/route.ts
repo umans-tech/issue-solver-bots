@@ -152,6 +152,12 @@ export async function POST(request: Request) {
                 maxSteps: maxSteps,
                 maxRetries: maxRetries,
                 toolCallStreaming: true,
+                providerOptions: {
+                    openai: {
+                        reasoningEffort: 'high',
+                        reasoningSummary: 'detailed', // Explicitly request detailed reasoning summaries
+                    }
+                },
                 experimental_activeTools: [
                     'getWeather',
                     'createDocument',

@@ -15,7 +15,7 @@ export interface FetchWebpageProps {
 export const fetchWebpage = ({ dataStream }: FetchWebpageProps) => tool({
   description: 'Fetch and extract readable content from a webpage URL. Handles both static and dynamic websites.',
   parameters: z.object({
-    url: z.string().url().describe('The URL to fetch content from'),
+    url: z.string().describe('The URL to fetch content from. Must be a valid HTTP or HTTPS URL.'),
   }),
   execute: async ({ url }) => {
     let browser: Browser | null = null;

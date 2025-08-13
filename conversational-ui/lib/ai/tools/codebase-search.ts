@@ -6,29 +6,6 @@ import { OpenAI } from 'openai';
 
 const client = new OpenAI();
 
-// Define Zod schemas for filters
-const comparisonFilterSchema = z.object({
-  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
-  key: z.string(),
-  value: z.union([z.string(), z.number(), z.boolean()])
-});
-
-// Define compound filter without recursion
-const compoundFilterSchema = z.object({
-  type: z.enum(['and', 'or']),
-  filters: z.array(
-    z.union([
-      comparisonFilterSchema,
-      z.object({
-        type: z.enum(['and', 'or']),
-        filters: z.array(comparisonFilterSchema)
-      })
-    ])
-  )
-});
-
-// Combined filter schema for accepting either type
-const filterSchema = z.union([comparisonFilterSchema, compoundFilterSchema]).optional();
 
 // Interface for codebaseSearch props
 interface CodebaseSearchProps {
@@ -81,13 +58,40 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
   description: `Search the codebase using hybrid semantic search to find relevant code snippets. ${session.user?.selectedSpace?.connectedRepoUrl ? `The user connected this repository: ${session.user?.selectedSpace?.connectedRepoUrl}. Keep this in mind if the user refer to a codebase.` : 'The user has not connected any code repo yet.'}`,
   parameters: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
-    filters: z.union([z.string(), filterSchema]).optional().describe('Optional filters to narrow down search results based on file attributes. Can be provided as JSON string or object. Available attributes to filter on are: "file_name" (string), "file_path" (string) and "file_extension" (string). Example: { "type": "eq", "key": "file_name", "value": "index.js" } or a compound filter like { "type": "and", "filters": [{ "type": "eq", "key": "file_name", "value": "index.js" }, { "type": "eq", "key": "file_path", "value": "/src/components/" }, { "type": "eq", "key": "file_extension", "value": ".js" }] }'),
+    filter_type: z.enum(['eq', 'ne', 'and', 'or', 'none']).describe('Filter type: eq (equals), ne (not equals), and, or, or none for no filtering. Use "none" if no filter is needed.'),
+    filter_key: z.enum(['file_name', 'file_path', 'file_extension', 'none']).describe('The attribute to filter on. Use "none" if filter_type is "none" or for compound filters.'),
+    filter_value: z.string().describe('The value to match (e.g., ".ts" for file_extension, "index.ts" for file_name). Use empty string "" if filter_type is "none" or for compound filters.'),
+    compound_filters: z.string().describe('For AND/OR filters only: JSON array of filters, e.g., [{"type":"eq","key":"file_extension","value":".ts"},{"type":"eq","key":"file_name","value":"index.ts"}]. Use empty string "" for simple filters or no filter.'),
   }),
-  execute: async ({ query, filters }) => {
+  execute: async ({ query, filter_type, filter_key, filter_value, compound_filters }) => {
+    // Build filters from the separate parameters
+    let filters = undefined;
+    if (filter_type !== 'none' && filter_type !== 'and' && filter_type !== 'or') {
+      // Simple filter
+      if (filter_key !== 'none' && filter_value) {
+        filters = {
+          type: filter_type,
+          key: filter_key,
+          value: filter_value
+        };
+      }
+    } else if ((filter_type === 'and' || filter_type === 'or') && compound_filters) {
+      // Compound filter
+      try {
+        const parsedCompoundFilters = JSON.parse(compound_filters);
+        filters = {
+          type: filter_type,
+          filters: parsedCompoundFilters
+        };
+      } catch (e) {
+        console.warn('Failed to parse compound_filters:', e);
+      }
+    }
+    
+    // Parse filters to handle both string and object formats
+    const parsedFilters = parseFilters(filters);
+    
     try {
-      // Parse filters to handle both string and object formats
-      const parsedFilters = parseFilters(filters);
-      
       // Log the search request
       logSearchOperation('REQUEST', { query, filters: parsedFilters });
 
@@ -134,7 +138,7 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       logSearchOperation('ERROR', {
         error: error instanceof Error ? error.message : String(error),
         query,
-        filters: parseFilters(filters)
+        filters: parsedFilters
       });
       console.error('Error searching codebase:', error);
       return `Error searching codebase: ${error instanceof Error ? error.message : String(error)}`;

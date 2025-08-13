@@ -9,7 +9,7 @@ interface RemoteCodingAgentProps {
 }
 
 const issueSchema = z.object({
-    title: z.string().optional().describe('The title of the issue to be resolved. Must be a JSON string value.'),
+    title: z.string().describe('The title of the issue to be resolved. Must be a JSON string value.'),
     description: z.string().describe('The description of the issue to be resolved. Must be a JSON string value.'),
 });
 
