@@ -238,6 +238,18 @@ const PurePreviewMessage = ({
                 if (state === 'call') {
                   const { args } = toolInvocation;
 
+                  // Special handling for TodoWrite - render directly without wrapper
+                  if (toolName === 'TodoWrite' && args?.todos) {
+                    return (
+                      <div key={toolCallId} className="mb-4">
+                        <TodoDisplay 
+                          todos={args.todos}
+                          toolName={toolName}
+                        />
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       key={toolCallId}
@@ -275,11 +287,6 @@ const PurePreviewMessage = ({
                         <FetchWebpageAnimation url={args?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPAnimation toolName={toolName} args={args} />
-                      ) : toolName === 'TodoWrite' && args?.todos ? (
-                        <TodoDisplay 
-                          todos={args.todos}
-                          toolName={toolName}
-                        />
                       ) : null}
                     </div>
                   );
@@ -310,6 +317,11 @@ const PurePreviewMessage = ({
 
                   // Debug logging for all tool results
                   console.log(`[Tool Result] ${toolName}:`, { result, args, state });
+
+                  // Special handling for TodoWrite - don't show results, already rendered in call state
+                  if (toolName === 'TodoWrite') {
+                    return null;
+                  }
 
                   // Show single codebase search result normally
                   if (toolName === 'codebaseSearch') {
@@ -384,11 +396,6 @@ const PurePreviewMessage = ({
                         <FetchWebpage result={result} url={args?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
-                      ) : toolName === 'TodoWrite' && args?.todos ? (
-                        <TodoDisplay 
-                          todos={args.todos}
-                          toolName={toolName}
-                        />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}

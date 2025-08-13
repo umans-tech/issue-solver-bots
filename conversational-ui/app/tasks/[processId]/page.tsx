@@ -589,6 +589,18 @@ export default function TaskPage() {
         if (block.id && block.name && block.input) {
           const toolResult = findToolResultForCall(block.id, allMessages, messageIndex);
           
+          // Special handling for TodoWrite - render without wrapper
+          if (block.name === 'TodoWrite' && block.input.todos) {
+            return (
+              <div key={key} className="mb-4">
+                <TodoDisplay 
+                  todos={block.input.todos}
+                  toolName={block.name}
+                />
+              </div>
+            );
+          }
+          
           if (toolResult) {
             // Render grouped tool call with result
             let resultContent = 'Tool executed successfully';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircleFillIcon, ClockRewind, PlayIcon, XIcon } from './icons';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
+import { CheckedSquare, UncheckedSquare, PlayIcon, XIcon, InfoIcon } from './icons';
 
 interface TodoItem {
   id: string;
@@ -17,14 +18,14 @@ interface TodoDisplayProps {
 const getStatusIcon = (status: TodoItem['status']) => {
   switch (status) {
     case 'completed':
-      return <CheckCircleFillIcon size={16} className="text-green-600" />;
+      return <CheckedSquare size={16} className="text-green-600" />;
     case 'in_progress':
       return <PlayIcon size={16} className="text-blue-600 animate-pulse" />;
     case 'cancelled':
       return <XIcon size={16} className="text-red-600" />;
     case 'pending':
     default:
-      return <ClockRewind size={16} className="text-gray-400" />;
+      return <UncheckedSquare size={16} className="text-gray-400" />;
   }
 };
 
@@ -74,24 +75,31 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
   const totalCount = todos.length;
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  // Group todos by status for better organization
-  const todosByStatus = {
-    in_progress: todos.filter(todo => todo.status === 'in_progress'),
-    pending: todos.filter(todo => todo.status === 'pending'),
-    completed: todos.filter(todo => todo.status === 'completed'),
-    cancelled: todos.filter(todo => todo.status === 'cancelled'),
-  };
+  // Keep todos in original order from payload
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* Header with progress */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-              <CheckCircleFillIcon size={16} className="text-blue-600" />
-            </div>
+          <div className="flex items-center gap-3">
             <h3 className="text-sm font-semibold text-gray-900">Task Progress</h3>
+            
+            {/* Hover info icon */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="opacity-60 hover:opacity-100 transition-opacity">
+                    <InfoIcon size={14} className="text-gray-500" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    <strong>{toolName || 'TodoWrite'}</strong> tool executed successfully
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="text-sm text-gray-600">
             {completedCount}/{totalCount} completed
@@ -109,134 +117,63 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
         </div>
       </div>
 
-      {/* Todo items */}
+      {/* Todo items in original order */}
       <div className="divide-y divide-gray-100">
-        {/* In Progress Items */}
-        {todosByStatus.in_progress.map((todo) => (
-          <div key={todo.id} className="p-4 hover:bg-blue-50/50 transition-colors">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getStatusIcon(todo.status)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={cn(
-                    'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                    getStatusColor(todo.status)
-                  )}>
-                    {getStatusText(todo.status)}
-                  </span>
-                  {todo.priority && (
+        {todos.map((todo) => {
+          const isCompleted = todo.status === 'completed';
+          const isCancelled = todo.status === 'cancelled';
+          const isInProgress = todo.status === 'in_progress';
+          
+          const hoverClass = isInProgress ? 'hover:bg-blue-50/50' : 
+                            isCompleted ? 'hover:bg-green-50/30' :
+                            isCancelled ? 'hover:bg-red-50/30' : 'hover:bg-gray-50/50';
+          
+          const opacity = isCompleted ? 'opacity-75' : isCancelled ? 'opacity-60' : '';
+          
+          return (
+            <div key={todo.id} className={cn("p-4 transition-colors", hoverClass, opacity)}>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  {getStatusIcon(todo.status)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
                     <span className={cn(
                       'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                      getPriorityColor(todo.priority)
+                      getStatusColor(todo.status)
                     )}>
-                      {todo.priority} priority
+                      {getStatusText(todo.status)}
                     </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-900 font-medium">{todo.content}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Pending Items */}
-        {todosByStatus.pending.map((todo) => (
-          <div key={todo.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getStatusIcon(todo.status)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={cn(
-                    'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                    getStatusColor(todo.status)
+                    {todo.priority && (
+                      <span className={cn(
+                        'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
+                        getPriorityColor(todo.priority)
+                      )}>
+                        {todo.priority} priority
+                      </span>
+                    )}
+                  </div>
+                  <p className={cn(
+                    "text-sm",
+                    isCompleted || isCancelled ? "line-through" : "",
+                    isCompleted ? "text-gray-600" : 
+                    isCancelled ? "text-gray-500" :
+                    isInProgress ? "text-gray-900 font-medium" : "text-gray-700"
                   )}>
-                    {getStatusText(todo.status)}
-                  </span>
-                  {todo.priority && (
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                      getPriorityColor(todo.priority)
-                    )}>
-                      {todo.priority} priority
-                    </span>
-                  )}
+                    {todo.content}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-700">{todo.content}</p>
               </div>
             </div>
-          </div>
-        ))}
-
-        {/* Completed Items */}
-        {todosByStatus.completed.map((todo) => (
-          <div key={todo.id} className="p-4 hover:bg-green-50/30 transition-colors opacity-75">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getStatusIcon(todo.status)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={cn(
-                    'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                    getStatusColor(todo.status)
-                  )}>
-                    {getStatusText(todo.status)}
-                  </span>
-                  {todo.priority && (
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                      getPriorityColor(todo.priority)
-                    )}>
-                      {todo.priority} priority
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 line-through">{todo.content}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Cancelled Items */}
-        {todosByStatus.cancelled.map((todo) => (
-          <div key={todo.id} className="p-4 hover:bg-red-50/30 transition-colors opacity-60">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                {getStatusIcon(todo.status)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={cn(
-                    'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                    getStatusColor(todo.status)
-                  )}>
-                    {getStatusText(todo.status)}
-                  </span>
-                  {todo.priority && (
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                      getPriorityColor(todo.priority)
-                    )}>
-                      {todo.priority} priority
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500 line-through">{todo.content}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Empty state */}
       {todos.length === 0 && (
         <div className="p-8 text-center">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <CheckCircleFillIcon size={24} className="text-gray-400" />
+            <CheckedSquare size={24} className="text-gray-400" />
           </div>
           <p className="text-sm text-gray-500">No tasks to display</p>
         </div>
