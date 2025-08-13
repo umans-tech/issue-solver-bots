@@ -148,3 +148,7 @@ create-dev-snapshot id="" deps="" commands="":
     @echo "Creating development environment snapshot..."
     uv run python scripts/create_snapshot.py --deps="{{deps}}" --commands="{{commands}}" --knowledge-base-id="{{id}}"
 
+# 📸️ Create base cudu snapshot
+create-base-cudu-snapshot:
+    @echo "Starting resolution on VM..."
+    uv run python scripts/create_base_cudu_snapshot.py

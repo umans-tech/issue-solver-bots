@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,6 +12,26 @@ class VMConfiguration:
     disk_size: int
 
 
+def run_ssh_command(instance, command, sudo=False, print_output=True):
+    """Run a command on the instance via SSH and return the result"""
+    if sudo and not command.startswith("sudo "):
+        command = f"sudo {command}"
+
+    print(f"Running on VM: {command}")
+    result = instance.exec(command)
+
+    if print_output:
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(f"ERR: {result.stderr}", file=sys.stderr)
+
+    if result.exit_code != 0:
+        print(f"Command failed with exit code {result.exit_code}")
+
+    return result
+
+
 def get_or_create_snapshot_dev_snapshot(
     client: MorphCloudClient,
     vm_configuration: "VMConfiguration",
@@ -22,7 +43,6 @@ def get_or_create_snapshot_dev_snapshot(
     snapshot_type = "dev"
     existing_snapshot = get_snapshot(
         client,
-        snapshot_type,
         metadata={"type": snapshot_type, "knowledge_base_id": knowledge_base_id},
     )
     snapshot_metadata = {
@@ -51,7 +71,6 @@ def replace_or_create_snapshot_dev_snapshot(
     snapshot_type = "dev"
     existing_snapshot = get_snapshot(
         client,
-        snapshot_type,
         metadata={"type": snapshot_type, "knowledge_base_id": knowledge_base_id},
     )
     snapshot_metadata = {
@@ -82,19 +101,18 @@ def create_new_snapshot(
     base_snapshot = get_or_create_base_snapshot(client, vm_configuration)
 
     print("Preparing Dev Snapshot...")
-    instance = client.instances.start(base_snapshot.id)
-
-    dependencies_commands = get_installation_commands(dependencies)
+    dependencies_commands = [
+        get_dependencies_as_one_installation_commands(dependencies)
+    ]
+    prepared_snapshot_for_dev_environment = base_snapshot
     for command in dependencies_commands + commands:
-        print(f"Running command: {command}")
-        instance_exec = instance.exec(command)
-        print(f"Instance exec response: {instance_exec.model_dump()}")
-
-    print("Creating Dev Snapshot...")
-    prepared_snapshot_for_dev_environment = instance.snapshot(
-        metadata=snapshot_metadata
-    )
-    instance.stop()
+        command = command.strip()
+        if command:
+            print(f"Running command on base snapshot: {command}")
+            prepared_snapshot_for_dev_environment = (
+                prepared_snapshot_for_dev_environment.setup(command)
+            )
+    prepared_snapshot_for_dev_environment.set_metadata(snapshot_metadata)
 
     return prepared_snapshot_for_dev_environment
 
@@ -104,9 +122,7 @@ def get_or_create_base_snapshot(
     vm_configuration: "VMConfiguration",
 ) -> Snapshot:
     snapshot_type = "base"
-    existing_snapshot = get_snapshot(
-        client, snapshot_type, metadata={"type": snapshot_type}
-    )
+    existing_snapshot = get_snapshot(client, metadata={"type": snapshot_type})
 
     base_snapshot_metadata = {"type": snapshot_type}
     snapshot = existing_snapshot or client.snapshots.create(
@@ -128,9 +144,14 @@ def get_installation_commands(dependencies):
     return dependencies_commands
 
 
-def get_snapshot(
-    client: MorphCloudClient, snapshot_type: str, metadata: dict[str, Any]
-) -> Snapshot | None:
+def get_dependencies_as_one_installation_commands(dependencies: list[str]) -> str:
+    dependencies_str = " ".join(dependencies)
+    print(f"Dependencies to install: {dependencies_str}")
+    return f"DEBIAN_FRONTEND=noninteractive apt update -q && DEBIAN_FRONTEND=noninteractive apt install -y -q {dependencies_str}"
+
+
+def get_snapshot(client: MorphCloudClient, metadata: dict[str, Any]) -> Snapshot | None:
+    snapshot_type = metadata.get("type", "unknown")
     print(f"Looking for existing snapshot with type '{snapshot_type}'...")
     existing_snapshots = client.snapshots.list(metadata=metadata)
     for existing_snapshot in existing_snapshots:
