@@ -30,6 +30,7 @@ import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
+import { TodoDisplay } from './todo-display';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -274,6 +275,11 @@ const PurePreviewMessage = ({
                         <FetchWebpageAnimation url={args?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPAnimation toolName={toolName} args={args} />
+                      ) : toolName === 'TodoWrite' && args?.todos ? (
+                        <TodoDisplay 
+                          todos={args.todos}
+                          toolName={toolName}
+                        />
                       ) : null}
                     </div>
                   );
@@ -378,6 +384,11 @@ const PurePreviewMessage = ({
                         <FetchWebpage result={result} url={args?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
+                      ) : toolName === 'TodoWrite' && args?.todos ? (
+                        <TodoDisplay 
+                          todos={args.todos}
+                          toolName={toolName}
+                        />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}

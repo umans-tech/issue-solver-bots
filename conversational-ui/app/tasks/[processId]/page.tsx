@@ -14,6 +14,7 @@ import { Markdown } from '../../../components/markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import { DiffView } from '../../../components/diffview';
+import { TodoDisplay } from '../../../components/todo-display';
 import { 
   AlertDialog,
   AlertDialogContent,
@@ -630,6 +631,13 @@ export default function TaskPage() {
                       newString={block.input.new_string || ''}
                       toolName={block.name}
                     />
+                  ) :
+                  /* Special handling for Todo tool calls */
+                  block.name === 'TodoWrite' && block.input.todos ? (
+                    <TodoDisplay 
+                      todos={block.input.todos}
+                      toolName={block.name}
+                    />
                   ) : (
                     /* Default handling for other tools */
                     <div className="bg-muted/20 p-2 rounded text-xs">
@@ -680,6 +688,13 @@ export default function TaskPage() {
                       filePath={block.input.file_path}
                       oldString={block.input.old_string || ''}
                       newString={block.input.new_string || ''}
+                      toolName={block.name}
+                    />
+                  ) :
+                  /* Special handling for Todo tool calls */
+                  block.name === 'TodoWrite' && block.input.todos ? (
+                    <TodoDisplay 
+                      todos={block.input.todos}
                       toolName={block.name}
                     />
                   ) : (
