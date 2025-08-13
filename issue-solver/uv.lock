@@ -638,7 +638,7 @@ wheels = [
 
 [[package]]
 name = "issue-solver"
-version = "0.1.1rc1"
+version = "0.1.1rc2"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
