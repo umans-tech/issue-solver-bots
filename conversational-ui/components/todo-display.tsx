@@ -18,14 +18,14 @@ interface TodoDisplayProps {
 const getStatusIcon = (status: TodoItem['status']) => {
   switch (status) {
     case 'completed':
-      return <CheckedSquare size={16} className="text-green-600" />;
+      return <span className="text-green-600"><CheckedSquare size={16} /></span>;
     case 'in_progress':
-      return <PlayIcon size={16} className="text-blue-600 animate-pulse" />;
+      return <span className="text-blue-600 animate-pulse"><PlayIcon size={16} /></span>;
     case 'cancelled':
-      return <XIcon size={16} className="text-red-600" />;
+      return <span className="text-red-600"><XIcon size={16} /></span>;
     case 'pending':
     default:
-      return <UncheckedSquare size={16} className="text-gray-400" />;
+      return <span className="text-gray-400"><UncheckedSquare size={16} /></span>;
   }
 };
 
@@ -90,7 +90,7 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="opacity-60 hover:opacity-100 transition-opacity">
-                    <InfoIcon size={14} className="text-gray-500" />
+                    <span className="text-gray-500"><InfoIcon size={14} /></span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -173,7 +173,7 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
       {todos.length === 0 && (
         <div className="p-8 text-center">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <CheckedSquare size={24} className="text-gray-400" />
+            <span className="text-gray-400"><CheckedSquare size={24} /></span>
           </div>
           <p className="text-sm text-gray-500">No tasks to display</p>
         </div>

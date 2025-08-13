@@ -17,6 +17,7 @@ interface ArtifactMessagesProps {
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   artifactStatus: UIArtifact['status'];
+  selectedChatModel: string;
 }
 
 function PureArtifactMessages({
@@ -27,6 +28,7 @@ function PureArtifactMessages({
   setMessages,
   reload,
   isReadonly,
+  selectedChatModel,
 }: ArtifactMessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -60,6 +62,7 @@ function PureArtifactMessages({
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1
           }
+          selectedChatModel={selectedChatModel}
         />
       ))}
 

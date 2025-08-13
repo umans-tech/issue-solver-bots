@@ -30,6 +30,7 @@ import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
+import { chatModels } from '@/lib/ai/models';
 import { TodoDisplay } from './todo-display';
 
 // Component to display search animation
@@ -51,6 +52,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
   requiresScrollPadding,
+  selectedChatModel,
 }: {
   chatId: string;
   message: UIMessage;
@@ -60,6 +62,7 @@ const PurePreviewMessage = ({
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
+  selectedChatModel: string;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -95,43 +98,69 @@ const PurePreviewMessage = ({
     return sources;
   }, [message.parts]);
 
-  // Combine ALL reasoning parts and filter out non-reasoning parts for rendering
-  const { combinedReasoning, nonReasoningParts } = useMemo(() => {
-    if (!message.parts) return { combinedReasoning: '', nonReasoningParts: [] };
+  // Combine reasoning parts and associated tool calls in chronological order
+  const { combinedReasoningData, nonReasoningParts } = useMemo(() => {
+    if (!message.parts) return { combinedReasoningData: { chronologicalItems: [] }, nonReasoningParts: [] };
+
+    // Find indices of reasoning parts
+    const reasoningIndices = message.parts
+      .map((part, index) => ({ part, index }))
+      .filter(({ part }) => part.type === 'reasoning')
+      .map(({ index }) => index);
     
-    // Extract all reasoning parts
-    const allReasoningParts = message.parts
-      .filter(part => part.type === 'reasoning')
-      .map((p: any) => p.reasoning)
-      .filter((r: string) => r && r.trim());
+    if (reasoningIndices.length === 0) {
+      return { combinedReasoningData: { chronologicalItems: [] }, nonReasoningParts: message.parts.map((part, index) => ({ part, index })) };
+    }
     
-    // Combine all reasoning content
-    const combined = allReasoningParts.join('\n\n');
+    // Find tool calls that happen during reasoning (between first reasoning and last reasoning + 1)
+    const firstReasoningIndex = reasoningIndices[0];
+    const lastReasoningIndex = reasoningIndices[reasoningIndices.length - 1];
     
-    // Get all non-reasoning parts with their original indices
+    // Get all parts that belong to reasoning (reasoning parts + tool calls between them)
+    const reasoningRelatedParts = message.parts
+      .slice(firstReasoningIndex, lastReasoningIndex + 1)
+      .map((part, relativeIndex) => ({
+        part,
+        index: firstReasoningIndex + relativeIndex,
+        type: part.type === 'reasoning' ? 'reasoning' as const : part.type === 'tool-invocation' ? 'tool' as const : 'other' as const
+      }))
+      .filter(({ type }) => type === 'reasoning' || type === 'tool') as Array<{ part: any; index: number; type: 'reasoning' | 'tool' }>;
+
+    // Get non-reasoning parts (excluding tool calls that are part of reasoning)
+    const reasoningRelatedIndices = new Set(reasoningRelatedParts.map(({ index }) => index));
+
     const nonReasoning = message.parts
       .map((part, index) => ({ part, index }))
-      .filter(({ part }) => part.type !== 'reasoning');
+      .filter(({ index }) => !reasoningRelatedIndices.has(index));
     
     return {
-      combinedReasoning: combined,
+      combinedReasoningData: {
+        chronologicalItems: reasoningRelatedParts
+      },
       nonReasoningParts: nonReasoning,
     };
   }, [message.parts]);
 
+  // Check if the model supports reasoning (only OpenAI models)
+  const modelInfo = chatModels.find(model => model.id === selectedChatModel);
+  const supportsReasoning = modelInfo?.provider === 'openai';
+
   // Check if we should show reasoning placeholder
-  const shouldShowReasoningPlaceholder = isLoading && message.role === 'assistant' && !message.parts?.some(part => part.type === 'reasoning');
+  const shouldShowReasoningPlaceholder = isLoading && message.role === 'assistant' && supportsReasoning && !message.parts?.some(part => part.type === 'reasoning');
   
   // Detect if reasoning is still streaming
   const hasReasoningParts = message.parts?.some(part => part.type === 'reasoning') || false;
   const hasTextParts = message.parts?.some(part => part.type === 'text') || false;
   
+  // Find the last reasoning part and check if there are any text parts after it
+  const reasoningIndices = message.parts?.map((part, index) => ({ part, index })).filter(({ part }) => part.type === 'reasoning').map(({ index }) => index) || [];
+  const lastReasoningIndex = reasoningIndices.length > 0 ? Math.max(...reasoningIndices) : -1;
+  const hasTextAfterReasoning = message.parts?.some((part, index) => part.type === 'text' && index > lastReasoningIndex) || false;
+
   // Reasoning is considered streaming if:
   // 1. Message is loading AND has reasoning parts AND
-  // 2. Either there are no text parts yet (reasoning/tools only)
-  //    OR the last part is reasoning (more reasoning might come)
-  const lastPartIsReasoning = message.parts && message.parts.length > 0 && message.parts[message.parts.length - 1].type === 'reasoning';
-  const reasoningIsStreaming = isLoading && hasReasoningParts && (!hasTextParts || lastPartIsReasoning);
+  // 2. Either there are no text parts after the last reasoning part
+  const reasoningIsStreaming = isLoading && hasReasoningParts && !hasTextAfterReasoning;
 
   return (
     <AnimatePresence>
@@ -168,11 +197,11 @@ const PurePreviewMessage = ({
             )}
 
             {/* Show single combined reasoning component */}
-            {(shouldShowReasoningPlaceholder || combinedReasoning) && (
+            {(shouldShowReasoningPlaceholder || combinedReasoningData.chronologicalItems.length > 0) && (
               <MessageReasoning
                 key={`${message.id}-reasoning-combined`}
                 isLoading={shouldShowReasoningPlaceholder}
-                reasoning={combinedReasoning}
+                chronologicalItems={combinedReasoningData.chronologicalItems}
                 isStreaming={shouldShowReasoningPlaceholder || reasoningIsStreaming}
               />
             )}
@@ -281,7 +310,7 @@ const PurePreviewMessage = ({
                   if (toolName === 'TodoWrite' && args?.todos) {
                     return (
                       <div key={toolCallId} className="mb-4">
-                        <TodoDisplay 
+                        <TodoDisplay
                           todos={args.todos}
                           toolName={toolName}
                         />
