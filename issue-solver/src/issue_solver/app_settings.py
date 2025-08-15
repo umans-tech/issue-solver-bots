@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import assert_never
 
@@ -10,8 +9,11 @@ from issue_solver.agents.issue_resolving_agent import (
 )
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.git_operations.git_helper import GitSettings
-from issue_solver.issues.issue import IssueReference, IssueInfo
-from issue_solver.issues.trackers.supported_issue_trackers import IssueSourceSettings
+from issue_solver.issues.issue import IssueInfo
+from issue_solver.issues.trackers.supported_issue_trackers import (
+    IssueSourceSettings,
+)
+from issue_solver.issues.issue_settings import IssueSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,
@@ -27,12 +29,6 @@ from issue_solver.models.supported_models import (
     SupportedQwenModel,
     VersionedAIModel,
 )
-
-
-@dataclass
-class IssueSettings:
-    tracker: IssueSourceSettings
-    ref: IssueReference
 
 
 class SolveCommandSettings(BaseSettings):
