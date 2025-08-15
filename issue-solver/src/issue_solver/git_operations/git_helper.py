@@ -1,6 +1,8 @@
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+from shutil import rmtree
 from typing import Any, Callable, Optional, Self, TypeVar, cast
 
 import git
@@ -531,6 +533,26 @@ class GitClient:
         ).commit_and_push(issue_info, repo_path)
 
     @classmethod
+    def clone_repo_and_branch(
+        cls,
+        process_id: str,
+        repo_path: Path,
+        url: str,
+        access_token: str,
+        issue: IssueInfo,
+    ) -> None:
+        if repo_path.exists():
+            rmtree(repo_path)
+        title_part = sanitize_branch_name(issue.title or "resolution")
+        new_branch_name = f"auto/{process_id}/{title_part}"
+        cls.clone_repository(
+            url=url,
+            access_token=access_token,
+            to_path=repo_path,
+            new_branch_name=new_branch_name,
+        )
+
+    @classmethod
     def submit_pull_request(
         cls,
         repo_path: Path,
@@ -603,3 +625,34 @@ class GitClient:
             url=f"https://github.com/{owner_repo}/pull/{pr.number}",
             number=pr.number,
         )
+
+
+def sanitize_branch_name(name: str) -> str:
+    """Sanitize a string to be a valid Git branch name.
+
+    Git branch names cannot contain:
+    - Spaces, ~, ^, :, ?, *, [, ]
+    - Start or end with /, ., or -
+    - Contain consecutive dots ..
+    - End with .lock
+    - Contain @{
+    - Be empty or contain only whitespace
+    """
+    if not name or not name.strip():
+        return "resolution"
+
+    # Replace invalid characters with hyphens
+    sanitized = re.sub(r"[^a-zA-Z0-9._-]", "-", name.strip())
+
+    # Remove consecutive hyphens/dots/underscores
+    sanitized = re.sub(r"[-_.]{2,}", "-", sanitized)
+
+    # Remove leading/trailing invalid characters
+    sanitized = sanitized.strip("-._")
+
+    # Ensure it's not empty after sanitization
+    if not sanitized:
+        return "resolution"
+
+    # Truncate to reasonable length and ensure it doesn't end with invalid chars
+    return sanitized[:50].rstrip("-._")

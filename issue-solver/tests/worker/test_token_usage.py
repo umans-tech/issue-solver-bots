@@ -145,11 +145,11 @@ async def test_resolve_issue_uses_most_recent_token(
     git_client = Mock(spec=GitClient)
     captured_token = None
 
-    def capture_clone_token(url, access_token, to_path, new_branch_name):
+    def capture_clone_token(process_id, repo_path, url, access_token, issue):
         nonlocal captured_token
         captured_token = access_token
 
-    git_client.clone_repository.side_effect = capture_clone_token
+    git_client.clone_repo_and_branch.side_effect = capture_clone_token
 
     coding_agent = AsyncMock()
 
@@ -163,4 +163,4 @@ async def test_resolve_issue_uses_most_recent_token(
 
     # Then - verify the rotated token was used, not the original
     assert captured_token == "rotated_token"
-    git_client.clone_repository.assert_called_once()
+    git_client.clone_repo_and_branch.assert_called_once()

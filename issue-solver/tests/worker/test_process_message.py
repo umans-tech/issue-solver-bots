@@ -142,7 +142,7 @@ async def test_resolve_issue_should_fail_when_repo_cant_be_cloned(
         issue=IssueInfo(description="test issue"),
     )
     git_helper = Mock()
-    git_helper.clone_repository = Mock(
+    git_helper.clone_repo_and_branch = Mock(
         side_effect=Exception(
             f"Cannot clone repository {repo_url} because of some reason"
         )
