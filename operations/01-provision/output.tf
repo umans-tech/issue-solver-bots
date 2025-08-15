@@ -1,9 +1,18 @@
+data "supabase_pooler" "db" {
+  project_ref = supabase_project.conversational_ui.id
+}
+
+locals {
+  pooler_urls = try(data.supabase_pooler.db.url, {})
+  pooler_host = regex("^[^@]+@([^:]+):.*$", values(local.pooler_urls)[0])[0]
+}
+
 output "transaction_pooler_connection_string" {
   value = format(
-    "postgresql://postgres.%s:%s@aws-0-%s.pooler.supabase.com:%s/postgres?sslmode=require&supa=base-pooler.x",
+    "postgresql://postgres.%s:%s@%s:%s/postgres?sslmode=require&supa=base-pooler.x",
     supabase_project.conversational_ui.id,
     random_password.conversational_ui_db_password.result,
-    supabase_project.conversational_ui.region,
+    local.pooler_host,
     var.pooler_port
   )
   sensitive = true
@@ -22,10 +31,10 @@ output "direct_database_connection_string" {
 output "session_pooler_connection_string" {
   description = "Session Pooler PostgreSQL connection string for migrations (alternative to direct connection)"
   value = format(
-    "postgresql+asyncpg://postgres.%s:%s@aws-0-%s.pooler.supabase.com:5432/postgres",
+    "postgresql+asyncpg://postgres.%s:%s@%s:5432/postgres",
     supabase_project.conversational_ui.id,
     random_password.conversational_ui_db_password.result,
-    supabase_project.conversational_ui.region
+    local.pooler_host
   )
   sensitive = true
 }
@@ -33,8 +42,8 @@ output "session_pooler_connection_string" {
 output "transaction_pooler_jdbc_connection_string" {
   description = "JDBC connection string for transaction pooler"
   value = format(
-    "jdbc:postgresql://aws-0-%s.pooler.supabase.com:%s/postgres?user=postgres.%s&password=%s",
-    supabase_project.conversational_ui.region,
+    "jdbc:postgresql://%s:%s/postgres?user=postgres.%s&password=%s",
+    local.pooler_host,
     var.pooler_port,
     supabase_project.conversational_ui.id,
     random_password.conversational_ui_db_password.result
@@ -57,12 +66,12 @@ output "blob_region" {
 }
 
 output "blob_access_key_id" {
-  value = aws_iam_access_key.conversational_ui_blob_access_key.id
+  value     = aws_iam_access_key.conversational_ui_blob_access_key.id
   sensitive = true
 }
 
 output "blob_secret_access_key" {
-  value = aws_iam_access_key.conversational_ui_blob_access_key.secret
+  value     = aws_iam_access_key.conversational_ui_blob_access_key.secret
   sensitive = true
 }
 
