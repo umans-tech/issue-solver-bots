@@ -543,8 +543,7 @@ class GitClient:
     ) -> None:
         if repo_path.exists():
             rmtree(repo_path)
-        title_part = sanitize_branch_name(issue.title or "resolution")
-        new_branch_name = f"auto/{process_id}/{title_part}"
+        new_branch_name = name_new_branch_for_issue(issue, process_id)
         cls.clone_repository(
             url=url,
             access_token=access_token,
@@ -625,6 +624,12 @@ class GitClient:
             url=f"https://github.com/{owner_repo}/pull/{pr.number}",
             number=pr.number,
         )
+
+
+def name_new_branch_for_issue(issue: IssueInfo, process_id: str) -> str:
+    title_part = sanitize_branch_name(issue.title or "resolution")
+    new_branch_name = f"auto/{process_id}/{title_part}"
+    return new_branch_name
 
 
 def sanitize_branch_name(name: str) -> str:
