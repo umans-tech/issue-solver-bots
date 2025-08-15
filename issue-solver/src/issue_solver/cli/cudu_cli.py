@@ -3,6 +3,7 @@ import sys
 from pydantic import ValidationError
 from pydantic_settings import CliApp, SettingsError
 
+from issue_solver.cli.prepare_command import PrepareCommand
 from issue_solver.cli.review_command import ReviewSettings
 from issue_solver.cli.solve_command import SolveCommand
 
@@ -31,6 +32,12 @@ class CuduCLI:
                     cli_args=sub_args,
                     cli_cmd_method_name="cli_cmd",
                 )
+            elif subcmd == "prepare":
+                CliApp.run(
+                    model_cls=PrepareCommand,
+                    cli_args=sub_args,
+                    cli_cmd_method_name="cli_cmd",
+                )
             elif subcmd in ("help", "-h", "--help"):
                 show_usage()
                 sys.exit(0)
@@ -56,8 +63,9 @@ def show_usage() -> None:
     print("""
     Usage: cudu [subcommand] [options...]
     Subcommands:
-      solve    🧩 solve an issue
+      prepare  🏗️ prepare a workspace for issue resolution
       review   👀 review a pull request or issue
+      solve    🧩 solve an issue
       help     🛟 show this message
     
     Examples:
