@@ -94,17 +94,6 @@ async def connect_repository(
     }
 
 
-def _validate_repository_access(connect_repository_request, logger, validation_service):
-    try:
-        validation_result = validation_service.validate_repository_access(
-            connect_repository_request.url, connect_repository_request.access_token
-        )
-        return validation_result
-    except GitValidationError as e:
-        logger.error(f"Repository validation failed: {e.message}")
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-
-
 @router.post("/{knowledge_base_id}", status_code=200)
 async def index_new_changes(
     knowledge_base_id: str,
@@ -215,3 +204,14 @@ async def rotate_token(
         "message": "Token rotated successfully",
         "token_permissions": token_permissions,
     }
+
+
+def _validate_repository_access(connect_repository_request, logger, validation_service):
+    try:
+        validation_result = validation_service.validate_repository_access(
+            connect_repository_request.url, connect_repository_request.access_token
+        )
+        return validation_result
+    except GitValidationError as e:
+        logger.error(f"Repository validation failed: {e.message}")
+        raise HTTPException(status_code=e.status_code, detail=e.message)
