@@ -79,3 +79,7 @@ class ResolveIssueRequest(BaseSchema):
 
 class ProcessCreated(BaseSchema):
     process_id: str
+
+
+class EnvironmentConfiguration(BaseSchema):
+    script: str

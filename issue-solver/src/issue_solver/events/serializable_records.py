@@ -15,6 +15,7 @@ from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionCompleted,
     IssueResolutionFailed,
+    EnvironmentConfigurationProvided,
 )
 from pydantic import BaseModel
 
@@ -362,6 +363,39 @@ class IssueResolutionFailedRecord(BaseModel):
         )
 
 
+class EnvironmentConfigurationProvidedRecord(BaseModel):
+    type: Literal["environment_configuration_provided"] = (
+        "environment_configuration_provided"
+    )
+    occurred_at: datetime
+    knowledge_base_id: str
+    user_id: str
+    process_id: str
+    script: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> EnvironmentConfigurationProvided:
+        return EnvironmentConfigurationProvided(
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            user_id=self.user_id,
+            process_id=self.process_id,
+            script=self.script,
+        )
+
+    @classmethod
+    def create_from(cls, event: EnvironmentConfigurationProvided) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            user_id=event.user_id,
+            process_id=event.process_id,
+            script=event.script,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -372,6 +406,7 @@ ProcessTimelineEventRecords = (
     | IssueResolutionStartedRecord
     | IssueResolutionCompletedRecord
     | IssueResolutionFailedRecord
+    | EnvironmentConfigurationProvidedRecord
 )
 
 
@@ -399,6 +434,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return IssueResolutionCompletedRecord.create_from(event)
         case IssueResolutionFailed():
             return IssueResolutionFailedRecord.create_from(event)
+        case EnvironmentConfigurationProvided():
+            return EnvironmentConfigurationProvidedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -439,6 +476,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "issue_resolution_failed":
             return IssueResolutionFailedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "environment_configuration_provided":
+            return EnvironmentConfigurationProvidedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

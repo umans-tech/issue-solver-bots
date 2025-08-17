@@ -100,6 +100,15 @@ class IssueResolutionFailed(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class EnvironmentConfigurationProvided(DomainEvent):
+    knowledge_base_id: str
+    script: str
+    user_id: str
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -110,6 +119,7 @@ AnyDomainEvent = (
     | IssueResolutionStarted
     | IssueResolutionCompleted
     | IssueResolutionFailed
+    | EnvironmentConfigurationProvided
 )
 
 
