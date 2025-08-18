@@ -102,6 +102,7 @@ class IssueResolutionFailed(DomainEvent):
 
 @dataclass(frozen=True, slots=True)
 class EnvironmentConfigurationProvided(DomainEvent):
+    environment_id: str
     knowledge_base_id: str
     script: str
     user_id: str

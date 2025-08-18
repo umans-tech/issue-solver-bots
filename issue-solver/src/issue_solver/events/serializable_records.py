@@ -367,6 +367,7 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
     type: Literal["environment_configuration_provided"] = (
         "environment_configuration_provided"
     )
+    environment_id: str
     occurred_at: datetime
     knowledge_base_id: str
     user_id: str
@@ -378,6 +379,7 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
 
     def to_domain_event(self) -> EnvironmentConfigurationProvided:
         return EnvironmentConfigurationProvided(
+            environment_id=self.environment_id,
             occurred_at=self.occurred_at,
             knowledge_base_id=self.knowledge_base_id,
             user_id=self.user_id,
@@ -388,6 +390,7 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
     @classmethod
     def create_from(cls, event: EnvironmentConfigurationProvided) -> Self:
         return cls(
+            environment_id=event.environment_id,
             occurred_at=event.occurred_at,
             knowledge_base_id=event.knowledge_base_id,
             user_id=event.user_id,

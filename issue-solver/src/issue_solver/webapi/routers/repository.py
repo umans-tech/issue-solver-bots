@@ -246,7 +246,9 @@ async def create_environment(
             detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
         )
 
+    environment_id = str(uuid.uuid4())
     event = EnvironmentConfigurationProvided(
+        environment_id=environment_id,
         occurred_at=clock.now(),
         process_id=str(uuid.uuid4()),
         knowledge_base_id=knowledge_base_id,
@@ -259,7 +261,7 @@ async def create_environment(
     logger.info(f"Environment created with data: {environment_config}")
 
     return {
-        "environment_id": str(uuid.uuid4()),
+        "environment_id": environment_id,
         "process_id": event.process_id,
     }
 

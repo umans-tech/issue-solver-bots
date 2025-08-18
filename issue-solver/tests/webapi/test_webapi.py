@@ -395,6 +395,8 @@ def test_setup_environment_should_return_200_and_publish_environment_configurati
     assert message_body["type"] == "environment_configuration_provided"
     assert message_body["knowledge_base_id"] == knowledge_base_id
     assert message_body["user_id"] == user_id
+    assert message_body["environment_id"] == data["environment_id"]
+    assert message_body["script"] == environment_config["script"]
 
 
 def test_setup_environment_should_return_404_when_repository_not_found(
