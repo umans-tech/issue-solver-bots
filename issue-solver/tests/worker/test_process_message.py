@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, call
 
 import pytest
 from morphcloud.api import (
@@ -437,6 +437,135 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
         }
     )
     microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)
+    solve_command = (
+        "runuser -l umans -c '"
+        'export ANTHROPIC_API_KEY="test-anthropic-api-key" && export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1" && '
+        "export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && "
+        'export AGENT="claude-code" && '
+        'export AI_MODEL="claude-sonnet-4" && export AI_MODEL_VERSION="20250514" && '
+        "export GIT=\"{'repository_url': 'http://gitlab.com/test-repo.git', 'access_token': 's3cretAcc3ssT0k3n', 'user_mail': 'agent@umans.ai', 'user_name': 'umans-agent'}\" && "
+        'export REPO_PATH="test-repo" && '
+        'export PROCESS_ID="test-process-id" && '
+        "cudu solve'"
+    )
+    started_instance.exec.assert_called_once_with(solve_command)
+
+
+@pytest.mark.asyncio
+async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_config_script_is_provided_and_snapshot_is_missing(
+    event_store, time_under_control: ControllableClock
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-01-01T00:00:00")
+    repo_integration_process_id = "indexation_process_id"
+    await event_store.append(
+        repo_integration_process_id,
+        CodeRepositoryConnected(
+            url="http://gitlab.com/test-repo.git",
+            access_token="s3cretAcc3ssT0k3n",
+            user_id="test-user-id",
+            space_id="test-space-id",
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            process_id=repo_integration_process_id,
+        ),
+    )
+    environment_config_process_id = "env-config-process-id"
+    environment_id = "bob-dev-environment-05"
+    await event_store.append(
+        "environment_config_process_id",
+        EnvironmentConfigurationProvided(
+            environment_id=environment_id,
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            script="echo 'Hello, World!'",
+            user_id="test-user-id",
+            process_id=environment_config_process_id,
+        ),
+    )
+    issue_resolution_process_id = "test-process-id"
+    issue_resolution_requested_event = IssueResolutionRequested(
+        occurred_at=time_under_control.now(),
+        knowledge_base_id="test-knowledge-base-id",
+        process_id=issue_resolution_process_id,
+        issue=IssueInfo(title="issue title", description="test issue"),
+    )
+    git_helper = Mock(spec=GitClient)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    microvm_instance_id = "dev-instance-id"
+    microvm_client = Mock(spec=MorphCloudClient)
+    base_snapshot_id = "base-snapshot-id"
+    base_snapshot = Mock(spec=Snapshot)
+    microvm_client.snapshots.list.side_effect = [
+        [],
+        [base_snapshot],
+    ]
+    started_instance = Mock(spec=Instance)
+    microvm_client.instances.start.return_value = started_instance
+    started_instance.id = microvm_instance_id
+    base_snapshot.id = base_snapshot_id
+    base_snapshot.status = SnapshotStatus.READY
+    dev_snapshot_id = "dev-snapshot-id"
+    base_snapshot.setup.return_value = Snapshot(
+        id=dev_snapshot_id,
+        object="snapshot",
+        created=time_under_control.now().timestamp(),
+        spec=ResourceSpec(
+            vcpus=2,
+            memory=4096,
+            disk_size=20,
+        ),
+        refs=SnapshotRefs(image_id="test-image-id"),
+        status=SnapshotStatus.READY,
+        metadata={
+            "type": "dev",
+            "knowledge_base_id": "test-knowledge-base-id",
+            "environment_id": environment_id,
+        },
+    )
+    os.environ.clear()
+    os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
+
+    # When
+    await process_event_message(
+        issue_resolution_requested_event,
+        dependencies=Dependencies(
+            event_store, git_helper, coding_agent, time_under_control, microvm_client
+        ),
+    )
+    # Then
+    produced_events = await event_store.get(issue_resolution_process_id)
+
+    assert produced_events == [
+        IssueResolutionEnvironmentPrepared(
+            process_id=issue_resolution_process_id,
+            occurred_at=time_under_control.now(),
+            environment_id=environment_id,
+            instance_id=microvm_instance_id,
+            knowledge_base_id="test-knowledge-base-id",
+        )
+    ]
+
+    microvm_client.snapshots.list.assert_has_calls(
+        [
+            call(
+                metadata={
+                    "type": "dev",
+                    "knowledge_base_id": "test-knowledge-base-id",
+                    "environment_id": environment_id,
+                }
+            ),
+            call(
+                metadata={
+                    "type": "base",
+                }
+            ),
+        ]
+    )
+    microvm_client.instances.start.assert_called_once_with(snapshot_id=dev_snapshot_id)
+    prepare_command = "runuser -l umans -c 'export PROCESS_ID=\"test-process-id\" && export REPO_PATH=\"test-repo\" && export URL=\"http://gitlab.com/test-repo.git\" && export ACCESS_TOKEN=\"s3cretAcc3ssT0k3n\" && export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && export INSTALL_SCRIPT=\"echo 'Hello, World!'\"  && cudu prepare'"
+    base_snapshot.setup.assert_called_once_with(prepare_command)
+
     solve_command = (
         "runuser -l umans -c '"
         'export ANTHROPIC_API_KEY="test-anthropic-api-key" && export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1" && '

@@ -10,7 +10,8 @@ from issue_solver.agents.issue_resolving_agent import (
     ResolveIssueCommand,
 )
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.app_settings import SolveCommandSettings
+from issue_solver.app_settings import SolveCommandSettings, base_settings_to_env_script
+from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.clock import Clock
 from issue_solver.dev_environments_management import get_snapshot
 from issue_solver.events.domain import (
@@ -133,6 +134,27 @@ async def resolve_issue(
                     "environment_id": environment_id,
                 },
             )
+            default_clone_path = Path(extract_git_clone_default_directory_name(url))
+            if not snapshot:
+                snapshot = get_snapshot(microvm_client, {"type": "base"})
+                if snapshot:
+                    snapshot = snapshot.setup(
+                        f"runuser -l umans -c '{
+                            base_settings_to_env_script(
+                                PrepareCommandSettings(
+                                    process_id=process_id,
+                                    repo_path=default_clone_path,
+                                    url=url,
+                                    access_token=access_token,
+                                    issue=message.issue,
+                                    install_script=environments_configurations[
+                                        0
+                                    ].script,
+                                )
+                            )
+                        }  && cudu prepare'"
+                    )
+
             if snapshot:
                 instance = microvm_client.instances.start(snapshot_id=snapshot.id)
                 await event_store.append(
@@ -156,7 +178,7 @@ async def resolve_issue(
                     ),
                     ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
                     ai_model_version=LATEST_CLAUDE_4_VERSION,
-                    repo_path=Path(extract_git_clone_default_directory_name(url)),
+                    repo_path=default_clone_path,
                 )
                 instance.exec(
                     f"runuser -l umans -c '{solve_command_setting.to_env_script()} && cudu solve'"
