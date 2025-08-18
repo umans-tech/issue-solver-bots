@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 
+from morphcloud.api import MorphCloudClient
 from openai import OpenAI
 
 from issue_solver.agents.issue_resolving_agent import (
@@ -9,6 +10,7 @@ from issue_solver.agents.issue_resolving_agent import (
     ResolveIssueCommand,
 )
 from issue_solver.clock import Clock
+from issue_solver.dev_environments_management import get_snapshot
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -20,6 +22,8 @@ from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionCompleted,
     IssueResolutionFailed,
+    EnvironmentConfigurationProvided,
+    IssueResolutionEnvironmentPrepared,
 )
 from issue_solver.events.code_repo_integration import (
     get_access_token,
@@ -58,11 +62,13 @@ class Dependencies:
         git_client: GitClient,
         coding_agent: IssueResolvingAgent,
         clock: Clock,
+        microvm_client: MorphCloudClient | None = None,
     ):
         self._event_store = event_store
         self.git_client = git_client
         self.coding_agent = coding_agent
         self.clock = clock
+        self.microvm_client = microvm_client
 
     @property
     def event_store(self) -> EventStore:
@@ -106,110 +112,140 @@ async def resolve_issue(
             ),
         )
         return
+
     process_id = message.process_id
-    repo_path = Path(f"/tmp/repo/{process_id}")
-    try:
-        dependencies.git_client.clone_repo_and_branch(
-            process_id, repo_path, url, access_token, message.issue
-        )
-    except Exception as e:
-        logger.error(f"Error cloning repository: {str(e)}")
-        await event_store.append(
-            message.process_id,
-            IssueResolutionFailed(
-                process_id=message.process_id,
-                occurred_at=dependencies.clock.now(),
-                reason="repo_cant_be_cloned",
-                error_message=str(e),
-            ),
-        )
-        return
 
-    await dependencies.event_store.append(
-        message.process_id,
-        IssueResolutionStarted(
-            process_id=message.process_id,
-            occurred_at=dependencies.clock.now(),
-        ),
+    environments_configurations = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, EnvironmentConfigurationProvided
     )
-
-    # Run coding agent
-    try:
-        await dependencies.coding_agent.resolve_issue(
-            ResolveIssueCommand(
-                process_id=message.process_id,
-                model=QualifiedAIModel(
-                    ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
-                    version=LATEST_CLAUDE_4_VERSION,
-                ),
-                issue=message.issue,
-                repo_path=repo_path,
+    if environments_configurations:
+        microvm_client = dependencies.microvm_client
+        environment_id = environments_configurations[0].environment_id
+        if microvm_client:
+            snapshot = get_snapshot(
+                microvm_client,
+                {
+                    "type": "dev",
+                    "knowledge_base_id": knowledge_base_id,
+                    "environment_id": environment_id,
+                },
             )
-        )
-    except Exception as e:
-        logger.error(f"Error resolving issue: {str(e)}")
-        await event_store.append(
-            message.process_id,
-            IssueResolutionFailed(
-                process_id=message.process_id,
-                occurred_at=dependencies.clock.now(),
-                reason="coding_agent_failed",
-                error_message=str(e),
-            ),
-        )
-        return
+            if snapshot:
+                instance = microvm_client.instances.start(snapshot_id=snapshot.id)
+                await event_store.append(
+                    process_id,
+                    IssueResolutionEnvironmentPrepared(
+                        process_id=process_id,
+                        occurred_at=dependencies.clock.now(),
+                        knowledge_base_id=knowledge_base_id,
+                        environment_id=environment_id,
+                        instance_id=instance.id,
+                    ),
+                )
+    else:
+        repo_path = Path(f"/tmp/repo/{process_id}")
+        try:
+            dependencies.git_client.clone_repo_and_branch(
+                process_id, repo_path, url, access_token, message.issue
+            )
+        except Exception as e:
+            logger.error(f"Error cloning repository: {str(e)}")
+            await event_store.append(
+                message.process_id,
+                IssueResolutionFailed(
+                    process_id=message.process_id,
+                    occurred_at=dependencies.clock.now(),
+                    reason="repo_cant_be_cloned",
+                    error_message=str(e),
+                ),
+            )
+            return
 
-    try:
-        dependencies.git_client.commit_and_push(
-            issue_info=message.issue,
-            repo_path=repo_path,
-            url=url,
-            access_token=access_token,
-        )
-    except Exception as e:
-        logger.error(f"Error committing changes: {str(e)}")
-        await event_store.append(
+        await dependencies.event_store.append(
             message.process_id,
-            IssueResolutionFailed(
+            IssueResolutionStarted(
                 process_id=message.process_id,
                 occurred_at=dependencies.clock.now(),
-                reason="failed_to_push_changes",
-                error_message=str(e),
             ),
         )
-        return
-    # Submit PR
-    try:
-        pr_reference = dependencies.git_client.submit_pull_request(
-            repo_path=repo_path,
-            title=message.issue.title
-            or f"automatic issue resolution {message.process_id}",
-            body=message.issue.description,
-            access_token=access_token,
-            url=url,
-        )
-    except Exception as e:
-        logger.error(f"Error creating pull request: {str(e)}")
-        await event_store.append(
-            message.process_id,
-            IssueResolutionFailed(
-                process_id=message.process_id,
-                occurred_at=dependencies.clock.now(),
-                reason="failed_to_submit_pr",
-                error_message=str(e),
-            ),
-        )
-        return
 
-    await dependencies.event_store.append(
-        message.process_id,
-        IssueResolutionCompleted(
-            process_id=message.process_id,
-            occurred_at=dependencies.clock.now(),
-            pr_url=pr_reference.url,
-            pr_number=pr_reference.number,
-        ),
-    )
+        # Run coding agent
+        try:
+            await dependencies.coding_agent.resolve_issue(
+                ResolveIssueCommand(
+                    process_id=message.process_id,
+                    model=QualifiedAIModel(
+                        ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
+                        version=LATEST_CLAUDE_4_VERSION,
+                    ),
+                    issue=message.issue,
+                    repo_path=repo_path,
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error resolving issue: {str(e)}")
+            await event_store.append(
+                message.process_id,
+                IssueResolutionFailed(
+                    process_id=message.process_id,
+                    occurred_at=dependencies.clock.now(),
+                    reason="coding_agent_failed",
+                    error_message=str(e),
+                ),
+            )
+            return
+
+        try:
+            dependencies.git_client.commit_and_push(
+                issue_info=message.issue,
+                repo_path=repo_path,
+                url=url,
+                access_token=access_token,
+            )
+        except Exception as e:
+            logger.error(f"Error committing changes: {str(e)}")
+            await event_store.append(
+                message.process_id,
+                IssueResolutionFailed(
+                    process_id=message.process_id,
+                    occurred_at=dependencies.clock.now(),
+                    reason="failed_to_push_changes",
+                    error_message=str(e),
+                ),
+            )
+            return
+        # Submit PR
+        try:
+            pr_reference = dependencies.git_client.submit_pull_request(
+                repo_path=repo_path,
+                title=message.issue.title
+                or f"automatic issue resolution {message.process_id}",
+                body=message.issue.description,
+                access_token=access_token,
+                url=url,
+            )
+        except Exception as e:
+            logger.error(f"Error creating pull request: {str(e)}")
+            await event_store.append(
+                message.process_id,
+                IssueResolutionFailed(
+                    process_id=message.process_id,
+                    occurred_at=dependencies.clock.now(),
+                    reason="failed_to_submit_pr",
+                    error_message=str(e),
+                ),
+            )
+            return
+
+        await dependencies.event_store.append(
+            message.process_id,
+            IssueResolutionCompleted(
+                process_id=message.process_id,
+                occurred_at=dependencies.clock.now(),
+                pr_url=pr_reference.url,
+                pr_number=pr_reference.number,
+            ),
+        )
 
 
 async def process_event_message(

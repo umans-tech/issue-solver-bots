@@ -2,6 +2,16 @@ from datetime import datetime
 from unittest.mock import Mock, AsyncMock
 
 import pytest
+from morphcloud.api import (
+    MorphCloudClient,
+    Instance,
+    ResourceSpec,
+    InstanceRefs,
+    InstanceNetworking,
+    Snapshot,
+    SnapshotStatus,
+    SnapshotRefs,
+)
 
 from tests.controllable_clock import ControllableClock
 
@@ -12,6 +22,8 @@ from issue_solver.events.domain import (
     IssueResolutionCompleted,
     IssueResolutionFailed,
     CodeRepositoryConnected,
+    EnvironmentConfigurationProvided,
+    IssueResolutionEnvironmentPrepared,
 )
 from issue_solver.git_operations.git_helper import GitClient, PullRequestReference
 from issue_solver.issues.issue import IssueInfo
@@ -324,3 +336,108 @@ async def test_resolve_issue_should_fail_when_fail_to_submit_pr(
         )
         in produced_events
     )
+
+
+@pytest.mark.asyncio
+async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided(
+    event_store, time_under_control: ControllableClock
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-01-01T00:00:00")
+    repo_integration_process_id = "indexation_process_id"
+    await event_store.append(
+        repo_integration_process_id,
+        CodeRepositoryConnected(
+            url="http://gitlab.com/test-repo.git",
+            access_token="s3cretAcc3ssT0k3n",
+            user_id="test-user-id",
+            space_id="test-space-id",
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            process_id=repo_integration_process_id,
+        ),
+    )
+    environment_config_process_id = "env-config-process-id"
+    environment_id = "bob-dev-environment-05"
+    await event_store.append(
+        "environment_config_process_id",
+        EnvironmentConfigurationProvided(
+            environment_id=environment_id,
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            script="echo 'Hello, World!'",
+            user_id="test-user-id",
+            process_id=environment_config_process_id,
+        ),
+    )
+    issue_resolution_process_id = "test-process-id"
+    issue_resolution_requested_event = IssueResolutionRequested(
+        occurred_at=time_under_control.now(),
+        knowledge_base_id="test-knowledge-base-id",
+        process_id=issue_resolution_process_id,
+        issue=IssueInfo(title="issue title", description="test issue"),
+    )
+    git_helper = Mock(spec=GitClient)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    microvm_instance_id = "test-instance-id"
+    microvm_client = Mock(spec=MorphCloudClient)
+    snapshot_id = "test-snapshot-id"
+    microvm_client.snapshots.list.return_value = [
+        Snapshot(
+            id=snapshot_id,
+            object="snapshot",
+            created=time_under_control.now().timestamp(),
+            spec=ResourceSpec(
+                vcpus=2,
+                memory=4096,
+                disk_size=20,
+            ),
+            refs=SnapshotRefs(image_id="test-image-id"),
+            status=SnapshotStatus.READY,
+            metadata={
+                "type": "dev",
+                "knowledge_base_id": "test-knowledge-base-id",
+                "environment_id": environment_id,
+            },
+        )
+    ]
+    microvm_client.instances.start.return_value = Instance(
+        id=microvm_instance_id,
+        created=time_under_control.now().timestamp(),
+        spec=ResourceSpec(
+            vcpus=2,
+            memory=4096,
+            disk_size=20,
+        ),
+        refs=InstanceRefs(snapshot_id=snapshot_id, image_id="test-image-id"),
+        networking=InstanceNetworking(),
+    )
+
+    # When
+    await process_event_message(
+        issue_resolution_requested_event,
+        dependencies=Dependencies(
+            event_store, git_helper, coding_agent, time_under_control, microvm_client
+        ),
+    )
+    # Then
+    produced_events = await event_store.get(issue_resolution_process_id)
+
+    assert produced_events == [
+        IssueResolutionEnvironmentPrepared(
+            process_id=issue_resolution_process_id,
+            occurred_at=time_under_control.now(),
+            environment_id=environment_id,
+            instance_id=microvm_instance_id,
+            knowledge_base_id="test-knowledge-base-id",
+        )
+    ]
+
+    microvm_client.snapshots.list.assert_called_once_with(
+        metadata={
+            "type": "dev",
+            "knowledge_base_id": "test-knowledge-base-id",
+            "environment_id": environment_id,
+        }
+    )
+    microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)

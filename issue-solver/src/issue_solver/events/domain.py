@@ -110,6 +110,15 @@ class EnvironmentConfigurationProvided(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class IssueResolutionEnvironmentPrepared(DomainEvent):
+    environment_id: str
+    instance_id: str
+    knowledge_base_id: str
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -121,6 +130,7 @@ AnyDomainEvent = (
     | IssueResolutionCompleted
     | IssueResolutionFailed
     | EnvironmentConfigurationProvided
+    | IssueResolutionEnvironmentPrepared
 )
 
 
