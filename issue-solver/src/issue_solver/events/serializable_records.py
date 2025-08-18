@@ -16,6 +16,7 @@ from issue_solver.events.domain import (
     IssueResolutionCompleted,
     IssueResolutionFailed,
     EnvironmentConfigurationProvided,
+    IssueResolutionEnvironmentPrepared,
 )
 from pydantic import BaseModel
 
@@ -42,6 +43,10 @@ def get_record_type(event_type: Type[T]) -> str:
             return "issue_resolution_completed"
         case type() if event_type is IssueResolutionFailed:
             return "issue_resolution_failed"
+        case type() if event_type is EnvironmentConfigurationProvided:
+            return "environment_configuration_provided"
+        case type() if event_type is IssueResolutionEnvironmentPrepared:
+            return "issue_resolution_environment_prepared"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -399,6 +404,39 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
         )
 
 
+class IssueResolutionEnvironmentPreparedRecord(BaseModel):
+    type: Literal["issue_resolution_environment_prepared"] = (
+        "issue_resolution_environment_prepared"
+    )
+    environment_id: str
+    instance_id: str
+    occurred_at: datetime
+    knowledge_base_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> IssueResolutionEnvironmentPrepared:
+        return IssueResolutionEnvironmentPrepared(
+            environment_id=self.environment_id,
+            instance_id=self.instance_id,
+            occurred_at=self.occurred_at,
+            knowledge_base_id=self.knowledge_base_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: IssueResolutionEnvironmentPrepared) -> Self:
+        return cls(
+            environment_id=event.environment_id,
+            instance_id=event.instance_id,
+            occurred_at=event.occurred_at,
+            knowledge_base_id=event.knowledge_base_id,
+            process_id=event.process_id,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -410,6 +448,7 @@ ProcessTimelineEventRecords = (
     | IssueResolutionCompletedRecord
     | IssueResolutionFailedRecord
     | EnvironmentConfigurationProvidedRecord
+    | IssueResolutionEnvironmentPreparedRecord
 )
 
 
@@ -439,6 +478,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return IssueResolutionFailedRecord.create_from(event)
         case EnvironmentConfigurationProvided():
             return EnvironmentConfigurationProvidedRecord.create_from(event)
+        case IssueResolutionEnvironmentPrepared():
+            return IssueResolutionEnvironmentPreparedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -483,6 +524,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "environment_configuration_provided":
             return EnvironmentConfigurationProvidedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "issue_resolution_environment_prepared":
+            return IssueResolutionEnvironmentPreparedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:
