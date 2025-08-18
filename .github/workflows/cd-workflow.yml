@@ -258,6 +258,7 @@ jobs:
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
+          TF_VAR_morph_api_key: ${{ secrets.TF_VAR_MORPH_API_KEY }}
 
   cleanup:
     needs: detect-changes
@@ -303,6 +304,7 @@ jobs:
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
+          TF_VAR_morph_api_key: ${{ secrets.TF_VAR_MORPH_API_KEY }}
 
       - name: Destroy provision
         run: |

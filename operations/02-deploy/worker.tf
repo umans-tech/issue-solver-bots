@@ -3,11 +3,11 @@ resource "aws_lambda_function" "worker" {
   image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.worker_image_tag}"
   package_type  = "Image"
   role          = aws_iam_role.worker_lambda_exec.arn
-  timeout = 900  # 15 minutes
+  timeout       = 900 # 15 minutes
   memory_size   = 2048
 
   vpc_config {
-    subnet_ids = data.terraform_remote_state.provision.outputs.private_subnet_ids
+    subnet_ids         = data.terraform_remote_state.provision.outputs.private_subnet_ids
     security_group_ids = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
   }
 
@@ -23,6 +23,7 @@ resource "aws_lambda_function" "worker" {
       ANTHROPIC_API_KEY            = var.anthropic_api_key,
       GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
       TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
+      MORPH_API_KEY                = var.morph_api_key,
     }
   }
 }
@@ -62,4 +63,4 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   function_name    = aws_lambda_function.worker.function_name
   batch_size       = 1
   enabled          = true
-} 
+}

@@ -9,6 +9,8 @@ import os
 import sys
 from typing import Any, Dict
 
+from morphcloud.api import MorphCloudClient
+
 from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
@@ -87,6 +89,7 @@ async def load_dependencies_and_process_event_message(
             api_key=os.environ["ANTHROPIC_API_KEY"], agent_messages=agent_message_store
         ),
         clock=get_clock(),
+        microvm_client=MorphCloudClient() if "MORPH_API_KEY" in os.environ else None,
     )
     await process_event_message(
         event_record,
