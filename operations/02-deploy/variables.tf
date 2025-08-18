@@ -82,3 +82,9 @@ variable "token_encryption_key" {
   sensitive   = true
   description = "Encryption key for securing access tokens in the database"
 }
+
+variable "morph_api_key" {
+  type        = string
+  sensitive   = true
+  description = "API key for Morph Cloud Micro VMs service"
+}
