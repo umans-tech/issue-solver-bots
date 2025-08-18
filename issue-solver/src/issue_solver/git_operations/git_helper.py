@@ -661,3 +661,22 @@ def sanitize_branch_name(name: str) -> str:
 
     # Truncate to reasonable length and ensure it doesn't end with invalid chars
     return sanitized[:50].rstrip("-._")
+
+
+def extract_git_clone_default_directory_name(repo_url: str) -> str:
+    url = repo_url.rstrip("/")
+
+    if ":" in url and not url.startswith("http"):
+        url = url.split(":", 1)[-1]  # Get everything after first colon
+
+    if url.endswith(".git"):
+        url = url[:-4]
+
+    url = url.rstrip("/")
+
+    if "/" in url:
+        directory_name = url.split("/")[-1]
+    else:
+        directory_name = url
+
+    return directory_name

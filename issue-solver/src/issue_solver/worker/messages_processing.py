@@ -9,6 +9,8 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     ResolveIssueCommand,
 )
+from issue_solver.agents.supported_agents import SupportedAgent
+from issue_solver.app_settings import SolveCommandSettings
 from issue_solver.clock import Clock
 from issue_solver.dev_environments_management import get_snapshot
 from issue_solver.events.domain import (
@@ -34,6 +36,7 @@ from issue_solver.git_operations.git_helper import (
     GitSettings,
     GitValidationError,
     GitClient,
+    extract_git_clone_default_directory_name,
 )
 from issue_solver.models.supported_models import (
     QualifiedAIModel,
@@ -141,6 +144,22 @@ async def resolve_issue(
                         environment_id=environment_id,
                         instance_id=instance.id,
                     ),
+                )
+
+                solve_command_setting = SolveCommandSettings(
+                    process_id=process_id,
+                    issue=message.issue,
+                    agent=SupportedAgent.CLAUDE_CODE,
+                    git=GitSettings(
+                        repository_url=url,
+                        access_token=access_token,
+                    ),
+                    ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
+                    ai_model_version=LATEST_CLAUDE_4_VERSION,
+                    repo_path=Path(extract_git_clone_default_directory_name(url)),
+                )
+                instance.exec(
+                    f"runuser -l umans -c '{solve_command_setting.to_env_script()} && cudu solve'"
                 )
     else:
         repo_path = Path(f"/tmp/repo/{process_id}")

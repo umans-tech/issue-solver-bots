@@ -114,3 +114,29 @@ class SolveCommandSettings(BaseSettings):
         return VersionedAIModelWithSettings(
             model=self.versioned_ai_model, settings=self.model_settings
         )
+
+    def to_env_script(self) -> str:
+        return f"{base_settings_to_env_script(self.model_settings)} && {base_settings_to_env_script(self)}"
+
+
+def base_settings_to_env_script(settings: BaseSettings) -> str:
+    """Convert SolveCommandSettings instance to a shell script that exports environment variables."""
+    lines = []
+
+    # Use model_dump() to get all field values as a dictionary
+    env_prefix = ""
+    if settings.model_config:
+        env_prefix = settings.model_config.get("env_prefix", "")
+    env_vars = settings.model_dump()
+
+    for key, value in env_vars.items():
+        if value is not None:
+            # Convert field names to uppercase environment variable names
+            env_name = env_prefix.upper() + key.upper()
+            # Handle nested objects by converting to string representation
+            env_value = str(value) if not isinstance(value, str) else value
+            # Escape quotes in the value
+            env_value = env_value.replace('"', '\\"')
+            lines.append(f'export {env_name}="{env_value}"')
+
+    return " && ".join(lines)

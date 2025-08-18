@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from unittest.mock import Mock, AsyncMock
 
@@ -6,8 +7,6 @@ from morphcloud.api import (
     MorphCloudClient,
     Instance,
     ResourceSpec,
-    InstanceRefs,
-    InstanceNetworking,
     Snapshot,
     SnapshotStatus,
     SnapshotRefs,
@@ -25,7 +24,10 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     IssueResolutionEnvironmentPrepared,
 )
-from issue_solver.git_operations.git_helper import GitClient, PullRequestReference
+from issue_solver.git_operations.git_helper import (
+    GitClient,
+    PullRequestReference,
+)
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.worker.messages_processing import process_event_message, Dependencies
 
@@ -401,17 +403,11 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
             },
         )
     ]
-    microvm_client.instances.start.return_value = Instance(
-        id=microvm_instance_id,
-        created=time_under_control.now().timestamp(),
-        spec=ResourceSpec(
-            vcpus=2,
-            memory=4096,
-            disk_size=20,
-        ),
-        refs=InstanceRefs(snapshot_id=snapshot_id, image_id="test-image-id"),
-        networking=InstanceNetworking(),
-    )
+    started_instance = Mock(spec=Instance)
+    microvm_client.instances.start.return_value = started_instance
+    started_instance.id = microvm_instance_id
+    os.environ.clear()
+    os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
 
     # When
     await process_event_message(
@@ -441,3 +437,15 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
         }
     )
     microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)
+    solve_command = (
+        "runuser -l umans -c '"
+        'export ANTHROPIC_API_KEY="test-anthropic-api-key" && export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1" && '
+        "export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && "
+        'export AGENT="claude-code" && '
+        'export AI_MODEL="claude-sonnet-4" && export AI_MODEL_VERSION="20250514" && '
+        "export GIT=\"{'repository_url': 'http://gitlab.com/test-repo.git', 'access_token': 's3cretAcc3ssT0k3n', 'user_mail': 'agent@umans.ai', 'user_name': 'umans-agent'}\" && "
+        'export REPO_PATH="test-repo" && '
+        'export PROCESS_ID="test-process-id" && '
+        "cudu solve'"
+    )
+    started_instance.exec.assert_called_once_with(solve_command)

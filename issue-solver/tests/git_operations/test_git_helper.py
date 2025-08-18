@@ -2,7 +2,11 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from issue_solver.git_operations.git_helper import GitHelper, GitSettings
+from issue_solver.git_operations.git_helper import (
+    GitHelper,
+    GitSettings,
+    extract_git_clone_default_directory_name,
+)
 
 
 @pytest.fixture
@@ -40,3 +44,32 @@ def test_get_changed_files_commit(mock_repo_class, mock_repo):
     renamed_file = diff_files.renamed_files[0]
     assert renamed_file.old_file_name == Path("old_name.txt")
     assert renamed_file.new_file_name == Path("new_name.txt")
+
+
+@pytest.mark.parametrize(
+    "repo_url,expected_directory",
+    [
+        # GitHub HTTPS URLs
+        ("https://github.com/user/my-project.git", "my-project"),
+        ("https://github.com/user/awesome-app", "awesome-app"),
+        ("https://github.com/facebook/react.git", "react"),
+        # SSH URLs
+        ("git@github.com:user/repo-name.git", "repo-name"),
+        ("git@gitlab.com:group/project.git", "project"),
+        # Local paths
+        ("/path/to/local/repo.git", "repo"),
+        ("/home/user/projects/my-app.git", "my-app"),
+        # Other formats
+        ("host.xz:foo/.git", "foo"),
+        ("https://gitlab.com/group/subgroup/project.git", "project"),
+        # Trailing slashes
+        ("https://github.com/user/project/", "project"),
+        ("https://github.com/user/my-repo.git/", "my-repo"),
+        # Edge cases
+        ("simple-repo.git", "simple-repo"),
+        ("simple-repo", "simple-repo"),
+    ],
+)
+def test_git_clone_directory_name(repo_url, expected_directory):
+    # Test the problematic case
+    assert extract_git_clone_default_directory_name(repo_url) == expected_directory
