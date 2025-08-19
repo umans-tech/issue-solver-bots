@@ -6,6 +6,7 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from issue_solver.app_settings import base_settings_to_env_script
 from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.issues.issue_settings import IssueSettings, describe
@@ -28,6 +29,9 @@ class PrepareCommandSettings(BaseSettings):
         "or actual Content describing the issue"
     )
     install_script: Path | str
+
+    def to_env_script(self) -> str:
+        return base_settings_to_env_script(self)
 
 
 class PrepareCommand(PrepareCommandSettings):
