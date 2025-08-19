@@ -4,7 +4,7 @@ import type {
   Attachment,
   ChatRequestOptions,
   CreateMessage,
-  Message,
+  UIMessage,
 } from 'ai';
 import cx from 'classnames';
 import type React from 'react';
@@ -52,13 +52,13 @@ function PureMultimodalInput({
 }: {
   chatId: string;
   input: string;
-  setInput: (value: string) => void;
+  setInput: Dispatch<SetStateAction<string>>;
   status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<Message>;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+  messages: Array<UIMessage>;
+  setMessages: Dispatch<SetStateAction<Array<UIMessage>>>;
   append: UseChatHelpers['append'];
   handleSubmit: UseChatHelpers['handleSubmit'];
   className?: string;
@@ -286,7 +286,7 @@ function PureMultimodalInput({
       <Textarea
         ref={textareaRef}
         placeholder="Send a message..."
-        value={input}
+        value={input ?? ''}
         onChange={handleInput}
         onPaste={handlePaste}
         className={cx(
@@ -373,7 +373,7 @@ function PureStopButton({
   setMessages,
 }: {
   stop: () => void;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+  setMessages: Dispatch<SetStateAction<Array<UIMessage>>>;
 }) {
   return (
     <Button
@@ -407,7 +407,7 @@ function PureSendButton({
         event.preventDefault();
         submitForm();
       }}
-      disabled={input.length === 0 || uploadQueue.length > 0}
+      disabled={(input?.length ?? 0) === 0 || uploadQueue.length > 0}
     >
       <ArrowUpIcon size={14} />
     </Button>
