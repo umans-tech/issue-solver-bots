@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
-import { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import { ChatRequestOptions, CreateMessage, UIMessage } from 'ai';
 import { memo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { RepoConnectionDialog } from './repo-connection-dialog';
@@ -11,7 +11,7 @@ import { Plug } from 'lucide-react';
 interface SuggestedActionsProps {
   chatId: string;
   append: (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
 }

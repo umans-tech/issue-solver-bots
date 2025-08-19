@@ -1,4 +1,4 @@
-import { appendResponseMessages, createDataStream, smoothStream, streamText, UIMessage, } from 'ai';
+import { appendResponseMessages, createDataStream, smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
@@ -40,7 +40,7 @@ const maxRetries = 10;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
-function getStreamContext() {
+export function getStreamContext() {
   if (!globalStreamContext) {
     try {
       globalStreamContext = createResumableStreamContext({
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
               id: userMessage.id,
               role: 'user',
               parts: userMessage.parts,
-              attachments: userMessage.experimental_attachments ?? [],
+              attachments: userMessage.parts.filter((part) => part.type === 'file') ?? [],
               createdAt: new Date(),
             },
           ],
@@ -132,8 +132,8 @@ export async function POST(request: Request) {
     const mcpClient = clientWrapper.client;
     const mcpTools = await mcpClient.tools();
 
-    const stream = createDataStream({
-        execute: async (dataStream) => {
+    const stream = createUIMessageStream({
+        execute: async ({ writer: dataStream }) => {
             
             // Collect sources written to the dataStream
             const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
@@ -148,8 +148,8 @@ export async function POST(request: Request) {
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({ selectedChatModel }),
-                messages,
-                maxSteps: maxSteps,
+                messages: convertToModelMessages(messages),
+                stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,
                 toolCallStreaming: true,
                 providerOptions: {
@@ -290,101 +290,6 @@ export async function POST(request: Request) {
       return new Response(stream);
     }
 }
-
-export async function GET(request: Request) {
-    const streamContext = getStreamContext();
-    const resumeRequestedAt = new Date();
-
-    if (!streamContext) {
-      return new Response(null, { status: 204 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const chatId = searchParams.get('chatId');
-
-    if (!chatId) {
-      return new Response('id is required', { status: 400 });
-    }
-
-    const session = await auth();
-
-    let chat: Chat;
-
-    try {
-      chat = await getChatById({ id: chatId });
-    } catch {
-      return new Response('Not found', { status: 404 });
-    }
-
-    if (!chat) {
-      return new Response('Not found', { status: 404 });
-    }
-
-    if (chat.visibility !== 'public' && !session?.user) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-
-    if (chat.visibility === 'private' && chat.userId !== session?.user.id) {
-      return new Response('Forbidden', { status: 403 });
-    }
-
-    const streamIds = await getStreamIdsByChatId({ chatId });
-
-    if (!streamIds.length) {
-      return new Response('No streams found', { status: 404 });
-    }
-
-    const recentStreamId = streamIds.at(-1);
-
-    if (!recentStreamId) {
-      return new Response('No recent stream found', { status: 404 });
-    }
-
-    const emptyDataStream = createDataStream({
-      execute: () => {},
-    });
-
-    const stream = await streamContext.resumableStream(
-      recentStreamId,
-      () => emptyDataStream,
-    );
-
-    /*
-     * For when the generation is streaming during SSR
-     * but the resumable stream has concluded at this point.
-     */
-    if (!stream) {
-      const messages = await getMessagesByChatId({ id: chatId });
-      const mostRecentMessage = messages.at(-1);
-
-      if (!mostRecentMessage) {
-        return new Response(emptyDataStream, { status: 200 });
-      }
-
-      if (mostRecentMessage.role !== 'assistant') {
-        return new Response(emptyDataStream, { status: 200 });
-      }
-
-      const messageCreatedAt = new Date(mostRecentMessage.createdAt);
-
-      if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
-        return new Response(emptyDataStream, { status: 200 });
-      }
-
-      const restoredStream = createDataStream({
-        execute: (buffer) => {
-          buffer.writeData({
-            type: 'append-message',
-            message: JSON.stringify(mostRecentMessage),
-          });
-        },
-      });
-
-      return new Response(restoredStream, { status: 200 });
-    }
-
-    return new Response(stream, { status: 200 });
-  }
 
 export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
