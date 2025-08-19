@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import assert_never
+from typing import assert_never, Mapping, Any
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -119,24 +120,42 @@ class SolveCommandSettings(BaseSettings):
         return f"{base_settings_to_env_script(self.model_settings)} && {base_settings_to_env_script(self)}"
 
 
+def _safe_single_quote(s: str) -> str:
+    # POSIX-safe single-quote
+    return "'" + s.replace("'", "'\"'\"'") + "'"
+
+
+def _flatten(prefix: str, value, out: dict):
+    """Flatten nested dict/list into env keys using __ delimiter."""
+    if isinstance(value, Mapping):
+        for k, v in value.items():
+            _flatten(f"{prefix}__{k}" if prefix else str(k), v, out)
+    elif isinstance(value, list):
+        # Lists are encoded as JSON blobs for simplicity
+        out[prefix] = json.dumps(value, ensure_ascii=False)
+    else:
+        out[prefix] = value
+
+
 def base_settings_to_env_script(settings: BaseSettings) -> str:
-    """Convert SolveCommandSettings instance to a shell script that exports environment variables."""
-    lines = []
-
-    # Use model_dump() to get all field values as a dictionary
+    # Build a flat dict of env vars using env_nested_delimiter semantics
+    data = settings.model_dump(mode="json", exclude_none=True)
     env_prefix = ""
-    if settings.model_config:
-        env_prefix = settings.model_config.get("env_prefix", "")
-    env_vars = settings.model_dump()
+    cfg = getattr(settings, "model_config", None)
+    if cfg:
+        env_prefix = (cfg.get("env_prefix") or "").upper()
 
-    for key, value in env_vars.items():
-        if value is not None:
-            # Convert field names to uppercase environment variable names
-            env_name = env_prefix.upper() + key.upper()
-            # Handle nested objects by converting to string representation
-            env_value = str(value) if not isinstance(value, str) else value
-            # Escape quotes in the value
-            env_value = env_value.replace('"', '\\"')
-            lines.append(f'export {env_name}="{env_value}"')
+    flat: dict[str, Any] = {}
+    _flatten("", data, flat)
 
-    return " && ".join(lines)
+    lines = []
+    for key, val in flat.items():
+        name = (env_prefix + key).upper()
+        # Ensure strings; JSON for dicts/lists already handled in _flatten
+        if isinstance(val, (dict, list)):
+            val = json.dumps(val, ensure_ascii=False)
+        else:
+            val = str(val)
+        lines.append(f"export {name}={_safe_single_quote(val)}")
+    # one export per line, newline-terminated
+    return "\n".join(lines) + "\n"

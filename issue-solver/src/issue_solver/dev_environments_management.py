@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass
+from textwrap import dedent
 from typing import Any
 
 from morphcloud.api import MorphCloudClient, Snapshot
@@ -163,3 +164,55 @@ def get_snapshot(client: MorphCloudClient, metadata: dict[str, Any]) -> Snapshot
 
     print(f"No existing snapshot found with type '{snapshot_type}'")
     return None
+
+
+def run_as_umans_with_env(
+    env_body: str,
+    command: str,
+    env_path: str = "/home/umans/.cudu_env",
+    exec_path: str = "/home/umans/.cudu_run.sh",
+) -> str:
+    if not env_body.endswith("\n"):
+        env_body += "\n"
+
+    script = f"""
+set -Eeuo pipefail
+umask 0077
+trap 'rm -f "{env_path}" "{exec_path}"' EXIT
+
+# 1) write .env literally
+cat > "{env_path}" <<'ENV'
+{env_body}ENV
+chown umans:umans "{env_path}"
+chmod 600 "{env_path}"
+
+# 2) write the exec script literally (owned by umans)
+cat > "{exec_path}" <<'SH'
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+. "{env_path}"
+set +a
+
+# --- pick a safe working directory so .env is readable ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
+
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+
+exec {command}
+SH
+chown umans:umans "{exec_path}"
+chmod 700 "{exec_path}"
+
+# 3) run as umans without -c or -l
+runuser -u umans -- /bin/bash "{exec_path}"
+"""
+    return dedent(script)

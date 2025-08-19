@@ -437,18 +437,24 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
         }
     )
     microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)
-    solve_command = (
-        "runuser -l umans -c '"
-        'export ANTHROPIC_API_KEY="test-anthropic-api-key" && export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1" && '
-        "export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && "
-        'export AGENT="claude-code" && '
-        'export AI_MODEL="claude-sonnet-4" && export AI_MODEL_VERSION="20250514" && '
-        "export GIT=\"{'repository_url': 'http://gitlab.com/test-repo.git', 'access_token': 's3cretAcc3ssT0k3n', 'user_mail': 'agent@umans.ai', 'user_name': 'umans-agent'}\" && "
-        'export REPO_PATH="test-repo" && '
-        'export PROCESS_ID="test-process-id" && '
-        "cudu solve'"
+    solve_settings = """
+export ANTHROPIC_API_KEY=\'test-anthropic-api-key\'
+export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/v1\'
+ && export ISSUE__DESCRIPTION=\'test issue\'
+export ISSUE__TITLE=\'issue title\'
+export AGENT=\'claude-code\'
+export AI_MODEL=\'claude-sonnet-4\'
+export AI_MODEL_VERSION=\'20250514\'
+export GIT__REPOSITORY_URL=\'http://gitlab.com/test-repo.git\'
+export GIT__ACCESS_TOKEN=\'s3cretAcc3ssT0k3n\'
+export GIT__USER_MAIL=\'agent@umans.ai\'
+export GIT__USER_NAME=\'umans-agent\'
+export REPO_PATH=\'test-repo\'
+export PROCESS_ID=\'test-process-id\'
+"""
+    started_instance.exec.assert_called_once_with(
+        to_script(command="cudu solve", dotenv_settings=solve_settings)
     )
-    started_instance.exec.assert_called_once_with(solve_command)
 
 
 @pytest.mark.asyncio
@@ -563,18 +569,78 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
         ]
     )
     microvm_client.instances.start.assert_called_once_with(snapshot_id=dev_snapshot_id)
-    prepare_command = "runuser -l umans -c 'export PROCESS_ID=\"test-process-id\" && export REPO_PATH=\"test-repo\" && export URL=\"http://gitlab.com/test-repo.git\" && export ACCESS_TOKEN=\"s3cretAcc3ssT0k3n\" && export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && export INSTALL_SCRIPT=\"echo 'Hello, World!'\"  && cudu prepare'"
-    base_snapshot.setup.assert_called_once_with(prepare_command)
-
-    solve_command = (
-        "runuser -l umans -c '"
-        'export ANTHROPIC_API_KEY="test-anthropic-api-key" && export ANTHROPIC_BASE_URL="https://api.anthropic.com/v1" && '
-        "export ISSUE=\"{'description': 'test issue', 'title': 'issue title'}\" && "
-        'export AGENT="claude-code" && '
-        'export AI_MODEL="claude-sonnet-4" && export AI_MODEL_VERSION="20250514" && '
-        "export GIT=\"{'repository_url': 'http://gitlab.com/test-repo.git', 'access_token': 's3cretAcc3ssT0k3n', 'user_mail': 'agent@umans.ai', 'user_name': 'umans-agent'}\" && "
-        'export REPO_PATH="test-repo" && '
-        'export PROCESS_ID="test-process-id" && '
-        "cudu solve'"
+    prepare_settings = """
+export PROCESS_ID=\'test-process-id\'
+export REPO_PATH=\'test-repo\'
+export URL=\'http://gitlab.com/test-repo.git\'
+export ACCESS_TOKEN=\'s3cretAcc3ssT0k3n\'
+export ISSUE__DESCRIPTION=\'test issue\'
+export ISSUE__TITLE=\'issue title\'
+export INSTALL_SCRIPT=\'echo \'"\'"\'Hello, World!\'"\'"\'\'
+"""
+    base_snapshot.setup.assert_called_once_with(
+        to_script(command="cudu prepare", dotenv_settings=prepare_settings)
     )
-    started_instance.exec.assert_called_once_with(solve_command)
+
+    solve_settings = """
+export ANTHROPIC_API_KEY=\'test-anthropic-api-key\'
+export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/v1\'
+ && export ISSUE__DESCRIPTION=\'test issue\'
+export ISSUE__TITLE=\'issue title\'
+export AGENT=\'claude-code\'
+export AI_MODEL=\'claude-sonnet-4\'
+export AI_MODEL_VERSION=\'20250514\'
+export GIT__REPOSITORY_URL=\'http://gitlab.com/test-repo.git\'
+export GIT__ACCESS_TOKEN=\'s3cretAcc3ssT0k3n\'
+export GIT__USER_MAIL=\'agent@umans.ai\'
+export GIT__USER_NAME=\'umans-agent\'
+export REPO_PATH=\'test-repo\'
+export PROCESS_ID=\'test-process-id\'
+"""
+    started_instance.exec.assert_called_once_with(
+        to_script(command="cudu solve", dotenv_settings=solve_settings)
+    )
+
+
+def to_script(command: str, dotenv_settings: str) -> str:
+    return """
+set -Eeuo pipefail
+umask 0077
+trap \'rm -f "/home/umans/.cudu_env" "/home/umans/.cudu_run.sh"\' EXIT
+
+# 1) write .env literally
+cat > "/home/umans/.cudu_env" <<\'ENV\'
+%s
+ENV
+chown umans:umans "/home/umans/.cudu_env"
+chmod 600 "/home/umans/.cudu_env"
+
+# 2) write the exec script literally (owned by umans)
+cat > "/home/umans/.cudu_run.sh" <<\'SH\'
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+. "/home/umans/.cudu_env"
+set +a
+
+# --- pick a safe working directory so .env is readable ---
+if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then
+  cd "${REPO_PATH}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
+
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }
+
+exec %s
+SH
+chown umans:umans "/home/umans/.cudu_run.sh"
+chmod 700 "/home/umans/.cudu_run.sh"
+
+# 3) run as umans without -c or -l
+runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
+""" % (dotenv_settings.strip(), command)
