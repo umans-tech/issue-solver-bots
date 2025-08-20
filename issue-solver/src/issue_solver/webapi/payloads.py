@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.coding_agent import Message
+from issue_solver.agents.supported_agents import SupportedAgent
+from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedOpenAIModel,
@@ -51,6 +53,10 @@ class SolveIssueRequest(BaseModel):
     repo_location: str
     issue_description: str
     settings: ResolutionSettings
+    agent: SupportedAgent = SupportedAgent.CLAUDE_CODE
+    execution_environment: ExecutionEnvironmentPreference = (
+        ExecutionEnvironmentPreference.ENV_PREFERRED
+    )
     max_iter: int = 10
 
 

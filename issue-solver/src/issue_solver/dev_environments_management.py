@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass
+from enum import StrEnum
 from textwrap import dedent
 from typing import Any
 
@@ -11,6 +12,12 @@ class VMConfiguration:
     vcpus: int
     memory: int
     disk_size: int
+
+
+class ExecutionEnvironmentPreference(StrEnum):
+    NO_ENV_REQUIRED = "NO_ENV_REQUIRED"  # Can run in Lambda directly
+    ENV_PREFERRED = "ENV_PREFERRED"  # Prefer MicroVM but fallback to Lambda
+    ENV_REQUIRED = "ENV_REQUIRED"  # Must run in MicroVM, fail if unavailable
 
 
 def run_ssh_command(instance, command, sudo=False, print_output=True):
