@@ -82,6 +82,9 @@ async def load_dependencies_and_process_event_message(
 ) -> None:
     event_store = await init_event_store()
     agent_message_store = await init_agent_message_store()
+    is_dev_environment_service_enabled = bool(
+        os.environ["DEV_ENVIRONMENT_SERVICE_ENABLED"]
+    )
     dependencies = Dependencies(
         event_store=event_store,
         git_client=GitClient(),
@@ -90,6 +93,7 @@ async def load_dependencies_and_process_event_message(
         ),
         clock=get_clock(),
         microvm_client=MorphCloudClient() if "MORPH_API_KEY" in os.environ else None,
+        is_dev_environment_service_enabled=is_dev_environment_service_enabled,
     )
     await process_event_message(
         event_record,

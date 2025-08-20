@@ -70,12 +70,14 @@ class Dependencies:
         coding_agent: IssueResolvingAgent,
         clock: Clock,
         microvm_client: MorphCloudClient | None = None,
+        is_dev_environment_service_enabled: bool = False,
     ):
         self._event_store = event_store
         self.git_client = git_client
         self.coding_agent = coding_agent
         self.clock = clock
         self.microvm_client = microvm_client
+        self.is_dev_environment_service_enabled = is_dev_environment_service_enabled
 
     @property
     def event_store(self) -> EventStore:
@@ -125,7 +127,10 @@ async def resolve_issue(
     dev_environment_configuration = await fetch_environment_configuration(
         event_store, knowledge_base_id
     )
-    if dev_environment_configuration:
+    if (
+        dev_environment_configuration
+        and dependencies.is_dev_environment_service_enabled
+    ):
         microvm_client = dependencies.microvm_client
         environment_id = dev_environment_configuration.environment_id
         if microvm_client:

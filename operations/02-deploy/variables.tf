@@ -88,3 +88,9 @@ variable "morph_api_key" {
   sensitive   = true
   description = "API key for Morph Cloud Micro VMs service"
 }
+
+variable "dev_environment_service_enabled" {
+  type        = bool
+  default     = true
+  description = "Flag to enable or disable the Dev Environment Service"
+}
