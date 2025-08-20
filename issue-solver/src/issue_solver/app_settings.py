@@ -117,7 +117,7 @@ class SolveCommandSettings(BaseSettings):
         )
 
     def to_env_script(self) -> str:
-        return f"{base_settings_to_env_script(self.model_settings)} && {base_settings_to_env_script(self)}"
+        return f"{base_settings_to_env_script(self.model_settings)}{base_settings_to_env_script(self)}"
 
 
 def _safe_single_quote(s: str) -> str:

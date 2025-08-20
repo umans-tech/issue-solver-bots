@@ -38,7 +38,7 @@ class DeepSeekSettings(ModelSettings):
 class AnthropicSettings(ModelSettings):
     base_url: AnyUrl | None = Field(
         description="Base URL for the model.",
-        default=AnyUrl("https://api.anthropic.com/v1"),
+        default=AnyUrl("https://api.anthropic.com"),
     )
 
     model_config = SettingsConfigDict(
