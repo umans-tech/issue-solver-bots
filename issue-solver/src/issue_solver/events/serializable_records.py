@@ -3,6 +3,9 @@ from datetime import datetime
 from typing import Any, Literal, Self, Type, assert_never
 
 from cryptography.fernet import Fernet
+
+from issue_solver.agents.supported_agents import SupportedAgent
+from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -21,6 +24,11 @@ from issue_solver.events.domain import (
 from pydantic import BaseModel
 
 from issue_solver.issues.issue import IssueInfo
+from issue_solver.models.supported_models import (
+    SupportedAIModel,
+    SupportedAnthropicModel,
+    LATEST_CLAUDE_4_VERSION,
+)
 
 
 def get_record_type(event_type: Type[T]) -> str:
@@ -266,6 +274,13 @@ class IssueResolutionRequestedRecord(BaseModel):
     process_id: str
     issue: IssueInfo
     user_id: str | None = None
+    agent: SupportedAgent = SupportedAgent.CLAUDE_CODE
+    max_turns: int = 100
+    ai_model: SupportedAIModel = SupportedAnthropicModel.CLAUDE_SONNET_4
+    ai_model_version: str | None = LATEST_CLAUDE_4_VERSION
+    execution_environment: ExecutionEnvironmentPreference = (
+        ExecutionEnvironmentPreference.NO_ENV_REQUIRED
+    )
 
     def safe_copy(self) -> Self:
         return self.model_copy()
@@ -277,6 +292,11 @@ class IssueResolutionRequestedRecord(BaseModel):
             process_id=self.process_id,
             issue=self.issue,
             user_id=self.user_id if self.user_id is not None else "unknown",
+            agent=self.agent,
+            max_turns=self.max_turns,
+            ai_model=self.ai_model,
+            ai_model_version=self.ai_model_version,
+            execution_environment=self.execution_environment,
         )
 
     @classmethod
@@ -287,6 +307,11 @@ class IssueResolutionRequestedRecord(BaseModel):
             process_id=event.process_id,
             issue=event.issue,
             user_id=event.user_id,
+            agent=event.agent,
+            max_turns=event.max_turns,
+            ai_model=event.ai_model,
+            ai_model_version=event.ai_model_version,
+            execution_environment=event.execution_environment,
         )
 
 

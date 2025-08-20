@@ -3,7 +3,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Sequence, TypeVar
 
+from issue_solver.agents.supported_agents import SupportedAgent
+from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.issues.issue import IssueInfo
+from issue_solver.models.supported_models import (
+    SupportedAIModel,
+    SupportedAnthropicModel,
+    LATEST_CLAUDE_4_VERSION,
+)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -76,6 +83,13 @@ class IssueResolutionRequested(DomainEvent):
     process_id: str
     occurred_at: datetime
     user_id: str = "unknown-user-id"  # Default value for retro-compatibility. This can be removed in the future if not needed anymore.
+    agent: SupportedAgent = SupportedAgent.CLAUDE_CODE
+    max_turns: int = 100
+    ai_model: SupportedAIModel = SupportedAnthropicModel.CLAUDE_SONNET_4
+    ai_model_version: str | None = LATEST_CLAUDE_4_VERSION
+    execution_environment: ExecutionEnvironmentPreference = (
+        ExecutionEnvironmentPreference.ENV_PREFERRED
+    )
 
 
 @dataclass(frozen=True, slots=True)
