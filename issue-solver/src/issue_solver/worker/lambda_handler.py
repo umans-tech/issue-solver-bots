@@ -21,10 +21,10 @@ from issue_solver.webapi.dependencies import (
     init_agent_message_store,
 )
 from issue_solver.worker.messages_processing import (
-    logger,
     process_event_message,
-    Dependencies,
 )
+from issue_solver.worker.solving.process_issue_resolution_request import Dependencies
+from issue_solver.worker.logging_config import logger
 
 # Configure logging
 logger.setLevel(logging.INFO)

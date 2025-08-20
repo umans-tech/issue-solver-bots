@@ -13,7 +13,10 @@ from issue_solver.events.domain import (
 from issue_solver.events.code_repo_integration import get_most_recent_access_token
 from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.issues.issue import IssueInfo
-from issue_solver.worker.messages_processing import resolve_issue, Dependencies
+from issue_solver.worker.solving.process_issue_resolution_request import (
+    Dependencies,
+    resolve_issue,
+)
 from tests.controllable_clock import ControllableClock
 
 
