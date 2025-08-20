@@ -16,6 +16,7 @@ from morphcloud.api import (
 from tests.controllable_clock import ControllableClock
 
 from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
+from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionRequested,
@@ -399,6 +400,87 @@ async def test_issue_resolution_should_never_use_vm_when_env_service_is_disabled
             time_under_control,
             microvm_client,
             is_dev_environment_service_enabled=False,
+        ),
+    )
+    # Then
+
+    microvm_client.snapshots.list.assert_not_called()
+    microvm_client.instances.start.assert_not_called()
+    produced_events = await event_store.get(issue_resolution_process_id)
+
+    assert produced_events == [
+        IssueResolutionStarted(
+            process_id=issue_resolution_process_id,
+            occurred_at=time_under_control.now(),
+        ),
+        IssueResolutionCompleted(
+            process_id=issue_resolution_process_id,
+            occurred_at=time_under_control.now(),
+            pr_url="http://gitlab.com/test-repo/pull/69",
+            pr_number=pr_number,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_issue_resolution_should_never_use_vm_when_no_env_required(
+    event_store, time_under_control: ControllableClock
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-01-01T00:00:00")
+    repo_integration_process_id = "indexation_process_id"
+    await event_store.append(
+        repo_integration_process_id,
+        CodeRepositoryConnected(
+            url="http://gitlab.com/test-repo.git",
+            access_token="s3cretAcc3ssT0k3n",
+            user_id="test-user-id",
+            space_id="test-space-id",
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            process_id=repo_integration_process_id,
+        ),
+    )
+    environment_config_process_id = "env-config-process-id"
+    environment_id = "bob-dev-environment-05"
+    await event_store.append(
+        "environment_config_process_id",
+        EnvironmentConfigurationProvided(
+            environment_id=environment_id,
+            occurred_at=time_under_control.now(),
+            knowledge_base_id="test-knowledge-base-id",
+            script="echo 'Hello, World!'",
+            user_id="test-user-id",
+            process_id=environment_config_process_id,
+        ),
+    )
+    issue_resolution_process_id = "test-process-id"
+    issue_resolution_requested_event = IssueResolutionRequested(
+        occurred_at=time_under_control.now(),
+        knowledge_base_id="test-knowledge-base-id",
+        process_id=issue_resolution_process_id,
+        issue=IssueInfo(title="issue title", description="test issue"),
+        execution_environment=ExecutionEnvironmentPreference.NO_ENV_REQUIRED,
+    )
+    git_helper = Mock(spec=GitClient)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    microvm_client = Mock(spec=MorphCloudClient)
+    pr_number = 69
+    git_helper.submit_pull_request.return_value = PullRequestReference(
+        url="http://gitlab.com/test-repo/pull/69",
+        number=pr_number,
+    )
+
+    # When
+    await process_event_message(
+        issue_resolution_requested_event,
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            time_under_control,
+            microvm_client,
+            is_dev_environment_service_enabled=True,
         ),
     )
     # Then

@@ -130,6 +130,7 @@ async def resolve_issue(
     if (
         dev_environment_configuration
         and dependencies.is_dev_environment_service_enabled
+        and message.needs_environment()
     ):
         microvm_client = dependencies.microvm_client
         environment_id = dev_environment_configuration.environment_id
