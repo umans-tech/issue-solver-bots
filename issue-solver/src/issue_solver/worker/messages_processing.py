@@ -122,12 +122,12 @@ async def resolve_issue(
 
     process_id = message.process_id
 
-    environments_configurations = await event_store.find(
-        {"knowledge_base_id": knowledge_base_id}, EnvironmentConfigurationProvided
+    dev_environment_configuration = await fetch_environment_configuration(
+        event_store, knowledge_base_id
     )
-    if environments_configurations:
+    if dev_environment_configuration:
         microvm_client = dependencies.microvm_client
-        environment_id = environments_configurations[0].environment_id
+        environment_id = dev_environment_configuration.environment_id
         if microvm_client:
             snapshot = get_snapshot(
                 microvm_client,
@@ -147,7 +147,7 @@ async def resolve_issue(
                         url=url,
                         access_token=access_token,
                         issue=message.issue,  # see Note below
-                        install_script=environments_configurations[0].script,
+                        install_script=dev_environment_configuration.script,
                     ).to_env_script()
                     cmd = run_as_umans_with_env(prepare_body, "cudu prepare")
                     snapshot = snapshot.setup(cmd)
@@ -164,7 +164,6 @@ async def resolve_issue(
                         instance_id=instance.id,
                     ),
                 )
-
                 solve_body = SolveCommandSettings(
                     process_id=process_id,
                     issue=message.issue,
@@ -173,8 +172,28 @@ async def resolve_issue(
                     ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
                     ai_model_version=LATEST_CLAUDE_4_VERSION,
                     repo_path=default_clone_path,
+                    database_url=None,
+                    process_queue_url=None,
+                    redis_url=None,
                 ).to_env_script()
-                instance.exec(run_as_umans_with_env(solve_body, "cudu solve"))
+                instance.wait_until_ready()
+                solve_command_script = run_as_umans_with_env(solve_body, "cudu solve")
+                instance_exec_response = instance.exec(solve_command_script)
+                print(f"Instance exec STDOUT: {instance_exec_response.stdout}")
+                print(f"Instance exec STDERR: {instance_exec_response.stderr}")
+                if instance_exec_response.exit_code != 0:
+                    logger.error(
+                        f"Instance execution failed with return code {instance_exec_response.exit_code}"
+                    )
+                    await event_store.append(
+                        process_id,
+                        IssueResolutionFailed(
+                            process_id=process_id,
+                            occurred_at=dependencies.clock.now(),
+                            reason="instance_exec_failed",
+                            error_message=instance_exec_response.stderr,
+                        ),
+                    )
     else:
         repo_path = Path(f"/tmp/repo/{process_id}")
         try:
@@ -495,3 +514,15 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
                 occurred_at=get_clock().now(),
             ),
         )
+
+
+async def fetch_environment_configuration(
+    event_store: EventStore, knowledge_base_id: str
+) -> EnvironmentConfigurationProvided | None:
+    environments_configurations = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, EnvironmentConfigurationProvided
+    )
+    most_recent_environment_configuration = most_recent_event(
+        environments_configurations, EnvironmentConfigurationProvided
+    )
+    return most_recent_environment_configuration

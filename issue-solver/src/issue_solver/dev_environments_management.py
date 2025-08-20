@@ -207,7 +207,7 @@ export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-exec {command}
+exec {command} | tee -a /home/umans/.cudu_run.log
 SH
 chown umans:umans "{exec_path}"
 chmod 700 "{exec_path}"

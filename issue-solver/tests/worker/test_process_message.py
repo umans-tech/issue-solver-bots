@@ -10,6 +10,7 @@ from morphcloud.api import (
     Snapshot,
     SnapshotStatus,
     SnapshotRefs,
+    InstanceExecResponse,
 )
 
 from tests.controllable_clock import ControllableClock
@@ -406,6 +407,9 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
     started_instance = Mock(spec=Instance)
     microvm_client.instances.start.return_value = started_instance
     started_instance.id = microvm_instance_id
+    started_instance.exec.return_value = InstanceExecResponse(
+        exit_code=0, stdout="success", stderr=""
+    )
     os.environ.clear()
     os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
 
@@ -439,8 +443,8 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
     microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)
     solve_settings = """
 export ANTHROPIC_API_KEY=\'test-anthropic-api-key\'
-export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/v1\'
- && export ISSUE__DESCRIPTION=\'test issue\'
+export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/\'
+export ISSUE__DESCRIPTION=\'test issue\'
 export ISSUE__TITLE=\'issue title\'
 export AGENT=\'claude-code\'
 export AI_MODEL=\'claude-sonnet-4\'
@@ -529,6 +533,9 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
             "environment_id": environment_id,
         },
     )
+    started_instance.exec.return_value = InstanceExecResponse(
+        exit_code=0, stdout="success", stderr=""
+    )
     os.environ.clear()
     os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
 
@@ -584,8 +591,8 @@ export INSTALL_SCRIPT=\'echo \'"\'"\'Hello, World!\'"\'"\'\'
 
     solve_settings = """
 export ANTHROPIC_API_KEY=\'test-anthropic-api-key\'
-export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/v1\'
- && export ISSUE__DESCRIPTION=\'test issue\'
+export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/\'
+export ISSUE__DESCRIPTION=\'test issue\'
 export ISSUE__TITLE=\'issue title\'
 export AGENT=\'claude-code\'
 export AI_MODEL=\'claude-sonnet-4\'
@@ -636,7 +643,7 @@ export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }
 
-exec %s
+exec %s | tee -a /home/umans/.cudu_run.log
 SH
 chown umans:umans "/home/umans/.cudu_run.sh"
 chmod 700 "/home/umans/.cudu_run.sh"
