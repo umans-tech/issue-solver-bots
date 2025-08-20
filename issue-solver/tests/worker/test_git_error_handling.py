@@ -10,10 +10,8 @@ from issue_solver.events.domain import (
 from issue_solver.git_operations.git_helper import (
     GitValidationError,
 )
-from issue_solver.worker.messages_processing import (
-    index_codebase,
-    index_new_changes_codebase,
-)
+from issue_solver.worker.indexing.delta import index_new_changes_codebase
+from issue_solver.worker.indexing.full import index_codebase
 from tests.fixtures import NoopGitValidationService
 
 
@@ -52,19 +50,19 @@ async def test_index_codebase_git_validation_error():
     # Patch dependencies
     with (
         patch(
-            "issue_solver.worker.messages_processing.init_event_store",
+            "issue_solver.worker.indexing.full.init_event_store",
             mock_init_event_store,
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_clock",
+            "issue_solver.worker.indexing.full.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_validation_service",
+            "issue_solver.worker.indexing.full.get_validation_service",
             return_value=NoopGitValidationService(),
         ),
         patch(
-            "issue_solver.worker.messages_processing.GitHelper.clone_repository",
+            "issue_solver.worker.indexing.full.GitHelper.clone_repository",
             mock_clone,
         ),
     ):
@@ -140,19 +138,19 @@ async def test_index_new_changes_codebase_git_validation_error():
     # Patch dependencies
     with (
         patch(
-            "issue_solver.worker.messages_processing.init_event_store",
+            "issue_solver.worker.indexing.delta.init_event_store",
             mock_init_event_store,
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_clock",
+            "issue_solver.worker.indexing.delta.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_validation_service",
+            "issue_solver.worker.indexing.delta.get_validation_service",
             return_value=NoopGitValidationService(),
         ),
         patch(
-            "issue_solver.worker.messages_processing.GitHelper.pull_repository",
+            "issue_solver.worker.indexing.delta.GitHelper.pull_repository",
             mock_pull,
         ),
         patch("pathlib.Path.exists", mock_path_exists),
@@ -228,19 +226,19 @@ async def test_index_new_changes_codebase_clone_git_validation_error():
     # Patch dependencies
     with (
         patch(
-            "issue_solver.worker.messages_processing.init_event_store",
+            "issue_solver.worker.indexing.delta.init_event_store",
             mock_init_event_store,
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_clock",
+            "issue_solver.worker.indexing.delta.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
         ),
         patch(
-            "issue_solver.worker.messages_processing.get_validation_service",
+            "issue_solver.worker.indexing.delta.get_validation_service",
             return_value=NoopGitValidationService(),
         ),
         patch(
-            "issue_solver.worker.messages_processing.GitHelper.clone_repository",
+            "issue_solver.worker.indexing.delta.GitHelper.clone_repository",
             mock_clone,
         ),
         patch("pathlib.Path.exists", mock_path_exists),
