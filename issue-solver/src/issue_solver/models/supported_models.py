@@ -5,7 +5,9 @@ from typing import TypeVar, Generic
 
 class SupportedOpenAIModel(StrEnum):
     GPT4O = "gpt-4o"
+    GPT5 = "gpt-5"
     GPT4O_MINI = "gpt-4o-mini"
+    GPT5_MINI = "gpt-5-mini"
     GPT41 = "gpt-4.1"
     GPT41_MINI = "gpt-4.1-mini"
     GPT41_NANO = "gpt-4.1-nano"

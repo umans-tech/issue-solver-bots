@@ -3,6 +3,8 @@ from datetime import datetime
 
 import pytest
 
+from issue_solver.agents.supported_agents import SupportedAgent
+from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
@@ -17,6 +19,7 @@ from issue_solver.events.domain import (
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.issues.issue import IssueInfo
+from issue_solver.models.supported_models import SupportedOpenAIModel
 
 
 @pytest.mark.asyncio
@@ -267,6 +270,35 @@ async def test_get_issue_resolution_events_with_dev_environment_configuration(
             process_id="test-process-id",
             pr_url="test-pr-url",
             pr_number=123,
+        ),
+    ]
+
+    await event_store.append("test-process-id", *events)
+
+    # When
+    retrieved_events = await event_store.get("test-process-id")
+
+    # Then
+    assert retrieved_events == events
+
+
+@pytest.mark.asyncio
+async def test_get_issue_resolution_event_v2_with_resolution_settings(
+    event_store: EventStore,
+):
+    # Given
+    events: list[AnyDomainEvent] = [
+        IssueResolutionRequested(
+            occurred_at=datetime.fromisoformat("2021-01-01T00:00:00"),
+            knowledge_base_id="knowledge-base-id",
+            process_id="test-process-id",
+            issue=IssueInfo(description="test issue"),
+            user_id="test-user-id",
+            agent=SupportedAgent.OPENAI_TOOLS,
+            max_turns=69,
+            ai_model=SupportedOpenAIModel.GPT5,
+            ai_model_version="latest",
+            execution_environment=ExecutionEnvironmentPreference.ENV_REQUIRED,
         ),
     ]
 

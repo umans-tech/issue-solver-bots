@@ -44,6 +44,11 @@ async def resolve_issue(
         process_id=process_id,
         issue=request.issue,
         user_id=user_id,
+        agent=request.agent,
+        max_turns=request.max_turns,
+        ai_model=request.ai_model,
+        ai_model_version=request.ai_model_version,
+        execution_environment=request.execution_environment,
     )
     await event_store.append(process_id, event)
     publish(event, logger)
