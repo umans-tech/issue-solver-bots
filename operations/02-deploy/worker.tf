@@ -17,13 +17,14 @@ resource "aws_lambda_function" "worker" {
 
   environment {
     variables = {
-      DATABASE_URL                 = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string,
-      REDIS_URL                    = data.terraform_remote_state.provision.outputs.redis_connection_string,
-      OPENAI_API_KEY               = var.openai_api_key,
-      ANTHROPIC_API_KEY            = var.anthropic_api_key,
-      GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
-      TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
-      MORPH_API_KEY                = var.morph_api_key,
+      DATABASE_URL                    = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string,
+      REDIS_URL                       = data.terraform_remote_state.provision.outputs.redis_connection_string,
+      OPENAI_API_KEY                  = var.openai_api_key,
+      ANTHROPIC_API_KEY               = var.anthropic_api_key,
+      GOOGLE_GENERATIVE_AI_API_KEY    = var.google_generative_ai_api_key,
+      TOKEN_ENCRYPTION_KEY            = var.token_encryption_key,
+      MORPH_API_KEY                   = var.morph_api_key,
+      DEV_ENVIRONMENT_SERVICE_ENABLED = var.dev_environment_service_enabled,
     }
   }
 }
