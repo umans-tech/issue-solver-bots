@@ -91,6 +91,11 @@ class IssueResolutionRequested(DomainEvent):
         ExecutionEnvironmentPreference.ENV_PREFERRED
     )
 
+    def needs_environment(self) -> bool:
+        return (
+            self.execution_environment != ExecutionEnvironmentPreference.NO_ENV_REQUIRED
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class IssueResolutionStarted(DomainEvent):
