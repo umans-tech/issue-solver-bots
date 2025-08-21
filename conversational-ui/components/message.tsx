@@ -314,14 +314,13 @@ const PurePreviewMessage = ({
                 const { toolCallId, state, input } = part as ToolUIPart<ChatTools>;
                 
                 if (state === 'input-available') {
-                  const { args } = input;
 
                   // Special handling for TodoWrite - render directly without wrapper
-                  if (toolName === 'TodoWrite' && args?.todos) {
+                  if (toolName === 'TodoWrite' && (input as any)?.todos) {
                     return (
                       <div key={toolCallId} className="mb-4">
                         <TodoDisplay
-                          todos={args.todos}
+                          todos={(input as any).todos}
                           toolName={toolName}
                         />
                       </div>
@@ -338,23 +337,23 @@ const PurePreviewMessage = ({
                       {toolName === 'getWeather' ? (
                         <Weather />
                       ) : toolName === 'createDocument' ? (
-                        <DocumentPreview isReadonly={isReadonly} args={args} />
+                        <DocumentPreview isReadonly={isReadonly} args={input} />
                       ) : toolName === 'updateDocument' ? (
                         <DocumentToolCall
                           type="update"
-                          args={args}
+                          args={input as ChatTools['updateDocument']['input']}
                           isReadonly={isReadonly}
                         />
                       ) : toolName === 'requestSuggestions' ? (
                         <DocumentToolCall
                           type="request-suggestions"
-                          args={args}
+                          args={input as ChatTools['requestSuggestions']['input']}
                           isReadonly={isReadonly}
                         />
                       ) : toolName === 'codebaseSearch' ? (
                         <CodebaseSearchPreview
                           type="codebaseSearch"
-                          args={args}
+                          args={input}
                           isReadonly={isReadonly}
                         />
                       ) : toolName === 'webSearch' ? (
@@ -362,36 +361,46 @@ const PurePreviewMessage = ({
                       ) : toolName === 'remoteCodingAgent' ? (
                         <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
-                        <FetchWebpageAnimation url={args?.url} />
+                        <FetchWebpageAnimation url={(input as ChatTools['fetchWebpage']['input'])?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
-                        <GitHubMCPAnimation toolName={toolName} args={args} />
+                        <GitHubMCPAnimation toolName={toolName} args={input} />
                       ) : null}
                     </div>
                   );
                 }
 
                 if (state === 'input-streaming') {
-                  const { args } = input;
-                  const issueTitle = args?.issue?.title ?? '';
-                  const issueDescription = args?.issue?.description ?? '';
 
-                  return toolName === 'remoteCodingAgent' ? (
-                    <RemoteCodingStream
-                      key={toolCallId}
-                      toolCallId={toolCallId}
-                      issueTitle={issueTitle}
-                      issueDescription={issueDescription}
-                      result={null}
-                    />
-                  ) : isGitHubMCPTool(toolName) ? (
-                    <GitHubMCPAnimation toolName={toolName} args={args} />
-                  ) : null;
+                  if (toolName === 'remoteCodingAgent') {
+                    const args = input as Partial<ChatTools['remoteCodingAgent']['input']> | undefined;
+                    const issueTitle = args?.issue?.title ?? '';
+                    const issueDescription = args?.issue?.description ?? '';
+
+                    return (
+                      <RemoteCodingStream
+                        key={toolCallId}
+                        toolCallId={toolCallId}
+                        issueTitle={issueTitle}
+                        issueDescription={issueDescription}
+                        result={null}
+                      />
+                    );
+                  }
+
+                  if (isGitHubMCPTool(toolName)) {
+                    const args = input;
+                    return (
+                      <GitHubMCPAnimation toolName={toolName} args={args} />
+                    );
+                  }
+
+                  return null;
                 }
 
                 if (state === 'output-available') {
-                  const { result, args } = input;
-                  const issueTitle = args?.issue?.title ?? '';
-                  const issueDescription = args?.issue?.description ?? '';
+                  const toolPart = part as ToolUIPart<ChatTools>;
+                  const args = toolPart.input;
+                  const result = toolPart.output;
 
                   // Debug logging for all tool results
                   console.log(`[Tool Result] ${toolName}:`, { result, args, state });
@@ -409,7 +418,7 @@ const PurePreviewMessage = ({
                           <CodebaseSearchResult
                             state={state}
                             result={result}
-                            query={args?.query}
+                            query={(args as ChatTools['codebaseSearch']['input']).query}
                           />
                         )}
                       </div>
@@ -422,7 +431,10 @@ const PurePreviewMessage = ({
                     return (
                       <div key={toolCallId}>
                         {result && (
-                          <WebSearch result={result} query={args?.query} />
+                          <WebSearch
+                            result={result}
+                            query={(args as ChatTools['webSearch']['input']).query}
+                          />
                         )}
                       </div>
                     );
@@ -456,22 +468,28 @@ const PurePreviewMessage = ({
                         <div>
                           <RemoteCodingStream
                             toolCallId={toolCallId}
-                            issueTitle={issueTitle}
-                            issueDescription={issueDescription}
+                            issueTitle={(args as ChatTools['remoteCodingAgent']['input']).issue?.title ?? ''}
+                            issueDescription={(args as ChatTools['remoteCodingAgent']['input']).issue?.description ?? ''}
                             isStreaming={false}
                             result={result}
                         />
                         </div>
                       ) : toolName === 'webSearch' ? (
-                        <WebSearch result={result} query={args?.query} />
+                        <WebSearch
+                          result={result}
+                          query={(args as ChatTools['webSearch']['input']).query}
+                        />
                       ) : toolName === 'codebaseSearch' ? (
                         <CodebaseSearchResult
                           state={state}
                           result={result}
-                          query={args?.query}
+                          query={(args as ChatTools['codebaseSearch']['input']).query}
                         />
                       ) : toolName === 'fetchWebpage' ? (
-                        <FetchWebpage result={result} url={args?.url} />
+                        <FetchWebpage
+                          result={result}
+                          url={(args as ChatTools['fetchWebpage']['input']).url}
+                        />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
                       ) : (
