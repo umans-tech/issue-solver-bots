@@ -47,15 +47,18 @@ class StreamingAgentMessageStore(AgentMessageStore):
 async def init_agent_message_store(
     database_url: str | None, redis_url: str | None
 ) -> AgentMessageStore | None:
-    if database_url and redis_url:
-        agent_message_store = StreamingAgentMessageStore(
-            PostgresAgentMessageStore(
-                connection=await asyncpg.connect(
-                    database_url.replace("+asyncpg", ""),
-                    statement_cache_size=0,
-                )
-            ),
-            redis_client=Redis.from_url(redis_url),
+    if database_url:
+        postgres_agent_message_store = PostgresAgentMessageStore(
+            connection=await asyncpg.connect(
+                database_url.replace("+asyncpg", ""),
+                statement_cache_size=0,
+            )
         )
-        return agent_message_store
+        if redis_url:
+            agent_message_store = StreamingAgentMessageStore(
+                postgres_agent_message_store,
+                redis_client=Redis.from_url(redis_url),
+            )
+            return agent_message_store
+        return postgres_agent_message_store
     return None
