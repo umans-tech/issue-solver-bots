@@ -1,4 +1,3 @@
-import type { UIMessage } from 'ai';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
@@ -16,6 +15,7 @@ import {
 } from './ui/tooltip';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
+import { ChatMessage } from '@/lib/types';
 
 export function PureMessageActions({
   chatId,
@@ -25,7 +25,7 @@ export function PureMessageActions({
   isReadonly,
 }: {
   chatId: string;
-  message: UIMessage;
+  message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
   isReadonly: boolean;
@@ -37,9 +37,6 @@ export function PureMessageActions({
   // Only hide actions when loading
   if (isLoading) return null;
   
-  // Check if message has tool invocations but don't restrict functionality based on it
-  const hasToolInvocations = message.toolInvocations && message.toolInvocations.length > 0;
-
   const handleBranch = async () => {
     try {
       const response = await fetch('/api/branch', {

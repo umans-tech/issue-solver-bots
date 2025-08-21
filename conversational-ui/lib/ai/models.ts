@@ -4,9 +4,7 @@ import {createAnthropic} from "@ai-sdk/anthropic";
 
 export const DEFAULT_CHAT_MODEL: string = 'coding-model';
 
-const openaiProvider = createOpenAI({
-    compatibility: 'strict',
-});
+const openaiProvider = createOpenAI();
 
 const anthropicBeta = createAnthropic({
     headers: {

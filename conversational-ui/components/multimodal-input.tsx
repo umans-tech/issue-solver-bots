@@ -1,11 +1,6 @@
 'use client';
 
-import type {
-  Attachment,
-  ChatRequestOptions,
-  CreateMessage,
-  UIMessage,
-} from 'ai';
+import { UIMessage } from 'ai';
 import cx from 'classnames';
 import type React from 'react';
 import {
@@ -34,6 +29,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import { UseChatHelpers } from '@ai-sdk/react';
+import { Attachment } from '@/lib/types';
+import type { ChatMessage } from '@/lib/types';
+import { useDataStream } from './data-stream-provider';
 
 function PureMultimodalInput({
   chatId,
@@ -45,22 +43,20 @@ function PureMultimodalInput({
   setAttachments,
   messages,
   setMessages,
-  append,
-  handleSubmit,
+  sendMessage,
   className,
   selectedModelId,
 }: {
   chatId: string;
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers['status'];
+  status: UseChatHelpers<ChatMessage>['status'];
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<UIMessage>;
-  setMessages: Dispatch<SetStateAction<Array<UIMessage>>>;
-  append: UseChatHelpers['append'];
-  handleSubmit: UseChatHelpers['handleSubmit'];
+  messages: ChatMessage[];
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   className?: string;
   selectedModelId: string;
 }) {
@@ -145,20 +141,35 @@ function PureMultimodalInput({
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
-    handleSubmit(undefined, {
-      experimental_attachments: attachments,
+    sendMessage({
+      role: 'user',
+      parts: [
+        ...attachments.map((attachment) => ({
+          type: 'file' as const,
+          url: attachment.url,
+          name: attachment.name,
+          mediaType: attachment.contentType,
+        })),
+        {
+          type: 'text',
+          text: input,
+        },
+      ],
     });
 
     setAttachments([]);
     setLocalStorageInput('');
     resetHeight();
+    setInput('');
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
   }, [
+    input,
+    setInput,
     attachments,
-    handleSubmit,
+    sendMessage,
     setAttachments,
     setLocalStorageInput,
     width,
@@ -250,7 +261,7 @@ function PureMultimodalInput({
       {messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
-          <SuggestedActions append={append} chatId={chatId} />
+          <SuggestedActions sendMessage={sendMessage} chatId={chatId} />
         )}
 
       <input
@@ -373,7 +384,7 @@ function PureStopButton({
   setMessages,
 }: {
   stop: () => void;
-  setMessages: Dispatch<SetStateAction<Array<UIMessage>>>;
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
 }) {
   return (
     <Button

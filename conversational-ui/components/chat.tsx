@@ -1,6 +1,6 @@
 'use client';
 
-import type { Attachment, UIMessage } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
-import { fetcher, generateUUID } from '@/lib/utils';
+import { fetcher, generateUUID, fetchWithErrorHandlers } from '@/lib/utils';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
 import { Artifact } from './artifact';
@@ -21,6 +21,8 @@ import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useAutoResume } from '@/hooks/use-auto-resume';
+import { Attachment, ChatMessage } from '@/lib/types';
+import { useDataStream } from '@/components/data-stream-provider';
 
 export function Chat({
   id,
@@ -31,13 +33,12 @@ export function Chat({
   autoResume,
 }: {
   id: string;
-  initialMessages: Array<UIMessage>;
+  initialMessages: ChatMessage[];
   selectedChatModel: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   autoResume: boolean;
 }) {
-  const { mutate } = useSWRConfig();
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
   const router = useRouter();
   const { data: session } = useSession();
@@ -68,30 +69,43 @@ export function Chat({
       console.error('Error reading knowledge_base_id from localStorage:', e);
     }
   }, []);
+  
+  const { mutate } = useSWRConfig();
+  const { setDataStream } = useDataStream();
 
+  const [input, setInput] = useState<string>('');
+  
   const {
     messages,
     setMessages,
-    handleSubmit,
-    input,
-    setInput,
-    append,
+    sendMessage,
     status,
     stop,
-    reload,
-    experimental_resume,
-    data,
-  } = useChat({
+    regenerate,
+    resumeStream,
+  } = useChat<ChatMessage>({
     id,
-    body: { 
-      id, 
-      selectedChatModel: storedModelId || DEFAULT_CHAT_MODEL,
-      knowledgeBaseId: knowledgeBaseIdState,
-    },
-    initialMessages,
+    messages: initialMessages,
     experimental_throttle: 100,
-    sendExtraMessageFields: true,
     generateId: generateUUID,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      fetch: fetchWithErrorHandlers,
+      prepareSendMessagesRequest({ messages, id, body }) {
+        return {
+          body: {
+            id,
+            message: messages.at(-1),
+            selectedChatModel: storedModelId || DEFAULT_CHAT_MODEL,
+            knowledgeBaseId: knowledgeBaseIdState,
+            ...body,
+          },
+        };
+      },
+    }),
+    onData: (dataPart) => {
+      setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+    },
     onFinish: () => {
       mutate('/api/history');
     },
@@ -115,8 +129,7 @@ export function Chat({
   useAutoResume({
     autoResume,
     initialMessages,
-    experimental_resume,
-    data,
+    resumeStream,
     setMessages,
   });
 
@@ -135,7 +148,7 @@ export function Chat({
           votes={votes}
           messages={messages}
           setMessages={setMessages}
-          reload={reload}
+          regenerate={regenerate}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
           selectedChatModel={storedModelId || DEFAULT_CHAT_MODEL}
@@ -147,14 +160,13 @@ export function Chat({
               chatId={id}
               input={input}
               setInput={setInput}
-              handleSubmit={handleSubmit}
               status={status}
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
               messages={messages}
               setMessages={setMessages}
-              append={append}
+              sendMessage={sendMessage}
               selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}
             />
           )}
@@ -212,15 +224,14 @@ export function Chat({
         chatId={id}
         input={input}
         setInput={setInput}
-        handleSubmit={handleSubmit}
         status={status}
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
-        append={append}
+        sendMessage={sendMessage}
         messages={messages}
         setMessages={setMessages}
-        reload={reload}
+        regenerate={regenerate}
         votes={votes}
         isReadonly={isReadonly}
         selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}

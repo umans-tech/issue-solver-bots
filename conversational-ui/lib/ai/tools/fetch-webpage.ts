@@ -1,4 +1,4 @@
-import { DataStreamWriter, tool } from 'ai';
+import { type UIMessageStreamWriter, tool } from 'ai';
 import { z } from 'zod';
 import { Session } from 'next-auth';
 import { chromium, Browser, Page } from 'playwright';
@@ -6,15 +6,16 @@ import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
 import { readdirSync } from 'fs';
 import { join } from 'path';
+import { ChatMessage } from '@/lib/types';
 
 export interface FetchWebpageProps {
   session: Session;
-  dataStream: DataStreamWriter;
+  dataStream: UIMessageStreamWriter<ChatMessage>;
 }
 
 export const fetchWebpage = ({ dataStream }: FetchWebpageProps) => tool({
   description: 'Fetch and extract readable content from a webpage URL. Handles both static and dynamic websites.',
-  parameters: z.object({
+  inputSchema: z.object({
     url: z.string().describe('The URL to fetch content from. Must be a valid HTTP or HTTPS URL.'),
   }),
   execute: async ({ url }) => {
@@ -116,9 +117,9 @@ export const fetchWebpage = ({ dataStream }: FetchWebpageProps) => tool({
       }
       
       // Write source information to dataStream
-      dataStream.writeSource({
-        sourceType: 'url',
-        id: crypto.randomUUID(),
+      dataStream.write({
+        type: 'source-url',
+        sourceId: crypto.randomUUID(),
         url: url,
         title: article.title || 'Webpage Content',
       });

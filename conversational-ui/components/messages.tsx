@@ -1,4 +1,3 @@
-import { ChatRequestOptions, UIMessage } from 'ai';
 import { PreviewMessage, ThinkingMessage } from './message';
 
 import { Overview } from './overview';
@@ -8,14 +7,16 @@ import equal from 'fast-deep-equal';
 import { UseChatHelpers } from '@ai-sdk/react';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
+import { ChatMessage } from '@/lib/types';
+import { useDataStream } from './data-stream-provider';
 
 interface MessagesProps {
   chatId: string;
-  status: UseChatHelpers['status'];
+  status: UseChatHelpers<ChatMessage>['status'];
   votes: Array<Vote> | undefined;
-  messages: Array<UIMessage>;
-  setMessages: UseChatHelpers['setMessages'];
-  reload: UseChatHelpers['reload'];
+  messages: ChatMessage[];
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
   selectedChatModel: string;
@@ -27,7 +28,7 @@ function PureMessages({
   votes,
   messages,
   setMessages,
-  reload,
+  regenerate,
   isReadonly,
   selectedChatModel,
 }: MessagesProps) {
@@ -41,6 +42,8 @@ function PureMessages({
     chatId,
     status,
   });
+
+  useDataStream();
 
   return (
     <div
@@ -61,7 +64,7 @@ function PureMessages({
               : undefined
           }
           setMessages={setMessages}
-          reload={reload}
+          regenerate={regenerate}
           isReadonly={isReadonly}
           requiresScrollPadding={
             hasSentMessage && index === messages.length - 1

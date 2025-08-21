@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { tool } from 'ai';
 import { Session } from 'next-auth';
-import { DataStreamWriter } from 'ai';
+import { type UIMessageStreamWriter } from 'ai';
 import { OpenAI } from 'openai';
+import { ChatMessage } from '@/lib/types';
 
 const client = new OpenAI();
 
@@ -10,7 +11,7 @@ const client = new OpenAI();
 // Interface for codebaseSearch props
 interface CodebaseSearchProps {
   session: Session;
-  dataStream: DataStreamWriter;
+  dataStream: UIMessageStreamWriter<ChatMessage>;
 }
 
 
@@ -56,7 +57,7 @@ function parseFilters(filters: any) {
 
 export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => tool({
   description: `Search the codebase using hybrid semantic search to find relevant code snippets. ${session.user?.selectedSpace?.connectedRepoUrl ? `The user connected this repository: ${session.user?.selectedSpace?.connectedRepoUrl}. Keep this in mind if the user refer to a codebase.` : 'The user has not connected any code repo yet.'}`,
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().describe('The search query to find relevant code and files snippets in the codebase.'),
     filter_type: z.enum(['eq', 'ne', 'and', 'or', 'none']).describe('Filter type: eq (equals), ne (not equals), and, or, or none for no filtering. Use "none" if no filter is needed.'),
     filter_key: z.enum(['file_name', 'file_path', 'file_extension', 'none']).describe('The attribute to filter on. Use "none" if filter_type is "none" or for compound filters.'),
@@ -125,9 +126,9 @@ export const codebaseSearch = ({ session, dataStream }: CodebaseSearchProps) => 
       // Format the results in XML
       const formattedResult = formatResults(searchResults);
       for (const result of searchResults.data) {
-        dataStream.writeSource({
-          sourceType: 'url',
-          id: result.file_id,
+        dataStream.write({
+          type: 'source-url',
+          sourceId: result.file_id,
           url: result.attributes?.file_path as string,
           title: result.attributes?.file_name as string,
         });

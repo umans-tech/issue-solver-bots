@@ -22,7 +22,7 @@ export default async function Page() {
           isReadonly={false}
           autoResume={false}
         />
-        <DataStreamHandler id={id} />
+        <DataStreamHandler />
       </>
     );
   }
@@ -37,7 +37,7 @@ export default async function Page() {
         isReadonly={false}
         autoResume={false}
       />
-      <DataStreamHandler id={id} />
+      <DataStreamHandler />
     </>
   );
 }

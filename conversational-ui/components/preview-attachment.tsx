@@ -1,8 +1,7 @@
-import type { Attachment } from 'ai';
+import type { Attachment } from '@/lib/types';
 import { useState } from 'react';
 import { FileIcon, LoaderIcon, XIcon } from './icons';
 import { Button } from './ui/button';
-import { cn } from '@/lib/utils';
 
 export const PreviewAttachment = ({
   attachment,

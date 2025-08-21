@@ -2,21 +2,19 @@
 
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
-import { ChatRequestOptions, CreateMessage, UIMessage } from 'ai';
 import { memo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { RepoConnectionDialog } from './repo-connection-dialog';
 import { Plug } from 'lucide-react';
+import { UseChatHelpers } from '@ai-sdk/react';
+import { ChatMessage } from '@/lib/types';
 
 interface SuggestedActionsProps {
   chatId: string;
-  append: (
-    message: UIMessage | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
 }
 
-function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
+function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
   const { data: session } = useSession();
   const [showRepoDialog, setShowRepoDialog] = useState(false);
   const hasConnectedRepo = Boolean(
@@ -103,9 +101,9 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
                     event.preventDefault();
                     window.history.replaceState({}, '', `/chat/${chatId}`);
 
-                    append({
+                    sendMessage({
                       role: 'user',
-                      content: suggestedAction.action,
+                      parts: [{ type: 'text', text: suggestedAction.action }],
                     });
                   }}
                   className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"

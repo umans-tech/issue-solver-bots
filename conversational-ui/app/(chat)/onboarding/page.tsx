@@ -41,12 +41,10 @@ export default async function OnboardingPage() {
   const welcomeMessage: UIMessage = {
     id: generateUUID(),
     role: 'assistant',
-    content: "Hi there! Welcome to umans.ai! 👋 I'm excited to help you get the most out of our platform.\n\nTo start, I'd love to know a bit about you - what's your role in software development?",
     parts: [{
       type: 'text',
       text: "Hi there! Welcome to umans.ai! 👋 I'm excited to help you get the most out of our platform.\n\nTo start, I'd love to know a bit about you - what's your role in software development?"
-    }],
-    createdAt: new Date(),
+    }]
   };
 
   // Save the welcome message to the database
@@ -71,7 +69,7 @@ export default async function OnboardingPage() {
         isReadonly={false}
         autoResume={false}
       />
-      <DataStreamHandler id={id} />
+      <DataStreamHandler/>
     </>
   );
 } 
