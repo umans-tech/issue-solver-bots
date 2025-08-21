@@ -1,6 +1,5 @@
 'use client';
 
-import { DataStreamWriter } from 'ai';
 import { useState, useMemo } from 'react';
 import { GlobeIcon } from './icons';
 import { SourceFavicon } from './source-favicon';
