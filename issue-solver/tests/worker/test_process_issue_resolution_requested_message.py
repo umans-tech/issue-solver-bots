@@ -608,7 +608,9 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
             "environment_id": environment_id,
         }
     )
-    microvm_client.instances.start.assert_called_once_with(snapshot_id=snapshot_id)
+    microvm_client.instances.start.assert_called_once_with(
+        snapshot_id=snapshot_id, ttl_seconds=5400
+    )
     solve_settings = """
 export ANTHROPIC_API_KEY=\'test-anthropic-api-key\'
 export ANTHROPIC_BASE_URL=\'https://api.anthropic.com/\'
@@ -748,7 +750,9 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
             ),
         ]
     )
-    microvm_client.instances.start.assert_called_once_with(snapshot_id=dev_snapshot_id)
+    microvm_client.instances.start.assert_called_once_with(
+        snapshot_id=dev_snapshot_id, ttl_seconds=5400
+    )
     prepare_settings = """
 export PROCESS_ID=\'test-process-id\'
 export REPO_PATH=\'test-repo\'

@@ -35,6 +35,8 @@ from issue_solver.models.supported_models import (
 )
 from issue_solver.worker.logging_config import logger
 
+MICROVM_LIFETIME_IN_SECONDS = 90 * 60
+
 
 class Dependencies:
     def __init__(
@@ -133,7 +135,9 @@ async def resolve_issue(
                     snapshot = snapshot.setup(cmd)
 
             if snapshot:
-                instance = microvm_client.instances.start(snapshot_id=snapshot.id)
+                instance = microvm_client.instances.start(
+                    snapshot_id=snapshot.id, ttl_seconds=MICROVM_LIFETIME_IN_SECONDS
+                )
                 await event_store.append(
                     process_id,
                     IssueResolutionEnvironmentPrepared(
@@ -144,7 +148,7 @@ async def resolve_issue(
                         instance_id=instance.id,
                     ),
                 )
-                solve_body = SolveCommandSettings(
+                solve_command_settings = SolveCommandSettings(
                     process_id=process_id,
                     issue=message.issue,
                     agent=SupportedAgent.CLAUDE_CODE,
@@ -154,9 +158,10 @@ async def resolve_issue(
                     repo_path=default_clone_path,
                     process_queue_url=None,
                     redis_url=None,
-                ).to_env_script()
+                )
+                env_script = solve_command_settings.to_env_script()
                 instance.wait_until_ready()
-                solve_command_script = run_as_umans_with_env(solve_body, "cudu solve")
+                solve_command_script = run_as_umans_with_env(env_script, "cudu solve")
                 instance_exec_response = instance.exec(solve_command_script)
                 print(f"Instance exec STDOUT: {instance_exec_response.stdout}")
                 print(f"Instance exec STDERR: {instance_exec_response.stderr}")
