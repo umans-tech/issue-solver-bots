@@ -12,8 +12,8 @@ import { toast } from 'sonner';
 import { generateUUID } from '@/lib/utils';
 import {
   Console,
-  ConsoleOutput,
-  ConsoleOutputContent,
+  type ConsoleOutput,
+  type ConsoleOutputContent,
 } from '@/components/console';
 
 declare global {
@@ -82,10 +82,10 @@ export const codeArtifact = new Artifact<'code', Metadata>({
     });
   },
   onStreamPart: ({ streamPart, setArtifact }) => {
-    if (streamPart.type === 'code-delta') {
+    if (streamPart.type === 'data-codeDelta') {
       setArtifact((draftArtifact) => ({
         ...draftArtifact,
-        content: streamPart.content as string,
+        content: streamPart.data,
         isVisible:
           draftArtifact.status === 'streaming' &&
           draftArtifact.content.length > 300 &&
@@ -254,20 +254,20 @@ export const codeArtifact = new Artifact<'code', Metadata>({
     {
       icon: <MessageIcon />,
       description: 'Add comments',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
+      onClick: ({ sendMessage }) => {
+        sendMessage({
           role: 'user',
-          content: 'Add comments to the code snippet for understanding',
+          parts: [{ type: 'text', text: 'Add comments to the code snippet for understanding' }],
         });
       },
     },
     {
       icon: <LogsIcon />,
       description: 'Add logs',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
+      onClick: ({ sendMessage }) => {
+        sendMessage({
           role: 'user',
-          content: 'Add logs to the code snippet for debugging',
+          parts: [{ type: 'text', text: 'Add logs to the code snippet for debugging' }],
         });
       },
     },
