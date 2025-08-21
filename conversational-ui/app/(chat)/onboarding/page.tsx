@@ -4,8 +4,8 @@ import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { generateUUID } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { saveChat, saveMessages, getCurrentUserSpace } from '@/lib/db/queries';
-import { UIMessage } from 'ai';
 import { redirect } from 'next/navigation';
+import { ChatMessage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +38,7 @@ export default async function OnboardingPage() {
   });
 
   // Create the initial AI welcome message
-  const welcomeMessage: UIMessage = {
+  const welcomeMessage: ChatMessage = {
     id: generateUUID(),
     role: 'assistant',
     parts: [{
