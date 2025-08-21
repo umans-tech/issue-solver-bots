@@ -1,4 +1,4 @@
-import { appendResponseMessages, createDataStream, smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, } from 'ai';
+import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
               id: userMessage.id,
               role: 'user',
               parts: userMessage.parts,
-              attachments: userMessage.parts.filter((part) => part.type === 'file') ?? [],
+              attachments: [],//message.experimental_attachments ?? [],
               createdAt: new Date(),
             },
           ],
@@ -136,14 +136,14 @@ export async function POST(request: Request) {
         execute: async ({ writer: dataStream }) => {
             
             // Collect sources written to the dataStream
-            const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
+            // const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
 
-            // Wrap dataStream.writeSource to collect sources
-            const originalWriteSource = dataStream.writeSource.bind(dataStream);
-            dataStream.writeSource = (source) => {
-                collectedSources.push(source);
-                return originalWriteSource(source);
-            };
+            // // Wrap dataStream.writeSource to collect sources
+            // const originalWriteSource = dataStream.writeSource.bind(dataStream);
+            // dataStream.writeSource = (source) => {
+            //     collectedSources.push(source);
+            //     return originalWriteSource(source);
+            // };
 
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
@@ -203,79 +203,73 @@ export async function POST(request: Request) {
                         dataStream,
                     }),
                 },
-                onFinish: async ({ response, usage, experimental_providerMetadata }) => {
-                    if (session.user?.id) {
-                        try {
-                            const assistantId = getTrailingMessageId({
-                                messages: response.messages.filter(
-                                  (message) => message.role === 'assistant',
-                                ),
-                              });
-
-                              if (!assistantId) {
-                                throw new Error('No assistant message found!');
-                              }
-
-                              const [, assistantMessage] = appendResponseMessages({
-                                messages: [userMessage],
-                                responseMessages: response.messages,
-                            });
-
-                            // Add collected sources to the message parts
-                            const messageParts = [...(assistantMessage.parts || [])];
-                            for (const source of collectedSources) {
-                                messageParts.push({
-                                    type: 'source',
-                                    source: source,
-                                });
-                            }
-
-                            await saveMessages({
-                                messages: [
-                                    {
-                                      id: assistantId,
-                                      chatId: id,
-                                      role: assistantMessage.role,
-                                      parts: messageParts,
-                                      attachments:
-                                        assistantMessage.experimental_attachments ?? [],
-                                      createdAt: new Date(),
-                                    },
-                                ],
-                            });
-
-                            // Record token usage if available
-                            if (usage && assistantId) {
-                                const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
-                                await recordTokenUsage({
-                                    messageId: assistantId,
-                                    provider: chatModelProvider,
-                                    model: chatModelName,
-                                    rawUsageData: usage,
-                                    providerMetadata: experimental_providerMetadata,
-                                });
-                            }
-                        } catch (error) {
-                            console.error('Failed to save chat');
-                        }
-                    }
-                },
-                onError: async (error) => {
-                    console.error('Error during streaming:', error);
-                },
                 experimental_telemetry: {
                     isEnabled: true,
                     functionId: 'stream-text',
                 },
             });
 
-            result.consumeStream().then(_ => {});
+            result.consumeStream();
 
-            result.mergeIntoDataStream(dataStream, {
-                sendReasoning: true,
-            });
+            dataStream.merge(
+              result.toUIMessageStream({
+                  sendReasoning: true,
+              }),
+            );
         },
-        onError: () => {
+        onFinish: async ({ messages, responseMessage}) => {//, usage, providerMetadata }) => {
+          if (session.user?.id) {
+              try {
+                  const assistantId = getTrailingMessageId({
+                      messages: messages.filter(
+                        (message) => message.role === 'assistant',
+                      ),
+                    });
+
+                    if (!assistantId) {
+                      throw new Error('No assistant message found!');
+                    }
+
+                  // Add collected sources to the message parts
+                  const messageParts = [...(responseMessage.parts || [])];
+                  // for (const source of collectedSources) {
+                  //     messageParts.push({
+                  //         type: 'source',
+                  //         source: source,
+                  //     });
+                  // }
+
+                  await saveMessages({
+                      messages: [
+                          {
+                            id: assistantId,
+                            chatId: id,
+                            role: responseMessage.role,
+                            parts: messageParts,
+                            attachments: [],//responseMessage.experimental_attachments ?? [],
+                            createdAt: new Date(),
+                          },
+                      ],
+                  });
+
+                  // // Record token usage if available
+                  // if (usage && assistantId) {
+                  //     const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
+                  //     await recordTokenUsage({
+                  //         messageId: assistantId,
+                  //         provider: chatModelProvider,
+                  //         model: chatModelName,
+                  //         rawUsageData: usage,
+                  //         providerMetadata: providerMetadata,
+                  //     });
+                  // }
+              } catch (error) {
+                  console.error('Failed to save chat');
+              }
+          }
+      },
+        onError: (error) => {
+            console.error('Error during streaming:', error);
             return 'Oops, an error occured!';
         },
     });
@@ -284,7 +278,7 @@ export async function POST(request: Request) {
 
     if (streamContext) {
       return new Response(
-        await streamContext.resumableStream(streamId, () => stream),
+        await streamContext.resumableStream(streamId, () => stream.pipeThrough(new JsonToSseTransformStream())),
       );
     } else {
       return new Response(stream);

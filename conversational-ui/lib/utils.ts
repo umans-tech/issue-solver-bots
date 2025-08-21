@@ -1,17 +1,16 @@
 import type {
   CoreAssistantMessage,
   CoreToolMessage,
-  Message,
   TextStreamPart,
-  ToolInvocation,
-  ToolSet,
-  Attachment,
   UIMessage,
+  UIMessagePart,
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 import type { DBMessage, Document } from '@/lib/db/schema';
+import { formatISO } from 'date-fns';
+import { CustomUIDataTypes, ChatTools } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -54,47 +53,44 @@ export function generateUUID(): string {
   });
 }
 
-function addToolMessageToChat({
-  toolMessage,
-  messages,
-}: {
-  toolMessage: CoreToolMessage;
-  messages: Array<Message>;
-}): Array<Message> {
-  return messages.map((message) => {
-    if (message.toolInvocations) {
-      return {
-        ...message,
-        toolInvocations: message.toolInvocations.map((toolInvocation) => {
-          const toolResult = toolMessage.content.find(
-            (tool) => tool.toolCallId === toolInvocation.toolCallId,
-          );
+// function addToolMessageToChat({
+//   toolMessage,
+//   messages,
+// }: {
+//   toolMessage: CoreToolMessage;
+//   messages: Array<Message>;
+// }): Array<Message> {
+//   return messages.map((message) => {
+//     if (message.toolInvocations) {
+//       return {
+//         ...message,
+//         toolInvocations: message.toolInvocations.map((toolInvocation) => {
+//           const toolResult = toolMessage.content.find(
+//             (tool) => tool.toolCallId === toolInvocation.toolCallId,
+//           );
 
-          if (toolResult) {
-            return {
-              ...toolInvocation,
-              state: 'result',
-              result: toolResult.result,
-            };
-          }
+//           if (toolResult) {
+//             return {
+//               ...toolInvocation,
+//               state: 'result',
+//               result: toolResult.result,
+//             };
+//           }
 
-          return toolInvocation;
-        }),
-      };
-    }
+//           return toolInvocation;
+//         }),
+//       };
+//     }
 
-    return message;
-  });
-}
+//     return message;
+//   });
+// }
 
 
 export const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
 
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
-type ResponseMessage = ResponseMessageWithoutId & { 
-  id: string;
-  experimental_attachments?: Attachment[]; 
-};
+type ResponseMessage = ResponseMessageWithoutId & { id: string };
 
 
 export function getMostRecentUserMessage(messages: Array<UIMessage>) {
@@ -145,7 +141,7 @@ export function generatePastelColor(text: string) {
 export function getTrailingMessageId({
   messages,
 }: {
-  messages: Array<ResponseMessage>;
+  messages: Array<UIMessage>;
 }): string | null {
   const trailingMessage = messages.at(-1);
 
@@ -153,6 +149,24 @@ export function getTrailingMessageId({
 
   return trailingMessage.id;
 }
+
+  export function convertToUIMessages(messages: DBMessage[]): UIMessage[] {
+    return messages.map((message) => ({
+      id: message.id,
+      role: message.role as 'user' | 'assistant' | 'system',
+      parts: message.parts as UIMessagePart<CustomUIDataTypes, ChatTools>[],
+      metadata: {
+        createdAt: formatISO(message.createdAt),
+      },
+    }));
+  }
+
+  export function getTextFromMessage(message: UIMessage): string {
+    return message.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('');
+  }
 
 // Favicon utilities
 export const getFallbackFaviconUrls = (url: string) => {
