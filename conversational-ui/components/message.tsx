@@ -1,6 +1,5 @@
 'use client';
 
-import type { UIMessage } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState, useEffect } from 'react';
@@ -32,6 +31,9 @@ import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistan
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
 import { chatModels } from '@/lib/ai/models';
 import { TodoDisplay } from './todo-display';
+import { ChatMessage, ChatTools } from '@/lib/types';
+import { useDataStream } from '@/components/data-stream-provider';
+import { ToolUIPart } from 'ai';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -49,22 +51,27 @@ const PurePreviewMessage = ({
   vote,
   isLoading,
   setMessages,
-  reload,
+  regenerate,
   isReadonly,
   requiresScrollPadding,
   selectedChatModel,
 }: {
   chatId: string;
-  message: UIMessage;
+  message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
-  setMessages: UseChatHelpers['setMessages'];
-  reload: UseChatHelpers['reload'];
+  setMessages: UseChatHelpers<ChatMessage>['setMessages'];
+  regenerate: UseChatHelpers<ChatMessage>['regenerate'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
   selectedChatModel: string;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const attachmentsFromMessage = message.parts.filter(
+    (part) => part.type === 'file',
+  );
+
+  useDataStream();
 
   // Collect all sources from message parts
   const allSources = useMemo(() => {
@@ -74,26 +81,26 @@ const PurePreviewMessage = ({
     
     // Get sources from message parts
     const messageSources = message.parts
-      .filter(part => part.type === 'source')
-      .map(part => part.source)
+      .filter(part => part.type === 'source-url' || part.type === 'source-document')
+      .map(part => part.sourceId)
       .filter(source => source !== undefined);
     
     sources.push(...messageSources);
     
-    // Extract GitHub sources from tool invocations
-    const gitHubSources = message.parts
-      .filter(part => part.type === 'tool-invocation')
-      .map(part => {
-        const { toolInvocation } = part;
-        if (toolInvocation.state === 'result' && isGitHubMCPTool(toolInvocation.toolName)) {
-          return extractGitHubSources(toolInvocation.toolName, toolInvocation.result, toolInvocation.args);
-        }
-        return [];
-      })
-      .flat()
-      .filter(source => source !== undefined);
+    // // Extract GitHub sources from tool invocations
+    // const gitHubSources = message.parts
+    //   .filter(part => part.type === 'tool-invocation')
+    //   .map(part => {
+    //     const { toolInvocation } = part;
+    //     if (toolInvocation.state === 'result' && isGitHubMCPTool(toolInvocation.toolName)) {
+    //       return extractGitHubSources(toolInvocation.toolName, toolInvocation.result, toolInvocation.args);
+    //     }
+    //     return [];
+    //   })
+    //   .flat()
+    //   .filter(source => source !== undefined);
     
-    sources.push(...gitHubSources);
+    // sources.push(...gitHubSources);
     
     return sources;
   }, [message.parts]);
@@ -122,7 +129,7 @@ const PurePreviewMessage = ({
       .map((part, relativeIndex) => ({
         part,
         index: firstReasoningIndex + relativeIndex,
-        type: part.type === 'reasoning' ? 'reasoning' as const : part.type === 'tool-invocation' ? 'tool' as const : 'other' as const
+        type: part.type === 'reasoning' ? 'reasoning' as const : part.type.startsWith('tool-') ? 'tool' as const : 'other' as const
       }))
       .filter(({ type }) => type === 'reasoning' || type === 'tool') as Array<{ part: any; index: number; type: 'reasoning' | 'tool' }>;
 
@@ -184,13 +191,16 @@ const PurePreviewMessage = ({
               'min-h-[65vh]': message.role === 'assistant' && requiresScrollPadding,
             })}
           >
-            {message.experimental_attachments && 
-            message.experimental_attachments.length > 0 && (
+            {attachmentsFromMessage.length > 0 && (
               <div className="flex flex-row justify-end gap-2">
-                {message.experimental_attachments.map((attachment) => (
+                {attachmentsFromMessage.map((attachment) => (
                   <PreviewAttachment
                     key={attachment.url}
-                    attachment={attachment}
+                    attachment={{
+                      name: attachment.filename ?? 'file',
+                      contentType: attachment.mediaType,
+                      url: attachment.url,
+                    }}
                   />
                 ))}
               </div>
@@ -211,7 +221,7 @@ const PurePreviewMessage = ({
               const key = `message-${message.id}-part-${index}`;
               const { type } = part;
 
-              if (type === 'source') {
+              if (type === 'source-url' || type === 'source-document') {
                 // Skip individual source rendering - we'll show all sources consolidated at the end
                 return null;
               }
@@ -292,19 +302,19 @@ const PurePreviewMessage = ({
                         message={message}
                         setMode={setMode}
                         setMessages={setMessages}
-                        reload={reload}
+                        regenerate={regenerate}
                       />
                     </div>
                   );
                 }
               }
 
-              if (type === 'tool-invocation') {
-                const { toolInvocation } = part;
-                const { toolName, toolCallId, state } = toolInvocation;
+              if (type.startsWith('tool-')) {
+                const toolName = type.split('-')[1];
+                const { toolCallId, state, input } = part as ToolUIPart<ChatTools>;
                 
-                if (state === 'call') {
-                  const { args } = toolInvocation;
+                if (state === 'input-available') {
+                  const { args } = input;
 
                   // Special handling for TodoWrite - render directly without wrapper
                   if (toolName === 'TodoWrite' && args?.todos) {
@@ -360,8 +370,8 @@ const PurePreviewMessage = ({
                   );
                 }
 
-                if (state === 'partial-call') {
-                  const { args } = toolInvocation;
+                if (state === 'input-streaming') {
+                  const { args } = input;
                   const issueTitle = args?.issue?.title ?? '';
                   const issueDescription = args?.issue?.description ?? '';
 
@@ -378,8 +388,8 @@ const PurePreviewMessage = ({
                   ) : null;
                 }
 
-                if (state === 'result') {
-                  const { result, args } = toolInvocation;
+                if (state === 'output-available') {
+                  const { result, args } = input;
                   const issueTitle = args?.issue?.title ?? '';
                   const issueDescription = args?.issue?.description ?? '';
 
@@ -477,7 +487,7 @@ const PurePreviewMessage = ({
 
             {/* Render all sources consolidated at the end */}
             {!isLoading && allSources.length > 0 && (
-              <Sources sources={allSources} />
+              <Sources sources={allSources as any} />
             )}
 
                 {!isReadonly && message.role === 'assistant' && (

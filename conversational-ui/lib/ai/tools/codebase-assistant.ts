@@ -2,7 +2,8 @@ import {z} from 'zod';
 import {tool} from 'ai';
 import {GetObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {Session} from 'next-auth';
-import {DataStreamWriter} from 'ai';
+import {type UIMessageStreamWriter} from 'ai';
+import { ChatMessage } from '@/lib/types';
 
 // Define the query type enum with detailed descriptions
 const QueryTypeEnum = z.enum([
@@ -29,12 +30,12 @@ const queryTypeToFileBaseMap = {
 // Interface for codebaseAssistant props
 interface CodebaseAssistantProps {
     session: Session;
-    dataStream: DataStreamWriter;
+    dataStream: UIMessageStreamWriter<ChatMessage>;
 }
 
 export const codebaseAssistant = ({session}: CodebaseAssistantProps) => tool({
     description: 'Retrieve information about the codebase of the current project.',
-    parameters: z.object({
+    inputSchema: z.object({
         query: QueryTypeEnum.describe(
             'The type of codebase information to retrieve: \n' +
             '- codebase_summary: ' + queryTypeDescriptions.codebase_summary + '\n' +

@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { Session } from "next-auth";
 import { tool } from "ai";
-import { DataStreamWriter } from "ai";
+import { type UIMessageStreamWriter } from "ai";
+import { ChatMessage } from "@/lib/types";
 
 interface RemoteCodingAgentProps {
     session: Session;
-    dataStream: DataStreamWriter;
+    dataStream: UIMessageStreamWriter<ChatMessage>;
 }
 
 const issueSchema = z.object({
@@ -15,7 +16,7 @@ const issueSchema = z.object({
 
 export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) => tool({
     description: "A tool that launches a remote instance of a coding agent to resolve an issue by submitting a PR/MR. IMPORTANT: Use strict JSON format for parameters. Example: {\"issue\": {\"title\": \"Fix bug in authentication\", \"description\": \"The login form shows incorrect error messages\"}}",
-    parameters: z.object({
+    inputSchema: z.object({
         issue: issueSchema,
     }),
     execute: async ({ issue }) => {

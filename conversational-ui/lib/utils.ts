@@ -1,7 +1,6 @@
 import type {
   CoreAssistantMessage,
   CoreToolMessage,
-  TextStreamPart,
   UIMessage,
   UIMessagePart,
 } from 'ai';
@@ -11,6 +10,8 @@ import { twMerge } from 'tailwind-merge';
 import type { DBMessage, Document } from '@/lib/db/schema';
 import { formatISO } from 'date-fns';
 import { CustomUIDataTypes, ChatTools } from './types';
+import { ChatMessage } from './types';
+import { ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -37,6 +38,28 @@ export const fetcher = async (url: string) => {
 
   return res.json();
 };
+
+export async function fetchWithErrorHandlers(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) {
+  try {
+    const response = await fetch(input, init);
+
+    if (!response.ok) {
+      const { code, cause } = await response.json();
+      throw new Error(cause);
+    }
+
+    return response;
+  } catch (error: unknown) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('offline:chat');
+    }
+
+    throw error;
+  }
+}
 
 export function getLocalStorage(key: string) {
   if (typeof window !== 'undefined') {
@@ -150,23 +173,23 @@ export function getTrailingMessageId({
   return trailingMessage.id;
 }
 
-  export function convertToUIMessages(messages: DBMessage[]): UIMessage[] {
-    return messages.map((message) => ({
-      id: message.id,
-      role: message.role as 'user' | 'assistant' | 'system',
-      parts: message.parts as UIMessagePart<CustomUIDataTypes, ChatTools>[],
-      metadata: {
-        createdAt: formatISO(message.createdAt),
-      },
-    }));
-  }
+export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
+  return messages.map((message) => ({
+    id: message.id,
+    role: message.role as 'user' | 'assistant' | 'system',
+    parts: message.parts as UIMessagePart<CustomUIDataTypes, ChatTools>[],
+    metadata: {
+      createdAt: formatISO(message.createdAt),
+    },
+  }));
+}
 
-  export function getTextFromMessage(message: UIMessage): string {
-    return message.parts
-      .filter((part) => part.type === 'text')
-      .map((part) => part.text)
-      .join('');
-  }
+export function getTextFromMessage(message: ChatMessage): string {
+  return message.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+}
 
 // Favicon utilities
 export const getFallbackFaviconUrls = (url: string) => {

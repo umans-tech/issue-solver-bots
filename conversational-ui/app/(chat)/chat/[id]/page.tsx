@@ -6,8 +6,8 @@ import { Chat } from '@/components/chat';
 import { getChatById, getMessagesByChatId, getStreamIdsByChatId } from '@/lib/db/queries';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
-import { DBMessage } from '@/lib/db/schema';
-import { Attachment, UIMessage } from 'ai';
+import { convertToUIMessages } from '@/lib/utils';
+import { DataStreamHandler } from '@/components/data-stream-handler';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -34,19 +34,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     id,
   });
 
-  function convertToUIMessages(messages: Array<DBMessage>): Array<UIMessage> {
-    return messages.map((message) => ({
-      id: message.id,
-      parts: message.parts as UIMessage['parts'],
-      role: message.role as UIMessage['role'],
-      // Note: content will soon be deprecated in @ai-sdk/react
-      content: '',
-      createdAt: message.createdAt,
-      experimental_attachments:
-        (message.attachments as Array<Attachment>) ?? [],
-    }));
-  }
-  
+  const uiMessages = convertToUIMessages(messagesFromDb);
+
   // Check if this chat has any stream records before enabling autoResume
   const streamIds = await getStreamIdsByChatId({ chatId: id });
   const hasStreams = streamIds.length > 0;
@@ -57,27 +46,33 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   if (!chatModelFromCookie) {
     return (
+      <>
       <Chat
         key={`${id}-${messagesFromDb.length}`}
         id={chat.id}
-        initialMessages={convertToUIMessages(messagesFromDb)}
+        initialMessages={uiMessages}
         selectedChatModel={DEFAULT_CHAT_MODEL}
         selectedVisibilityType={chat.visibility}
         isReadonly={session?.user?.id !== chat.userId}
         autoResume={shouldAutoResume}
       />
+      <DataStreamHandler />
+      </>
     );
   }
 
   return (
+    <>
     <Chat
       key={`${id}-${messagesFromDb.length}`}
       id={chat.id}
-      initialMessages={convertToUIMessages(messagesFromDb)}
+      initialMessages={uiMessages}
       selectedChatModel={chatModelFromCookie.value}
       selectedVisibilityType={chat.visibility}
       isReadonly={session?.user?.id !== chat.userId}
       autoResume={shouldAutoResume}
     />
+    <DataStreamHandler />
+    </>
   );
 }
