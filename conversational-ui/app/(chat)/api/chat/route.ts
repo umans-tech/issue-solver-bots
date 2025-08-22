@@ -31,6 +31,7 @@ import { createResumableStreamContext, type ResumableStreamContext } from 'resum
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
+import { ChatMessage } from '@/lib/types';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
         knowledgeBaseId,
     }: {
         id: string;
-        messages: Array<UIMessage>;
+        messages: ChatMessage[];
         selectedChatModel: string;
         knowledgeBaseId?: string | null;
     } = await request.json();

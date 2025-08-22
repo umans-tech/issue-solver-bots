@@ -95,7 +95,7 @@ export function Chat({
         return {
           body: {
             id,
-            message: messages.at(-1),
+            messages,
             selectedChatModel: storedModelId || DEFAULT_CHAT_MODEL,
             knowledgeBaseId: knowledgeBaseIdState,
             ...body,
