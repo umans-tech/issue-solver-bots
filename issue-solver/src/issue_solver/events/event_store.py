@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from collections import defaultdict
 from typing import Any, Type
 from issue_solver.events.domain import AnyDomainEvent, T
 
@@ -19,20 +20,20 @@ class EventStore(ABC):
 
 class InMemoryEventStore(EventStore):
     def __init__(self):
-        self.events = {}
+        self.events_by_process_id = defaultdict(list)
 
     async def append(self, process_id: str, *events: AnyDomainEvent) -> None:
-        if process_id not in self.events:
-            self.events[process_id] = []
+        if process_id not in self.events_by_process_id:
+            self.events_by_process_id[process_id] = []
         for e in events:
-            self.events[process_id].append(e)
+            self.events_by_process_id[process_id].append(e)
 
     async def get(self, process_id: str) -> list[AnyDomainEvent]:
-        return self.events.get(process_id, [])
+        return self.events_by_process_id.get(process_id, [])
 
     async def find(self, criteria: dict[str, Any], event_type: Type[T]) -> list[T]:
         result = []
-        for process_id, events in self.events.items():
+        for process_id, events in self.events_by_process_id.items():
             for event in events:
                 if isinstance(event, event_type):
                     match = all(
