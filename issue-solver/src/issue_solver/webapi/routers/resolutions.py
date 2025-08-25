@@ -19,7 +19,6 @@ from issue_solver.webapi.payloads import (
     ResolveIssueRequest,
     ProcessCreated,
 )
-from issue_solver.queueing.sqs_events_publishing import publish
 
 router = APIRouter(prefix="/resolutions", tags=["resolutions"])
 
@@ -51,5 +50,4 @@ async def resolve_issue(
         execution_environment=request.execution_environment,
     )
     await event_store.append(process_id, event)
-    publish(event, logger)
     return ProcessCreated(process_id=process_id)

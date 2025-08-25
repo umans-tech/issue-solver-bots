@@ -3,11 +3,15 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from issue_solver.database.init_event_store import (
+    extract_direct_database_url,
+)
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
     CodeRepositoryIntegrationFailed,
 )
+from issue_solver.factories import init_event_store
 from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitSettings,
@@ -15,7 +19,6 @@ from issue_solver.git_operations.git_helper import (
 )
 from issue_solver.webapi.dependencies import (
     get_validation_service,
-    init_event_store,
     get_clock,
 )
 from issue_solver.worker.logging_config import logger
@@ -55,7 +58,9 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
                 repo_path=to_path, vector_store_id=knowledge_base_id, client=client
             )
             logger.info(f"Vector store upload stats: {json.dumps(stats)}")
-            event_store = await init_event_store()
+            event_store = await init_event_store(
+                database_url=extract_direct_database_url()
+            )
             await event_store.append(
                 process_id,
                 CodeRepositoryIndexed(
@@ -77,7 +82,7 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
         logger.error(f"Git validation error: {e.message}")
 
         # Record the failure event
-        event_store = await init_event_store()
+        event_store = await init_event_store(database_url=extract_direct_database_url())
         await event_store.append(
             process_id,
             CodeRepositoryIntegrationFailed(
@@ -94,7 +99,7 @@ async def index_codebase(message: CodeRepositoryConnected) -> None:
         logger.error(f"Unexpected error processing repository: {str(e)}")
 
         # Record the failure event with a generic error
-        event_store = await init_event_store()
+        event_store = await init_event_store(database_url=extract_direct_database_url())
         await event_store.append(
             process_id,
             CodeRepositoryIntegrationFailed(
