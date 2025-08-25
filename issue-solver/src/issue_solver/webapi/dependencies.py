@@ -8,12 +8,14 @@ from redis import Redis
 from issue_solver.agents.agent_message_store import (
     AgentMessageStore,
 )
+from issue_solver.database.init_event_store import extract_direct_database_url
+from issue_solver.factories import init_event_store
+
 from issue_solver.streaming.streaming_agent_message_store import (
     StreamingAgentMessageStore,
 )
 from issue_solver.clock import Clock, UTCSystemClock
 from issue_solver.database.postgres_agent_message_store import PostgresAgentMessageStore
-from issue_solver.database.postgres_event_store import PostgresEventStore
 from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
     DefaultGitValidationService,
@@ -57,19 +59,18 @@ def get_validation_service() -> GitValidationService:
     return DefaultGitValidationService()
 
 
-async def init_event_store() -> EventStore:
-    return PostgresEventStore(
-        connection=await asyncpg.connect(
-            os.environ["DATABASE_URL"].replace("+asyncpg", ""), statement_cache_size=0
-        )
-    )
+async def init_webapi_event_store() -> EventStore:
+    database_url = extract_direct_database_url()
+    queue_url = os.environ["PROCESS_QUEUE_URL"]
+    return await init_event_store(database_url, queue_url)
 
 
 async def init_agent_message_store() -> AgentMessageStore:
+    database_url = extract_direct_database_url()
     agent_message_store = StreamingAgentMessageStore(
         PostgresAgentMessageStore(
             connection=await asyncpg.connect(
-                os.environ["DATABASE_URL"].replace("+asyncpg", ""),
+                database_url,
                 statement_cache_size=0,
             )
         ),

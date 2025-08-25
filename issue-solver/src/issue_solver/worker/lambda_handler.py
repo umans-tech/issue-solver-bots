@@ -12,11 +12,12 @@ from typing import Any, Dict
 from morphcloud.api import MorphCloudClient
 
 from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
+from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
+from issue_solver.factories import init_event_store
 from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.webapi.dependencies import (
-    init_event_store,
     get_clock,
     init_agent_message_store,
 )
@@ -80,7 +81,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 async def load_dependencies_and_process_event_message(
     event_record: AnyDomainEvent,
 ) -> None:
-    event_store = await init_event_store()
+    event_store = await init_event_store(database_url=extract_direct_database_url())
     agent_message_store = await init_agent_message_store()
     is_dev_environment_service_enabled = bool(
         os.environ["DEV_ENVIRONMENT_SERVICE_ENABLED"]
