@@ -11,11 +11,12 @@ from alembic.command import downgrade, upgrade
 from alembic.config import Config
 from testcontainers.localstack import LocalStackContainer
 
-from issue_solver.database.init_event_store import init_event_store
+from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.event_store import EventStore
 from testcontainers.postgres import PostgresContainer
 from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 
+from issue_solver.factories import init_event_store
 from issue_solver.queueing.sqs_events_publishing import SQSQueueingEventStore
 
 
@@ -66,7 +67,10 @@ async def event_store(
     postgres_container: PostgresContainer, run_migrations, sqs_queue
 ) -> EventStore:
     """Initialize and return an EventStore instance."""
-    store = await init_event_store(os.environ.get("DATABASE_URL"))
+    store = await init_event_store(
+        database_url=extract_direct_database_url(),
+        queue_url=os.environ["PROCESS_QUEUE_URL"],
+    )
     return SQSQueueingEventStore(store, sqs_queue.get("queue_url"))
 
 

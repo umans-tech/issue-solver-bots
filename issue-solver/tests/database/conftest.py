@@ -11,8 +11,10 @@ from alembic.config import Config
 from testcontainers.redis import RedisContainer
 
 from issue_solver.agents.agent_message_store import AgentMessageStore
+from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.event_store import EventStore
-from issue_solver.webapi.dependencies import init_event_store, init_agent_message_store
+from issue_solver.factories import init_event_store
+from issue_solver.webapi.dependencies import init_agent_message_store
 from testcontainers.postgres import PostgresContainer
 from tests.fixtures import ALEMBIC_INI_LOCATION, MIGRATIONS_PATH
 
@@ -64,7 +66,7 @@ async def event_store(
     postgres_container: PostgresContainer, run_migrations
 ) -> EventStore:
     """Initialize and return an EventStore instance."""
-    store = await init_event_store()
+    store = await init_event_store(database_url=extract_direct_database_url())
     return store
 
 

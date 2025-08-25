@@ -2,10 +2,9 @@ from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.app_settings import SolveCommandSettings
 from issue_solver.clock import UTCSystemClock, Clock
-from issue_solver.database.init_event_store import init_event_store
 from issue_solver.events.event_store import EventStore
+from issue_solver.factories import init_event_store
 from issue_solver.git_operations.git_helper import GitClient
-from issue_solver.queueing.sqs_events_publishing import SQSQueueingEventStore
 from issue_solver.streaming.streaming_agent_message_store import (
     init_agent_message_store,
 )
@@ -42,12 +41,7 @@ async def init_command_dependencies(settings: SolveCommandSettings) -> Dependenc
     )
     git_client = GitClient()
     clock = UTCSystemClock()
-    persistent_event_store = await init_event_store(database_url)
-    event_store = (
-        SQSQueueingEventStore(persistent_event_store, queue_url)
-        if queue_url
-        else persistent_event_store
-    )
+    event_store = await init_event_store(database_url=database_url, queue_url=queue_url)
     return Dependencies(
         coding_agent=agent,
         git_client=git_client,

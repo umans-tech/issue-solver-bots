@@ -15,7 +15,6 @@ from issue_solver.git_operations.git_helper import (
     GitValidationError,
     GitValidationService,
 )
-from issue_solver.queueing.sqs_events_publishing import publish
 from issue_solver.webapi.dependencies import (
     get_clock,
     get_event_store,
@@ -85,10 +84,6 @@ async def connect_repository(
     )
     await event_store.append(process_id, event)
 
-    # Get a logger specifically for the publish function
-    publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
-    publish(event, publish_logger)
-
     logger.info(
         f"Repository connection created successfully with process ID: {process_id}"
     )
@@ -136,13 +131,6 @@ async def index_new_changes(
     logger.info(
         f"New changes indexed successfully for knowledge base ID: {knowledge_base_id}"
     )
-    # Publish the event to SQS
-    publish_logger = get_logger("issue_solver.webapi.routers.repository.publish")
-    publish(event, publish_logger)
-    logger.info(
-        f"Published indexation request for knowledge base ID: {knowledge_base_id}"
-    )
-
     return {"message": "New changes indexed successfully"}
 
 
@@ -257,7 +245,6 @@ async def create_environment(
     )
 
     await event_store.append(event.process_id, event)
-    publish(event=event, logger=logger)
     logger.info(f"Environment created with data: {environment_config}")
 
     return {

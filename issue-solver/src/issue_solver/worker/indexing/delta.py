@@ -3,6 +3,7 @@ from pathlib import Path
 
 from openai import OpenAI
 
+from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.code_repo_integration import get_access_token
 from issue_solver.events.domain import (
     RepositoryIndexationRequested,
@@ -11,13 +12,13 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIntegrationFailed,
 )
+from issue_solver.factories import init_event_store
 from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitSettings,
     GitValidationError,
 )
 from issue_solver.webapi.dependencies import (
-    init_event_store,
     get_validation_service,
     get_clock,
 )
@@ -36,7 +37,7 @@ async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> 
     logger.info(
         f"Processing repository indexation for process: {process_id}, knowledge_base_id: {knowledge_base_id}"
     )
-    event_store = await init_event_store()
+    event_store = await init_event_store(database_url=extract_direct_database_url())
     events = await event_store.get(process_id)
     last_indexed_event = most_recent_event(events, CodeRepositoryIndexed)
     code_repository_connected = most_recent_event(events, CodeRepositoryConnected)

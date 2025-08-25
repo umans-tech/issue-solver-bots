@@ -20,6 +20,23 @@ from issue_solver.events.domain import (
 from issue_solver.events.event_store import EventStore
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import SupportedOpenAIModel
+from tests.examples.happy_path_persona import examples_of_all_events
+
+
+@pytest.mark.parametrize(
+    "event_type,event",
+    examples_of_all_events(),
+)
+@pytest.mark.asyncio
+async def test_should_persist_events_of_each_type(
+    event_type: str, event: AnyDomainEvent, event_store: EventStore
+):
+    # When
+    await event_store.append(event.process_id, event)
+
+    # Then
+    retrieved_events = await event_store.get(event.process_id)
+    assert retrieved_events == [event]
 
 
 @pytest.mark.asyncio
