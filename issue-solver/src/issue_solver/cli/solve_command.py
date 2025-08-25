@@ -7,9 +7,9 @@ from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionCompleted,
 )
-from issue_solver.cli.dependencies import init_command_dependencies
 from issue_solver.agents.issue_resolving_agent import ResolveIssueCommand
-from issue_solver.app_settings import SolveCommandSettings
+from issue_solver.cli.dependencies import init_command_dependencies
+from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.issues.issue_settings import describe
 
 
