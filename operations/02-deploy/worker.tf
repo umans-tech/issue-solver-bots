@@ -25,6 +25,7 @@ resource "aws_lambda_function" "worker" {
       TOKEN_ENCRYPTION_KEY            = var.token_encryption_key,
       MORPH_API_KEY                   = var.morph_api_key,
       DEV_ENVIRONMENT_SERVICE_ENABLED = var.dev_environment_service_enabled,
+      EVENT_WEBHOOK_URL               = "${aws_apigatewayv2_api.cudu_api.api_endpoint}/webhooks/event",
     }
   }
 }
