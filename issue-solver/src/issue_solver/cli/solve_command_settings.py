@@ -82,6 +82,11 @@ class SolveCommandSettings(BaseSettings):
         description="SQS Queue URL to stream messages related to issue resolution process. If not provided, no SQS will be used.",
     )
 
+    event_webhook_url: str | None = Field(
+        default=None,
+        description="Webhook URL to send events related to issue resolution process. If not provided, no webhook will be used.",
+    )
+
     @property
     def selected_issue_tracker(self) -> IssueSourceSettings | None:
         if isinstance(self.issue, IssueSettings):
