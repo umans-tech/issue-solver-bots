@@ -5,9 +5,10 @@ import {
   getStreamIdsByChatId,
 } from '@/lib/db/queries';
 import type { Chat } from '@/lib/db/schema';
-import { createUIMessageStream, JsonToSseTransformStream, UIMessage } from 'ai';
+import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { getStreamContext } from '../../route';
 import { differenceInSeconds } from 'date-fns';
+import type { ChatMessage } from '@/lib/types';
 
 export async function GET(
     _: Request,
@@ -59,7 +60,7 @@ export async function GET(
       return new Response('No recent stream found', { status: 404 });
     }
 
-    const emptyDataStream = createUIMessageStream<UIMessage>({
+    const emptyDataStream = createUIMessageStream<ChatMessage>({
         execute: () => {},
     });
 
@@ -89,7 +90,7 @@ export async function GET(
         return new Response(emptyDataStream, { status: 200 });
       }
 
-      const restoredStream = createUIMessageStream<UIMessage>({
+      const restoredStream = createUIMessageStream<ChatMessage>({
         execute: ({ writer }) => {
           writer.write({
             type: 'data-appendMessage',
@@ -99,7 +100,7 @@ export async function GET(
         },
       });
 
-      return new Response(restoredStream, { status: 200 });
+      return new Response(restoredStream.pipeThrough(new JsonToSseTransformStream()), { status: 200 });
     }
 
     return new Response(stream, { status: 200 });

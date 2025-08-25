@@ -173,7 +173,7 @@ export async function POST(request: Request) {
                     ...clientWrapper.activeTools()
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
-                experimental_generateMessageId: generateUUID,
+                generateId: generateUUID,
                 tools: {
                     getWeather,
                     ...mcpTools,
