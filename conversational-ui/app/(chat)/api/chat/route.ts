@@ -173,7 +173,6 @@ export async function POST(request: Request) {
                     ...clientWrapper.activeTools()
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
-                generateId: generateUUID,
                 tools: {
                     getWeather,
                     ...mcpTools,
@@ -209,15 +208,16 @@ export async function POST(request: Request) {
                     functionId: 'stream-text',
                 },
             });
-
+            
             result.consumeStream();
-
+            
             dataStream.merge(
-              result.toUIMessageStream({
-                  sendReasoning: true,
-              }),
+                result.toUIMessageStream({
+                    sendReasoning: true,
+                }),
             );
         },
+        generateId: generateUUID,
         onFinish: async ({ messages, responseMessage}) => {//, usage, providerMetadata }) => {
           if (session.user?.id) {
               try {
