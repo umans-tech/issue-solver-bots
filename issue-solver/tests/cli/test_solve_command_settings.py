@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError, AnyUrl
 
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.app_settings import SolveCommandSettings
+from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.issues.issue import IssueInternalId, IssueInfo
 from issue_solver.issues.issue_settings import IssueSettings
 from issue_solver.issues.trackers.azure_devops_issue_tracker import (

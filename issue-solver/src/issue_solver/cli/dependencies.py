@@ -1,6 +1,6 @@
 from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.app_settings import SolveCommandSettings
+from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.clock import UTCSystemClock, Clock
 from issue_solver.events.event_store import EventStore
 from issue_solver.factories import init_event_store
