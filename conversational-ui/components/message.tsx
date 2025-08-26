@@ -73,36 +73,54 @@ const PurePreviewMessage = ({
 
   useDataStream();
 
-  // Collect all sources from message parts
+  // Collect and dedupe sources from message parts for consolidated rendering
   const allSources = useMemo(() => {
-    if (!message.parts) return [];
-    
-    const sources = [];
-    
-    // Get sources from message parts
-    const messageSources = message.parts
-      .filter(part => part.type === 'source-url' || part.type === 'source-document')
-      .map(part => part.sourceId)
-      .filter(source => source !== undefined);
-    
-    sources.push(...messageSources);
-    
-    // // Extract GitHub sources from tool invocations
-    // const gitHubSources = message.parts
-    //   .filter(part => part.type === 'tool-invocation')
-    //   .map(part => {
-    //     const { toolInvocation } = part;
-    //     if (toolInvocation.state === 'result' && isGitHubMCPTool(toolInvocation.toolName)) {
-    //       return extractGitHubSources(toolInvocation.toolName, toolInvocation.result, toolInvocation.args);
-    //     }
-    //     return [];
-    //   })
-    //   .flat()
-    //   .filter(source => source !== undefined);
-    
-    // sources.push(...gitHubSources);
-    
-    return sources;
+    type SourceItem = { id: string; url: string; title?: string; sourceType: 'url'; providerMetadata?: any };
+    const collected: SourceItem[] = [];
+    const seen = new Set<string>();
+
+    if (!message.parts) return collected;
+
+    const normalize = (url: string) => {
+      try {
+        const u = new URL(url);
+        return `${u.origin}${u.pathname}${u.search}`.toLowerCase();
+      } catch {
+        return (url || '').toLowerCase();
+      }
+    };
+
+    for (const part of message.parts) {
+      if (part.type === 'source-url') {
+        const url = part.url;
+        const key = normalize(url ?? part.sourceId);
+        if (!seen.has(key)) {
+          seen.add(key);
+          collected.push({
+            id: part.sourceId,
+            url: url,
+            title: part.title,
+            sourceType: 'url',
+            providerMetadata: (part as any).providerMetadata,
+          });
+        }
+      } else if (part.type === 'source-document') {
+        const url = (part as any).filename || `document:${part.sourceId}`;
+        const key = normalize(url);
+        if (!seen.has(key)) {
+          seen.add(key);
+          collected.push({
+            id: part.sourceId,
+            url,
+            title: part.title,
+            sourceType: 'url',
+            providerMetadata: (part as any).providerMetadata,
+          });
+        }
+      }
+    }
+
+    return collected;
   }, [message.parts]);
 
   // Combine reasoning parts and associated tool calls in chronological order
@@ -504,9 +522,9 @@ const PurePreviewMessage = ({
             })}
 
             {/* Render all sources consolidated at the end */}
-            {/* {!isLoading && allSources.length > 0 && (
+            {!isLoading && allSources.length > 0 && (
               <Sources sources={allSources as any} />
-            )} */}
+            )}
 
                 {!isReadonly && message.role === 'assistant' && (
                     <MessageActions

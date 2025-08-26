@@ -135,16 +135,6 @@ export async function POST(request: Request) {
 
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
-            
-            // Collect sources written to the dataStream
-            // const collectedSources: Array<{ sourceType: 'url'; id: string; url: string; title?: string; providerMetadata?: any }> = [];
-
-            // // Wrap dataStream.writeSource to collect sources
-            // const originalWriteSource = dataStream.writeSource.bind(dataStream);
-            // dataStream.writeSource = (source) => {
-            //     collectedSources.push(source);
-            //     return originalWriteSource(source);
-            // };
 
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
@@ -214,6 +204,7 @@ export async function POST(request: Request) {
             dataStream.merge(
                 result.toUIMessageStream({
                     sendReasoning: true,
+                    sendSources: true,
                 }),
             );
         },
@@ -233,12 +224,6 @@ export async function POST(request: Request) {
 
                   // Add collected sources to the message parts
                   const messageParts = [...(responseMessage.parts || [])];
-                  // for (const source of collectedSources) {
-                  //     messageParts.push({
-                  //         type: 'source',
-                  //         source: source,
-                  //     });
-                  // }
 
                   await saveMessages({
                       messages: [
@@ -253,17 +238,6 @@ export async function POST(request: Request) {
                       ],
                   });
 
-                  // // Record token usage if available
-                  // if (usage && assistantId) {
-                  //     const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
-                  //     await recordTokenUsage({
-                  //         messageId: assistantId,
-                  //         provider: chatModelProvider,
-                  //         model: chatModelName,
-                  //         rawUsageData: usage,
-                  //         providerMetadata: providerMetadata,
-                  //     });
-                  // }
               } catch (error) {
                   console.error('Failed to save chat');
               }
