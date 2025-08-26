@@ -273,7 +273,7 @@ const GitHubNotificationsResult = ({ toolName, result, args }: GitHubMCPResultPr
 
 // User profile component  
 const GitHubUserProfile = ({ user }: { user: any }) => {
-  // Use the same MCP content extraction logic as the generic result
+  // Extract MCP content payload if present
   let userData = user;
   if (user && user.content && Array.isArray(user.content) && user.content[0]?.text) {
     try {
@@ -282,7 +282,12 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
       userData = user;
     }
   }
-  
+
+  // Some payloads wrap the user data under { user: { ... } }
+  if (userData && typeof userData === 'object' && (userData as any).user) {
+    userData = (userData as any).user;
+  }
+
   if (!userData || typeof userData !== 'object') {
     return <GitHubGenericResult toolName="get_me" result={user} />;
   }
@@ -296,6 +301,29 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
       day: 'numeric' 
     });
   };
+
+  // Normalize commonly shifted fields coming from MCP
+  const details = userData && typeof (userData as any).details === 'object' ? (userData as any).details : undefined;
+  const publicRepos: number =
+    typeof (userData as any).public_repos === 'number'
+      ? (userData as any).public_repos
+      : typeof details?.public_repos === 'number'
+        ? details.public_repos
+        : 0;
+  const followers: number =
+    typeof (userData as any).followers === 'number'
+      ? (userData as any).followers
+      : typeof details?.followers === 'number'
+        ? details.followers
+        : 0;
+  const following: number =
+    typeof (userData as any).following === 'number'
+      ? (userData as any).following
+      : typeof details?.following === 'number'
+        ? details.following
+        : 0;
+  const createdAt: string | undefined = (userData as any).created_at ?? details?.created_at;
+  const profileHref: string | undefined = (userData as any).html_url ?? (userData as any).profile_url;
 
   return (
     <div className="mt-1">
@@ -375,10 +403,10 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
               </div>
             )}
 
-            {userData.created_at && (
+            {createdAt && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {formatDate(userData.created_at)}</span>
+                <span>Joined {formatDate(createdAt)}</span>
               </div>
             )}
           </div>
@@ -387,31 +415,33 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
         {/* Stats */}
         <div className="flex gap-6 text-sm">
           <div className="flex items-center gap-1">
-            <span className="font-semibold text-foreground">{userData.public_repos || 0}</span>
+            <span className="font-semibold text-foreground">{publicRepos}</span>
             <span className="text-muted-foreground">repositories</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="font-semibold text-foreground">{userData.followers || 0}</span>
+            <span className="font-semibold text-foreground">{followers}</span>
             <span className="text-muted-foreground">followers</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="font-semibold text-foreground">{userData.following || 0}</span>
+            <span className="font-semibold text-foreground">{following}</span>
             <span className="text-muted-foreground">following</span>
           </div>
         </div>
 
         {/* View on GitHub link */}
-        <div className="mt-4 pt-4 border-t border-border">
-          <a
-            href={userData.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>View on GitHub</span>
-            <ExternalLink size={14} />
-          </a>
-        </div>
+        {typeof profileHref === 'string' && /^https?:\/\//.test(profileHref) && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <a
+              href={profileHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>View on GitHub</span>
+              <ExternalLink size={14} />
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
