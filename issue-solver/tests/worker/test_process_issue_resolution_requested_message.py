@@ -12,7 +12,6 @@ from morphcloud.api import (
     SnapshotRefs,
     InstanceExecResponse,
 )
-
 from tests.controllable_clock import ControllableClock
 
 from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
@@ -686,23 +685,9 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
     base_snapshot.id = base_snapshot_id
     base_snapshot.status = SnapshotStatus.READY
     dev_snapshot_id = "dev-snapshot-id"
-    base_snapshot.setup.return_value = Snapshot(
-        id=dev_snapshot_id,
-        object="snapshot",
-        created=time_under_control.now().timestamp(),
-        spec=ResourceSpec(
-            vcpus=2,
-            memory=4096,
-            disk_size=20,
-        ),
-        refs=SnapshotRefs(image_id="test-image-id"),
-        status=SnapshotStatus.READY,
-        metadata={
-            "type": "dev",
-            "knowledge_base_id": "test-knowledge-base-id",
-            "environment_id": environment_id,
-        },
-    )
+    prepared_snapshot = Mock()
+    base_snapshot.setup.return_value = prepared_snapshot
+    prepared_snapshot.id = dev_snapshot_id
     started_instance.exec.return_value = InstanceExecResponse(
         exit_code=0, stdout="success", stderr=""
     )
@@ -749,6 +734,13 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
                 }
             ),
         ]
+    )
+    prepared_snapshot.set_metadata.assert_called_once_with(
+        {
+            "type": "dev",
+            "knowledge_base_id": "test-knowledge-base-id",
+            "environment_id": environment_id,
+        }
     )
     microvm_client.instances.start.assert_called_once_with(
         snapshot_id=dev_snapshot_id, ttl_seconds=5400

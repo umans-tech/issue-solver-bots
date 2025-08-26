@@ -134,6 +134,13 @@ async def resolve_issue(
                     ).to_env_script()
                     cmd = run_as_umans_with_env(prepare_body, "cudu prepare")
                     snapshot = snapshot.setup(cmd)
+                    snapshot.set_metadata(
+                        {
+                            "type": "dev",
+                            "knowledge_base_id": knowledge_base_id,
+                            "environment_id": environment_id,
+                        }
+                    )
 
             if snapshot:
                 instance = microvm_client.instances.start(
