@@ -327,6 +327,38 @@ const PurePreviewMessage = ({
                 }
               }
 
+              // Minimal support for AI SDK v5 dynamic-tool parts (non-intrusive)
+              if (type === 'dynamic-tool') {
+                const toolName: string | undefined = (part as any)?.toolName;
+                const state: string | undefined = (part as any)?.state;
+                const input = (part as any)?.input;
+                const output = (part as any)?.output;
+                const toolCallId = (part as any)?.toolCallId ?? key;
+
+                if (!toolName || !state) return null;
+
+                // Normalize possible state names from different emitters
+                const isAnimating = state === 'input-available' || state === 'input-streaming' || state === 'call' || state === 'partial-call';
+                const isResult = state === 'output-available' || state === 'result' || state === 'finished';
+
+                // Only handle GitHub MCP tools to keep this change minimal
+                if (isGitHubMCPTool(toolName)) {
+                  if (isAnimating) {
+                    return (
+                      <GitHubMCPAnimation key={toolCallId} toolName={toolName} args={input} />
+                    );
+                  }
+
+                  if (isResult) {
+                    return (
+                      <GitHubMCPResult key={toolCallId} toolName={toolName} result={output} args={input} />
+                    );
+                  }
+                }
+
+                return null;
+              }
+
               if (type.startsWith('tool-')) {
                 const toolName = type.split('-')[1];
                 const { toolCallId, state, input } = part as ToolUIPart<ChatTools>;
