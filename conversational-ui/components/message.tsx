@@ -504,9 +504,9 @@ const PurePreviewMessage = ({
             })}
 
             {/* Render all sources consolidated at the end */}
-            {!isLoading && allSources.length > 0 && (
+            {/* {!isLoading && allSources.length > 0 && (
               <Sources sources={allSources as any} />
-            )}
+            )} */}
 
                 {!isReadonly && message.role === 'assistant' && (
                     <MessageActions
@@ -534,7 +534,7 @@ export const PreviewMessage = memo(
     if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
 
-    return true;
+    return false;
   },
 );
 

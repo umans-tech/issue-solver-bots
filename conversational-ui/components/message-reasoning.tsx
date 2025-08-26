@@ -99,7 +99,7 @@ export function MessageReasoning({
               const { part, index, type } = item;
               
               if (type === 'reasoning') {
-                const reasoning = (part as any).reasoning;
+                const reasoning = (part as any).text || '';
                 return reasoning && reasoning.trim() ? (
                   <div key={`reasoning-${index}`}>
                     <Markdown>{reasoning}</Markdown>
