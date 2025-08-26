@@ -164,7 +164,7 @@ async def resolve_issue(
                     ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
                     ai_model_version=LATEST_CLAUDE_4_VERSION,
                     repo_path=default_clone_path,
-                    event_webhook_url=os.environ.get("EVENT_WEBHOOK_URL"),
+                    webhook_base_url=os.environ.get("WEBHOOK_BASE_URL"),
                     process_queue_url=None,
                     redis_url=None,
                 )

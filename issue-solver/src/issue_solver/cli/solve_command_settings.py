@@ -11,10 +11,10 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.git_operations.git_helper import GitSettings
 from issue_solver.issues.issue import IssueInfo
+from issue_solver.issues.issue_settings import IssueSettings
 from issue_solver.issues.trackers.supported_issue_trackers import (
     IssueSourceSettings,
 )
-from issue_solver.issues.issue_settings import IssueSettings
 from issue_solver.models.model_settings import (
     ModelSettings,
     OpenAISettings,
@@ -82,9 +82,9 @@ class SolveCommandSettings(BaseSettings):
         description="SQS Queue URL to stream messages related to issue resolution process. If not provided, no SQS will be used.",
     )
 
-    event_webhook_url: str | None = Field(
+    webhook_base_url: str | None = Field(
         default=None,
-        description="Webhook URL to send events related to issue resolution process. If not provided, no webhook will be used.",
+        description="Webhook base URL to send events and or messages related to issue resolution process. If not provided, no webhook will be used.",
     )
 
     @property

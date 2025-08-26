@@ -89,7 +89,7 @@ sequenceDiagram
     
     Note over Worker,ElastiCache: Phase 1: MicroVM Orchestration
     Worker->>MorphVM: Create VM with webhook URLs
-    MorphVM->>CLI: Spawn with EVENT_WEBHOOK_URL
+    MorphVM->>CLI: Spawn with WEBHOOK_BASE_URL
     
     Note over CLI,ElastiCache: Phase 2: Event Publishing (Current)
     CLI->>PostgreSQL: Append domain event
@@ -220,7 +220,7 @@ flowchart TD
 ### Phase 1: Event Publishing (✅ Completed in PR #172)
 - [x] WebhookNotifyingEventStore implementation
 - [x] `/webhooks/events` downstream webhook endpoint
-- [x] CLI integration with EVENT_WEBHOOK_URL
+- [x] CLI integration with WEBHOOK_BASE_URL
 - [x] Factory pattern for event store selection
 
 ### Phase 2: Message Publishing (Future)
