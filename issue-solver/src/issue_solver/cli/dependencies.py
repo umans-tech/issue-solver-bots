@@ -41,7 +41,11 @@ async def init_command_dependencies(settings: SolveCommandSettings) -> Dependenc
     )
     git_client = GitClient()
     clock = UTCSystemClock()
-    event_store = await init_event_store(database_url=database_url, queue_url=queue_url)
+    event_store = await init_event_store(
+        database_url=database_url,
+        queue_url=queue_url,
+        webhook_base_url=settings.webhook_base_url,
+    )
     return Dependencies(
         coding_agent=agent,
         git_client=git_client,
