@@ -2,7 +2,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from issue_solver.agents.agent_message_store import InMemoryAgentMessageStore
+from issue_solver.agents.agent_message_store import (
+    InMemoryAgentMessageStore,
+    AgentMessage,
+)
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.cli.webhook_notifying_agent_message_store import (
     WebhookNotifyingAgentMessageStore,
@@ -115,7 +118,7 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
     )
 
     # When
-    await agent_message_store.append(
+    message_id = await agent_message_store.append(
         process_id=process_id,
         model=VersionedAIModel(
             ai_model=SupportedAnthropicModel.CLAUDE_OPUS_4,
@@ -128,13 +131,25 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
 
     # Then
     retrieved_messages = await agent_message_store.get(process_id)
-    assert retrieved_messages == [message]
+    assert retrieved_messages == [
+        AgentMessage(
+            id=message_id,
+            type="dict",
+            turn=1,
+            agent=SupportedAgent.CLAUDE_CODE,
+            model=VersionedAIModel(
+                ai_model=SupportedAnthropicModel.CLAUDE_OPUS_4,
+                version=LATEST_CLAUDE_4_VERSION,
+            ),
+            payload={"content": "Hello, how can I help you?", "role": "user"},
+        )
+    ]
     http_client_mock.post.assert_called_once_with(
         url="https://api.example.umans.ai/webhooks/messages",
         json={
             "process_id": process_id,
             "agent_message": {
-                "id": "message-id",
+                "id": message_id,
                 "payload": message,
                 "model": {"ai_model": "claude-opus-4", "version": "20250514"},
                 "turn": 1,

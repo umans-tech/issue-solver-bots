@@ -1,6 +1,7 @@
+import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from issue_solver.models.supported_models import VersionedAIModel
 
@@ -36,8 +37,18 @@ class InMemoryAgentMessageStore(AgentMessageStore):
     ) -> str:
         if process_id not in self._messages:
             self._messages[process_id] = []
-        self._messages[process_id].append(message)
-        return "message-id"
+        message_id = str(uuid.uuid4())
+        self._messages[process_id].append(
+            AgentMessage(
+                id=message_id,
+                type=message.__class__.__name__,
+                turn=turn,
+                agent=agent,
+                model=model,
+                payload=message if isinstance(message, dict) else asdict(message),
+            )
+        )
+        return message_id
 
     async def get(self, process_id) -> list[AgentMessage]:
         self._messages = getattr(self, "_messages", {})
