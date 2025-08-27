@@ -36,7 +36,7 @@ def get_agent_message_store(request: Request) -> AgentMessageStore:
 
 
 def get_redis_client(request: Request) -> Redis:
-    return request.app.state.redis_client
+    return request.app.state.agent_message_store.redis_client
 
 
 async def get_user_id_or_default(

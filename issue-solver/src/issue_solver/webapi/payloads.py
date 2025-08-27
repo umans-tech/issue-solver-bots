@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from issue_solver.agents.agent_message_store import AgentMessage
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
 from issue_solver.issues.issue import IssueInfo
@@ -47,3 +48,8 @@ class ProcessCreated(BaseSchema):
 
 class EnvironmentConfiguration(BaseSchema):
     script: str
+
+
+class AgentMessageNotification(BaseSchema):
+    process_id: str
+    agent_message: AgentMessage

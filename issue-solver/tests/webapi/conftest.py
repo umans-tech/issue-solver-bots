@@ -10,7 +10,18 @@ import pytest
 import pytest_asyncio
 from alembic.command import downgrade, upgrade
 from alembic.config import Config
+from pytest_httpserver import HTTPServer
+from redis import Redis
+from starlette.testclient import TestClient
+from testcontainers.localstack import LocalStackContainer
+from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
+from tests.controllable_clock import ControllableClock
+from tests.fixtures import (
+    ALEMBIC_INI_LOCATION,
+    MIGRATIONS_PATH,
+    NoopGitValidationService,
+)
 
 from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.webapi.dependencies import (
@@ -19,16 +30,6 @@ from issue_solver.webapi.dependencies import (
     init_agent_message_store,
 )
 from issue_solver.webapi.main import app
-from pytest_httpserver import HTTPServer
-from starlette.testclient import TestClient
-from testcontainers.localstack import LocalStackContainer
-from testcontainers.postgres import PostgresContainer
-from tests.controllable_clock import ControllableClock
-from tests.fixtures import (
-    ALEMBIC_INI_LOCATION,
-    MIGRATIONS_PATH,
-    NoopGitValidationService,
-)
 
 CREATED_VECTOR_STORE_ID = "vs_abc123"
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
@@ -198,6 +199,21 @@ async def agent_message_store(
 ) -> AgentMessageStore:
     """Initialize and return an AgentMessageStore instance."""
     return await init_agent_message_store()
+
+
+@pytest.fixture(scope="function")
+def redis_client(
+    set_redis_url,
+    redis_container: RedisContainer,
+) -> Generator[Redis, None, None]:
+    redis_client = Redis(
+        host=redis_container.get_container_host_ip(),
+        port=int(redis_container.get_exposed_port(6379)),
+        decode_responses=True,
+    )
+    yield redis_client
+    redis_client.flushall()
+    redis_client.close()
 
 
 @pytest.fixture

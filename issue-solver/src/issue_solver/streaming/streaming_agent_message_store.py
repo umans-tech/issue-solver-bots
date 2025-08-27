@@ -1,11 +1,7 @@
 import json
 from dataclasses import asdict
 
-import asyncpg
-from redis import Redis
-
 from issue_solver.agents.agent_message_store import AgentMessageStore, AgentMessage
-from issue_solver.database.postgres_agent_message_store import PostgresAgentMessageStore
 from issue_solver.models.supported_models import VersionedAIModel
 
 
@@ -42,23 +38,3 @@ class StreamingAgentMessageStore(AgentMessageStore):
 
     async def get(self, process_id) -> list[AgentMessage]:
         return await self.message_store.get(process_id)
-
-
-async def init_agent_message_store(
-    database_url: str | None, redis_url: str | None
-) -> AgentMessageStore | None:
-    if database_url:
-        postgres_agent_message_store = PostgresAgentMessageStore(
-            connection=await asyncpg.connect(
-                database_url.replace("+asyncpg", ""),
-                statement_cache_size=0,
-            )
-        )
-        if redis_url:
-            agent_message_store = StreamingAgentMessageStore(
-                postgres_agent_message_store,
-                redis_client=Redis.from_url(redis_url),
-            )
-            return agent_message_store
-        return postgres_agent_message_store
-    return None

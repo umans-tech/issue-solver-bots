@@ -3,11 +3,8 @@ from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.clock import UTCSystemClock, Clock
 from issue_solver.events.event_store import EventStore
-from issue_solver.factories import init_event_store
+from issue_solver.factories import init_event_store, init_agent_message_store
 from issue_solver.git_operations.git_helper import GitClient
-from issue_solver.streaming.streaming_agent_message_store import (
-    init_agent_message_store,
-)
 
 
 class Dependencies:
