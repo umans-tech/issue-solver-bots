@@ -38,10 +38,12 @@ async def test_init_agent_message_store_should_return_inmemory_webhook_notifying
 
 
 @pytest.mark.asyncio
-async def test_init_agent_message_store_should_return_webhook_notifying_agent_message_store_when_messages_webhook_url_provided():
+async def test_init_agent_message_store_should_return_webhook_notifying_agent_message_store_when_messages_webhook_url_provided(
+    database_url,
+):
     # When
     agent_message_store = await init_agent_message_store(
-        database_url="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb",
+        database_url=database_url,
         webhook_base_url="https://api.example.umans.ai",
     )
 
@@ -54,10 +56,12 @@ async def test_init_agent_message_store_should_return_webhook_notifying_agent_me
 
 
 @pytest.mark.asyncio
-async def test_init_agent_message_store_should_tolerate_trailing_slash_in_messages_webhook_url():
+async def test_init_agent_message_store_should_tolerate_trailing_slash_in_messages_webhook_url(
+    database_url,
+):
     # When
     agent_message_store = await init_agent_message_store(
-        database_url="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb",
+        database_url=database_url,
         webhook_base_url="https://api.example.umans.ai/",
     )
 
@@ -70,10 +74,12 @@ async def test_init_agent_message_store_should_tolerate_trailing_slash_in_messag
 
 
 @pytest.mark.asyncio
-async def test_init_agent_message_store_should_return_streaming_agent_message_store_when_redis_url_provided():
+async def test_init_agent_message_store_should_return_streaming_agent_message_store_when_redis_url_provided(
+    database_url,
+):
     # When
     agent_message_store = await init_agent_message_store(
-        database_url="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb",
+        database_url=database_url,
         redis_url="rediss://secure.instance:6379",
     )
 
@@ -93,11 +99,13 @@ async def test_init_agent_message_store_should_return_inmemory_streaming_agent_m
 
 
 @pytest.mark.asyncio
-async def test_init_agent_message_store_should_raise_exception_when_both_redis_url_and_event_webhook_url_provided():
+async def test_init_agent_message_store_should_raise_exception_when_both_redis_url_and_event_webhook_url_provided(
+    database_url,
+):
     # When / Then
     with pytest.raises(ValueError):
         await init_agent_message_store(
-            database_url="postgresql+asyncpg://cudu:s3cr3tPAssw0rd@localhost:55432/umansbackenddb",
+            database_url=database_url,
             redis_url="rediss://secure.instance:6379",
             webhook_base_url="https://api.example.umans.ai",
         )
