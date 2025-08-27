@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 import httpx
 
 from issue_solver.agents.agent_message_store import AgentMessageStore, AgentMessage
@@ -25,11 +27,11 @@ class WebhookNotifyingAgentMessageStore(AgentMessageStore):
                 process_id=process_id,
                 agent_message=AgentMessage(
                     id=stored_message_id,
-                    payload=message,
+                    payload=message if isinstance(message, dict) else asdict(message),
                     model=model,
                     turn=turn,
                     agent=agent,
-                    type="UserMessage",
+                    type=message.__class__.__name__,
                 ),
             ).model_dump(mode="json"),
         )

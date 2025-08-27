@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
+from claude_code_sdk import UserMessage
 
 from issue_solver.agents.agent_message_store import (
     InMemoryAgentMessageStore,
@@ -106,7 +107,9 @@ async def test_init_agent_message_store_should_raise_exception_when_both_redis_u
 async def test_webhook_notifying_agent_message_store_should_append_and_get_messages():
     # Given
     process_id = "test-process-id"
-    message = {"role": "user", "content": "Hello, how can I help you?"}
+    message = UserMessage(
+        content="Hello, can you solve this issue about serialization?"
+    )
     http_client_mock = Mock()
     http_client_mock.post.return_value.status_code = 200
 
@@ -134,14 +137,14 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
     assert retrieved_messages == [
         AgentMessage(
             id=message_id,
-            type="dict",
+            type="UserMessage",
             turn=1,
             agent=SupportedAgent.CLAUDE_CODE,
             model=VersionedAIModel(
                 ai_model=SupportedAnthropicModel.CLAUDE_OPUS_4,
                 version=LATEST_CLAUDE_4_VERSION,
             ),
-            payload={"content": "Hello, how can I help you?", "role": "user"},
+            payload={"content": "Hello, can you solve this issue about serialization?"},
         )
     ]
     http_client_mock.post.assert_called_once_with(
@@ -150,7 +153,9 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
             "process_id": process_id,
             "agent_message": {
                 "id": message_id,
-                "payload": message,
+                "payload": {
+                    "content": "Hello, can you solve this issue about serialization?"
+                },
                 "model": {"ai_model": "claude-opus-4", "version": "20250514"},
                 "turn": 1,
                 "agent": "claude-code",
