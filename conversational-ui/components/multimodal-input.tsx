@@ -155,7 +155,7 @@ function PureMultimodalInput({
           text: input,
         },
       ],
-    });
+    }, { body: { selectedChatModel: selectedModelId } });
 
     setAttachments([]);
     setLocalStorageInput('');
@@ -174,6 +174,7 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     chatId,
+    selectedModelId,
   ]);
 
   const uploadFile = async (file: File) => {

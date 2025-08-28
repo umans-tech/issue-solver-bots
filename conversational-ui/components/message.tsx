@@ -23,6 +23,7 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import { UseChatHelpers } from '@ai-sdk/react';
+import { useLocalStorage } from 'usehooks-ts';
 import Link from 'next/link';
 import { Sources, getFileExtension, getLanguageIcon } from './sources';
 import { CodeIcon } from './icons';
@@ -167,7 +168,10 @@ const PurePreviewMessage = ({
   }, [message.parts]);
 
   // Check if the model supports reasoning (only OpenAI models)
-  const modelInfo = chatModels.find(model => model.id === selectedChatModel);
+  // Use the most up-to-date selection during streaming to avoid stale UI from previous model
+  const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
+  const effectiveModelId = isLoading ? storedModelId : selectedChatModel;
+  const modelInfo = chatModels.find(model => model.id === effectiveModelId);
   const supportsReasoning = modelInfo?.provider === 'openai';
 
   // Check if we should show reasoning placeholder
