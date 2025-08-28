@@ -142,7 +142,6 @@ export async function POST(request: Request) {
                 messages: convertToModelMessages(messages),
                 stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,
-                toolCallStreaming: true,
                 providerOptions: {
                     openai: {
                         reasoningEffort: 'high',
@@ -205,6 +204,13 @@ export async function POST(request: Request) {
                 result.toUIMessageStream({
                     sendReasoning: true,
                     sendSources: true,
+                    messageMetadata: ({ part }) => {
+                        if (part.type !== 'finish') return;
+                        return {
+                          usage: part.totalUsage,
+                          providerMetadata: result.providerMetadata,
+                        };
+                    },
                 }),
             );
         },
@@ -237,6 +243,20 @@ export async function POST(request: Request) {
                           },
                       ],
                   });
+
+                  const metadata = responseMessage.metadata;
+                  if (metadata && assistantId) {
+                    const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
+                    await recordTokenUsage({
+                        messageId: assistantId,
+                        provider: chatModelProvider,
+                        model: chatModelName,
+                        // @ts-ignore
+                        rawUsageData: metadata.usage,
+                        // @ts-ignore
+                        providerMetadata: metadata.providerMetadata,
+                    });
+                  }
 
               } catch (error) {
                   console.error('Failed to save chat');
