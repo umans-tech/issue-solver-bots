@@ -1,6 +1,7 @@
 'use client';
 
 import { DefaultChatTransport } from 'ai';
+import pRetry from 'p-retry';
 import { useChat } from '@ai-sdk/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -74,6 +75,12 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [lastError, setLastError] = useState<unknown>(null);
+
+  const isNetworkLikeError = (err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    return /network|ERR_INCOMPLETE_CHUNKED_ENCODING|Failed to fetch|TypeError/i.test(message);
+  };
   
   const {
     messages,
@@ -110,11 +117,29 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
+      setLastError(error);
       console.error('Error in useChat:\n', error.message);
       console.error('Call stack:\n', error.stack);
-      toast.error('An error occured, please try again!');
+      if (!isNetworkLikeError(error)) {
+        toast.error('An error occured, please try again!');
+      }
     },
   });
+  useEffect(() => {
+    if (!lastError) return;
+    if (!isNetworkLikeError(lastError)) return;
+
+    // Attempt resumable continuation with bounded retries and backoff.
+    void pRetry(() => Promise.resolve(resumeStream()), {
+      retries: 3,
+      factor: 2,
+      minTimeout: 800,
+      maxTimeout: 3000,
+      randomize: true,
+    }).catch(() => {});
+    
+    return () => {};
+  }, [lastError, resumeStream]);
 
 
 
