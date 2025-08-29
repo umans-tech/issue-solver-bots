@@ -1,9 +1,9 @@
 'use client';
 
 import { DefaultChatTransport } from 'ai';
-import pRetry from 'p-retry';
+import pRetry, { AbortError } from 'p-retry';
 import { useChat } from '@ai-sdk/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
@@ -76,6 +76,7 @@ export function Chat({
 
   const [input, setInput] = useState<string>('');
   const [lastError, setLastError] = useState<unknown>(null);
+  const retryCancelRef = useRef<boolean>(false);
 
   const isNetworkLikeError = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -128,9 +129,20 @@ export function Chat({
   useEffect(() => {
     if (!lastError) return;
     if (!isNetworkLikeError(lastError)) return;
+    if (!(status === 'streaming' || status === 'submitted')) return;
+
+    retryCancelRef.current = false;
 
     // Attempt resumable continuation with bounded retries and backoff.
-    void pRetry(() => Promise.resolve(resumeStream()), {
+    void pRetry(() => {
+      if (retryCancelRef.current) {
+        throw new AbortError('resume cancelled');
+      }
+      if (!(status === 'streaming' || status === 'submitted')) {
+        throw new AbortError('not in streaming state');
+      }
+      return Promise.resolve(resumeStream());
+    }, {
       retries: 3,
       factor: 2,
       minTimeout: 800,
@@ -138,8 +150,10 @@ export function Chat({
       randomize: true,
     }).catch(() => {});
     
-    return () => {};
-  }, [lastError, resumeStream]);
+    return () => {
+      retryCancelRef.current = true;
+    };
+  }, [lastError, resumeStream, status]);
 
 
 

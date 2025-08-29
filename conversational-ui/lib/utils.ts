@@ -47,8 +47,15 @@ export async function fetchWithErrorHandlers(
     const response = await fetch(input, init);
 
     if (!response.ok) {
-      const { code, cause } = await response.json();
-      throw new Error(cause);
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const body = await response.json();
+        const cause = (body && (body.cause || body.message)) ?? JSON.stringify(body);
+        throw new Error(cause);
+      } else {
+        const text = await response.text();
+        throw new Error(text || `${response.status} ${response.statusText}`);
+      }
     }
 
     return response;
