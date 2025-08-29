@@ -129,7 +129,6 @@ export function Chat({
   useEffect(() => {
     if (!lastError) return;
     if (!isNetworkLikeError(lastError)) return;
-    if (!(status === 'streaming' || status === 'submitted')) return;
 
     retryCancelRef.current = false;
 
@@ -137,9 +136,6 @@ export function Chat({
     void pRetry(() => {
       if (retryCancelRef.current) {
         throw new AbortError('resume cancelled');
-      }
-      if (!(status === 'streaming' || status === 'submitted')) {
-        throw new AbortError('not in streaming state');
       }
       return Promise.resolve(resumeStream());
     }, {
@@ -153,7 +149,7 @@ export function Chat({
     return () => {
       retryCancelRef.current = true;
     };
-  }, [lastError, resumeStream, status]);
+  }, [lastError, resumeStream]);
 
 
 
