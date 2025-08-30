@@ -1,9 +1,9 @@
 'use client';
 
 import { DefaultChatTransport } from 'ai';
-import pRetry, { AbortError } from 'p-retry';
+import pRetry from 'p-retry';
 import { useChat } from '@ai-sdk/react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
@@ -75,8 +75,6 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
-  const [lastError, setLastError] = useState<unknown>(null);
-  const retryCancelRef = useRef<boolean>(false);
 
   const isNetworkLikeError = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -118,38 +116,37 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
-      setLastError(error);
       console.error('Error in useChat:\n', error.message);
       console.error('Call stack:\n', error.stack);
-      if (!isNetworkLikeError(error)) {
-        toast.error('An error occured, please try again!');
+      if (isNetworkLikeError(error)) {
+        void pRetry(() => Promise.resolve(resumeStream()), {
+          retries: 3,
+          factor: 2,
+          minTimeout: 800,
+          maxTimeout: 3000,
+          randomize: true,
+        }).catch(() => {});
+        return;
       }
+      toast.error('An error occured, please try again!');
     },
   });
+
+  // Optional: auto-resume when network is back or tab becomes visible
   useEffect(() => {
-    if (!lastError) return;
-    if (!isNetworkLikeError(lastError)) return;
-
-    retryCancelRef.current = false;
-
-    // Attempt resumable continuation with bounded retries and backoff.
-    void pRetry(() => {
-      if (retryCancelRef.current) {
-        throw new AbortError('resume cancelled');
+    const onOnline = () => { void Promise.resolve(resumeStream()).catch(() => {}); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void Promise.resolve(resumeStream()).catch(() => {});
       }
-      return Promise.resolve(resumeStream());
-    }, {
-      retries: 3,
-      factor: 2,
-      minTimeout: 800,
-      maxTimeout: 3000,
-      randomize: true,
-    }).catch(() => {});
-    
-    return () => {
-      retryCancelRef.current = true;
     };
-  }, [lastError, resumeStream]);
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [resumeStream]);
 
 
 
