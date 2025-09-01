@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useProcessMessages } from '../../../hooks/use-process-messages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
@@ -96,8 +97,13 @@ export default function TaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  
+  // Use the polling hook for real-time message updates
+  const { 
+    messages, 
+    loading: messagesLoading, 
+    error: messagesError 
+  } = useProcessMessages(processId, 3000, !!processId);
 
   // Animation variants for collapsible description
   const descriptionVariants = {
@@ -142,22 +148,7 @@ export default function TaskPage() {
           // Don't fail the whole page if repo info can't be fetched
         }
 
-        // Fetch process messages
-        try {
-          setMessagesLoading(true);
-          const messagesResponse = await fetch(`/api/processes/${processId}/messages`);
-          if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
-            // Sort messages by turn
-            const sortedMessages = messagesData.sort((a: any, b: any) => (a.turn || 0) - (b.turn || 0));
-            setMessages(sortedMessages);
-          }
-        } catch (messagesError) {
-          console.warn('Could not fetch process messages:', messagesError);
-          // Don't fail the whole page if messages can't be fetched
-        } finally {
-          setMessagesLoading(false);
-        }
+        // Note: Process messages are now handled by the useProcessMessages hook
         
         setError(null);
       } catch (err) {
@@ -1023,9 +1014,19 @@ export default function TaskPage() {
                     <CardTitle className="flex items-center gap-2">
                       <Bot className="h-5 w-5" />
                       Agent Progress
+                      {messages.length > 0 && !messagesError && (
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          Live • {messages.length} messages
+                        </span>
+                      )}
                     </CardTitle>
                     <CardDescription>
                       Step-by-step progress of the agent working on this task
+                      {!messagesError && (
+                        <span className="text-xs text-green-600 ml-2">
+                          • Updates every 3 seconds
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1076,6 +1077,13 @@ export default function TaskPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Loader2 className="animate-spin h-4 w-4" />
                           <span className="text-sm">Loading messages...</span>
+                        </div>
+                      )}
+                      
+                      {messagesError && (
+                        <div className="flex items-center gap-2 text-red-500 text-sm">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Error loading messages: {messagesError}</span>
                         </div>
                       )}
                     </div>
