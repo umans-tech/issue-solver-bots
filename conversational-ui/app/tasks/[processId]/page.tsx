@@ -98,12 +98,19 @@ export default function TaskPage() {
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   
-  // Use the polling hook for real-time message updates
+  // Use the polling hook for real-time message updates with status tracking
   const { 
     messages, 
     loading: messagesLoading, 
-    error: messagesError 
-  } = useProcessMessages(processId, 3000, !!processId);
+    error: messagesError,
+    currentStatus,
+    isTerminal
+  } = useProcessMessages(processId, 3000, !!processId, (newProcessData) => {
+    // Update the entire process data when detected by message polling
+    if (processData && JSON.stringify(processData) !== JSON.stringify(newProcessData)) {
+      setProcessData(newProcessData);
+    }
+  });
 
   // Animation variants for collapsible description
   const descriptionVariants = {
@@ -1022,11 +1029,6 @@ export default function TaskPage() {
                     </CardTitle>
                     <CardDescription>
                       Step-by-step progress of the agent working on this task
-                      {!messagesError && (
-                        <span className="text-xs text-green-600 ml-2">
-                          • Updates every 3 seconds
-                        </span>
-                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

@@ -5,12 +5,14 @@ import { useState, useEffect, useRef } from 'react';
  * @param processId The ID of the process to poll messages for
  * @param pollInterval The interval in milliseconds between polls (default: 3000ms = 3s)
  * @param enabled Whether polling is enabled (default: true)
+ * @param onProcessDataUpdate Optional callback to receive full process data updates
  * @returns Object containing messages, loading state, and error state
  */
 export function useProcessMessages(
   processId?: string | null | undefined,
   pollInterval: number = 3000,
-  enabled: boolean = true
+  enabled: boolean = true,
+  onProcessDataUpdate?: (processData: any) => void
 ) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,6 +25,15 @@ export function useProcessMessages(
   const errorCountRef = useRef(0);
   const lastProcessIdRef = useRef<string | null | undefined>(processId);
   const lastMessageCountRef = useRef<number>(0);
+  const lastStatusCheckRef = useRef<number>(0);
+  const currentStatusRef = useRef<string | null>(null);
+
+  // Helper function to check if process is in terminal state
+  const isTerminalState = (status?: string): boolean => {
+    if (!status) return false;
+    const terminalStates = ['completed', 'success', 'failed', 'error'];
+    return terminalStates.includes(status.toLowerCase());
+  };
 
   async function fetchMessages() {
     if (!processId || !enabled) {
@@ -32,6 +43,15 @@ export function useProcessMessages(
     // Skip if already polling or if we polled very recently (debounce)
     const now = Date.now();
     if (isPollingRef.current || (now - lastPollTimeRef.current) < 1000) {
+      return;
+    }
+
+    // Stop polling if we know the process is in terminal state
+    if (currentStatusRef.current && isTerminalState(currentStatusRef.current)) {
+      clearIntervalIfExists();
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Process ${processId} is in terminal state: ${currentStatusRef.current}. Stopping message polling.`);
+      }
       return;
     }
 
@@ -73,6 +93,45 @@ export function useProcessMessages(
       if (initialLoad) {
         setInitialLoad(false);
         setLoading(false);
+      }
+
+      // Occasionally check process status (every 4th poll, roughly every 12 seconds)
+      const shouldCheckStatus = (now - lastStatusCheckRef.current) > 12000;
+      if (shouldCheckStatus) {
+        try {
+          const statusResponse = await fetch(`/api/processes/${processId}`);
+          if (statusResponse.ok) {
+            const processData = await statusResponse.json();
+            const newStatus = processData.status;
+            
+            if (newStatus && newStatus !== currentStatusRef.current) {
+              currentStatusRef.current = newStatus;
+              lastStatusCheckRef.current = now;
+              
+              // Notify parent component of process data update
+              if (onProcessDataUpdate) {
+                onProcessDataUpdate(processData);
+              }
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Process status updated: ${newStatus}`);
+              }
+              
+              // Stop polling if terminal state reached
+              if (isTerminalState(newStatus)) {
+                clearIntervalIfExists();
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`Process ${processId} reached terminal state: ${newStatus}. Stopping polling.`);
+                }
+              }
+            }
+          }
+        } catch (statusError) {
+          // Don't fail message polling if status check fails
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Failed to check process status:', statusError);
+          }
+        }
       }
       
     } catch (err) {
@@ -116,6 +175,8 @@ export function useProcessMessages(
       setInitialLoad(true);
       errorCountRef.current = 0;
       lastMessageCountRef.current = 0;
+      lastStatusCheckRef.current = 0;
+      currentStatusRef.current = null;
       clearIntervalIfExists();
     }
   }, [processId]);
@@ -137,7 +198,7 @@ export function useProcessMessages(
     return () => {
       clearIntervalIfExists();
     };
-  }, [processId, pollInterval, enabled]);
+  }, [processId, pollInterval, enabled, onProcessDataUpdate]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -150,6 +211,8 @@ export function useProcessMessages(
     messages,
     loading,
     error,
+    currentStatus: currentStatusRef.current,
+    isTerminal: currentStatusRef.current ? isTerminalState(currentStatusRef.current) : false,
     refetch: fetchMessages,
   };
 }
