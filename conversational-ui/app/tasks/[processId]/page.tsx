@@ -6,6 +6,13 @@ import { useProcessMessages } from '../../../hooks/use-process-messages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../../components/ui/tooltip';
+import { useScrollToBottom } from '../../../hooks/use-scroll-to-bottom';
 import { SharedHeader } from '../../../components/shared-header';
 import { ProcessTimelineView } from '../../../components/process-timeline-view';
 import { Button } from '../../../components/ui/button';
@@ -42,7 +49,11 @@ import {
   FileText,
   Edit3,
   PenTool,
-  BookOpen
+  BookOpen,
+  Info,
+  Activity,
+  ArrowDown,
+  Keyboard
 } from 'lucide-react';
 
 interface ProcessData {
@@ -97,6 +108,15 @@ export default function TaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+  // Reuse chat scroll-to-bottom behavior
+  const {
+    containerRef: messagesContainerRef,
+    endRef: messagesEndRef,
+    isAtBottom,
+    scrollToBottom,
+    onViewportEnter,
+    onViewportLeave,
+  } = useScrollToBottom();
   
   // Use the polling hook for real-time message updates with status tracking
   const { 
@@ -170,6 +190,9 @@ export default function TaskPage() {
       fetchData();
     }
   }, [processId]);
+
+  // Scroll to bottom functionality
+  // No custom scroll logic; rely on useScrollToBottom's isAtBottom
 
   // Function to format date strings
   const formatDate = (dateString?: string) => {
@@ -880,14 +903,40 @@ export default function TaskPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <CardTitle className="text-2xl">{getTaskTitle(processData)}</CardTitle>
-                        {getProcessTypeIcon(processData.processType || processData.type)}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                                <Info className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-muted-foreground">Process ID</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs">{processData.id}</span>
+                                  <Button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(processData.id);
+                                      toast.success('Process ID copied!');
+                                    }}
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-5 w-5 p-0"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
-                      <CardDescription className="font-mono text-sm">
-                        Process ID: {processData.id}
-                      </CardDescription>
-                      <div className="flex items-center gap-2 mt-3">
+                    </div>
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="flex items-center gap-2">
                         {processData.processType && (
                           <Badge variant="outline" className="flex items-center gap-1">
                             {getProcessTypeIcon(processData.processType)}
@@ -904,10 +953,6 @@ export default function TaskPage() {
                             </span>
                           </Badge>
                         )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <div className="flex items-center gap-2">
                         {getStatusBadge(processData.status)}
                         {processData.status === 'in_progress' && (
                           <div className="flex items-center gap-1 text-blue-500">
@@ -1003,13 +1048,6 @@ export default function TaskPage() {
                         </AnimatePresence>
                       </div>
                     )}
-                    
-                    {processData.status === 'in_progress' && (
-                      <div className="flex items-center gap-2 text-blue-500 mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <Loader2 className="animate-spin h-4 w-4" />
-                        <span className="font-medium">Task is currently in progress...</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1021,18 +1059,24 @@ export default function TaskPage() {
                     <CardTitle className="flex items-center gap-2">
                       <Bot className="h-5 w-5" />
                       Agent Progress
-                      {messages.length > 0 && !messagesError && (
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                          Live • {messages.length} messages
-                        </span>
+                      {!isTerminal && (
+                        <div className="flex items-center gap-2">
+                          <Keyboard className="h-4 w-4 text-blue-500 animate-pulse" />
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-blue-500 animate-pulse">coding</span>
+                            <span className="text-xs text-blue-500 animate-bounce">.</span>
+                            <span className="text-xs text-blue-500 animate-bounce" style={{animationDelay: '0.1s'}}>.</span>
+                            <span className="text-xs text-blue-500 animate-bounce" style={{animationDelay: '0.2s'}}>.</span>
+                          </div>
+                        </div>
                       )}
                     </CardTitle>
                     <CardDescription>
                       Step-by-step progress of the agent working on this task
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
+                  <CardContent className="relative">
+                    <div ref={messagesContainerRef} className="space-y-4">
                       {messages.map((message, index) => {
                         const messageDetails = getMessageTypeDetails(message);
                         
@@ -1088,7 +1132,37 @@ export default function TaskPage() {
                           <span>Error loading messages: {messagesError}</span>
                         </div>
                       )}
+                      <motion.div
+                        ref={messagesEndRef}
+                        className="shrink-0 min-w-[24px] min-h-[24px]"
+                        onViewportLeave={onViewportLeave}
+                        onViewportEnter={onViewportEnter}
+                      />
                     </div>
+                    
+                    {/* Scroll to bottom button */}
+                    {!isAtBottom && messages.length > 0 && (
+                      <div 
+                        style={{ 
+                          position: 'fixed', 
+                          bottom: '80px', 
+                          left: '50%', 
+                          transform: 'translateX(-50%)', 
+                          zIndex: 9999 
+                        }}
+                      >
+                        <Button
+                          data-testid="scroll-to-bottom-button"
+                          className="rounded-full p-1.5 h-fit hover:text-foreground"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            scrollToBottom();
+                          }}
+                        >
+                          <ArrowDown />
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

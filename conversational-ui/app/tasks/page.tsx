@@ -440,16 +440,18 @@ export default function TasksPage() {
                                       <span className="text-xs">{typeLabel}</span>
                                     </Badge>
                                     {prInfo && (
-                                      <a
-                                        href={prInfo.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                                      <span
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          window.open(prInfo.url, '_blank', 'noopener,noreferrer');
+                                        }}
+                                        role="link"
+                                        className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors cursor-pointer"
                                       >
                                         <ExternalLink className="h-3 w-3" />
                                         PR #{prInfo.number}
-                                      </a>
+                                      </span>
                                     )}
                                   </div>
                                 </CardHeader>
