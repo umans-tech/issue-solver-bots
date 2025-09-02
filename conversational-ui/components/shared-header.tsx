@@ -15,9 +15,10 @@ import { useProcessStatus } from '@/hooks/use-process-status';
 interface SharedHeaderProps {
   enableSessionRefresh?: boolean;
   children?: React.ReactNode; // For additional header content (like visibility selector in chat)
+  rightExtra?: React.ReactNode; // Allows pages to inject ephemeral right area content (e.g., status badge)
 }
 
-export function SharedHeader({ enableSessionRefresh = false, children }: SharedHeaderProps) {
+export function SharedHeader({ enableSessionRefresh = false, children, rightExtra }: SharedHeaderProps) {
   const { data: session, update: updateSession } = useSession();
   const [showRepoDialog, setShowRepoDialog] = useState(false);
   const [isSessionRefreshed, setIsSessionRefreshed] = useState(false);
@@ -106,6 +107,11 @@ export function SharedHeader({ enableSessionRefresh = false, children }: SharedH
 
         {/* Additional header content (like visibility selector for chat) */}
         {children}
+
+        {/* Expandable center area (rightExtra) separated from icons */}
+        <div className="hidden md:flex items-center min-w-0 flex-1 justify-end px-3 border-r">
+          {rightExtra}
+        </div>
 
         <div className="flex items-center gap-2 md:flex py-1.5 px-2 h-fit md:h-[34px] order-4 md:ml-auto">
           <Tooltip>
