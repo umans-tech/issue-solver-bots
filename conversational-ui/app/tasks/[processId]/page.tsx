@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useProcessMessages } from '../../../hooks/use-process-messages';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -108,6 +108,9 @@ export default function TaskPage() {
   const [error, setError] = useState<string | null>(null);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [isSummaryVisible, setIsSummaryVisible] = useState(true);
   // Reuse chat scroll-to-bottom behavior
   const {
     containerRef: messagesContainerRef,
@@ -198,6 +201,26 @@ export default function TaskPage() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
+  };
+
+  // Observe header visibility to show status in header when out of view
+  useEffect(() => {
+    const target = headerRef.current || summaryRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        // Consider invisible if header (summary) is not intersecting at least 10%
+        setIsSummaryVisible(entry.intersectionRatio > 0.1);
+      },
+      { root: null, threshold: [0, 0.1, 1] },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [headerRef.current, summaryRef.current]);
+
+  const scrollToSummary = () => {
+    summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   // Function to format task type into a readable title
@@ -871,7 +894,29 @@ export default function TaskPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <SharedHeader />
+      <SharedHeader
+        rightExtra={!isSummaryVisible && processData ? (
+          <div className="hidden md:flex items-center gap-2 pl-3 border-l">
+            <button
+              onClick={(e) => { e.preventDefault(); scrollToSummary(); }}
+              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted max-w-[50vw]"
+              title="Scroll to process details"
+            >
+              <span className="truncate font-medium max-w-[28vw]">
+                {getTaskTitle(processData)}
+              </span>
+              {processData.processType && (
+                <Badge variant="outline" className="text-xs">
+                  {processData.processType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                </Badge>
+              )}
+              <div className="scale-90 origin-right">
+                {getStatusBadge(processData.status)}
+              </div>
+            </button>
+          </div>
+        ) : null}
+      />
 
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto py-8 px-4">
@@ -899,8 +944,9 @@ export default function TaskPage() {
           ) : processData ? (
             <>
               {/* Task Summary Card */}
+              <div ref={summaryRef}>
               <Card className="mb-6">
-                <CardHeader>
+                <CardHeader ref={headerRef}>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -1051,6 +1097,7 @@ export default function TaskPage() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* Agent Progress Card - Show process messages */}
               {messages.length > 0 && (
@@ -1059,7 +1106,7 @@ export default function TaskPage() {
                     <CardTitle className="flex items-center gap-2">
                       <Bot className="h-5 w-5" />
                       Agent Progress
-                      {!isTerminal && (
+                      {processData?.status === 'in_progress' && !isTerminal && (
                         <div className="flex items-center gap-2">
                           <Keyboard className="h-4 w-4 text-blue-500 animate-pulse" />
                           <div className="flex items-center gap-1">
@@ -1351,6 +1398,7 @@ export default function TaskPage() {
           )}
         </div>
       </div>
+      {/* Removed floating right badge in favor of header injection */}
     </div>
   );
 }
