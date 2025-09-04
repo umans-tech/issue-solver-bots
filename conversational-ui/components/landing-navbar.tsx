@@ -18,6 +18,9 @@ export function LandingNavbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Keep it simple: use the same flow as "Start Building" by linking to
+  // `/go-to-app`, which reliably hands off to the correct domain.
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -41,14 +44,14 @@ export function LandingNavbar() {
             <ThemeToggle variant="ghost" />
             
             {/* Sign In Button */}
-            <Link href="/login">
+            <Link href="/go-to-app">
               <Button variant="ghost" size="sm" className="text-sm font-medium">
                 Sign In
               </Button>
             </Link>
             
             {/* Sign Up Button */}
-            <Link href="/register">
+            <Link href="/go-to-app">
               <Button size="sm" className="text-sm font-medium">
                 Sign Up
               </Button>
