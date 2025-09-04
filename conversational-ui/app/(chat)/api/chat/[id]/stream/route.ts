@@ -33,11 +33,11 @@ export async function GET(
     try {
       chat = await getChatById({ id: chatId });
     } catch {
-      return new Response('Not found', { status: 404 });
+      return new Response(null, { status: 204 });
     }
 
     if (!chat) {
-      return new Response('Not found', { status: 404 });
+      return new Response(null, { status: 204 });
     }
 
     if (chat.visibility !== 'public' && !session?.user) {
