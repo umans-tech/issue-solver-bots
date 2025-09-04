@@ -50,14 +50,16 @@ export async function GET(
 
     const streamIds = await getStreamIdsByChatId({ chatId });
 
+    // If this chat has no recorded streams, respond with 204 (No Content)
+    // to avoid client-side errors while keeping resume a no-op.
     if (!streamIds.length) {
-      return new Response('No streams found', { status: 404 });
+      return new Response(null, { status: 204 });
     }
 
     const recentStreamId = streamIds.at(-1);
 
     if (!recentStreamId) {
-      return new Response('No recent stream found', { status: 404 });
+      return new Response(null, { status: 204 });
     }
 
     const emptyDataStream = createUIMessageStream<ChatMessage>({
