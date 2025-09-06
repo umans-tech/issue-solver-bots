@@ -98,11 +98,20 @@ export function Chat({
       api: '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
+        // Read the freshest model selection directly from localStorage
+        const currentModelId = (() => {
+          try {
+            const v = localStorage.getItem('chat-model');
+            return v || storedModelId || DEFAULT_CHAT_MODEL;
+          } catch {
+            return storedModelId || DEFAULT_CHAT_MODEL;
+          }
+        })();
         return {
           body: {
             id,
             messages,
-            selectedChatModel: storedModelId || DEFAULT_CHAT_MODEL,
+            selectedChatModel: currentModelId,
             knowledgeBaseId: knowledgeBaseIdState,
             ...body,
           },
