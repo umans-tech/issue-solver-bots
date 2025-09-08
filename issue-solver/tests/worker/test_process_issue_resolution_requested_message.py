@@ -686,7 +686,7 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
     base_snapshot.status = SnapshotStatus.READY
     dev_snapshot_id = "dev-snapshot-id"
     prepared_snapshot = Mock()
-    base_snapshot.setup.return_value = prepared_snapshot
+    base_snapshot.exec.return_value = prepared_snapshot
     prepared_snapshot.id = dev_snapshot_id
     started_instance.exec.return_value = InstanceExecResponse(
         exit_code=0, stdout="success", stderr=""
@@ -754,7 +754,7 @@ export ISSUE__DESCRIPTION=\'test issue\'
 export ISSUE__TITLE=\'issue title\'
 export INSTALL_SCRIPT=\'echo \'"\'"\'Hello, World!\'"\'"\'\'
 """
-    base_snapshot.setup.assert_called_once_with(
+    base_snapshot.exec.assert_called_once_with(
         to_script(command="cudu prepare", dotenv_settings=prepare_settings)
     )
 

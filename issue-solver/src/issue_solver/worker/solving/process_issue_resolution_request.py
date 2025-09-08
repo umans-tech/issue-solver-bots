@@ -133,7 +133,7 @@ async def resolve_issue(
                         install_script=dev_environment_configuration.script,
                     ).to_env_script()
                     cmd = run_as_umans_with_env(prepare_body, "cudu prepare")
-                    snapshot = snapshot.setup(cmd)
+                    snapshot = snapshot.exec(cmd)
                     snapshot.set_metadata(
                         {
                             "type": "dev",
