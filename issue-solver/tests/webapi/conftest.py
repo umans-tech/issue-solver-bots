@@ -233,3 +233,9 @@ def api_client(
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()
+
+
+def receive_event_message(sqs_client, sqs_queue):
+    return sqs_client.receive_message(
+        QueueUrl=sqs_queue["queue_url"], MaxNumberOfMessages=1, WaitTimeSeconds=1
+    )

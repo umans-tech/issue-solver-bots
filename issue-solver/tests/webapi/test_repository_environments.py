@@ -1,6 +1,6 @@
 import json
 
-from tests.webapi.test_webapi import receive_event_message
+from tests.webapi.conftest import receive_event_message
 
 
 def test_setup_environment_should_return_200_and_publish_environment_configuration_provided_event(

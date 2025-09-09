@@ -3,7 +3,7 @@ import json
 import pytest
 from redis.client import PubSub
 from tests.examples.happy_path_persona import examples_of_all_events
-from tests.webapi.test_webapi import receive_event_message
+from tests.webapi.conftest import receive_event_message
 
 from issue_solver.events.serializable_records import serialize, deserialize
 

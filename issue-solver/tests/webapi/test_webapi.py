@@ -1,6 +1,6 @@
 import json
 
-from tests.webapi.conftest import CREATED_VECTOR_STORE_ID
+from tests.webapi.conftest import CREATED_VECTOR_STORE_ID, receive_event_message
 
 
 def test_connect_repository_returns_201_and_publishes_code_repository_connected_event(
@@ -202,12 +202,6 @@ def test_connect_github_repository_includes_token_permissions(
     assert token_permissions["has_read_user"] is True
     assert token_permissions["missing_scopes"] == []
     assert token_permissions["is_optimal"] is True
-
-
-def receive_event_message(sqs_client, sqs_queue):
-    return sqs_client.receive_message(
-        QueueUrl=sqs_queue["queue_url"], MaxNumberOfMessages=1, WaitTimeSeconds=1
-    )
 
 
 def test_rotate_token_returns_200_and_creates_token_rotated_event(

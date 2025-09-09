@@ -1,6 +1,6 @@
 import json
 
-from tests.webapi.test_webapi import receive_event_message
+from tests.webapi.conftest import receive_event_message
 
 
 def test_issue_resolution_route_should_request_issue_resolution_with_default_user(
