@@ -130,7 +130,7 @@ async def resolve_issue(
                         url=url,
                         access_token=access_token,
                         issue=message.issue,  # see Note below
-                        install_script=dev_environment_configuration.script,
+                        install_script=dev_environment_configuration.project_setup,
                     ).to_env_script()
                     cmd = run_as_umans_with_env(prepare_body, "cudu prepare")
                     snapshot = snapshot.exec(cmd)

@@ -80,7 +80,8 @@ def test_setup_environment_should_return_200_and_publish_environment_configurati
         environment_id=api_response["environment_id"],
         knowledge_base_id=knowledge_base_id,
         user_id=user_id,
-        script=environment_config.get("script") or environment_config.get("project"),
+        project_setup=environment_config.get("script")
+        or environment_config.get("project"),
         process_id=process_id,
         occurred_at=time_under_control.now(),
     )

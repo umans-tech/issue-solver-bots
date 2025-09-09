@@ -414,7 +414,7 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             user_id=self.user_id,
             process_id=self.process_id,
-            script=self.script,
+            project_setup=self.script,
         )
 
     @classmethod
@@ -425,7 +425,7 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             user_id=event.user_id,
             process_id=event.process_id,
-            script=event.script,
+            script=event.project_setup,
         )
 
 

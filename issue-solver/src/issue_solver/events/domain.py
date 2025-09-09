@@ -123,7 +123,7 @@ class IssueResolutionFailed(DomainEvent):
 class EnvironmentConfigurationProvided(DomainEvent):
     environment_id: str
     knowledge_base_id: str
-    script: str
+    project_setup: str
     user_id: str
     process_id: str
     occurred_at: datetime

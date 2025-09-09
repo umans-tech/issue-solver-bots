@@ -66,7 +66,7 @@ class BriceDeNice:
             occurred_at=datetime.fromisoformat("2025-01-02T08:00:00Z"),
             user_id="brice-user-001",
             knowledge_base_id="brice-kb-001",
-            script="""
+            project_setup="""
             #!/bin/bash
             # install dependencies
             apt-get update && apt-get install -y libssl-dev libffi-dev python3-dev

@@ -275,7 +275,7 @@ async def test_get_issue_resolution_events_with_dev_environment_configuration(
             process_id="test-process-id",
             environment_id="dev-environment-id-xyz",
             user_id="test-user-id",
-            script="apt update && apt install -y python3 \n pip install -e .'[dev]'",
+            project_setup="apt update && apt install -y python3 \n pip install -e .'[dev]'",
             knowledge_base_id="knowledge-base-id",
         ),
         IssueResolutionStarted(
@@ -336,7 +336,7 @@ async def test_find_event_environment_configuration_provided(event_store: EventS
         process_id="test-process-id",
         environment_id="dev-environment-id-xyz",
         user_id="test-user-id",
-        script="apt update && apt install -y python3 \n pip install -e .'[dev]'",
+        project_setup="apt update && apt install -y python3 \n pip install -e .'[dev]'",
         knowledge_base_id="knowledge-base-id",
     )
     await event_store.append("test-process-id", appended_event)
