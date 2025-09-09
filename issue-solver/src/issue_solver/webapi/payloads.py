@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, AliasChoices
 from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.agent_message_store import AgentMessage
@@ -47,7 +47,19 @@ class ProcessCreated(BaseSchema):
 
 
 class EnvironmentConfiguration(BaseSchema):
-    script: str
+    global_setup: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "global",
+        ),
+    )
+    script: str = Field(
+        validation_alias=AliasChoices(
+            "project",
+            "script",
+            "project_setup",
+        )
+    )
 
 
 class AgentMessageNotification(BaseSchema):

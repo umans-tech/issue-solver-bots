@@ -1,10 +1,36 @@
 import json
 
+import pytest
 from tests.webapi.conftest import receive_event_message
 
+from issue_solver.events.domain import EnvironmentConfigurationProvided
+from issue_solver.events.serializable_records import deserialize
 
+
+@pytest.mark.parametrize(
+    "environment_config",
+    [
+        {
+            "global": """
+        apt update && apt install -y pip3 python3-pip
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        """,
+            "project": """
+        uv sync
+        """,
+        },
+        {
+            "script": """
+        #!/bin/bash
+        apt update && apt install -y pip3 python3-pip
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv sync
+        """
+        },
+    ],
+)
 def test_setup_environment_should_return_200_and_publish_environment_configuration_provided_event(
-    api_client, sqs_client, sqs_queue, time_under_control
+    api_client, sqs_client, sqs_queue, time_under_control, environment_config
 ):
     # Given
     time_under_control.set_from_iso_format("2025-10-01T10:02:27")
@@ -22,14 +48,6 @@ def test_setup_environment_should_return_200_and_publish_environment_configurati
     )
     receive_event_message(sqs_client, sqs_queue)
     knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
-    environment_config = {
-        "script": """
-        #!/bin/bash
-        apt update && apt install -y pip3 python3-pip
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        uv sync
-        """
-    }
 
     # When
     url = f"/repositories/{knowledge_base_id}/environments"
@@ -43,25 +61,29 @@ def test_setup_environment_should_return_200_and_publish_environment_configurati
 
     # Then
     assert response.status_code == 201
-    data = response.json()
-    assert "environment_id" in data
-    assert "process_id" in data
+    api_response = response.json()
+    assert "environment_id" in api_response
+    assert "process_id" in api_response
 
-    process_id = response.json()["process_id"]
+    process_id = api_response["process_id"]
     process_response = api_client.get(f"/processes/{process_id}")
     assert process_response.status_code == 200
-    process_data = process_response.json()
-    assert process_data
+    assert process_response.json()
 
     # Verify message was sent to SQS
     messages = receive_event_message(sqs_client, sqs_queue)
     assert "Messages" in messages
-    message_body = json.loads(messages["Messages"][0]["Body"])
-    assert message_body["type"] == "environment_configuration_provided"
-    assert message_body["knowledge_base_id"] == knowledge_base_id
-    assert message_body["user_id"] == user_id
-    assert message_body["environment_id"] == data["environment_id"]
-    assert message_body["script"] == environment_config["script"]
+    message_raw_body = messages["Messages"][0]["Body"]
+    parsed_message = json.loads(message_raw_body)
+    published_event = deserialize(parsed_message["type"], message_raw_body)
+    assert published_event == EnvironmentConfigurationProvided(
+        environment_id=api_response["environment_id"],
+        knowledge_base_id=knowledge_base_id,
+        user_id=user_id,
+        script=environment_config.get("script") or environment_config.get("project"),
+        process_id=process_id,
+        occurred_at=time_under_control.now(),
+    )
 
 
 def test_setup_environment_should_return_404_when_repository_not_found(
