@@ -53,11 +53,10 @@ class EnvironmentConfiguration(BaseSchema):
             "global",
         ),
     )
-    script: str = Field(
+    project_setup: str = Field(
         validation_alias=AliasChoices(
             "project",
             "script",
-            "project_setup",
         )
     )
 
