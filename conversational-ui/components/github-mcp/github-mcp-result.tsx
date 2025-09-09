@@ -9,8 +9,10 @@ import {
   Calendar,
   Star,
   GitFork,
-  Eye
+  Eye,
+  FileText
 } from 'lucide-react';
+import { TreeView } from '@primer/react';
 import { GitIcon } from '../icons';
 import { GitHubMCPResultProps, getGitHubMCPToolCategory } from './github-mcp-types';
 import { getFileExtension, getLanguageIcon } from '../sources';
@@ -155,16 +157,12 @@ export const GitHubMCPResult = ({ toolName, result, args }: GitHubMCPResultProps
     try{
       text_result = JSON.parse(text_result);
     } catch (error) {
-      console.log('########### error');
-      console.log(error);
     }
   }
   if (resource_result) {
     try{
       resource_result = JSON.parse(resource_result);
     } catch (error) {
-      console.log('########### error');
-      console.log(error);
     }
   }
 
@@ -249,7 +247,7 @@ const GitHubRepositoriesResult = ({ toolName, result, args }: GitHubMCPResultPro
     case 'list_repositories':
       return <GitHubRepositoriesList repositories={result.text} />;
     case 'get_file_contents':
-      return <GitHubFileContents file={result.resource} path={args?.path} />;
+      return <GitHubFileContents file={result} path={args?.path} />;
     case 'search_code':
       return <GitHubCodeSearchResults results={result.text} query={args?.query} />;
     default:
@@ -829,481 +827,137 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
   );
 };
 
-// Component to handle multiple file contents
-const GitHubMultipleFileContents = ({ files }: { files: any[] }) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  const displayedFiles = expanded ? files : files.slice(0, 3);
-  
-  return (
-    <div className="mt-1">
-      <div className="flex items-center gap-2 text-sm mb-1">
-        <GitIcon status="none" />
-        <span className="text-muted-foreground">Retrieved {files.length} file{files.length !== 1 ? 's' : ''}</span>
-      </div>
-      
-      {!expanded ? (
-        <div 
-          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setExpanded(true)}
-        >
-          {displayedFiles.map((fileItem: any, index: number) => {
-            const fileName = fileItem.name || fileItem.path || `File ${index + 1}`;
-            const extension = getFileExtension(fileName);
-            const languageIcon = getLanguageIcon(extension);
-            
-            return (
-              <div key={index} className="flex items-center">
-                {languageIcon ? (
-                  <img 
-                    src={languageIcon} 
-                    alt={`${extension} file`} 
-                    className="w-4 h-4 rounded-sm" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-4 h-4 rounded-sm bg-primary/10 flex items-center justify-center">
-                    <svg 
-                      width="10" 
-                      height="10" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-primary"
-                    >
-                      <path 
-                        d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <span className="text-xs font-medium text-muted-foreground">
-            {files.length} file{files.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-      ) : (
-        <div className="rounded-md border border-border overflow-hidden bg-background">
-          <div 
-            className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
-            onClick={() => setExpanded(false)}
-          >
-            <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-xs font-medium text-muted-foreground">File Contents</span>
-            </div>
-            <button 
-              className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
-              aria-label="Close file contents"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(false);
-              }}
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div className="space-y-3 p-3">
-            {displayedFiles.map((fileItem: any, index: number) => (
-              <GitHubSingleFileDisplay key={index} fileData={fileItem} />
-            ))}
-          </div>
-          
-          {files.length > 3 && (
-            <div className="border-t border-border/50 p-3">
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <ChevronDown 
-                  size={14} 
-                  className={`transition-transform ${expanded ? 'rotate-180' : ''}`} 
-                />
-                {expanded ? 'Show less' : `Show ${files.length - 3} more file${files.length - 3 !== 1 ? 's' : ''}`}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
 
-// Component to display a single file's content
-const GitHubSingleFileDisplay = ({ fileData }: { fileData: any }) => {
-  let actualContent = '';
-  let fileName = fileData.name || fileData.path || 'Unknown file';
-  let fileUrl = fileData.html_url || '';
-  let fileSize = fileData.size || 0;
-  
-  if (fileData.content) {
-    const isBase64 = fileData.encoding === 'base64';
-    const isText = fileData.encoding === 'text';
-    
-    try {
-      if (isBase64) {
-        actualContent = atob(fileData.content.replace(/\n/g, ''));
-      } else if (isText) {
-        actualContent = fileData.content;
-      } else {
-        actualContent = fileData.content;
-      }
-    } catch (error) {
-      // Error decoding - return null like codebase search
-      return null;
-    }
-  }
-  
-  const getFileType = (name: string) => {
-    const ext = name.split('.').pop()?.toLowerCase();
-    switch (ext) {
-      case 'js': case 'jsx': return 'javascript';
-      case 'ts': case 'tsx': return 'typescript';
-      case 'py': return 'python';
-      case 'json': return 'json';
-      case 'md': return 'markdown';
-      case 'yml': case 'yaml': return 'yaml';
-      case 'xml': return 'xml';
-      case 'css': return 'css';
-      case 'html': return 'html';
-      default: return 'text';
-    }
-  };
-
-  const fileType = getFileType(fileName);
-  const extension = getFileExtension(fileName);
-  const languageIcon = getLanguageIcon(extension);
-  const githubUrl = fileUrl || `https://github.com/search?q=filename:${encodeURIComponent(fileName)}&type=code`;
-
-  return (
-    <div className="border rounded-lg p-3 bg-background">
-      <div className="flex items-start gap-2">
-        <div className="flex-shrink-0 mt-0.5">
-          {languageIcon ? (
-            <img 
-              src={languageIcon} 
-              alt={`${extension} file`} 
-              className="w-5 h-5 rounded-sm" 
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-5 h-5 rounded-sm bg-primary/10 flex items-center justify-center">
-              <svg 
-                width="12" 
-                height="12" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="text-primary"
-              >
-                <path 
-                  d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-0 flex-grow">
-          <div className="flex items-center gap-2 mb-1">
-            <a 
-              href={githubUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-base font-medium text-primary hover:underline line-clamp-1"
-            >
-              {fileName}
-            </a>
-            {fileSize > 0 && (
-              <span className="text-xs text-muted-foreground">
-                ({fileSize > 1024 ? `${(fileSize / 1024).toFixed(1)}KB` : `${fileSize}B`})
-              </span>
-            )}
-            <span className="text-xs bg-muted px-2 py-0.5 rounded">{fileType}</span>
-          </div>
-          
-          {actualContent ? (
-            <div className="text-sm bg-muted/20 p-3 rounded font-mono overflow-auto max-h-64">
-              <pre className="whitespace-pre-wrap">{actualContent}</pre>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              No content available
-            </div>
-          )}
-          
-          <div className="text-xs text-muted-foreground mt-2">
-            {githubUrl}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   const [expanded, setExpanded] = useState(false);
-  
-  // Extract file content from MCP response
-  let fileData = file;
-  let errorMessage = '';
 
-  // let uri = fileData.uri
-  // let mimeType = fileData.mimeType
-  // let content = fileData.text
+  // Normalized fields from MCP
+  const resource = file?.resource ?? null;
+  const directoryItems = Array.isArray(file?.text) ? (file.text as any[]) : null;
 
-  // Handle multiple files case
-  if (Array.isArray(fileData) && fileData.length > 0) {
-    return <GitHubMultipleFileContents files={fileData} />;
-  }
-
-  // Handle single file case
-  let actualContent = '';
-  let fileName = path || 'Unknown file';
-  let fileUrl = '';
-  let fileSize = 0;
-  
-  // Handle error case - return null like codebase search
-  if (errorMessage) {
-    return null;
-  }
-  
-  if (fileData && typeof fileData === 'object') {
-    // GitHub API returns file content in 'content' field, usually base64 encoded
-    if (fileData.content) {
-      const isBase64 = fileData.encoding === 'base64';
-      const isText = fileData.encoding === 'text';
-      
-      try {
-        if (isBase64) {
-          actualContent = atob(fileData.content.replace(/\n/g, ''));
-        } else if (isText) {
-          actualContent = fileData.content;
-        } else {
-          // Default handling
-          actualContent = fileData.content;
+  const repoUriToWebUrl = (uri: string): string => {
+    try {
+      if (!uri) return '';
+      if (/^https?:\/\//.test(uri)) return uri;
+      if (uri.startsWith('repo://')) {
+        const withoutScheme = uri.replace('repo://', '');
+        const parts = withoutScheme.split('/');
+        const owner = parts[0];
+        const repo = parts[1];
+        const rest = parts.slice(2);
+        const pathStart = rest[0] === 'contents' ? rest.slice(1) : rest;
+        const filePath = pathStart.join('/');
+        if (owner && repo && filePath) {
+          return `https://github.com/${owner}/${repo}/blob/HEAD/${filePath}`;
         }
-      } catch (error) {
-        // Error decoding - return null like codebase search
-        return null;
       }
-    }
-    
-    fileName = fileData.name || path || 'Unknown file';
-    fileUrl = fileData.uri || '';
-    fileSize = fileData.size || 0;
-  } else if (typeof fileData === 'string') {
-    actualContent = fileData;
-  } else if (fileData === null) {
-    // No file data - return null like codebase search
-    return null;
-  } else {
-    // Debug: show the raw data structure if we can't parse it
-    actualContent = `Debug: ${JSON.stringify(fileData, null, 2)}`;
-  }
-
-  // Determine file type for syntax highlighting hint
-  const getFileType = (name: string) => {
-    const ext = name.split('.').pop()?.toLowerCase();
-    switch (ext) {
-      case 'js': case 'jsx': return 'javascript';
-      case 'ts': case 'tsx': return 'typescript';
-      case 'py': return 'python';
-      case 'json': return 'json';
-      case 'md': return 'markdown';
-      case 'yml': case 'yaml': return 'yaml';
-      case 'xml': return 'xml';
-      case 'css': return 'css';
-      case 'html': return 'html';
-      default: return 'text';
-    }
+    } catch {}
+    return '';
   };
 
-  const fileType = getFileType(fileName);
-  const extension = getFileExtension(fileName);
-  const languageIcon = getLanguageIcon(extension);
-  const githubUrl = fileUrl || `https://github.com/search?q=filename:${encodeURIComponent(path || fileName)}&type=code`;
-
-  return (
-    <div className="mt-1">
-      <div className="flex items-center gap-2 text-sm mb-1">
-        <GitIcon status="none" />
-        <span className="text-muted-foreground">Retrieved file contents: "{path || fileName}"</span>
-      </div>
-      
-      {!expanded ? (
-        <div 
-          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setExpanded(true)}
-        >
-          <div className="flex items-center">
-            {languageIcon ? (
-              <img 
-                src={languageIcon} 
-                alt={`${extension} file`} 
-                className="w-4 h-4 rounded-sm" 
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="w-4 h-4 rounded-sm bg-primary/10 flex items-center justify-center">
-                <svg 
-                  width="10" 
-                  height="10" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-primary"
-                >
-                  <path 
-                    d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">
-            {fileName}
+  // Directory listing view (resource is null, text is list JSON)
+  if (!resource && directoryItems && directoryItems.length > 0) {
+    return (
+      <div className="mt-1">
+        <div className="flex items-center gap-2 text-sm mb-2">
+          <GitIcon status="none" />
+          <span className="text-muted-foreground">
+            Directory listing{path ? `: "${path}"` : ''}
           </span>
         </div>
-      ) : (
-        <div className="rounded-md border border-border overflow-hidden bg-background">
-          <div 
-            className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
-            onClick={() => setExpanded(false)}
-          >
-            <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-xs font-medium text-muted-foreground">File Contents</span>
-            </div>
-            <button 
-              className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
-              aria-label="Close file contents"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(false);
-              }}
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          <div className="flex flex-col gap-1 p-3">
-            <div className="flex items-start gap-2">
-              <div className="flex-shrink-0 mt-0.5">
-                {languageIcon ? (
-                  <img 
-                    src={languageIcon} 
-                    alt={`${extension} file`} 
-                    className="w-5 h-5 rounded-sm" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-sm bg-primary/10 flex items-center justify-center">
-                    <svg 
-                      width="12" 
-                      height="12" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-primary"
+
+        <div className="rounded-md border border-border bg-background p-2">
+          <TreeView aria-label="Directory listing">
+            <TreeView.Item id={String(path || 'root')}>
+              <TreeView.LeadingVisual>
+                <TreeView.DirectoryIcon />
+              </TreeView.LeadingVisual>
+              {String(path || 'directory')}
+              <TreeView.SubTree>
+                {directoryItems.map((item: any) => (
+                  <TreeView.Item id={String(item.path)} key={item.sha || item.path}>
+                    <TreeView.LeadingVisual>
+                      {item.type === 'dir' ? (
+                        <TreeView.DirectoryIcon />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5" />
+                      )}
+                    </TreeView.LeadingVisual>
+                    <a
+                      href={item.html_url || item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground hover:underline"
                     >
-                      <path 
-                        d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                )}
+                      {String(item.name)}
+                    </a>
+                  </TreeView.Item>
+                ))}
+              </TreeView.SubTree>
+            </TreeView.Item>
+          </TreeView>
+        </div>
+      </div>
+    );
+  }
+
+  // File view (resource present) — simple card with link to GitHub
+  if (resource && typeof resource === 'object') {
+    const uri: string = resource?.uri || '';
+    const webUrl = repoUriToWebUrl(uri);
+    const displayUrl = webUrl || uri;
+    const displayName = (path || uri).split('/').pop() || 'File';
+    const extension = getFileExtension(displayUrl);
+    const languageIcon = getLanguageIcon(extension);
+
+    return (
+      <div className="mt-1">
+        <div className="flex items-center gap-2 text-sm mb-1">
+          <GitIcon status="none" />
+          <span className="text-muted-foreground">Retrieved file contents: "{path || (uri.startsWith('repo://') ? uri.split('/').slice(3).join('/') : (uri || ''))}"</span>
+        </div>
+
+        <a
+          href={displayUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block border rounded-lg p-3 bg-background hover:bg-muted/50 transition-colors cursor-pointer group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-0.5">
+              {languageIcon ? (
+                <img
+                  src={languageIcon}
+                  alt={`${extension} file`}
+                  className="w-5 h-5 rounded-sm"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-sm bg-primary/10 flex items-center justify-center" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {String(displayName)}
+                </h4>
               </div>
-              <div className="flex flex-col gap-0 flex-grow">
-                <div className="flex items-center gap-2 mb-1">
-                  <a 
-                    href={githubUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-base font-medium text-primary hover:underline line-clamp-1"
-                  >
-                    {fileName}
-                  </a>
-                  {fileSize > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      ({fileSize > 1024 ? `${(fileSize / 1024).toFixed(1)}KB` : `${fileSize}B`})
-                    </span>
-                  )}
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded">{fileType}</span>
-                </div>
-                
-                {actualContent && actualContent.startsWith('Error:') ? (
-                  <div className="text-sm text-red-600 dark:text-red-400 mb-2">
-                    {actualContent.replace('Error: ', '')}
-                  </div>
-                ) : actualContent && !actualContent.startsWith('Debug:') ? (
-                  <div className="text-sm bg-muted/20 p-3 rounded font-mono overflow-auto max-h-96">
-                    <pre className="whitespace-pre-wrap">{actualContent}</pre>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    {actualContent ? 'Binary file or no preview available' : 'No content available'}
-                  </div>
-                )}
-                
-                <div className="text-xs text-muted-foreground mt-2">
-                  {githubUrl}
-                </div>
-              </div>
+              <div className="text-xs text-muted-foreground truncate">{displayUrl}</div>
+            </div>
+            <div className="text-muted-foreground group-hover:text-foreground transition-colors">
+              <ExternalLink size={14} />
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </a>
+      </div>
+    );
+  }
+
+  // Nothing to render
+  return null;
 };
 
 const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: string }) => {
