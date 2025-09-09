@@ -176,6 +176,7 @@ def get_snapshot(client: MorphCloudClient, metadata: dict[str, Any]) -> Snapshot
 def run_as_umans_with_env(
     env_body: str,
     command: str,
+    global_setup_script: str | None = None,
     env_path: str = "/home/umans/.cudu_env",
     exec_path: str = "/home/umans/.cudu_run.sh",
 ) -> str:
@@ -185,6 +186,7 @@ def run_as_umans_with_env(
     script = f"""
 set -Eeuo pipefail
 umask 0077
+{global_setup_script.strip() if global_setup_script else ""}
 trap 'rm -f "{env_path}" "{exec_path}"' EXIT
 
 # 1) write .env literally

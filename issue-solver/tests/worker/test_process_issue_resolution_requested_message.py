@@ -626,7 +626,10 @@ export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
     started_instance.exec.assert_called_once_with(
-        to_script(command="cudu solve", dotenv_settings=solve_settings)
+        to_script(
+            command="cudu solve",
+            dotenv_settings=solve_settings,
+        )
     )
 
 
@@ -651,12 +654,14 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
     )
     environment_config_process_id = "env-config-process-id"
     environment_id = "bob-dev-environment-05"
+    global_setup_script = "apt-get update && apt-get install -y python3-venv"
     await event_store.append(
         "environment_config_process_id",
         EnvironmentConfigurationProvided(
             environment_id=environment_id,
             occurred_at=time_under_control.now(),
             knowledge_base_id="test-knowledge-base-id",
+            global_setup=global_setup_script,
             project_setup="echo 'Hello, World!'",
             user_id="test-user-id",
             process_id=environment_config_process_id,
@@ -755,7 +760,11 @@ export ISSUE__TITLE=\'issue title\'
 export INSTALL_SCRIPT=\'echo \'"\'"\'Hello, World!\'"\'"\'\'
 """
     base_snapshot.exec.assert_called_once_with(
-        to_script(command="cudu prepare", dotenv_settings=prepare_settings)
+        to_script(
+            command="cudu prepare",
+            dotenv_settings=prepare_settings,
+            global_setup_script=global_setup_script,
+        )
     )
 
     solve_settings = """
@@ -778,10 +787,13 @@ export PROCESS_ID=\'test-process-id\'
     )
 
 
-def to_script(command: str, dotenv_settings: str) -> str:
+def to_script(
+    command: str, dotenv_settings: str, global_setup_script: str | None = None
+) -> str:
     return """
 set -Eeuo pipefail
 umask 0077
+%s
 trap \'rm -f "/home/umans/.cudu_env" "/home/umans/.cudu_run.sh"\' EXIT
 
 # 1) write .env literally
@@ -819,4 +831,4 @@ chmod 700 "/home/umans/.cudu_run.sh"
 
 # 3) run as umans without -c or -l
 runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
-""" % (dotenv_settings.strip(), command)
+""" % ((global_setup_script or "").strip(), dotenv_settings.strip(), command)
