@@ -43,6 +43,7 @@
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@mozilla/readability": "^0.4.4",
     "@opentelemetry/api": "^1.9.0",
+    "@primer/react": "^37.31.0",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
