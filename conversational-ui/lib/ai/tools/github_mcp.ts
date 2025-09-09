@@ -76,6 +76,7 @@ const createProxyMCPClient = async (userContext?: { userId?: string; spaceId?: s
             "add_issue_comment",
             "update_issue",
             "search_code",
+            "search_repositories",
             "get_file_contents",
             "get_pull_request",
             "list_pull_requests",

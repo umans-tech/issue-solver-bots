@@ -146,10 +146,9 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
 };
 
 export const GitHubMCPResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
-  // Safety check to prevent rendering objects directly
-  if (result && typeof result === 'object' && result.type === 'text' && result.text) {
-    // If we get the raw MCP format, extract the text
-    result = result.text;
+
+  if (result.content && Array.isArray(result.content) && result.content[0]?.text) {
+    result = JSON.parse(result.content[0].text);
   }
 
   const category = getGitHubMCPToolCategory(toolName);
@@ -201,7 +200,7 @@ const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) =>
     case 'update_issue':
       return <GitHubIssueDetail issue={result} />;
     case 'search_issues':
-      return <GitHubIssuesList issues={result} repository="search results" />;
+      return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
     default:
       return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
   }
@@ -275,13 +274,6 @@ const GitHubNotificationsResult = ({ toolName, result, args }: GitHubMCPResultPr
 const GitHubUserProfile = ({ user }: { user: any }) => {
   // Extract MCP content payload if present
   let userData = user;
-  if (user && user.content && Array.isArray(user.content) && user.content[0]?.text) {
-    try {
-      userData = JSON.parse(user.content[0].text);
-    } catch {
-      userData = user;
-    }
-  }
 
   // Some payloads wrap the user data under { user: { ... } }
   if (userData && typeof userData === 'object' && (userData as any).user) {
@@ -455,13 +447,6 @@ const GitHubUsersList = ({ users, query }: { users: any; query?: string }) => (
 const GitHubIssueDetail = ({ issue }: { issue: any }) => {
   // Use the same MCP content extraction logic
   let issueData = issue;
-  if (issue && issue.content && Array.isArray(issue.content) && issue.content[0]?.text) {
-    try {
-      issueData = JSON.parse(issue.content[0].text);
-    } catch {
-      issueData = issue;
-    }
-  }
   
   if (!issueData || typeof issueData !== 'object') {
     return <GitHubGenericResult toolName="get_issue" result={issue} />;
@@ -551,33 +536,7 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API (same logic as issues)
-  let prsArray: any[] = [];
-  
-  if (Array.isArray(pullRequests)) {
-    prsArray = pullRequests;
-  } else if (pullRequests && typeof pullRequests === 'object') {
-    if (pullRequests.content && Array.isArray(pullRequests.content) && pullRequests.content[0]?.text) {
-      try {
-        const parsedData = JSON.parse(pullRequests.content[0].text);
-        prsArray = Array.isArray(parsedData) ? parsedData : [];
-      } catch (error) {
-        prsArray = [];
-      }
-    } else {
-      prsArray = pullRequests.items || pullRequests.pull_requests || pullRequests.data || [];
-      
-      if (!Array.isArray(prsArray)) {
-        const objectValues = Object.values(pullRequests);
-        const foundArray = objectValues.find(value => Array.isArray(value));
-        prsArray = foundArray || [];
-        
-        // Filter out any MCP format objects that might have snuck in
-        prsArray = prsArray.filter(item => 
-          !(item && typeof item === 'object' && item.type === 'text' && item.text)
-        );
-      }
-    }
-  }
+  let prsArray = pullRequests;
 
   if (!prsArray || prsArray.length === 0) {
     return null;
@@ -658,13 +617,6 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
 const GitHubPullRequestDetail = ({ pullRequest }: { pullRequest: any }) => {
   // Use the same MCP content extraction logic
   let prData = pullRequest;
-  if (pullRequest && pullRequest.content && Array.isArray(pullRequest.content) && pullRequest.content[0]?.text) {
-    try {
-      prData = JSON.parse(pullRequest.content[0].text);
-    } catch {
-      prData = pullRequest;
-    }
-  }
   
   if (!prData || typeof prData !== 'object') {
     return <GitHubGenericResult toolName="get_pull_request" result={pullRequest} />;
@@ -755,33 +707,7 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let reposArray: any[] = [];
-  
-  if (Array.isArray(repositories)) {
-    reposArray = repositories;
-  } else if (repositories && typeof repositories === 'object') {
-    if (repositories.content && Array.isArray(repositories.content) && repositories.content[0]?.text) {
-      try {
-        const parsedData = JSON.parse(repositories.content[0].text);
-        reposArray = Array.isArray(parsedData) ? parsedData : [];
-      } catch (error) {
-        reposArray = [];
-      }
-    } else {
-      reposArray = repositories.items || repositories.repositories || repositories.data || [];
-      
-      if (!Array.isArray(reposArray)) {
-        const objectValues = Object.values(repositories);
-        const foundArray = objectValues.find(value => Array.isArray(value));
-        reposArray = foundArray || [];
-        
-        // Filter out any MCP format objects that might have snuck in
-        reposArray = reposArray.filter(item => 
-          !(item && typeof item === 'object' && item.type === 'text' && item.text)
-        );
-      }
-    }
-  }
+  let reposArray = repositories.items;
 
   if (!reposArray || reposArray.length === 0) {
     return null;
@@ -1123,25 +1049,6 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   // Extract file content from MCP response
   let fileData = file;
   let errorMessage = '';
-  
-  if (file && file.content && Array.isArray(file.content) && file.content[0]?.text) {
-    const rawText = file.content[0].text;
-    
-    // Check if this is an error response
-    if (file.isError) {
-      errorMessage = rawText;
-      fileData = null;
-    } else {
-      try {
-        // Try to parse as JSON first
-        const parsedData = JSON.parse(rawText);
-        fileData = parsedData;
-      } catch (error) {
-        // If not JSON, treat as plain text content
-        fileData = { content: rawText, name: path, encoding: 'text' };
-      }
-    }
-  }
 
   // Handle multiple files case
   if (Array.isArray(fileData) && fileData.length > 0) {
@@ -1376,22 +1283,7 @@ const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: str
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let resultsArray: any[] = [];
-  
-  if (Array.isArray(results)) {
-    resultsArray = results;
-  } else if (results && typeof results === 'object') {
-    if (results.content && Array.isArray(results.content) && results.content[0]?.text) {
-      try {
-        const parsedData = JSON.parse(results.content[0].text);
-        resultsArray = parsedData.items || (Array.isArray(parsedData) ? parsedData : []);
-      } catch (error) {
-        resultsArray = [];
-      }
-    } else {
-      resultsArray = results.items || results.results || results.data || [];
-    }
-  }
+  let resultsArray = results.items;
 
   if (!resultsArray || resultsArray.length === 0) {
     return null;
@@ -1482,42 +1374,25 @@ const GitHubNotificationsList = ({ notifications }: { notifications: any }) => (
   <GitHubGenericResult toolName="list_notifications" result={notifications} />
 );
 
+function issueWebUrl(issue: any, owner: string, repo: string) {
+  // prefer direct fields if they exist on other servers
+  const direct = issue?.html_url ?? issue?.url;
+  if (direct) return direct;
+
+  // REST "issues" may include PRs; those have a `pull_request` field
+  const path = issue?.pull_request ? 'pull' : 'issues';
+  return issue?.number ? `https://github.com/${owner}/${repo}/${path}/${issue.number}` : null;
+}
+
 // Existing issues list component (renamed for consistency)
 const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let issuesArray: any[] = [];
-  
-  if (Array.isArray(issues)) {
-    issuesArray = issues;
-  } else if (issues && typeof issues === 'object') {
-    // GitHub MCP returns data in content[0].text format
-    if (issues.content && Array.isArray(issues.content) && issues.content[0]?.text) {
-      try {
-        // Parse the JSON string from the text content
-        const parsedData = JSON.parse(issues.content[0].text);
-        issuesArray = Array.isArray(parsedData) ? parsedData : [];
-      } catch (error) {
-        issuesArray = [];
-      }
-    } else {
-      // Fallback: try other common properties
-      issuesArray = issues.items || issues.issues || issues.data || [];
-      
-      // If it's still not an array, try to extract any arrays from the object
-      if (!Array.isArray(issuesArray)) {
-        const objectValues = Object.values(issues);
-        const foundArray = objectValues.find(value => Array.isArray(value));
-        issuesArray = foundArray || [];
-        
-        // Filter out any MCP format objects that might have snuck in
-        issuesArray = issuesArray.filter(item => 
-          !(item && typeof item === 'object' && item.type === 'text' && item.text)
-        );
-      }
-    }
-  }
+  let issuesArray = issues.issues;
+
+  console.log('########### issuesArray');
+  console.log(issuesArray);
 
   if (!issuesArray || issuesArray.length === 0) {
     return null;
@@ -1538,7 +1413,7 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
         {displayedIssues.map((issue: any) => (
           <a
             key={issue.id}
-            href={issue.html_url}
+            href={issueWebUrl(issue, repository.split('/')[0], repository.split('/')[1])}
             target="_blank"
             rel="noopener noreferrer"
             className="block border rounded-lg p-3 bg-background hover:bg-muted/50 transition-colors cursor-pointer group"
@@ -1613,22 +1488,7 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
 const GitHubGenericResult = ({ toolName, result }: { toolName: string; result: any; args?: any }) => {
   const [expanded, setExpanded] = useState(false);
 
-  // Extract and parse content from GitHub MCP response format
-  const extractContent = (data: any) => {
-    if (data?.content && Array.isArray(data.content) && data.content[0]?.text) {
-      try {
-        // Try to parse as JSON first
-        const parsed = JSON.parse(data.content[0].text);
-        return parsed;
-      } catch {
-        // If not JSON, return the text as-is
-        return data.content[0].text;
-      }
-    }
-    return data;
-  };
-
-  const processedResult = extractContent(result);
+  const processedResult = result;
   
   // Get a human-readable preview
   const getPreview = () => {
