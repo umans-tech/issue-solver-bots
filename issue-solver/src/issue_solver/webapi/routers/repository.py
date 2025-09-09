@@ -240,6 +240,7 @@ async def create_environment(
         occurred_at=clock.now(),
         process_id=str(uuid.uuid4()),
         knowledge_base_id=knowledge_base_id,
+        global_setup=environment_config.global_setup,
         project_setup=environment_config.project_setup,
         user_id=user_id,
     )

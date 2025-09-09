@@ -66,6 +66,11 @@ class BriceDeNice:
             occurred_at=datetime.fromisoformat("2025-01-02T08:00:00Z"),
             user_id="brice-user-001",
             knowledge_base_id="brice-kb-001",
+            global_setup="""
+            #!/bin/bash
+            apt-get update && apt-get install -y pip3 python3-pip
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            """,
             project_setup="""
             #!/bin/bash
             # install dependencies

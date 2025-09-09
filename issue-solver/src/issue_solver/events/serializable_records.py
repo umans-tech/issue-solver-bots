@@ -21,7 +21,7 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     IssueResolutionEnvironmentPrepared,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, AliasChoices
 
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
@@ -402,7 +402,13 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
     knowledge_base_id: str
     user_id: str
     process_id: str
-    script: str
+    project_setup: str = Field(
+        validation_alias=AliasChoices(
+            "project_setup",
+            "script",
+        )
+    )
+    global_setup: str | None = None
 
     def safe_copy(self) -> Self:
         return self.model_copy()
@@ -414,7 +420,8 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             user_id=self.user_id,
             process_id=self.process_id,
-            project_setup=self.script,
+            project_setup=self.project_setup,
+            global_setup=self.global_setup,
         )
 
     @classmethod
@@ -425,7 +432,8 @@ class EnvironmentConfigurationProvidedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             user_id=event.user_id,
             process_id=event.process_id,
-            script=event.project_setup,
+            project_setup=event.project_setup,
+            global_setup=event.global_setup,
         )
 
 
