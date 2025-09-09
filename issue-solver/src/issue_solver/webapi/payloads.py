@@ -49,15 +49,17 @@ class ProcessCreated(BaseSchema):
 class EnvironmentConfiguration(BaseSchema):
     global_setup: str | None = Field(
         default=None,
+        description="Global setup script. This will be run once per environment from root directory. Useful for installing system packages and dependencies.",
         validation_alias=AliasChoices(
             "global",
         ),
     )
     project_setup: str = Field(
+        description="Project setup script. This will be run once per project from the project directory (after cloning). Useful for installing project specific dependencies.",
         validation_alias=AliasChoices(
             "project",
             "script",
-        )
+        ),
     )
 
 
