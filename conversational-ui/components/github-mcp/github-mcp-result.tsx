@@ -147,30 +147,53 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
 
 export const GitHubMCPResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
 
-  if (result.content && Array.isArray(result.content) && result.content[0]?.text) {
-    result = JSON.parse(result.content[0].text);
+  const parts = Array.isArray(result?.content) ? result!.content! : [];
+  let text_result = parts.find((p: any) => p?.type === 'text')?.text ?? null;
+  let resource_result = parts.find((p: any) => p?.type === 'resource')?.resource ?? null;;
+
+  if (text_result) {
+    try{
+      text_result = JSON.parse(text_result);
+    } catch (error) {
+      console.log('########### error');
+      console.log(error);
+    }
   }
+  if (resource_result) {
+    try{
+      resource_result = JSON.parse(resource_result);
+    } catch (error) {
+      console.log('########### error');
+      console.log(error);
+    }
+  }
+
+  result = {
+    text: text_result,
+    resource: resource_result
+  };
+
 
   const category = getGitHubMCPToolCategory(toolName);
   
   // Category-based result handling
   switch (category) {
     case 'users':
-      return <GitHubUsersResult toolName={toolName} result={result} args={args} />;
+      return <GitHubUsersResult toolName={toolName} result={result.text} args={args} />;
     case 'issues':
-      return <GitHubIssuesResult toolName={toolName} result={result} args={args} />;
+      return <GitHubIssuesResult toolName={toolName} result={result.text} args={args} />;
     case 'pullRequests':
-      return <GitHubPullRequestsResult toolName={toolName} result={result} args={args} />;
+      return <GitHubPullRequestsResult toolName={toolName} result={result.text} args={args} />;
     case 'repositories':
       return <GitHubRepositoriesResult toolName={toolName} result={result} args={args} />;
     case 'actions':
-      return <GitHubActionsResult toolName={toolName} result={result} args={args} />;
+      return <GitHubActionsResult toolName={toolName} result={result.text} args={args} />;
     case 'security':
-      return <GitHubSecurityResult toolName={toolName} result={result} args={args} />;
+      return <GitHubSecurityResult toolName={toolName} result={result.text} args={args} />;
     case 'notifications':
-      return <GitHubNotificationsResult toolName={toolName} result={result} args={args} />;
+      return <GitHubNotificationsResult toolName={toolName} result={result.text} args={args} />;
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return <GitHubGenericResult toolName={toolName} result={result.text} args={args} />;
   }
 };
 
@@ -222,15 +245,15 @@ const GitHubPullRequestsResult = ({ toolName, result, args }: GitHubMCPResultPro
 const GitHubRepositoriesResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'search_repositories':
-      return <GitHubRepositoriesList repositories={result} query={args?.query} />;
+      return <GitHubRepositoriesList repositories={result.text} query={args?.query} />;
     case 'list_repositories':
-      return <GitHubRepositoriesList repositories={result} />;
+      return <GitHubRepositoriesList repositories={result.text} />;
     case 'get_file_contents':
-      return <GitHubFileContents file={result} path={args?.path} />;
+      return <GitHubFileContents file={result.resource} path={args?.path} />;
     case 'search_code':
-      return <GitHubCodeSearchResults results={result} query={args?.query} />;
+      return <GitHubCodeSearchResults results={result.text} query={args?.query} />;
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return <GitHubGenericResult toolName={toolName} result={result.text} args={args} />;
   }
 };
 
@@ -1050,6 +1073,10 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   let fileData = file;
   let errorMessage = '';
 
+  // let uri = fileData.uri
+  // let mimeType = fileData.mimeType
+  // let content = fileData.text
+
   // Handle multiple files case
   if (Array.isArray(fileData) && fileData.length > 0) {
     return <GitHubMultipleFileContents files={fileData} />;
@@ -1088,7 +1115,7 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
     }
     
     fileName = fileData.name || path || 'Unknown file';
-    fileUrl = fileData.html_url || '';
+    fileUrl = fileData.uri || '';
     fileSize = fileData.size || 0;
   } else if (typeof fileData === 'string') {
     actualContent = fileData;
@@ -1390,9 +1417,6 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
 
   // Handle different response formats from GitHub MCP API
   let issuesArray = issues.issues;
-
-  console.log('########### issuesArray');
-  console.log(issuesArray);
 
   if (!issuesArray || issuesArray.length === 0) {
     return null;
