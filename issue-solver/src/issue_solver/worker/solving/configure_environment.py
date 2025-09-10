@@ -2,11 +2,12 @@ from pathlib import Path
 
 from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.dev_environments_management import run_as_umans_with_env
-from issue_solver.events.code_repo_integration import get_access_token
+from issue_solver.events.code_repo_integration import (
+    fetch_repo_credentials,
+)
 from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     EnvironmentConfigurationValidated,
-    CodeRepositoryConnected,
 )
 from issue_solver.git_operations.git_helper import (
     extract_git_clone_default_directory_name,
@@ -31,24 +32,17 @@ async def configure_environment(
 
     event_store = dependencies.event_store
     knowledge_base_id = message.knowledge_base_id
-    repo_events = await event_store.find(
-        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
-    )
-    if repo_events:
-        code_repository_connected = repo_events[0]
-        url = code_repository_connected.url
-        access_token = await get_access_token(
-            event_store, code_repository_connected.process_id
-        )
-
+    repo_credentials = await fetch_repo_credentials(event_store, knowledge_base_id)
     base_snapshot = base_snapshots[0]
     process_id = message.process_id
-    default_clone_path = Path(extract_git_clone_default_directory_name(url))
+    default_clone_path = Path(
+        extract_git_clone_default_directory_name(repo_credentials.url)
+    )
     prepare_body = PrepareCommandSettings(
         process_id=process_id,
         repo_path=default_clone_path,
-        url=url,
-        access_token=access_token,
+        url=repo_credentials.url,
+        access_token=repo_credentials.access_token,
         issue=None,
         install_script=message.project_setup,
     ).to_env_script()
@@ -61,7 +55,7 @@ async def configure_environment(
     snapshot.set_metadata(
         {
             "type": "dev",
-            "knowledge_base_id": message.knowledge_base_id,
+            "knowledge_base_id": knowledge_base_id,
             "environment_id": message.environment_id,
         }
     )

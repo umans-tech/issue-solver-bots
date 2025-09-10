@@ -12,10 +12,11 @@ from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.clock import Clock
 from issue_solver.dev_environments_management import get_snapshot, run_as_umans_with_env
-from issue_solver.events.code_repo_integration import get_access_token
+from issue_solver.events.code_repo_integration import (
+    get_repo_credentials,
+)
 from issue_solver.events.domain import (
     IssueResolutionRequested,
-    CodeRepositoryConnected,
     IssueResolutionFailed,
     IssueResolutionEnvironmentPrepared,
     IssueResolutionStarted,
@@ -66,10 +67,8 @@ async def resolve_issue(
 ) -> None:
     event_store = dependencies.event_store
     knowledge_base_id = message.knowledge_base_id
-    repo_events = await event_store.find(
-        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
-    )
-    if not repo_events:
+    repo_credentials = await get_repo_credentials(event_store, knowledge_base_id)
+    if not repo_credentials:
         logger.error(f"Knowledge base ID {knowledge_base_id} not found in event store")
         await event_store.append(
             message.process_id,
@@ -81,11 +80,8 @@ async def resolve_issue(
             ),
         )
         return
-    code_repository_connected = repo_events[0]
-    url = code_repository_connected.url
-    access_token = await get_access_token(
-        event_store, code_repository_connected.process_id
-    )
+    url = repo_credentials.url
+    access_token = repo_credentials.access_token
     if not access_token:
         logger.error(f"No access token found for knowledge base ID {knowledge_base_id}")
         await event_store.append(
