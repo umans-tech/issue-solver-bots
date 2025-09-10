@@ -139,6 +139,16 @@ class IssueResolutionEnvironmentPrepared(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class EnvironmentConfigurationValidated(DomainEvent):
+    snapshot_id: str
+    stdout: str
+    stderr: str
+    return_code: int
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -151,6 +161,7 @@ AnyDomainEvent = (
     | IssueResolutionFailed
     | EnvironmentConfigurationProvided
     | IssueResolutionEnvironmentPrepared
+    | EnvironmentConfigurationValidated
 )
 
 
