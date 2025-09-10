@@ -1,6 +1,15 @@
+from pathlib import Path
+
+from issue_solver.cli.prepare_command import PrepareCommandSettings
+from issue_solver.dev_environments_management import run_as_umans_with_env
+from issue_solver.events.code_repo_integration import get_access_token
 from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     EnvironmentConfigurationValidated,
+    CodeRepositoryConnected,
+)
+from issue_solver.git_operations.git_helper import (
+    extract_git_clone_default_directory_name,
 )
 from issue_solver.worker.solving.process_issue_resolution_request import Dependencies
 
@@ -8,10 +17,58 @@ from issue_solver.worker.solving.process_issue_resolution_request import Depende
 async def configure_environment(
     message: EnvironmentConfigurationProvided, dependencies: Dependencies
 ) -> None:
+    base_snapshots = (
+        dependencies.microvm_client.snapshots.list(
+            metadata={
+                "type": "base",
+            }
+        )
+        if dependencies.microvm_client
+        else None
+    )
+    if not base_snapshots:
+        raise RuntimeError("No base snapshot found for environment configuration")
+
+    event_store = dependencies.event_store
+    knowledge_base_id = message.knowledge_base_id
+    repo_events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+    if repo_events:
+        code_repository_connected = repo_events[0]
+        url = code_repository_connected.url
+        access_token = await get_access_token(
+            event_store, code_repository_connected.process_id
+        )
+
+    base_snapshot = base_snapshots[0]
+    process_id = message.process_id
+    default_clone_path = Path(extract_git_clone_default_directory_name(url))
+    prepare_body = PrepareCommandSettings(
+        process_id=process_id,
+        repo_path=default_clone_path,
+        url=url,
+        access_token=access_token,
+        issue=None,
+        install_script=message.project_setup,
+    ).to_env_script()
+    cmd = run_as_umans_with_env(
+        prepare_body,
+        "cudu prepare",
+        message.global_setup,
+    )
+    snapshot = base_snapshot.exec(cmd)
+    snapshot.set_metadata(
+        {
+            "type": "dev",
+            "knowledge_base_id": message.knowledge_base_id,
+            "environment_id": message.environment_id,
+        }
+    )
     await dependencies.event_store.append(
-        message.process_id,
+        process_id,
         EnvironmentConfigurationValidated(
-            process_id=message.process_id,
+            process_id=process_id,
             occurred_at=dependencies.clock.now(),
             snapshot_id="brice-env-001-snap-001",
             stdout="environment setup completed successfully",

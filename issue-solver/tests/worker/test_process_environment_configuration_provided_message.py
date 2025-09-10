@@ -1,10 +1,11 @@
 from unittest.mock import Mock
 
 import pytest
-from morphcloud.api import MorphCloudClient
+from morphcloud.api import MorphCloudClient, Snapshot
 
 from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
+from tests.worker.test_process_issue_resolution_requested_message import to_script
 from issue_solver.events.domain import EnvironmentConfigurationValidated
 from issue_solver.events.event_store import EventStore
 from issue_solver.worker.messages_processing import process_event_message
@@ -19,7 +20,19 @@ async def test_process_environment_configuration_provided_message_should_produce
     microvm_client = Mock(spec=MorphCloudClient)
     config_provided = BriceDeNice.got_his_environment_configuration_provided()
     config_process_id = config_provided.process_id
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        repo_connected.process_id,
+        repo_connected,
+    )
     await event_store.append(config_process_id, config_provided)
+
+    base_snapshot = Mock(spec=Snapshot)
+    base_snapshot.id = "base-snapshot-id"
+
+    microvm_client.snapshots.list.return_value = [base_snapshot]
+    prepared_snapshot = Mock()
+    base_snapshot.exec.return_value = prepared_snapshot
 
     # When
     await process_event_message(
@@ -48,3 +61,31 @@ async def test_process_environment_configuration_provided_message_should_produce
             return_code=0,
         ),
     ]
+    microvm_client.snapshots.list.assert_called_with(
+        metadata={
+            "type": "base",
+        }
+    )
+
+    prepare_settings = f"""
+export PROCESS_ID=\'{config_provided.process_id}\'
+export REPO_PATH=\'nice-repo\'
+export URL=\'{repo_connected.url}\'
+export ACCESS_TOKEN=\'{repo_connected.access_token}\'
+export INSTALL_SCRIPT=\'{config_provided.project_setup}\'
+"""
+
+    base_snapshot.exec.assert_called_once_with(
+        to_script(
+            command="cudu prepare",
+            dotenv_settings=prepare_settings,
+            global_setup_script=config_provided.global_setup,
+        )
+    )
+    prepared_snapshot.set_metadata.assert_called_once_with(
+        {
+            "type": "dev",
+            "knowledge_base_id": repo_connected.knowledge_base_id,
+            "environment_id": config_provided.environment_id,
+        }
+    )
