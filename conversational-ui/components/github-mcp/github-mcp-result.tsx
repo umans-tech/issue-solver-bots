@@ -197,6 +197,62 @@ export const GitHubMCPResult = ({ toolName, result, args }: GitHubMCPResultProps
 
 // Category-specific result components
 
+// Helper: extract issue number from a GitHub issue URL
+function extractIssueNumberFromUrl(url: string): number | null {
+  try {
+    const match = url?.match(/\/issues\/(\d+)(?:$|[?#])/);
+    return match ? Number(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper: prepare minimal issue data object for GitHubIssueDetail from create_issue input/output
+function prepareIssueDataFromCreateIssue(
+  input: { owner?: string; repo?: string; title?: string; body?: string; labels?: string[] },
+  output: any,
+) {
+  // Extract URL from various possible output shapes
+  let url = '';
+  try {
+    if (typeof output === 'string') {
+      // Might be a JSON string
+      const parsed = JSON.parse(output);
+      url = typeof parsed?.url === 'string' ? parsed.url : '';
+    } else if (output && typeof output === 'object') {
+      if (typeof (output as any).url === 'string') {
+        url = (output as any).url;
+      } else if (typeof (output as any).text === 'string') {
+        const parsed = JSON.parse((output as any).text);
+        url = typeof parsed?.url === 'string' ? parsed.url : '';
+      }
+    }
+  } catch {
+    // ignore parse errors and fall back to empty url
+  }
+
+  const number = extractIssueNumberFromUrl(url) ?? 0;
+
+  return {
+    html_url: url,
+    title: input?.title ?? 'Untitled issue',
+    number,
+    state: 'open',
+    body: input?.body ?? '',
+    created_at: new Date().toISOString(),
+    comments: 0,
+    user: {
+      login: input?.owner ?? 'unknown',
+      avatar_url: undefined,
+    },
+    labels: (input?.labels ?? []).map((name, idx) => ({
+      id: idx + 1,
+      name,
+      color: 'bbbbbb',
+    })),
+  };
+}
+
 // Users category
 const GitHubUsersResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
   switch (toolName) {
@@ -217,7 +273,7 @@ const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) =>
     case 'get_issue':
       return <GitHubIssueDetail issue={result} />;
     case 'create_issue':
-      return <GitHubIssueDetail issue={result} />;
+      return <GitHubIssueDetail issue={prepareIssueDataFromCreateIssue(args ?? {}, result)} />;
     case 'update_issue':
       return <GitHubIssueDetail issue={result} />;
     case 'search_issues':
