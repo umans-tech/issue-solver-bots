@@ -20,6 +20,7 @@ from issue_solver.events.domain import (
     IssueResolutionFailed,
     EnvironmentConfigurationProvided,
     IssueResolutionEnvironmentPrepared,
+    EnvironmentConfigurationValidated,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -470,6 +471,42 @@ class IssueResolutionEnvironmentPreparedRecord(BaseModel):
         )
 
 
+class EnvironmentConfigurationValidatedRecord(BaseModel):
+    type: Literal["environment_configuration_validated"] = (
+        "environment_configuration_validated"
+    )
+    snapshot_id: str
+    occurred_at: datetime
+    process_id: str
+    stdout: str
+    stderr: str
+    return_code: int
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> EnvironmentConfigurationValidated:
+        return EnvironmentConfigurationValidated(
+            snapshot_id=self.snapshot_id,
+            occurred_at=self.occurred_at,
+            process_id=self.process_id,
+            stdout=self.stdout,
+            stderr=self.stderr,
+            return_code=self.return_code,
+        )
+
+    @classmethod
+    def create_from(cls, event: EnvironmentConfigurationValidated) -> Self:
+        return cls(
+            snapshot_id=event.snapshot_id,
+            occurred_at=event.occurred_at,
+            process_id=event.process_id,
+            stdout=event.stdout,
+            stderr=event.stderr,
+            return_code=event.return_code,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -482,6 +519,7 @@ ProcessTimelineEventRecords = (
     | IssueResolutionFailedRecord
     | EnvironmentConfigurationProvidedRecord
     | IssueResolutionEnvironmentPreparedRecord
+    | EnvironmentConfigurationValidatedRecord
 )
 
 
@@ -513,6 +551,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return EnvironmentConfigurationProvidedRecord.create_from(event)
         case IssueResolutionEnvironmentPrepared():
             return IssueResolutionEnvironmentPreparedRecord.create_from(event)
+        case EnvironmentConfigurationValidated():
+            return EnvironmentConfigurationValidatedRecord.create_from(event)
         case _:
             assert_never(event)
 
