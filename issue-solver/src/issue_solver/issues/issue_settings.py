@@ -15,6 +15,7 @@ class IssueSettings:
 
 
 def describe(issue: IssueInfo | IssueSettings) -> IssueInfo:
+    issue_info = None
     match issue:
         case IssueSettings():
             issue_tracker = SupportedIssueTracker.get(issue.tracker)

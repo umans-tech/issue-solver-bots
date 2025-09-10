@@ -466,7 +466,7 @@ class PullRequestReference:
 class GitClient:
     @staticmethod
     def _default_branch(
-        remote_url: str, access_token: str, repo_path: Path | None = None
+        remote_url: str, access_token: str | None, repo_path: Path | None = None
     ) -> str:
         url = remote_url.removesuffix(".git")
         if "github.com" in url.lower():
@@ -488,7 +488,7 @@ class GitClient:
     def clone_repository(
         cls,
         url: str,
-        access_token: str,
+        access_token: str | None,
         to_path: Path,
         new_branch_name: str | None = None,
     ) -> None:
@@ -538,12 +538,16 @@ class GitClient:
         process_id: str,
         repo_path: Path,
         url: str,
-        access_token: str,
-        issue: IssueInfo,
+        access_token: str | None,
+        issue: IssueInfo | None = None,
     ) -> None:
         if repo_path.exists():
             rmtree(repo_path)
-        new_branch_name = name_new_branch_for_issue(issue, process_id)
+        new_branch_name = (
+            name_new_branch_for_issue(issue, process_id)
+            if issue
+            else cls._default_branch(url, access_token, repo_path)
+        )
         cls.clone_repository(
             url=url,
             access_token=access_token,

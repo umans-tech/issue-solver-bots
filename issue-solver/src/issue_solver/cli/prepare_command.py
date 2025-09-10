@@ -22,8 +22,8 @@ class PrepareCommandSettings(BaseSettings):
     process_id: str
     repo_path: Path
     url: str
-    access_token: str
-    issue: IssueInfo | IssueSettings = Field(
+    access_token: str | None = None
+    issue: IssueInfo | IssueSettings | None = Field(
         description="Reference to the issue "
         "(url, id, iid+project_id or anything that allow the issue tracker to find the issue) "
         "or actual Content describing the issue"
@@ -43,7 +43,7 @@ class PrepareCommand(PrepareCommandSettings):
 
 
 async def main(settings: PrepareCommandSettings) -> None:
-    issue_info = describe(settings.issue)
+    issue_info = describe(settings.issue) if settings.issue else None
     process_id = settings.process_id or str(uuid.uuid4())
     print(
         f"[prepare] 🏗️ Preparing workspace for resolving issue='{settings.issue}' in repo={settings.repo_path} with process_id={settings.process_id}"
