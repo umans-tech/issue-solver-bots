@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Sequence
 
 from issue_solver.events.domain import (
@@ -72,3 +73,39 @@ async def get_connected_repo_event(
         events = await event_store.find({"space_id": space_id}, CodeRepositoryConnected)
         connected_repo_event = most_recent_event(events, CodeRepositoryConnected)
     return connected_repo_event
+
+
+@dataclass(kw_only=True)
+class RepoCredentials:
+    url: str
+    access_token: str | None
+
+
+async def get_repo_credentials(
+    event_store: EventStore,
+    knowledge_base_id: str,
+) -> RepoCredentials | None:
+    repo_events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+    code_repository_connected = most_recent_event(repo_events, CodeRepositoryConnected)
+    if not code_repository_connected:
+        return None
+    access_token = await get_access_token(
+        event_store, code_repository_connected.process_id
+    )
+    return RepoCredentials(
+        url=code_repository_connected.url,
+        access_token=access_token,
+    )
+
+
+async def fetch_repo_credentials(
+    event_store: EventStore, knowledge_base_id: str
+) -> RepoCredentials:
+    repo_credentials = await get_repo_credentials(event_store, knowledge_base_id)
+    if not repo_credentials:
+        raise RuntimeError(
+            f"No repository connected for knowledge base {knowledge_base_id}"
+        )
+    return repo_credentials
