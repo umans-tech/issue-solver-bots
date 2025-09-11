@@ -1,10 +1,13 @@
-import re
 from pathlib import Path
 
 from morphcloud.api import Snapshot, MorphCloudClient
 
 from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.dev_environments_management import run_as_umans_with_env
+from issue_solver.env_setup.errors import (
+    EnvironmentSetupError,
+    Phase,
+)
 from issue_solver.events.code_repo_integration import (
     fetch_repo_credentials,
 )
@@ -43,60 +46,56 @@ async def configure_environment(
         prepare_command_env,
         "cudu prepare",
     )
-    if message.global_setup:
-        try:
-            base_snapshot = base_snapshot.exec(message.global_setup)
-        except Exception as e:
-            extras = [repo_credentials.url]
-            if repo_credentials.access_token:
-                extras.append(repo_credentials.access_token)
-            error_description = redact(str(e), extras)
-            await dependencies.event_store.append(
-                process_id,
-                EnvironmentValidationFailed(
-                    process_id=process_id,
-                    occurred_at=dependencies.clock.now(),
-                    stdout="",
-                    stderr=f"[phase=global_setup] {error_description}",
-                    return_code=extract_exit_code(error_description, default=1),
-                ),
+    secrets_to_redact = (
+        [repo_credentials.url, repo_credentials.access_token]
+        if repo_credentials.access_token
+        else [repo_credentials.url]
+    )
+
+    try:
+        if message.global_setup:
+            base_snapshot = _exec_or_raise(
+                snapshot=base_snapshot,
+                command=message.global_setup,
+                phase=Phase.GLOBAL_SETUP,
+                extras=secrets_to_redact,
             )
-            return
-        try:
-            snapshot = base_snapshot.exec(cmd)
-            snapshot.set_metadata(
-                {
-                    "type": "dev",
-                    "knowledge_base_id": knowledge_base_id,
-                    "environment_id": message.environment_id,
-                }
-            )
-            await dependencies.event_store.append(
-                process_id,
-                EnvironmentConfigurationValidated(
-                    process_id=process_id,
-                    occurred_at=dependencies.clock.now(),
-                    snapshot_id=snapshot.id,
-                    stdout="environment setup completed successfully",
-                    stderr="no errors",
-                    return_code=0,
-                ),
-            )
-        except Exception as e:
-            extras = [cmd, repo_credentials.url]
-            if repo_credentials.access_token:
-                extras.append(repo_credentials.access_token)
-            error_description = redact(str(e), extras)
-            await dependencies.event_store.append(
-                process_id,
-                EnvironmentValidationFailed(
-                    process_id=process_id,
-                    occurred_at=dependencies.clock.now(),
-                    stdout="",
-                    stderr=f"[phase=project_setup] {error_description}",
-                    return_code=extract_exit_code(error_description, default=1),
-                ),
-            )
+
+        snapshot = _exec_or_raise(
+            snapshot=base_snapshot,
+            command=cmd,
+            phase=Phase.PROJECT_SETUP,
+            extras=secrets_to_redact,
+        )
+        snapshot.set_metadata(
+            {
+                "type": "dev",
+                "knowledge_base_id": knowledge_base_id,
+                "environment_id": message.environment_id,
+            }
+        )
+        await dependencies.event_store.append(
+            process_id,
+            EnvironmentConfigurationValidated(
+                process_id=process_id,
+                occurred_at=dependencies.clock.now(),
+                snapshot_id=snapshot.id,
+                stdout="environment setup completed successfully",
+                stderr="no errors",
+                return_code=0,
+            ),
+        )
+    except EnvironmentSetupError as err:
+        await dependencies.event_store.append(
+            process_id,
+            EnvironmentValidationFailed(
+                process_id=process_id,
+                occurred_at=dependencies.clock.now(),
+                stdout="",
+                stderr=f"[phase={err.phase.value}] {err.stderr}",
+                return_code=err.exit_code,
+            ),
+        )
 
 
 def get_base_snapshot(microvm_client: MorphCloudClient | None) -> Snapshot:
@@ -116,54 +115,10 @@ def get_base_snapshot(microvm_client: MorphCloudClient | None) -> Snapshot:
     return base_snapshot
 
 
-def extract_exit_code(msg: str, default: int = 1) -> int:
-    m = re.search(r"exit code (\d+)", msg)
-    return int(m.group(1)) if m else default
-
-
-REDACTIONS = [
-    # 1) Explicit token prefixes
-    (re.compile(r"\bsk-[A-Za-z0-9-]{16,}\b"), "[REDACTED]"),  # OpenAI-ish
-    (re.compile(r"\bsk-ant-[A-Za-z0-9-]{16,}\b"), "[REDACTED]"),  # Anthropic
-    (re.compile(r"\bgh[pso]_[A-Za-z0-9]{20,}\b"), "[REDACTED]"),  # GitHub
-    (re.compile(r"\bglpat-[A-Za-z0-9_-]{16,}\b"), "[REDACTED]"),  # GitLab PAT
-    (re.compile(r"\bjira[a-z0-9_]{10,}\b", re.I), "[REDACTED]"),  # example extra
-    # 2) Bearer/JWT
-    (
-        re.compile(r"(?i)(Authorization:\s*Bearer\s+)[A-Za-z0-9._-]{10,}"),
-        r"\1[REDACTED]",
-    ),
-    (
-        re.compile(r"\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
-        "[REDACTED]",
-    ),  # JWT
-    # 3) Env-var style assignments (OPENAI/ANTHROPIC/MORPHCLOUD API KEY)
-    (
-        re.compile(
-            r"(?i)\b(?P<var>(?:OPENAI|ANTHROPIC|MORPHCLOUD)[-_ ]?API[-_ ]?KEY)\b\s*[:=]\s*(?P<q>['\"])[^'\"\s]+(?P=q)"
-        ),
-        r"\g<var>=\g<q>[REDACTED]\g<q>",
-    ),
-    (
-        re.compile(
-            r"(?i)\b(?P<var>[A-Z0-9_]*API[_-]?KEY)\b\s*[:=]\s*(?P<q>['\"])[^'\"\s]+(?P=q)"
-        ),
-        r"\g<var>=\g<q>[REDACTED]\g<q>",
-    ),
-    # 4) Creds in URLs
-    (re.compile(r"https?://[^/\s:@]+:[^@\s]+@"), "https://[REDACTED]@"),
-    (re.compile(r"(?i)([?&](?:token|access_token|api_key)=[^&\s]+)"), "[REDACTED]"),
-]
-
-
-def redact(text: str, extras: list[str] | None = None) -> str:
-    out = text or ""
-    for v in filter(None, (extras or [])):
-        out = out.replace(v, "[REDACTED]")
-    for rx, repl in REDACTIONS:
-        out = rx.sub(repl, out)
-    return out
-
-
-class EnvironmentSetupError(Exception):
-    pass
+def _exec_or_raise(
+    *, snapshot: Snapshot, command: str, phase: Phase, extras: list[str]
+) -> Snapshot:
+    try:
+        return snapshot.exec(command)
+    except Exception as e:
+        raise EnvironmentSetupError.from_exception(phase, e, extras) from e
