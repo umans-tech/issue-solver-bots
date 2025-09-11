@@ -11,7 +11,10 @@ from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.clock import Clock
-from issue_solver.dev_environments_management import get_snapshot, run_as_umans_with_env
+from issue_solver.env_setup.dev_environments_management import (
+    get_snapshot,
+    run_as_umans_with_env,
+)
 from issue_solver.events.code_repo_integration import (
     get_repo_credentials,
 )

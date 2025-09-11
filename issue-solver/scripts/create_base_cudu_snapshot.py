@@ -3,7 +3,7 @@ from pathlib import Path
 
 from morphcloud.api import MorphCloudClient, Snapshot
 
-from issue_solver.dev_environments_management import (
+from issue_solver.env_setup.dev_environments_management import (
     VMConfiguration,
     get_snapshot,
 )
