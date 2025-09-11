@@ -603,5 +603,9 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             return IssueResolutionEnvironmentPreparedRecord.model_validate_json(
                 data
             ).to_domain_event()
+        case "environment_configuration_validated":
+            return EnvironmentConfigurationValidatedRecord.model_validate_json(
+                data
+            ).to_domain_event()
         case _:
             raise Exception(f"Unknown event type: {event_type}")

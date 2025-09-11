@@ -13,6 +13,7 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     IssueResolutionEnvironmentPrepared,
     AnyDomainEvent,
+    EnvironmentConfigurationValidated,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -78,6 +79,19 @@ class BriceDeNice:
             pip install -r requirements.txt
             """,
             environment_id="brice-environment-001",
+        )
+
+    @classmethod
+    def got_his_environment_configuration_validated(
+        cls,
+    ) -> EnvironmentConfigurationValidated:
+        return EnvironmentConfigurationValidated(
+            process_id="brice-environment-configuration-process-001",
+            occurred_at=datetime.fromisoformat("2025-01-02T08:01:05Z"),
+            snapshot_id="brice-env-001-snap-001",
+            stdout="environment setup completed successfully",
+            stderr="no errors",
+            return_code=0,
         )
 
     @classmethod
@@ -196,6 +210,7 @@ class BriceDeNice:
             cls.got_his_first_repo_indexed(),  # 12:00:30 - Repo indexed
             # Day 2: Environment setup and first issue resolution
             cls.got_his_environment_configuration_provided(),  # 08:00:00 - Environment config provided
+            cls.got_his_environment_configuration_validated(),  # 08:01:05 - Environment config validated
             cls.got_his_environment_prepared(),  # 08:15:00 - Environment prepared
             cls.requested_issue_resolution(),  # 09:00:00 - First issue requested
             cls.started_issue_resolution(),  # 09:05:00 - Issue resolution started
