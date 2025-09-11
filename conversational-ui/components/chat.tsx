@@ -98,22 +98,25 @@ export function Chat({
       api: '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
-        // Read the freshest model selection directly from localStorage
+        // Read the freshest model selection directly at call time (handles quick switch before submit)
         const currentModelId = (() => {
           try {
-            const v = localStorage.getItem('chat-model');
-            return v || storedModelId || DEFAULT_CHAT_MODEL;
+            const raw = localStorage.getItem('chat-model');
+            console.log('raw', raw);
+            const parsed = raw ? JSON.parse(raw) : null;
+            return parsed || storedModelId || DEFAULT_CHAT_MODEL;
           } catch {
             return storedModelId || DEFAULT_CHAT_MODEL;
           }
         })();
         return {
           body: {
+            ...body,
             id,
             messages,
-            selectedChatModel: currentModelId,
             knowledgeBaseId: knowledgeBaseIdState,
-            ...body,
+            // Ensure the freshest model always wins (even on regenerate)
+            selectedChatModel: currentModelId,
           },
         };
       },
