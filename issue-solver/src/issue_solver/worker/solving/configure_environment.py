@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from morphcloud.api import Snapshot, MorphCloudClient
+
 from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.dev_environments_management import run_as_umans_with_env
 from issue_solver.events.code_repo_integration import (
@@ -18,27 +20,16 @@ from issue_solver.worker.solving.process_issue_resolution_request import Depende
 async def configure_environment(
     message: EnvironmentConfigurationProvided, dependencies: Dependencies
 ) -> None:
-    base_snapshots = (
-        dependencies.microvm_client.snapshots.list(
-            metadata={
-                "type": "base",
-            }
-        )
-        if dependencies.microvm_client
-        else None
-    )
-    if not base_snapshots:
-        raise RuntimeError("No base snapshot found for environment configuration")
-
-    event_store = dependencies.event_store
+    base_snapshot = get_base_snapshot(dependencies.microvm_client)
     knowledge_base_id = message.knowledge_base_id
-    repo_credentials = await fetch_repo_credentials(event_store, knowledge_base_id)
-    base_snapshot = base_snapshots[0]
+    repo_credentials = await fetch_repo_credentials(
+        dependencies.event_store, knowledge_base_id
+    )
     process_id = message.process_id
     default_clone_path = Path(
         extract_git_clone_default_directory_name(repo_credentials.url)
     )
-    prepare_body = PrepareCommandSettings(
+    prepare_command_env = PrepareCommandSettings(
         process_id=process_id,
         repo_path=default_clone_path,
         url=repo_credentials.url,
@@ -47,7 +38,7 @@ async def configure_environment(
         install_script=message.project_setup,
     ).to_env_script()
     cmd = run_as_umans_with_env(
-        prepare_body,
+        prepare_command_env,
         "cudu prepare",
         message.global_setup,
     )
@@ -64,9 +55,26 @@ async def configure_environment(
         EnvironmentConfigurationValidated(
             process_id=process_id,
             occurred_at=dependencies.clock.now(),
-            snapshot_id="brice-env-001-snap-001",
+            snapshot_id=snapshot.id,
             stdout="environment setup completed successfully",
             stderr="no errors",
             return_code=0,
         ),
     )
+
+
+def get_base_snapshot(microvm_client: MorphCloudClient | None) -> Snapshot:
+    base_snapshots = (
+        microvm_client.snapshots.list(
+            metadata={
+                "type": "base",
+            }
+        )
+        if microvm_client
+        else None
+    )
+    if not base_snapshots:
+        raise RuntimeError("No base snapshot found for environment configuration")
+
+    base_snapshot = base_snapshots[0]
+    return base_snapshot
