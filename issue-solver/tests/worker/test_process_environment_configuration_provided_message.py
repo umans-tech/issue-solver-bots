@@ -28,10 +28,9 @@ async def test_process_environment_configuration_provided_message_should_produce
     await event_store.append(config_process_id, config_provided)
 
     base_snapshot = Mock(spec=Snapshot)
-    base_snapshot.id = "base-snapshot-id"
-
     microvm_client.snapshots.list.return_value = [base_snapshot]
     prepared_snapshot = Mock()
+    prepared_snapshot.id = "brice-env-001-snap-001"
     base_snapshot.exec.return_value = prepared_snapshot
 
     # When
