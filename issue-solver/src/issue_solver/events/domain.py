@@ -149,6 +149,15 @@ class EnvironmentConfigurationValidated(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class EnvironmentValidationFailed(DomainEvent):
+    stdout: str
+    stderr: str
+    return_code: int
+    process_id: str
+    occurred_at: datetime
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -162,6 +171,7 @@ AnyDomainEvent = (
     | EnvironmentConfigurationProvided
     | IssueResolutionEnvironmentPrepared
     | EnvironmentConfigurationValidated
+    | EnvironmentValidationFailed
 )
 
 

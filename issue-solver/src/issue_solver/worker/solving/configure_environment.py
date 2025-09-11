@@ -10,6 +10,7 @@ from issue_solver.events.code_repo_integration import (
 from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     EnvironmentConfigurationValidated,
+    EnvironmentValidationFailed,
 )
 from issue_solver.git_operations.git_helper import (
     extract_git_clone_default_directory_name,
@@ -42,25 +43,38 @@ async def configure_environment(
         "cudu prepare",
         message.global_setup,
     )
-    snapshot = base_snapshot.exec(cmd)
-    snapshot.set_metadata(
-        {
-            "type": "dev",
-            "knowledge_base_id": knowledge_base_id,
-            "environment_id": message.environment_id,
-        }
-    )
-    await dependencies.event_store.append(
-        process_id,
-        EnvironmentConfigurationValidated(
-            process_id=process_id,
-            occurred_at=dependencies.clock.now(),
-            snapshot_id=snapshot.id,
-            stdout="environment setup completed successfully",
-            stderr="no errors",
-            return_code=0,
-        ),
-    )
+    try:
+        snapshot = base_snapshot.exec(cmd)
+        # how can I get stdout, stderr, return code from exec()?
+        snapshot.set_metadata(
+            {
+                "type": "dev",
+                "knowledge_base_id": knowledge_base_id,
+                "environment_id": message.environment_id,
+            }
+        )
+        await dependencies.event_store.append(
+            process_id,
+            EnvironmentConfigurationValidated(
+                process_id=process_id,
+                occurred_at=dependencies.clock.now(),
+                snapshot_id=snapshot.id,
+                stdout="environment setup completed successfully",
+                stderr="no errors",
+                return_code=0,
+            ),
+        )
+    except Exception as e:
+        await dependencies.event_store.append(
+            process_id,
+            EnvironmentValidationFailed(
+                process_id=process_id,
+                occurred_at=dependencies.clock.now(),
+                stdout="",
+                stderr=str(e),
+                return_code=1,
+            ),
+        )
 
 
 def get_base_snapshot(microvm_client: MorphCloudClient | None) -> Snapshot:
