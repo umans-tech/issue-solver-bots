@@ -209,7 +209,7 @@ function extractIssueNumberFromUrl(url: string): number | null {
 
 // Helper: prepare minimal issue data object for GitHubIssueDetail from create_issue input/output
 function prepareIssueDataFromCreateIssue(
-  input: { owner?: string; repo?: string; title?: string; body?: string; labels?: string[] },
+  input: { owner?: string; repo?: string; title?: string; body?: string; labels?: string[], state?: string },
   output: any,
 ) {
   // Extract URL from various possible output shapes
@@ -237,19 +237,9 @@ function prepareIssueDataFromCreateIssue(
     html_url: url,
     title: input?.title ?? 'Untitled issue',
     number,
-    state: 'open',
+    state: input?.state ?? 'open',
     body: input?.body ?? '',
-    created_at: new Date().toISOString(),
     comments: 0,
-    user: {
-      login: input?.owner ?? 'unknown',
-      avatar_url: undefined,
-    },
-    labels: (input?.labels ?? []).map((name, idx) => ({
-      id: idx + 1,
-      name,
-      color: 'bbbbbb',
-    })),
   };
 }
 
@@ -275,7 +265,7 @@ const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) =>
     case 'create_issue':
       return <GitHubIssueDetail issue={prepareIssueDataFromCreateIssue(args ?? {}, result)} />;
     case 'update_issue':
-      return <GitHubIssueDetail issue={result} />;
+      return <GitHubIssueDetail issue={prepareIssueDataFromCreateIssue(args ?? {}, result)} />;
     case 'search_issues':
       return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
     default:
@@ -573,9 +563,9 @@ const GitHubIssueDetail = ({ issue }: { issue: any }) => {
                     className="w-5 h-5 rounded-full"
                   />
                 )}
-                <span>@{issueData.user?.login}</span>
+                {issueData.user?.login && <span>@{issueData.user.login}</span>}
               </div>
-              <span>opened {new Date(issueData.created_at).toLocaleDateString()}</span>
+              {issueData.created_at && <span>opened {new Date(issueData.created_at).toLocaleDateString()}</span>}
               {issueData.comments > 0 && (
                 <span>{issueData.comments} comment{issueData.comments !== 1 ? 's' : ''}</span>
               )}
