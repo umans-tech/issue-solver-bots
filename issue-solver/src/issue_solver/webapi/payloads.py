@@ -3,7 +3,9 @@ from pydantic.alias_generators import to_camel
 
 from issue_solver.agents.agent_message_store import AgentMessage
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
+from issue_solver.env_setup.dev_environments_management import (
+    ExecutionEnvironmentPreference,
+)
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedAIModel,

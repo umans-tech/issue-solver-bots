@@ -3,7 +3,7 @@ from pathlib import Path
 from morphcloud.api import Snapshot, MorphCloudClient
 
 from issue_solver.cli.prepare_command import PrepareCommandSettings
-from issue_solver.dev_environments_management import run_as_umans_with_env
+from issue_solver.env_setup.dev_environments_management import run_as_umans_with_env
 from issue_solver.env_setup.errors import (
     EnvironmentSetupError,
     Phase,

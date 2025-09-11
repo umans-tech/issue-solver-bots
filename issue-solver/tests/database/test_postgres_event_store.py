@@ -4,7 +4,9 @@ from datetime import datetime
 import pytest
 
 from issue_solver.agents.supported_agents import SupportedAgent
-from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
+from issue_solver.env_setup.dev_environments_management import (
+    ExecutionEnvironmentPreference,
+)
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,

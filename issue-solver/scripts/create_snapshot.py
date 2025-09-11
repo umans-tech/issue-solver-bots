@@ -1,7 +1,7 @@
 from morphcloud.api import MorphCloudClient
 
 import argparse
-from issue_solver.dev_environments_management import (
+from issue_solver.env_setup.dev_environments_management import (
     VMConfiguration,
     get_or_create_snapshot_dev_snapshot,
 )

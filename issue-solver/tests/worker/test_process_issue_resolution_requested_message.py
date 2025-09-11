@@ -15,7 +15,9 @@ from morphcloud.api import (
 from tests.controllable_clock import ControllableClock
 
 from issue_solver.agents.issue_resolving_agent import IssueResolvingAgent
-from issue_solver.dev_environments_management import ExecutionEnvironmentPreference
+from issue_solver.env_setup.dev_environments_management import (
+    ExecutionEnvironmentPreference,
+)
 from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionRequested,
