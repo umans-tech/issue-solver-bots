@@ -14,6 +14,7 @@ from issue_solver.events.domain import (
     IssueResolutionEnvironmentPrepared,
     AnyDomainEvent,
     EnvironmentConfigurationValidated,
+    EnvironmentValidationFailed,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -92,6 +93,38 @@ class BriceDeNice:
             stdout="environment setup completed successfully",
             stderr="no errors",
             return_code=0,
+        )
+
+    @classmethod
+    def got_his_second_environment_configuration_provided(
+        cls,
+    ) -> EnvironmentConfigurationProvided:
+        return EnvironmentConfigurationProvided(
+            process_id="brice-environment-configuration-process-002",
+            occurred_at=datetime.fromisoformat("2025-01-02T08:02:00Z"),
+            user_id="brice-user-001",
+            knowledge_base_id="brice-kb-001",
+            global_setup="""
+            #!/bin/bash
+            missing_command
+            """,
+            project_setup="""
+            #!/bin/bash
+            bad_command
+            """,
+            environment_id="brice-environment-001",
+        )
+
+    @classmethod
+    def got_his_second_environment_configuration_validation_failed(
+        cls,
+    ) -> EnvironmentValidationFailed:
+        return EnvironmentValidationFailed(
+            process_id="brice-environment-configuration-process-002",
+            occurred_at=datetime.fromisoformat("2025-01-02T08:02:15Z"),
+            stdout="",
+            stderr="bash: missing_command: command not found",
+            return_code=127,
         )
 
     @classmethod
@@ -211,6 +244,8 @@ class BriceDeNice:
             # Day 2: Environment setup and first issue resolution
             cls.got_his_environment_configuration_provided(),  # 08:00:00 - Environment config provided
             cls.got_his_environment_configuration_validated(),  # 08:01:05 - Environment config validated
+            cls.got_his_second_environment_configuration_provided(),
+            cls.got_his_second_environment_configuration_validation_failed(),
             cls.got_his_environment_prepared(),  # 08:15:00 - Environment prepared
             cls.requested_issue_resolution(),  # 09:00:00 - First issue requested
             cls.started_issue_resolution(),  # 09:05:00 - Issue resolution started

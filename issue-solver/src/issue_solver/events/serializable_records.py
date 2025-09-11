@@ -21,6 +21,7 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     IssueResolutionEnvironmentPrepared,
     EnvironmentConfigurationValidated,
+    EnvironmentValidationFailed,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -507,6 +508,37 @@ class EnvironmentConfigurationValidatedRecord(BaseModel):
         )
 
 
+class EnvironmentValidationFailedRecord(BaseModel):
+    type: Literal["environment_validation_failed"] = "environment_validation_failed"
+    occurred_at: datetime
+    process_id: str
+    stdout: str
+    stderr: str
+    return_code: int
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> EnvironmentValidationFailed:
+        return EnvironmentValidationFailed(
+            occurred_at=self.occurred_at,
+            process_id=self.process_id,
+            stdout=self.stdout,
+            stderr=self.stderr,
+            return_code=self.return_code,
+        )
+
+    @classmethod
+    def create_from(cls, event: EnvironmentValidationFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            process_id=event.process_id,
+            stdout=event.stdout,
+            stderr=event.stderr,
+            return_code=event.return_code,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -520,6 +552,7 @@ ProcessTimelineEventRecords = (
     | EnvironmentConfigurationProvidedRecord
     | IssueResolutionEnvironmentPreparedRecord
     | EnvironmentConfigurationValidatedRecord
+    | EnvironmentValidationFailedRecord
 )
 
 
@@ -553,6 +586,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return IssueResolutionEnvironmentPreparedRecord.create_from(event)
         case EnvironmentConfigurationValidated():
             return EnvironmentConfigurationValidatedRecord.create_from(event)
+        case EnvironmentValidationFailed():
+            return EnvironmentValidationFailedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -605,6 +640,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "environment_configuration_validated":
             return EnvironmentConfigurationValidatedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "environment_validation_failed":
+            return EnvironmentValidationFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:
