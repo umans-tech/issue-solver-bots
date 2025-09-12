@@ -132,16 +132,26 @@ export function RepoConnectionDialog({
   // Load persisted environment info when repo details are available
   useEffect(() => {
     if (repoDetails?.knowledge_base_id) {
-      try {
-        const key = `env-info:${repoDetails.knowledge_base_id}`;
-        const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.environment_id) {
-            setEnvInfo(parsed);
+      // Prefer fetching from backend for cross-device persistence
+      (async () => {
+        try {
+          const res = await fetch(`/api/repo/environments?knowledgeBaseId=${repoDetails.knowledge_base_id}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.environment_id) setEnvInfo(data);
+          } else {
+            // Fallback to localStorage if available
+            const key = `env-info:${repoDetails.knowledge_base_id}`;
+            const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed && parsed.environment_id) setEnvInfo(parsed);
+            }
           }
+        } catch {
+          // ignore
         }
-      } catch {}
+      })();
     }
   }, [repoDetails?.knowledge_base_id]);
 
