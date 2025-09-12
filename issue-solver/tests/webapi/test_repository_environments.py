@@ -115,3 +115,143 @@ def test_setup_environment_should_return_404_when_repository_not_found(
     # Then
     assert response.status_code == 404
     assert "No repository found with knowledge base ID" in response.json()["detail"]
+
+
+def test_get_latest_environment_should_return_404_when_no_environment(
+    api_client, time_under_control, sqs_client, sqs_queue
+):
+    # Given a connected repository but no environment yet
+    time_under_control.set_from_iso_format("2025-10-01T10:10:00")
+    user_id = "test-user-id"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={
+            "X-User-ID": user_id,
+        },
+    )
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    # When
+    url = f"/repositories/{knowledge_base_id}/environments/latest"
+    response = api_client.get(url)
+
+    # Then
+    assert response.status_code == 404
+    assert "No environment found" in response.json()["detail"]
+
+
+def test_get_latest_environment_should_return_existing_configuration_when_only_one(
+    api_client, time_under_control, sqs_client, sqs_queue
+):
+    # Given
+    user_id = "test-user-id"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={
+            "X-User-ID": user_id,
+        },
+    )
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    time_under_control.set_from_iso_format("2025-10-01T09:00:00")
+    second_env = {
+        "script": "#!/bin/bash\necho later setup",
+    }
+    environment_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/environments",
+        json=second_env,
+        headers={"X-User-ID": user_id},
+    )
+    assert environment_response.status_code == 201
+    environment_json = environment_response.json()
+
+    # When
+    latest_resp = api_client.get(
+        f"/repositories/{knowledge_base_id}/environments/latest"
+    )
+
+    # Then
+    assert latest_resp.status_code == 200
+    latest = latest_resp.json()
+    assert latest["environment_id"] == environment_json["environment_id"]
+    assert latest["process_id"] == environment_json["process_id"]
+    assert latest["occurred_at"] == "2025-10-01T09:00:00"
+
+
+def test_get_latest_environment_should_return_latest_configuration(
+    api_client, time_under_control, sqs_client, sqs_queue
+):
+    # Given
+    user_id = "test-user-id"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={
+            "X-User-ID": user_id,
+        },
+    )
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    # First environment at t1
+    time_under_control.set_from_iso_format("2025-10-01T08:00:00")
+    first_env = {
+        "global": "apt update && apt install -y python3",
+        "project": "uv sync",
+    }
+    first_environment_creation_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/environments",
+        json=first_env,
+        headers={"X-User-ID": user_id},
+    )
+    assert first_environment_creation_response.status_code == 201
+
+    # Second environment at t2 (later)
+    time_under_control.set_from_iso_format("2025-10-01T09:00:00")
+    second_env = {
+        "script": "#!/bin/bash\necho later setup",
+    }
+    second_environment_creation_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/environments",
+        json=second_env,
+        headers={"X-User-ID": user_id},
+    )
+    assert second_environment_creation_response.status_code == 201
+    second_environment_creation_json = second_environment_creation_response.json()
+
+    # When
+    latest_resp = api_client.get(
+        f"/repositories/{knowledge_base_id}/environments/latest"
+    )
+
+    # Then
+    assert latest_resp.status_code == 200
+    latest = latest_resp.json()
+    assert (
+        latest["environment_id"] == second_environment_creation_json["environment_id"]
+    )
+    assert latest["process_id"] == second_environment_creation_json["process_id"]
+    assert latest["occurred_at"] == "2025-10-01T09:00:00"
+
+
+def test_get_latest_environment_unknown_kb_should_return_404(api_client):
+    # When
+    response = api_client.get("/repositories/nonexistent-kb/environments/latest")
+
+    # Then
+    assert response.status_code == 404
+    assert "No environment found" in response.json()["detail"]
