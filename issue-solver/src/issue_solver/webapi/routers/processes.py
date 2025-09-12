@@ -17,6 +17,10 @@ from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionCompleted,
     IssueResolutionFailed,
+    CodeRepositoryIntegrationFailed,
+    EnvironmentConfigurationProvided,
+    EnvironmentConfigurationValidated,
+    EnvironmentValidationFailed,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -58,6 +62,8 @@ class ProcessTimelineView(BaseModel):
         first_event = events[0]
         if isinstance(first_event, IssueResolutionRequested):
             return "issue_resolution"
+        if isinstance(first_event, EnvironmentConfigurationProvided):
+            return "dev_environment_setup"
         return "code_repository_integration"
 
     @classmethod
@@ -86,8 +92,16 @@ class ProcessTimelineView(BaseModel):
                 status = "in_progress"
             case IssueResolutionCompleted():
                 status = "completed"
-            case IssueResolutionFailed():
+            case (
+                IssueResolutionFailed()
+                | CodeRepositoryIntegrationFailed()
+                | EnvironmentValidationFailed()
+            ):
                 status = "failed"
+            case EnvironmentConfigurationProvided():
+                status = "configuring"
+            case EnvironmentConfigurationValidated():
+                status = "ready"
             case _:
                 status = "unknown"
         return status

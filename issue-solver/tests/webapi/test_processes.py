@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from examples.happy_path_persona import BriceDeNice
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
@@ -9,6 +10,7 @@ from issue_solver.events.domain import (
     IssueResolutionStarted,
     IssueResolutionCompleted,
     IssueResolutionFailed,
+    CodeRepositoryIntegrationFailed,
 )
 from issue_solver.webapi.routers.processes import ProcessTimelineView
 
@@ -374,3 +376,77 @@ def test_status_should_be_unknown_when_only_token_rotation_events():
 
     # Then
     assert process_timeline_view.status == "unknown"
+
+
+def test_status_should_be_failed_when_latest_event_is_code_repo_integration_failed_among_others():
+    # Given
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+
+    history = [
+        repo_connected,
+        CodeRepositoryIntegrationFailed(
+            url="https://github.com/brice/nice-repo.git",
+            error_type="permission_denied",
+            error_message="test-error-message",
+            knowledge_base_id="brice-user-001",
+            process_id=BriceDeNice.first_repo_integration_process_id(),
+            occurred_at=repo_connected.occurred_at + timedelta(seconds=2),
+        ),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id=BriceDeNice.first_repo_integration_process_id(), events=history
+    )
+    # Then
+    assert process_timeline_view.status == "failed"
+    assert process_timeline_view.type == "code_repository_integration"
+
+
+def test_should_be_configuring_when_latest_event_is_env_configuration_provided():
+    # Given
+    configuration_provided = BriceDeNice.got_his_environment_configuration_provided()
+    history = [configuration_provided]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id=BriceDeNice.first_env_configuration_process_id(), events=history
+    )
+
+    # Then
+    assert process_timeline_view.status == "configuring"
+    assert process_timeline_view.type == "dev_environment_setup"
+
+
+def test_should_be_ready_when_latest_event_is_env_conf_validated():
+    # Given
+    history = [
+        BriceDeNice.got_his_environment_configuration_provided(),
+        BriceDeNice.got_his_environment_configuration_validated(),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id=BriceDeNice.first_env_configuration_process_id(), events=history
+    )
+
+    # Then
+    assert process_timeline_view.status == "ready"
+    assert process_timeline_view.type == "dev_environment_setup"
+
+
+def test_should_be_failed_when_latest_event_is_env_validation_failed():
+    # Given
+    history = [
+        BriceDeNice.got_his_second_environment_configuration_provided(),
+        BriceDeNice.got_his_second_environment_configuration_validation_failed(),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id=BriceDeNice.second_env_configuration_process_id(), events=history
+    )
+
+    # Then
+    assert process_timeline_view.status == "failed"
+    assert process_timeline_view.type == "dev_environment_setup"

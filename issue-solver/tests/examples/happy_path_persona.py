@@ -64,7 +64,7 @@ class BriceDeNice:
         cls,
     ) -> EnvironmentConfigurationProvided:
         return EnvironmentConfigurationProvided(
-            process_id="brice-environment-configuration-process-001",
+            process_id=BriceDeNice.first_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:00:00Z"),
             user_id="brice-user-001",
             knowledge_base_id="brice-kb-001",
@@ -83,11 +83,15 @@ class BriceDeNice:
         )
 
     @classmethod
+    def first_env_configuration_process_id(cls) -> str:
+        return "brice-environment-configuration-process-001"
+
+    @classmethod
     def got_his_environment_configuration_validated(
         cls,
     ) -> EnvironmentConfigurationValidated:
         return EnvironmentConfigurationValidated(
-            process_id="brice-environment-configuration-process-001",
+            process_id=BriceDeNice.first_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:01:05Z"),
             snapshot_id="brice-env-001-snap-001",
             stdout="environment setup completed successfully",
@@ -100,7 +104,7 @@ class BriceDeNice:
         cls,
     ) -> EnvironmentConfigurationProvided:
         return EnvironmentConfigurationProvided(
-            process_id="brice-environment-configuration-process-002",
+            process_id=BriceDeNice.second_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:02:00Z"),
             user_id="brice-user-001",
             knowledge_base_id="brice-kb-001",
@@ -116,11 +120,15 @@ class BriceDeNice:
         )
 
     @classmethod
+    def second_env_configuration_process_id(cls) -> str:
+        return "brice-environment-configuration-process-002"
+
+    @classmethod
     def got_his_second_environment_configuration_validation_failed(
         cls,
     ) -> EnvironmentValidationFailed:
         return EnvironmentValidationFailed(
-            process_id="brice-environment-configuration-process-002",
+            process_id=BriceDeNice.second_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:02:15Z"),
             stdout="",
             stderr="bash: missing_command: command not found",
