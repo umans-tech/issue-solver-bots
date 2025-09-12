@@ -33,6 +33,9 @@ async def main(settings: SolveCommandSettings) -> None:
     )
 
     try:
+        dependencies.git_client.switch_to_issue_branch(
+            process_id=process_id, issue=issue_info, repo_path=settings.repo_path
+        )
         await dependencies.event_store.append(
             process_id,
             IssueResolutionStarted(
