@@ -287,6 +287,8 @@ async def get_latest_environment(
         "environment_id": latest.environment_id,
         "process_id": latest.process_id,
         "occurred_at": latest.occurred_at.isoformat(),
+        "global": latest.global_setup,
+        "project": latest.project_setup,
     }
 
 

@@ -223,7 +223,8 @@ def test_get_latest_environment_should_return_latest_configuration(
     # Second environment at t2 (later)
     time_under_control.set_from_iso_format("2025-10-01T09:00:00")
     second_env = {
-        "script": "#!/bin/bash\necho later setup",
+        "global": "#!/bin/bash\necho 'later global setup'",
+        "project": "#!/bin/bash\necho 'later project setup'",
     }
     second_environment_creation_response = api_client.post(
         f"/repositories/{knowledge_base_id}/environments",
@@ -246,6 +247,8 @@ def test_get_latest_environment_should_return_latest_configuration(
     )
     assert latest["process_id"] == second_environment_creation_json["process_id"]
     assert latest["occurred_at"] == "2025-10-01T09:00:00"
+    assert latest["global"] == second_env["global"]
+    assert latest["project"] == second_env["project"]
 
 
 def test_get_latest_environment_unknown_kb_should_return_404(api_client):
