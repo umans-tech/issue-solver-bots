@@ -1020,10 +1020,7 @@ export default function TaskPage() {
                           View PR #{processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_number}
                         </a>
                       }
-                      {processData.status?.toLowerCase() === 'failed' && 
-                       processData.events?.some(event => 
-                         event.type === 'issue_resolution_failed'
-                       ) && (
+                      {processData.status?.toLowerCase() === 'failed' && (
                         <button 
                           onClick={() => setIsErrorDialogOpen(true)}
                           className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
