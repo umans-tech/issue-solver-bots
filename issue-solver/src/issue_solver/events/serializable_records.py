@@ -8,6 +8,7 @@ from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.env_setup.dev_environments_management import (
     ExecutionEnvironmentPreference,
 )
+from issue_solver.env_setup.errors import Phase
 from issue_solver.events.domain import (
     AnyDomainEvent,
     CodeRepositoryConnected,
@@ -514,6 +515,7 @@ class EnvironmentValidationFailedRecord(BaseModel):
     type: Literal["environment_validation_failed"] = "environment_validation_failed"
     occurred_at: datetime
     process_id: str
+    phase: Phase | None = None
     stdout: str
     stderr: str
     return_code: int
@@ -525,6 +527,7 @@ class EnvironmentValidationFailedRecord(BaseModel):
         return EnvironmentValidationFailed(
             occurred_at=self.occurred_at,
             process_id=self.process_id,
+            phase=self.phase if self.phase is not None else Phase.PROJECT_SETUP,
             stdout=self.stdout,
             stderr=self.stderr,
             return_code=self.return_code,
@@ -535,6 +538,7 @@ class EnvironmentValidationFailedRecord(BaseModel):
         return cls(
             occurred_at=event.occurred_at,
             process_id=event.process_id,
+            phase=event.phase,
             stdout=event.stdout,
             stderr=event.stderr,
             return_code=event.return_code,

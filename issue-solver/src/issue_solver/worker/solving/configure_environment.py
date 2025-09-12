@@ -89,6 +89,7 @@ async def configure_environment(
         await dependencies.event_store.append(
             process_id,
             EnvironmentValidationFailed(
+                phase=err.phase,
                 process_id=process_id,
                 occurred_at=dependencies.clock.now(),
                 stdout="",

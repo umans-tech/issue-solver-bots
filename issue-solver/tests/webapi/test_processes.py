@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from examples.happy_path_persona import BriceDeNice
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
@@ -13,6 +12,7 @@ from issue_solver.events.domain import (
     CodeRepositoryIntegrationFailed,
 )
 from issue_solver.webapi.routers.processes import ProcessTimelineView
+from tests.examples.happy_path_persona import BriceDeNice
 
 
 def test_status_should_be_connected_latest_event_is_connected():

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from issue_solver.env_setup.errors import Phase
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
@@ -128,6 +129,7 @@ class BriceDeNice:
         cls,
     ) -> EnvironmentValidationFailed:
         return EnvironmentValidationFailed(
+            phase=Phase.GLOBAL_SETUP,
             process_id=BriceDeNice.second_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:02:15Z"),
             stdout="",
