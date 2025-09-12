@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { ShellEditor } from '@/components/shell-editor';
 
 interface EnvironmentSetupDialogProps {
   open: boolean;
@@ -18,6 +18,9 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, on
   const [globalSetup, setGlobalSetup] = useState('');
   const [projectSetup, setProjectSetup] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPrefill, setIsLoadingPrefill] = useState(false);
+  const [dirtyGlobal, setDirtyGlobal] = useState(false);
+  const [dirtyProject, setDirtyProject] = useState(false);
 
   const canSubmit = !!knowledgeBaseId && (globalSetup.trim().length > 0 || projectSetup.trim().length > 0);
 
@@ -28,6 +31,9 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, on
 
     setIsSubmitting(true);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const res = await fetch('/api/repo/environments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,9 +42,16 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, on
           ...(globalSetup.trim() ? { global: globalSetup.trim() } : {}),
           ...(projectSetup.trim() ? { project: projectSetup.trim() } : {}),
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        // ignore body parse errors
+      }
       if (!res.ok) {
         const detail = (data && (data.detail || data.error)) || 'Failed to save environment';
         toast.error(detail);
@@ -51,11 +64,42 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, on
       setGlobalSetup('');
       setProjectSetup('');
     } catch (err) {
-      toast.error('Failed to save environment');
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      toast.error(isAbort ? 'Request timed out. Please try again.' : 'Failed to save environment');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // When dialog opens, reset init/dirty flags so we can prefill
+  useEffect(() => {
+    if (open) {
+      setDirtyGlobal(false);
+      setDirtyProject(false);
+    }
+  }, [open]);
+
+  // Prefill with latest environment scripts when editing
+  useEffect(() => {
+    const fetchLatest = async () => {
+      if (!open || !knowledgeBaseId) return;
+      setIsLoadingPrefill(true);
+      try {
+        const res = await fetch(`/api/repo/environments?knowledgeBaseId=${knowledgeBaseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Prefill on open, but do not overwrite if user already typed
+          if (typeof data.global === 'string' && !dirtyGlobal) setGlobalSetup(data.global || '');
+          if (typeof data.project === 'string' && !dirtyProject) setProjectSetup(data.project || '');
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoadingPrefill(false);
+      }
+    };
+    fetchLatest();
+  }, [open, knowledgeBaseId, dirtyGlobal, dirtyProject]);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -66,31 +110,36 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, on
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="global-setup">Global setup (runner)</Label>
-            <Textarea
-              id="global-setup"
-              placeholder={
-                `# Runs once on the machine (e.g., install packages)\napt update && apt install -y pip3 python3-pip\ncurl -LsSf https://astral.sh/uv/install.sh | sh`
-              }
+            <ShellEditor
               value={globalSetup}
-              onChange={(e) => setGlobalSetup(e.target.value)}
-              rows={5}
+              onChange={(v) => { setDirtyGlobal(true); setGlobalSetup(v); }}
+              minHeight={180}
+              placeholder="# apt-get/curl to install system packages and tools"
+              forceSetValue={!dirtyGlobal}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="project-setup">Project setup (repo root)</Label>
-            <Textarea
-              id="project-setup"
-              placeholder={
-                `# Runs in the repository root (e.g., project deps)\nuv sync`
-              }
+            <ShellEditor
               value={projectSetup}
-              onChange={(e) => setProjectSetup(e.target.value)}
-              rows={4}
+              onChange={(v) => { setDirtyProject(true); setProjectSetup(v); }}
+              minHeight={140}
+              placeholder="# e.g., uv sync or pnpm install"
+              forceSetValue={!dirtyProject}
             />
           </div>
 
-          <div className="text-xs text-muted-foreground">You can fill either or both. These scripts run before the remote coding agent starts.</div>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>Runs inside Debian with Python 3 and uv preinstalled.</p>
+            <p>
+              Use <strong>Global setup</strong> to install system tools and dependencies (apt-get, curl). Do not clone the repository here; it will be cloned automatically using your URL/token.
+            </p>
+            <p>
+              <strong>Project setup</strong> runs from the cloned repository root to install project dependencies (e.g., <code>uv sync</code>, <code>pnpm install</code>).
+            </p>
+            <p>You can fill either or both. Executed before the remote coding agent starts.</p>
+          </div>
 
           <AlertDialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
