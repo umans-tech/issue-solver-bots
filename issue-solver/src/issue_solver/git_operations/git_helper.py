@@ -629,6 +629,24 @@ class GitClient:
             number=pr.number,
         )
 
+    @classmethod
+    def switch_to_issue_branch(
+        cls,
+        process_id: str,
+        repo_path: Path,
+        issue: IssueInfo,
+    ) -> None:
+        new_branch_name = name_new_branch_for_issue(issue, process_id)
+        repo = Repo(repo_path)
+        if repo.is_dirty(untracked_files=True):
+            repo.git.stash(
+                "push", "-m", f"auto-stash-before-switching-to-{new_branch_name}"
+            )
+        if new_branch_name in repo.branches:
+            repo.git.checkout(new_branch_name)
+        else:
+            repo.git.checkout("-b", new_branch_name)
+
 
 def name_new_branch_for_issue(issue: IssueInfo, process_id: str) -> str:
     title_part = sanitize_branch_name(issue.title or "resolution")
