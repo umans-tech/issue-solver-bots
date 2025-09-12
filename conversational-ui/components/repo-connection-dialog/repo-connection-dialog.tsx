@@ -18,6 +18,7 @@ import {
 import { useProcessStatus } from '@/hooks/use-process-status';
 import { TokenPermissionsDisplay } from '@/components/token-permissions-display';
 import { ProactiveTokenGenerator } from '@/components/proactive-token-generator';
+import { EnvironmentSetupDialog } from '@/components/environment-setup-dialog';
 
 // Simple clock icon component
 const ClockIcon = ({ size = 16 }: { size?: number }) => (
@@ -106,6 +107,7 @@ export function RepoConnectionDialog({
   const [isRotatingToken, setIsRotatingToken] = useState(false);
   const [newAccessToken, setNewAccessToken] = useState('');
   const [showNewToken, setShowNewToken] = useState(false);
+  const [envDialogOpen, setEnvDialogOpen] = useState(false);
   
   // Get the process id from session
   const processId = session?.user?.selectedSpace?.processId;
@@ -771,8 +773,24 @@ export function RepoConnectionDialog({
               {isSubmitting ? 'Connecting...' : 'Connect Repository'}
             </Button>
           )}
+          {repoDetails?.knowledge_base_id && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEnvDialogOpen(true)}
+              disabled={isLoading}
+            >
+              Environment setup
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
+      {/* Environment setup dialog */}
+      <EnvironmentSetupDialog
+        open={envDialogOpen}
+        onOpenChange={setEnvDialogOpen}
+        knowledgeBaseId={repoDetails?.knowledge_base_id}
+      />
     </Sheet>
   );
 } 
