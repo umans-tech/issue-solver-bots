@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import React, { memo } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import { type Components } from 'react-markdown';
+import { Streamdown } from 'streamdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './code-block';
 import { MermaidDiagram } from './mermaid-diagram';
@@ -39,7 +40,7 @@ const components: Partial<Components> = {
   },
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="list-decimal list-outside ml-4" {...props}>
+      <ol className="list-decimal list-outside pl-[2.5em]" {...props}>
         {children}
       </ol>
     );
@@ -53,7 +54,7 @@ const components: Partial<Components> = {
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="list-disc list-outside ml-4" {...props}>
+      <ul className="list-disc list-outside pl-[2.5em]" {...props}>
         {children}
       </ul>
     );
@@ -127,9 +128,9 @@ const remarkPlugins = [remarkGfm];
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   return (
     <div className="w-full overflow-hidden">
-      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+      <Streamdown remarkPlugins={remarkPlugins} components={components}>
         {children}
-      </ReactMarkdown>
+      </Streamdown>
     </div>
   );
 };
