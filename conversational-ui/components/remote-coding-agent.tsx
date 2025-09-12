@@ -6,8 +6,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@radix-ui/react-collapsible";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown } from "./markdown";
 
 
 
@@ -120,9 +119,9 @@ export const RemoteCodingAgentResult = ({
           `}
         >
           <div className="prose prose-sm dark:prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <Markdown>
               {`# ${issueTitle}\n${issueDescription}`}
-            </ReactMarkdown>
+            </Markdown>
           </div>
         </CollapsibleContent>
       </Collapsible>
