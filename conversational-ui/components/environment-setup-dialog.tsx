@@ -11,9 +11,10 @@ interface EnvironmentSetupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   knowledgeBaseId: string | undefined;
+  onSuccess?: (data: { environment_id: string; process_id?: string }) => void;
 }
 
-export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId }: EnvironmentSetupDialogProps) {
+export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId, onSuccess }: EnvironmentSetupDialogProps) {
   const [globalSetup, setGlobalSetup] = useState('');
   const [projectSetup, setProjectSetup] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +46,7 @@ export function EnvironmentSetupDialog({ open, onOpenChange, knowledgeBaseId }: 
       }
 
       toast.success('Environment saved');
+      onSuccess?.({ environment_id: data.environment_id, process_id: data.process_id });
       onOpenChange(false);
       setGlobalSetup('');
       setProjectSetup('');

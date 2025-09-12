@@ -108,6 +108,7 @@ export function RepoConnectionDialog({
   const [newAccessToken, setNewAccessToken] = useState('');
   const [showNewToken, setShowNewToken] = useState(false);
   const [envDialogOpen, setEnvDialogOpen] = useState(false);
+  const [envInfo, setEnvInfo] = useState<{ environment_id: string; process_id?: string } | null>(null);
   
   // Get the process id from session
   const processId = session?.user?.selectedSpace?.processId;
@@ -127,6 +128,22 @@ export function RepoConnectionDialog({
       setShowNewToken(false);
     }
   }, [open, processId]);
+
+  // Load persisted environment info when repo details are available
+  useEffect(() => {
+    if (repoDetails?.knowledge_base_id) {
+      try {
+        const key = `env-info:${repoDetails.knowledge_base_id}`;
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.environment_id) {
+            setEnvInfo(parsed);
+          }
+        }
+      } catch {}
+    }
+  }, [repoDetails?.knowledge_base_id]);
 
   // Update local status when process status changes
   useEffect(() => {
@@ -515,6 +532,37 @@ export function RepoConnectionDialog({
           )}
         </div>
 
+        {/* Environment */}
+        <div className="flex flex-col gap-2 border-t pt-3">
+          <div className="font-semibold">Environment</div>
+          <div className="flex items-center justify-between">
+            <div className="text-muted-foreground text-sm">
+              {envInfo?.environment_id ? (
+                <div className="flex items-center gap-2">
+                  <span>Configured</span>
+                  {envInfo.process_id && (
+                    <a className="text-primary hover:underline" href={`/tasks/${envInfo.process_id}`}>
+                      View progress
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <span>No environment configured</span>
+              )}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 px-3"
+              onClick={() => setEnvDialogOpen(true)}
+              disabled={!repoDetails.knowledge_base_id}
+            >
+              {envInfo?.environment_id ? 'Edit' : 'Setup'}
+            </Button>
+          </div>
+        </div>
+
         {/* Token Permissions Display */}
         {repoDetails.token_permissions && (
           <div className="border-t pt-4 mt-4">
@@ -790,6 +838,16 @@ export function RepoConnectionDialog({
         open={envDialogOpen}
         onOpenChange={setEnvDialogOpen}
         knowledgeBaseId={repoDetails?.knowledge_base_id}
+        onSuccess={(data) => {
+          setEnvInfo(data);
+          // persist per knowledge base id for quick recall
+          if (repoDetails?.knowledge_base_id) {
+            const key = `env-info:${repoDetails.knowledge_base_id}`;
+            try {
+              localStorage.setItem(key, JSON.stringify(data));
+            } catch {}
+          }
+        }}
       />
     </Sheet>
   );
