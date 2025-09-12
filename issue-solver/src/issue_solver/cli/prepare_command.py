@@ -24,9 +24,10 @@ class PrepareCommandSettings(BaseSettings):
     url: str
     access_token: str | None = None
     issue: IssueInfo | IssueSettings | None = Field(
+        default=None,
         description="Reference to the issue "
         "(url, id, iid+project_id or anything that allow the issue tracker to find the issue) "
-        "or actual Content describing the issue"
+        "or actual Content describing the issue",
     )
     install_script: Path | str
 
