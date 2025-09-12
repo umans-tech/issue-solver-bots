@@ -7,6 +7,8 @@ from morphcloud.api import MorphCloudClient, Snapshot
 from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
 from tests.worker.test_process_issue_resolution_requested_message import to_script
+
+from issue_solver.env_setup.errors import Phase
 from issue_solver.events.domain import (
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
@@ -141,6 +143,7 @@ async def test_process_environment_configuration_when_project_script_fails(
     assert produced_events == [
         config_provided,
         EnvironmentValidationFailed(
+            phase=Phase.PROJECT_SETUP,
             process_id=config_process_id,
             occurred_at=time_under_control.now(),
             stdout="",
@@ -213,6 +216,7 @@ async def test_process_environment_configuration_when_global_script_fails(
     assert produced_events == [
         config_provided,
         EnvironmentValidationFailed(
+            phase=Phase.GLOBAL_SETUP,
             process_id=config_process_id,
             occurred_at=time_under_control.now(),
             stdout="",
@@ -372,6 +376,7 @@ async def test_process_environment_configuration_when_no_global_script_and_proje
     assert produced_events == [
         config_provided,
         EnvironmentValidationFailed(
+            phase=Phase.PROJECT_SETUP,
             process_id=config_process_id,
             occurred_at=time_under_control.now(),
             stdout="",

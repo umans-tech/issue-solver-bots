@@ -7,6 +7,7 @@ from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.env_setup.dev_environments_management import (
     ExecutionEnvironmentPreference,
 )
+from issue_solver.env_setup.errors import Phase
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedAIModel,
@@ -157,6 +158,7 @@ class EnvironmentConfigurationValidated(DomainEvent):
 
 @dataclass(frozen=True, slots=True)
 class EnvironmentValidationFailed(DomainEvent):
+    phase: Phase
     stdout: str
     stderr: str
     return_code: int
@@ -165,7 +167,7 @@ class EnvironmentValidationFailed(DomainEvent):
 
     @property
     def reason(self) -> str:
-        return f"Failed with code {self.return_code})"
+        return f"{self.phase} failed with code {self.return_code})"
 
     @property
     def error_message(self) -> str:
