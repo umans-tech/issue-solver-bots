@@ -254,6 +254,42 @@ async def create_environment(
     }
 
 
+@router.get(
+    "/{knowledge_base_id}/environments/latest",
+)
+async def get_latest_environment(
+    knowledge_base_id: str,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.get_latest_environment"
+            )
+        ),
+    ],
+):
+    """Return the most recent environment configuration for the repository if any."""
+    logger.info(
+        f"Retrieving latest environment for knowledge base ID: {knowledge_base_id}"
+    )
+
+    events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, EnvironmentConfigurationProvided
+    )
+
+    if not events:
+        raise HTTPException(status_code=404, detail="No environment found")
+
+    # Pick most recent by occurred_at
+    latest = max(events, key=lambda e: e.occurred_at)
+    return {
+        "environment_id": latest.environment_id,
+        "process_id": latest.process_id,
+        "occurred_at": latest.occurred_at.isoformat(),
+    }
+
+
 def _validate_repository_access(connect_repository_request, logger, validation_service):
     try:
         validation_result = validation_service.validate_repository_access(
