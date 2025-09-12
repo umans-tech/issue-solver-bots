@@ -544,9 +544,7 @@ class GitClient:
         if repo_path.exists():
             rmtree(repo_path)
         new_branch_name = (
-            name_new_branch_for_issue(issue, process_id)
-            if issue
-            else cls._default_branch(url, access_token, repo_path)
+            name_new_branch_for_issue(issue, process_id) if issue else None
         )
         cls.clone_repository(
             url=url,
