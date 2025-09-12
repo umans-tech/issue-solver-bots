@@ -59,6 +59,10 @@ class CodeRepositoryIntegrationFailed(DomainEvent):
     process_id: str
     occurred_at: datetime
 
+    @property
+    def reason(self) -> str:
+        return self.error_type
+
 
 @dataclass(frozen=True, slots=True)
 class CodeRepositoryIndexed(DomainEvent):
@@ -158,6 +162,14 @@ class EnvironmentValidationFailed(DomainEvent):
     return_code: int
     process_id: str
     occurred_at: datetime
+
+    @property
+    def reason(self) -> str:
+        return f"Failed with code {self.return_code})"
+
+    @property
+    def error_message(self) -> str:
+        return self.stderr
 
 
 AnyDomainEvent = (
