@@ -330,7 +330,7 @@ function PureMultimodalInput({
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
         {status === 'streaming' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
+          <StopButton chatId={chatId} stop={stop} setMessages={setMessages} />
         ) : (
           <SendButton
             input={input}
@@ -381,9 +381,11 @@ function PureAttachmentsButton({
 const AttachmentsButton = memo(PureAttachmentsButton);
 
 function PureStopButton({
+  chatId,
   stop,
   setMessages,
 }: {
+  chatId: string;
   stop: () => void;
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
 }) {
@@ -392,6 +394,7 @@ function PureStopButton({
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
+        void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
         stop();
         setMessages((messages) => messages);
       }}

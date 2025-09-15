@@ -477,6 +477,7 @@ function PureArtifact({
                     stop={stop}
                     setMessages={setMessages}
                     artifactKind={artifact.kind}
+                    chatId={chatId}
                   />
                 )}
               </AnimatePresence>

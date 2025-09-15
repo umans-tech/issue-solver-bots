@@ -313,6 +313,7 @@ const PureToolbar = ({
   stop,
   setMessages,
   artifactKind,
+  chatId,
 }: {
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
@@ -321,6 +322,7 @@ const PureToolbar = ({
   stop: UseChatHelpers<ChatMessage>['stop'];
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   artifactKind: ArtifactKind;
+  chatId: string;
 }) => {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -430,6 +432,7 @@ const PureToolbar = ({
             exit={{ scale: 1 }}
             className="p-3"
             onClick={() => {
+              void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
               stop();
               setMessages((messages) => messages);
             }}
