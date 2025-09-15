@@ -108,18 +108,39 @@ export function RepoConnectionDialog({
   const [newAccessToken, setNewAccessToken] = useState('');
   const [showNewToken, setShowNewToken] = useState(false);
   const [envDialogOpen, setEnvDialogOpen] = useState(false);
-  const [envInfo, setEnvInfo] = useState<{ environment_id: string; process_id?: string } | null>(null);
+  const [envInfo, setEnvInfo] = useState<{ kbId?: string; environment_id: string; process_id?: string } | null>(null);
   
   // Get the process id from session
   const processId = session?.user?.selectedSpace?.processId;
+  const selectedSpaceId = session?.user?.selectedSpace?.id;
   
   // Use the same hook that the chat header uses to get live status updates
   const liveProcessStatus = useProcessStatus(processId);
+
+  // Reset state on open or when space changes to avoid stale UI
+  useEffect(() => {
+    if (open) {
+      setRepoDetails(null);
+      setEnvInfo(null);
+      setIsPrefilled(false);
+      setIsEditing(false);
+      setRepoUrl('');
+      setAccessToken('');
+      setError(null);
+      setIsLoading(true);
+    }
+  }, [open, selectedSpaceId]);
 
   // Fetch repository details when the dialog opens or session changes
   useEffect(() => {
     if (open && processId) {
       fetchRepositoryDetails();
+    } else if (open && !processId) {
+      // No repo connected for this space, show connect form immediately
+      setIsLoading(false);
+      setIsPrefilled(false);
+      setIsEditing(true);
+      setRepoDetails(null);
     } else if (!open) {
       // Reset editing state when dialog closes
       setIsEditing(false);
@@ -135,17 +156,24 @@ export function RepoConnectionDialog({
       // Prefer fetching from backend for cross-device persistence
       (async () => {
         try {
-          const res = await fetch(`/api/repo/environments?knowledgeBaseId=${repoDetails.knowledge_base_id}`);
+          const kbAtCall = repoDetails.knowledge_base_id;
+          const res = await fetch(`/api/repo/environments?knowledgeBaseId=${kbAtCall}`, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+          });
           if (res.ok) {
             const data = await res.json();
-            if (data?.environment_id) setEnvInfo(data);
+            // guard against races
+            if (data?.environment_id && kbAtCall === repoDetails?.knowledge_base_id) {
+              setEnvInfo({ kbId: kbAtCall, ...data });
+            }
           } else {
             // Fallback to localStorage if available
             const key = `env-info:${repoDetails.knowledge_base_id}`;
             const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
             if (raw) {
               const parsed = JSON.parse(raw);
-              if (parsed && parsed.environment_id) setEnvInfo(parsed);
+              if (parsed && parsed.environment_id) setEnvInfo({ kbId: repoDetails.knowledge_base_id, ...parsed });
             }
           }
         } catch {
@@ -180,9 +208,13 @@ export function RepoConnectionDialog({
     try {
       setIsLoading(true);
       setError(null);
-      
-      const response = await fetch('/api/repo');
+      const spaceAtCall = selectedSpaceId;
+      const response = await fetch('/api/repo', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
       const data = await response.json();
+      // guard if space switched mid-flight
+      if (spaceAtCall !== selectedSpaceId) {
+        return;
+      }
       
       // Check if we received an error response
       if (response.ok && data.error === true) {
@@ -547,7 +579,7 @@ export function RepoConnectionDialog({
           <div className="font-semibold">Environment</div>
           <div className="flex items-center justify-between">
             <div className="text-muted-foreground text-sm">
-              {envInfo?.environment_id ? (
+              {envInfo?.environment_id && envInfo?.kbId === repoDetails.knowledge_base_id ? (
                 <div className="flex items-center gap-2">
                   <span>Configured</span>
                   {envInfo.process_id && (
@@ -568,7 +600,7 @@ export function RepoConnectionDialog({
               onClick={() => setEnvDialogOpen(true)}
               disabled={!repoDetails.knowledge_base_id}
             >
-              {envInfo?.environment_id ? 'Edit' : 'Setup'}
+              {envInfo?.environment_id && envInfo?.kbId === repoDetails.knowledge_base_id ? 'Edit' : 'Setup'}
             </Button>
           </div>
         </div>
@@ -849,7 +881,7 @@ export function RepoConnectionDialog({
         onOpenChange={setEnvDialogOpen}
         knowledgeBaseId={repoDetails?.knowledge_base_id}
         onSuccess={(data) => {
-          setEnvInfo(data);
+          setEnvInfo({ kbId: repoDetails?.knowledge_base_id, ...data });
           // persist per knowledge base id for quick recall
           if (repoDetails?.knowledge_base_id) {
             const key = `env-info:${repoDetails.knowledge_base_id}`;

@@ -118,6 +118,7 @@ function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
       </div>
 
       <RepoConnectionDialog
+        key={session?.user?.selectedSpace?.id}
         open={showRepoDialog}
         onOpenChange={setShowRepoDialog}
       />

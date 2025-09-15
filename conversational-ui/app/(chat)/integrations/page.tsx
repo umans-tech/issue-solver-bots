@@ -250,6 +250,7 @@ export default function IntegrationsPage() {
       </div>
 
       <RepoConnectionDialog 
+        key={/* key by space if available via a sessioned header; keep stable here */ 'integrations'} 
         open={showRepoDialog} 
         onOpenChange={setShowRepoDialog} 
       />

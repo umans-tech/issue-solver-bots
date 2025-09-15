@@ -140,6 +140,7 @@ export function SharedHeader({ enableSessionRefresh = false, children, rightExtr
       </header>
 
       <RepoConnectionDialog 
+        key={session?.user?.selectedSpace?.id}
         open={showRepoDialog} 
         onOpenChange={setShowRepoDialog} 
       />
