@@ -28,6 +28,7 @@ import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
+import { setController, deleteController } from '@/lib/stream/controller-registry';
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
@@ -121,6 +122,12 @@ export async function POST(request: Request) {
 
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
+
+    // Track abort + partial content for graceful stop behavior
+    let wasAborted = false;
+    let partialText = '';
+    // Ensure the assistant message uses a stable ID across normal/aborted flows
+    const assistantMessageId = generateUUID();
     // Get current user's space for MCP context
     const currentSpace = await getCurrentUserSpace(session.user.id);
     const userContext = currentSpace ? {
@@ -136,12 +143,25 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
 
+            // Create a dedicated abort controller not tied to request.signal
+            const abortController = new AbortController();
+            // Register controller so Stop can cancel without breaking resumable refresh
+            setController(streamId, abortController);
+
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({ selectedChatModel }),
                 messages: convertToModelMessages(messages),
                 stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,
+                // Use dedicated abort controller (not tied to browser disconnects)
+                abortSignal: abortController.signal,
+                // Accumulate partial text so we can persist on abort (AI SDK v5 signature)
+                onChunk: ({ chunk }) => {
+                    if (chunk.type === 'text-delta') {
+                        partialText += chunk.text;
+                    }
+                },
                 providerOptions: {
                     openai: {
                         reasoningEffort: 'high',
@@ -196,6 +216,32 @@ export async function POST(request: Request) {
                     isEnabled: true,
                     functionId: 'stream-text',
                 },
+                // Persist partial results if the stream is aborted
+                onAbort: async () => {
+                    wasAborted = true;
+                    const text = partialText.trim();
+                    if (!text) return;
+                    try {
+                        await saveMessages({
+                            messages: [
+                                {
+                                    id: assistantMessageId,
+                                    chatId: id,
+                                    role: 'assistant',
+                                    parts: [
+                                        { type: 'text', text },
+                                    ],
+                                    attachments: [],
+                                    createdAt: new Date(),
+                                },
+                            ],
+                        });
+                    } catch (error) {
+                        console.error('Failed to save partial message on abort');
+                    } finally {
+                        deleteController(streamId);
+                    }
+                },
             });
             
             result.consumeStream();
@@ -214,8 +260,14 @@ export async function POST(request: Request) {
                 }),
             );
         },
-        generateId: generateUUID,
+        // Use stable assistant message id so abort and normal flows align
+        generateId: () => assistantMessageId,
         onFinish: async ({ messages, responseMessage}) => {//, usage, providerMetadata }) => {
+          if (wasAborted) {
+            // Skip normal persistence and usage recording when aborted
+            deleteController(streamId);
+            return;
+          }
           if (session.user?.id) {
               try {
                   const assistantId = getTrailingMessageId({
@@ -260,11 +312,14 @@ export async function POST(request: Request) {
 
               } catch (error) {
                   console.error('Failed to save chat');
+              } finally {
+                deleteController(streamId);
               }
           }
       },
         onError: (error) => {
             console.error('Error during streaming:', error);
+            deleteController(streamId);
             return 'Oops, an error occured!';
         },
     });
