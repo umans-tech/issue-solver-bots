@@ -444,63 +444,59 @@ export function RepoConnectionDialog({
         </div>
         
         <div className="flex flex-col gap-1 border-b pb-3">
-          <div className="font-semibold">Indexation Status</div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <StatusIcon status={repoDetails.status} />
-              <span className="capitalize">
-                {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
-              </span>
-            </div>
-            
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-8 px-3 flex items-center gap-1"
-              onClick={handleSyncRepository}
-              disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected' || repoDetails.status === 'failed'}
-            >
-              <div className={isSyncing ? 'animate-spin' : ''}>
-                <ClockRewind size={14} />
-              </div>
-              <span>Sync Latest</span>
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex flex-col gap-1 border-b pb-3">
-          <div className="font-semibold">Indexation Times</div>
-          <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
-            <span>Started:</span>
-            <span>{formatDate(repoDetails.indexing_started)}</span>
-            <span>Completed:</span>
-            <span>{formatDate(repoDetails.indexing_completed)}</span>
-          </div>
-        </div>
-        
-        <div className="flex flex-col gap-1 border-b pb-3">
-          <div className="font-semibold">Git Information</div>
-          <div className="grid grid-cols-2 gap-x-2 text-muted-foreground">
-            <span>Branch:</span>
-            <span>{repoDetails.branch || 'N/A'}</span>
-            <span>Commit:</span>
-            <div className="flex items-center gap-1">
-              <span className="truncate">{repoDetails.commit_sha || 'N/A'}</span>
-              {repoDetails.commit_sha && (
+          {/* Compact summary bar: status, times, and git info in one row */}
+          {(() => {
+            const shortSha = repoDetails.commit_sha ? repoDetails.commit_sha.slice(0, 7) : 'N/A';
+            return (
+              <div className="flex items-start justify-between">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                  <div className="inline-flex items-center gap-1">
+                    <StatusIcon status={repoDetails.status} />
+                    <span className="capitalize" title="Indexation status">
+                      {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 pl-3 ml-3 border-l border-border" title="Indexation times">
+                    <span>Started: {formatDate(repoDetails.indexing_started)}</span>
+                    <span className="text-muted-foreground"></span>
+                    <span>Completed: {formatDate(repoDetails.indexing_completed)}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border" title="Git branch">
+                    <span>Branch: {repoDetails.branch || 'N/A'}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border" title={repoDetails.commit_sha || undefined}>
+                    <span>Commit: </span>
+                    <span className="font-mono">{shortSha}</span>
+                    {repoDetails.commit_sha && (
+                      <Button
+                        onClick={copyCommitSha}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 p-0.5 hover:bg-muted rounded-sm"
+                      >
+                        <CopyIcon size={14} />
+                        <span className="sr-only">Copy commit SHA</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <Button
-                  onClick={copyCommitSha}
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 p-0.5 hover:bg-muted rounded-sm"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-3 ml-3 flex items-center gap-1"
+                  onClick={handleSyncRepository}
+                  disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected' || repoDetails.status === 'failed'}
                 >
-                  <CopyIcon size={14} />
-                  <span className="sr-only">Copy commit SHA</span>
+                  <div className={isSyncing ? 'animate-spin' : ''}>
+                    <ClockRewind size={14} />
+                  </div>
+                  <span>Sync Latest</span>
                 </Button>
-              )}
-            </div>
-          </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex flex-col gap-1">
@@ -861,16 +857,6 @@ export function RepoConnectionDialog({
               disabled={isSubmitting || isLoading}
             >
               {isSubmitting ? 'Connecting...' : 'Connect Repository'}
-            </Button>
-          )}
-          {repoDetails?.knowledge_base_id && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEnvDialogOpen(true)}
-              disabled={isLoading}
-            >
-              Environment setup
             </Button>
           )}
         </SheetFooter>
