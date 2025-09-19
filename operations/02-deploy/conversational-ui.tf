@@ -77,6 +77,8 @@ resource "aws_apprunner_service" "conversational_ui" {
           CUDU_ENDPOINT                = aws_apigatewayv2_api.cudu_api.api_endpoint
           EMAIL_API_KEY                = var.email_api_key
           EMAIL_FROM                   = var.email_from
+          NEXT_PUBLIC_POSTHOG_KEY      = var.posthog_key
+          NEXT_PUBLIC_POSTHOG_HOST     = var.posthog_host
         }
       }
       image_identifier      = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.conversational_ui_image_tag}"

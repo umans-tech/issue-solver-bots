@@ -94,3 +94,15 @@ variable "dev_environment_service_enabled" {
   default     = true
   description = "Flag to enable or disable the Dev Environment Service"
 }
+
+variable "posthog_key" {
+  description = "PostHog project API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "posthog_host" {
+  description = "PostHog instance host URL"
+  type        = string
+  default     = "https://eu.i.posthog.com"
+}

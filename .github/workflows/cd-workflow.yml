@@ -188,7 +188,7 @@ jobs:
           uv python install
 
       - name: Install the project
-        run: | 
+        run: |
           cd issue-solver
           uv sync --all-extras --dev
 
@@ -259,7 +259,7 @@ jobs:
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
           TF_VAR_morph_api_key: ${{ secrets.TF_VAR_MORPH_API_KEY }}
-
+          TF_VAR_posthog_key: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_POSTHOG_KEY_PROD || secrets.TF_VAR_POSTHOG_KEY_DEV }}
   cleanup:
     needs: detect-changes
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -305,7 +305,7 @@ jobs:
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
           TF_VAR_morph_api_key: ${{ secrets.TF_VAR_MORPH_API_KEY }}
-
+          TF_VAR_posthog_key: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_POSTHOG_KEY_PROD || secrets.TF_VAR_POSTHOG_KEY_DEV }}
       - name: Destroy provision
         run: |
           cd operations/01-provision
