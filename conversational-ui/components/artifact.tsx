@@ -316,6 +316,7 @@ function PureArtifact({
                   messages={messages}
                   setMessages={setMessages}
                   regenerate={regenerate}
+                  stop={stop}
                   isReadonly={isReadonly}
                   artifactStatus={artifact.status}
                   selectedChatModel={selectedModelId}
@@ -477,6 +478,7 @@ function PureArtifact({
                     stop={stop}
                     setMessages={setMessages}
                     artifactKind={artifact.kind}
+                    chatId={chatId}
                   />
                 )}
               </AnimatePresence>

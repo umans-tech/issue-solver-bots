@@ -3,7 +3,7 @@
 import { DefaultChatTransport } from 'ai';
 import pRetry from 'p-retry';
 import { useChat } from '@ai-sdk/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
@@ -75,6 +75,7 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [resumeBlocked, setResumeBlocked] = useState(false);
 
   const isNetworkLikeError = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -109,11 +110,29 @@ export function Chat({
             return storedModelId || DEFAULT_CHAT_MODEL;
           }
         })();
+        const sanitizedMessages = messages.map((message) => {
+          if (message.role !== 'assistant') {
+            return message;
+          }
+
+          const cleanedParts = message.parts
+            .filter((part) => part.type !== 'reasoning')
+            .map((part) => {
+              const { providerMetadata, callProviderMetadata, ...rest } = part as Record<string, unknown>;
+              return rest;
+            });
+
+          return {
+            ...message,
+            parts: cleanedParts,
+          };
+        });
+
         return {
           body: {
             ...body,
             id,
-            messages,
+            messages: sanitizedMessages,
             knowledgeBaseId: knowledgeBaseIdState,
             // Ensure the freshest model always wins (even on regenerate)
             selectedChatModel: currentModelId,
@@ -122,7 +141,7 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
-      setDataStream((ds) => (ds ? [...ds, dataPart] : []));
+      setDataStream((ds) => (ds ? [...ds, dataPart] : [dataPart]));
     },
     onFinish: () => {
       mutate('/api/history');
@@ -130,6 +149,9 @@ export function Chat({
     onError: (error) => {
       console.error('Error in useChat:\n', error.message);
       console.error('Call stack:\n', error.stack);
+      if (resumeBlocked) {
+        return;
+      }
       if (isNetworkLikeError(error)) {
         void pRetry(() => Promise.resolve(resumeStream()), {
           retries: 3,
@@ -144,8 +166,32 @@ export function Chat({
     },
   });
 
+  const handleStop = useCallback(() => {
+    setResumeBlocked(true);
+    return stop();
+  }, [stop]);
+
+  const handleSendMessage = useCallback(
+    (...args: Parameters<typeof sendMessage>) => {
+      setResumeBlocked(false);
+      return sendMessage(...args);
+    },
+    [sendMessage],
+  );
+
+  const handleRegenerate = useCallback(
+    (...args: Parameters<typeof regenerate>) => {
+      setResumeBlocked(false);
+      return regenerate(...args);
+    },
+    [regenerate],
+  );
+
   // Optional: auto-resume when network is back or tab becomes visible
   useEffect(() => {
+    if (!autoResume) return;
+    if (resumeBlocked) return;
+
     const onOnline = () => { void Promise.resolve(resumeStream()).catch(() => {}); };
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
@@ -158,7 +204,7 @@ export function Chat({
       window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [resumeStream]);
+  }, [autoResume, resumeBlocked, resumeStream]);
 
 
 
@@ -175,6 +221,7 @@ export function Chat({
     initialMessages,
     resumeStream,
     setMessages,
+    resumeBlocked,
   });
 
   return (
@@ -192,7 +239,8 @@ export function Chat({
           votes={votes}
           messages={messages}
           setMessages={setMessages}
-          regenerate={regenerate}
+          regenerate={handleRegenerate}
+          stop={handleStop}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
           selectedChatModel={storedModelId || DEFAULT_CHAT_MODEL}
@@ -205,12 +253,12 @@ export function Chat({
               input={input}
               setInput={setInput}
               status={status}
-              stop={stop}
+              stop={handleStop}
               attachments={attachments}
               setAttachments={setAttachments}
               messages={messages}
               setMessages={setMessages}
-              sendMessage={sendMessage}
+              sendMessage={handleSendMessage}
               selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}
             />
           )}
@@ -269,13 +317,13 @@ export function Chat({
         input={input}
         setInput={setInput}
         status={status}
-        stop={stop}
+        stop={handleStop}
         attachments={attachments}
         setAttachments={setAttachments}
-        sendMessage={sendMessage}
+        sendMessage={handleSendMessage}
         messages={messages}
         setMessages={setMessages}
-        regenerate={regenerate}
+        regenerate={handleRegenerate}
         votes={votes}
         isReadonly={isReadonly}
         selectedModelId={storedModelId || DEFAULT_CHAT_MODEL}

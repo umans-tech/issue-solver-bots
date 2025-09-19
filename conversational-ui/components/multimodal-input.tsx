@@ -51,7 +51,7 @@ function PureMultimodalInput({
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
   status: UseChatHelpers<ChatMessage>['status'];
-  stop: () => void;
+  stop: UseChatHelpers<ChatMessage>['stop'];
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
   messages: ChatMessage[];
@@ -330,7 +330,7 @@ function PureMultimodalInput({
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
         {status === 'streaming' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
+          <StopButton chatId={chatId} stop={stop} setMessages={setMessages} />
         ) : (
           <SendButton
             input={input}
@@ -381,10 +381,12 @@ function PureAttachmentsButton({
 const AttachmentsButton = memo(PureAttachmentsButton);
 
 function PureStopButton({
+  chatId,
   stop,
   setMessages,
 }: {
-  stop: () => void;
+  chatId: string;
+  stop: UseChatHelpers<ChatMessage>['stop'];
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
 }) {
   return (
@@ -392,7 +394,8 @@ function PureStopButton({
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
-        stop();
+        void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
+        void stop();
         setMessages((messages) => messages);
       }}
     >

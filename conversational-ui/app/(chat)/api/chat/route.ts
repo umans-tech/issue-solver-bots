@@ -1,4 +1,4 @@
-import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, } from 'ai';
+import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, type UIMessagePart } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
@@ -14,7 +14,7 @@ import {
     saveMessages,
     updateChatTitleById
 } from '@/lib/db/queries';
-import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
+import { generateUUID, getMostRecentUserMessage } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { extractModel, recordTokenUsage } from '@/lib/token-usage';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -28,6 +28,7 @@ import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
 import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
+import { setController, deleteController } from '@/lib/stream/controller-registry';
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
@@ -60,6 +61,29 @@ export function getStreamContext() {
   }
 
   return globalStreamContext;
+}
+
+function sanitizeMessageParts(parts: UIMessagePart<any, any>[]) {
+  return parts
+    .filter((part) => (part as any)?.transient !== true)
+    .map((part) => {
+      const { id, providerMetadata, callProviderMetadata, ...rest } = part as Record<string, unknown>;
+      const sanitized: Record<string, unknown> = { ...rest };
+
+      if (part.type === 'text' || part.type === 'reasoning') {
+        sanitized.state = 'done';
+      } else if ('state' in part && typeof (part as any).state === 'string') {
+        sanitized.state = (part as any).state === 'streaming' ? 'done' : (part as any).state;
+      }
+
+      return sanitized as UIMessagePart<any, any>;
+    });
+}
+
+function findLatestAssistantMessage(messages: UIMessage[]) {
+  return messages
+    .filter((message) => message.role === 'assistant')
+    .at(-1) ?? null;
 }
 
 export async function POST(request: Request) {
@@ -120,7 +144,12 @@ export async function POST(request: Request) {
     });
 
     const streamId = generateUUID();
+
+    const { chatModelProvider, chatModelName } = extractModel(selectedChatModel);
+
     await createStreamId({ streamId, chatId: id });
+    // Ensure the assistant message uses a stable ID across normal/aborted flows
+    const assistantMessageId = generateUUID();
     // Get current user's space for MCP context
     const currentSpace = await getCurrentUserSpace(session.user.id);
     const userContext = currentSpace ? {
@@ -136,12 +165,19 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
 
+            // Create a dedicated abort controller not tied to request.signal
+            const abortController = new AbortController();
+            // Register controller so Stop can cancel without breaking resumable refresh
+            setController(streamId, abortController);
+
             const result = streamText({
                 model: myProvider.languageModel(selectedChatModel),
                 system: systemPrompt({ selectedChatModel }),
                 messages: convertToModelMessages(messages),
                 stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,
+                // Use dedicated abort controller (not tied to browser disconnects)
+                abortSignal: abortController.signal,
                 providerOptions: {
                     openai: {
                         reasoningEffort: 'high',
@@ -196,6 +232,7 @@ export async function POST(request: Request) {
                     isEnabled: true,
                     functionId: 'stream-text',
                 },
+                onAbort: () => {},
             });
             
             result.consumeStream();
@@ -214,57 +251,63 @@ export async function POST(request: Request) {
                 }),
             );
         },
-        generateId: generateUUID,
-        onFinish: async ({ messages, responseMessage}) => {//, usage, providerMetadata }) => {
-          if (session.user?.id) {
-              try {
-                  const assistantId = getTrailingMessageId({
-                      messages: messages.filter(
-                        (message) => message.role === 'assistant',
-                      ),
-                    });
+        // Use stable assistant message id so abort and normal flows align
+        generateId: () => assistantMessageId,
+        onFinish: async ({ messages: finishedMessages, responseMessage, isAborted }) => {
+          try {
+            if (!session.user?.id) {
+              return;
+            }
 
-                    if (!assistantId) {
-                      throw new Error('No assistant message found!');
-                    }
+            const latestAssistant = findLatestAssistantMessage(finishedMessages);
+            const baseParts = responseMessage.parts && responseMessage.parts.length > 0
+              ? (responseMessage.parts as UIMessagePart<any, any>[])
+              : (latestAssistant?.parts as UIMessagePart<any, any>[] | undefined);
 
-                  // Add collected sources to the message parts
-                  const messageParts = [...(responseMessage.parts || [])];
+            const sanitizedParts = baseParts ? sanitizeMessageParts(baseParts) : [];
 
-                  await saveMessages({
-                      messages: [
-                          {
-                            id: assistantId,
-                            chatId: id,
-                            role: responseMessage.role,
-                            parts: messageParts,
-                            attachments: [],//responseMessage.experimental_attachments ?? [],
-                            createdAt: new Date(),
-                          },
-                      ],
-                  });
+            const assistantId = responseMessage.id
+              ?? latestAssistant?.id
+              ?? assistantMessageId;
 
-                  const metadata = responseMessage.metadata;
-                  if (metadata && assistantId) {
-                    const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
-                    await recordTokenUsage({
-                        messageId: assistantId,
-                        provider: chatModelProvider,
-                        model: chatModelName,
-                        // @ts-ignore
-                        rawUsageData: metadata.usage,
-                        // @ts-ignore
-                        providerMetadata: metadata.providerMetadata,
-                    });
-                  }
+            if (sanitizedParts.length > 0) {
+              await saveMessages({
+                messages: [
+                  {
+                    id: assistantId,
+                    chatId: id,
+                    role: responseMessage.role ?? latestAssistant?.role ?? 'assistant',
+                    parts: sanitizedParts,
+                    attachments: [],
+                    createdAt: new Date(),
+                  },
+                ],
+              });
+            }
 
-              } catch (error) {
-                  console.error('Failed to save chat');
+            if (!isAborted && sanitizedParts.length > 0 && chatModelProvider && chatModelName) {
+              const metadata = responseMessage.metadata;
+              if (metadata) {
+                await recordTokenUsage({
+                  messageId: assistantId,
+                  provider: chatModelProvider,
+                  model: chatModelName,
+                  // @ts-ignore
+                  rawUsageData: metadata.usage,
+                  // @ts-ignore
+                  providerMetadata: metadata.providerMetadata,
+                });
               }
+            }
+          } catch (error) {
+            console.error('Failed to save chat');
+          } finally {
+            deleteController(streamId);
           }
       },
         onError: (error) => {
             console.error('Error during streaming:', error);
+            deleteController(streamId);
             return 'Oops, an error occured!';
         },
     });
