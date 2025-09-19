@@ -1,4 +1,4 @@
-import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, } from 'ai';
+import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, type UIMessagePart } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
@@ -14,7 +14,7 @@ import {
     saveMessages,
     updateChatTitleById
 } from '@/lib/db/queries';
-import { generateUUID, getMostRecentUserMessage, getTrailingMessageId, } from '@/lib/utils';
+import { generateUUID, getMostRecentUserMessage } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { extractModel, recordTokenUsage } from '@/lib/token-usage';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -61,6 +61,29 @@ export function getStreamContext() {
   }
 
   return globalStreamContext;
+}
+
+function sanitizeMessageParts(parts: UIMessagePart<any, any>[]) {
+  return parts
+    .filter((part) => (part as any)?.transient !== true)
+    .map((part) => {
+      const { id, providerMetadata, callProviderMetadata, ...rest } = part as Record<string, unknown>;
+      const sanitized: Record<string, unknown> = { ...rest };
+
+      if (part.type === 'text' || part.type === 'reasoning') {
+        sanitized.state = 'done';
+      } else if ('state' in part && typeof (part as any).state === 'string') {
+        sanitized.state = (part as any).state === 'streaming' ? 'done' : (part as any).state;
+      }
+
+      return sanitized as UIMessagePart<any, any>;
+    });
+}
+
+function findLatestAssistantMessage(messages: UIMessage[]) {
+  return messages
+    .filter((message) => message.role === 'assistant')
+    .at(-1) ?? null;
 }
 
 export async function POST(request: Request) {
@@ -121,11 +144,10 @@ export async function POST(request: Request) {
     });
 
     const streamId = generateUUID();
-    await createStreamId({ streamId, chatId: id });
 
-    // Track abort + partial content for graceful stop behavior
-    let wasAborted = false;
-    let partialText = '';
+    const { chatModelProvider, chatModelName } = extractModel(selectedChatModel);
+
+    await createStreamId({ streamId, chatId: id });
     // Ensure the assistant message uses a stable ID across normal/aborted flows
     const assistantMessageId = generateUUID();
     // Get current user's space for MCP context
@@ -156,12 +178,6 @@ export async function POST(request: Request) {
                 maxRetries: maxRetries,
                 // Use dedicated abort controller (not tied to browser disconnects)
                 abortSignal: abortController.signal,
-                // Accumulate partial text so we can persist on abort (AI SDK v5 signature)
-                onChunk: ({ chunk }) => {
-                    if (chunk.type === 'text-delta') {
-                        partialText += chunk.text;
-                    }
-                },
                 providerOptions: {
                     openai: {
                         reasoningEffort: 'high',
@@ -216,32 +232,7 @@ export async function POST(request: Request) {
                     isEnabled: true,
                     functionId: 'stream-text',
                 },
-                // Persist partial results if the stream is aborted
-                onAbort: async () => {
-                    wasAborted = true;
-                    const text = partialText.trim();
-                    if (!text) return;
-                    try {
-                        await saveMessages({
-                            messages: [
-                                {
-                                    id: assistantMessageId,
-                                    chatId: id,
-                                    role: 'assistant',
-                                    parts: [
-                                        { type: 'text', text },
-                                    ],
-                                    attachments: [],
-                                    createdAt: new Date(),
-                                },
-                            ],
-                        });
-                    } catch (error) {
-                        console.error('Failed to save partial message on abort');
-                    } finally {
-                        deleteController(streamId);
-                    }
-                },
+                onAbort: () => {},
             });
             
             result.consumeStream();
@@ -262,59 +253,56 @@ export async function POST(request: Request) {
         },
         // Use stable assistant message id so abort and normal flows align
         generateId: () => assistantMessageId,
-        onFinish: async ({ messages, responseMessage}) => {//, usage, providerMetadata }) => {
-          if (wasAborted) {
-            // Skip normal persistence and usage recording when aborted
-            deleteController(streamId);
-            return;
-          }
-          if (session.user?.id) {
-              try {
-                  const assistantId = getTrailingMessageId({
-                      messages: messages.filter(
-                        (message) => message.role === 'assistant',
-                      ),
-                    });
+        onFinish: async ({ messages: finishedMessages, responseMessage, isAborted }) => {
+          try {
+            if (!session.user?.id) {
+              return;
+            }
 
-                    if (!assistantId) {
-                      throw new Error('No assistant message found!');
-                    }
+            const latestAssistant = findLatestAssistantMessage(finishedMessages);
+            const baseParts = responseMessage.parts && responseMessage.parts.length > 0
+              ? (responseMessage.parts as UIMessagePart<any, any>[])
+              : (latestAssistant?.parts as UIMessagePart<any, any>[] | undefined);
 
-                  // Add collected sources to the message parts
-                  const messageParts = [...(responseMessage.parts || [])];
+            const sanitizedParts = baseParts ? sanitizeMessageParts(baseParts) : [];
 
-                  await saveMessages({
-                      messages: [
-                          {
-                            id: assistantId,
-                            chatId: id,
-                            role: responseMessage.role,
-                            parts: messageParts,
-                            attachments: [],//responseMessage.experimental_attachments ?? [],
-                            createdAt: new Date(),
-                          },
-                      ],
-                  });
+            const assistantId = responseMessage.id
+              ?? latestAssistant?.id
+              ?? assistantMessageId;
 
-                  const metadata = responseMessage.metadata;
-                  if (metadata && assistantId) {
-                    const { chatModelProvider, chatModelName } = extractModel(selectedChatModel)
-                    await recordTokenUsage({
-                        messageId: assistantId,
-                        provider: chatModelProvider,
-                        model: chatModelName,
-                        // @ts-ignore
-                        rawUsageData: metadata.usage,
-                        // @ts-ignore
-                        providerMetadata: metadata.providerMetadata,
-                    });
-                  }
+            if (sanitizedParts.length > 0) {
+              await saveMessages({
+                messages: [
+                  {
+                    id: assistantId,
+                    chatId: id,
+                    role: responseMessage.role ?? latestAssistant?.role ?? 'assistant',
+                    parts: sanitizedParts,
+                    attachments: [],
+                    createdAt: new Date(),
+                  },
+                ],
+              });
+            }
 
-              } catch (error) {
-                  console.error('Failed to save chat');
-              } finally {
-                deleteController(streamId);
+            if (!isAborted && sanitizedParts.length > 0 && chatModelProvider && chatModelName) {
+              const metadata = responseMessage.metadata;
+              if (metadata) {
+                await recordTokenUsage({
+                  messageId: assistantId,
+                  provider: chatModelProvider,
+                  model: chatModelName,
+                  // @ts-ignore
+                  rawUsageData: metadata.usage,
+                  // @ts-ignore
+                  providerMetadata: metadata.providerMetadata,
+                });
               }
+            }
+          } catch (error) {
+            console.error('Failed to save chat');
+          } finally {
+            deleteController(streamId);
           }
       },
         onError: (error) => {
