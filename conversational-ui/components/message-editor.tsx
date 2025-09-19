@@ -17,16 +17,22 @@ import { getTextFromMessage } from '@/lib/utils';
 
 export type MessageEditorProps = {
   message: ChatMessage;
+  chatId: string;
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>;
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  stop: UseChatHelpers<ChatMessage>['stop'];
+  status: UseChatHelpers<ChatMessage>['status'];
 };
 
 export function MessageEditor({
   message,
+  chatId,
   setMode,
   setMessages,
   regenerate,
+  stop,
+  status,
 }: MessageEditorProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -58,29 +64,40 @@ export function MessageEditor({
     
     setIsSubmitting(true);
 
-    await deleteTrailingMessages({
-      id: message.id,
-    });
-
-    // @ts-expect-error todo: support UIMessage in setMessages
-    setMessages((messages) => {
-      const index = messages.findIndex((m) => m.id === message.id);
-
-      if (index !== -1) {
-        const updatedMessage = {
-          ...message,
-          content: draftContent,
-          parts: [{ type: 'text', text: draftContent }],
-        };
-
-        return [...messages.slice(0, index), updatedMessage];
+    try {
+      if (status === 'streaming' || status === 'submitted') {
+        await Promise.allSettled([
+          fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }),
+          Promise.resolve(stop()).catch(() => {}),
+        ]);
       }
 
-      return messages;
-    });
+      await deleteTrailingMessages({
+        id: message.id,
+      });
 
-    setMode('view');
-    regenerate();
+      // @ts-expect-error todo: support UIMessage in setMessages
+      setMessages((messages) => {
+        const index = messages.findIndex((m) => m.id === message.id);
+
+        if (index !== -1) {
+          const updatedMessage = {
+            ...message,
+            content: draftContent,
+            parts: [{ type: 'text', text: draftContent }],
+          };
+
+          return [...messages.slice(0, index), updatedMessage];
+        }
+
+        return messages;
+      });
+
+      setMode('view');
+      await regenerate();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {

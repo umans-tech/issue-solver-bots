@@ -433,7 +433,7 @@ const PureToolbar = ({
             className="p-3"
             onClick={() => {
               void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
-              stop();
+              void stop();
               setMessages((messages) => messages);
             }}
           >
