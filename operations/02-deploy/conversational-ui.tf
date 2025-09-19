@@ -39,7 +39,7 @@ resource "aws_iam_role_policy_attachment" "app_runner_ecr_policy" {
 resource "aws_apprunner_vpc_connector" "conversational_ui_vpc_connector" {
   vpc_connector_name = "conversational-ui${local.environment_name_suffix}-vpc-connector"
   subnets            = data.terraform_remote_state.provision.outputs.private_subnet_ids
-  security_groups = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
+  security_groups    = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
 }
 
 # App Runner service
@@ -77,8 +77,8 @@ resource "aws_apprunner_service" "conversational_ui" {
           CUDU_ENDPOINT                = aws_apigatewayv2_api.cudu_api.api_endpoint
           EMAIL_API_KEY                = var.email_api_key
           EMAIL_FROM                   = var.email_from
-          NEXT_PUBLIC_POSTHOG_KEY      = var.posthog_key
-          NEXT_PUBLIC_POSTHOG_HOST     = var.posthog_host
+          POSTHOG_KEY                  = var.posthog_key
+          POSTHOG_HOST                 = var.posthog_host
         }
       }
       image_identifier      = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.conversational_ui_image_tag}"
@@ -116,7 +116,7 @@ resource "aws_apprunner_service" "conversational_ui" {
 }
 
 resource "aws_apprunner_custom_domain_association" "conversational_ui" {
-  for_each = toset(local.custom_app_runner_domains)
+  for_each    = toset(local.custom_app_runner_domains)
   service_arn = aws_apprunner_service.conversational_ui.arn
   domain_name = each.value
 }
@@ -159,7 +159,7 @@ resource "aws_route53_record" "landing_alias" {
 
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
-  name = each.value.domain_name
+  name            = each.value.domain_name
 
   # Use alias record for apex domain, CNAME for subdomains
   type = each.value.domain_name == "umans.ai" ? "A" : "CNAME"
@@ -169,7 +169,7 @@ resource "aws_route53_record" "landing_alias" {
     for_each = each.value.domain_name == "umans.ai" ? [1] : []
     content {
       name                   = each.value.dns_target
-      zone_id = "Z087117439MBKHYM69QS6" # App Runner hosted zone ID for eu-west-3
+      zone_id                = "Z087117439MBKHYM69QS6" # App Runner hosted zone ID for eu-west-3
       evaluate_target_health = false
     }
   }

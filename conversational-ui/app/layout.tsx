@@ -65,6 +65,16 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
+        <script
+          // Inject runtime config for client-side analytics at request time
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__RUNTIME_CONFIG__ = {
+                POSTHOG_KEY: ${JSON.stringify(process.env.POSTHOG_KEY ?? '')}
+              };
+            `,
+          }}
+        />
       </head>
       <body className="antialiased">
         <PostHogProvider>
