@@ -154,6 +154,8 @@ jobs:
             EXA_API_KEY=exa-dummy-key-for-build-only
             EMAIL_API_KEY=dummy-email-key-for-build-only
             EMAIL_FROM="sender@domain"
+            NEXT_PUBLIC_POSTHOG_KEY="dummy-key-for-build-only"
+            NEXT_PUBLIC_POSTHOG_HOST="https://eu.i.posthog.com"
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ github.sha }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ env.IMAGE_ENV_TAG }}
