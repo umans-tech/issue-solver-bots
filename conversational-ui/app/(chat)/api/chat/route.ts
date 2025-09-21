@@ -270,14 +270,18 @@ export async function POST(request: Request) {
               ?? latestAssistant?.id
               ?? assistantMessageId;
 
-            if (sanitizedParts.length > 0) {
+            const partsToStore = isAborted
+              ? sanitizedParts.filter((part) => part.type !== 'reasoning')
+              : sanitizedParts;
+
+            if (partsToStore.length > 0) {
               await saveMessages({
                 messages: [
                   {
                     id: assistantId,
                     chatId: id,
                     role: responseMessage.role ?? latestAssistant?.role ?? 'assistant',
-                    parts: sanitizedParts,
+                    parts: partsToStore,
                     attachments: [],
                     createdAt: new Date(),
                   },
@@ -285,7 +289,7 @@ export async function POST(request: Request) {
               });
             }
 
-            if (!isAborted && sanitizedParts.length > 0 && chatModelProvider && chatModelName) {
+            if (!isAborted && partsToStore.length > 0 && chatModelProvider && chatModelName) {
               const metadata = responseMessage.metadata;
               if (metadata) {
                 await recordTokenUsage({
