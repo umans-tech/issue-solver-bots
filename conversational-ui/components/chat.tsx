@@ -110,29 +110,11 @@ export function Chat({
             return storedModelId || DEFAULT_CHAT_MODEL;
           }
         })();
-        const sanitizedMessages = messages.map((message) => {
-          if (message.role !== 'assistant') {
-            return message;
-          }
-
-          const cleanedParts = message.parts
-            .filter((part) => part.type !== 'reasoning')
-            .map((part) => {
-              const { providerMetadata, callProviderMetadata, ...rest } = part as Record<string, unknown>;
-              return rest;
-            });
-
-          return {
-            ...message,
-            parts: cleanedParts,
-          };
-        });
-
         return {
           body: {
             ...body,
             id,
-            messages: sanitizedMessages,
+            messages,
             knowledgeBaseId: knowledgeBaseIdState,
             // Ensure the freshest model always wins (even on regenerate)
             selectedChatModel: currentModelId,
@@ -168,8 +150,21 @@ export function Chat({
 
   const handleStop = useCallback(() => {
     setResumeBlocked(true);
+    setMessages((prev) => {
+      const next = [...prev];
+      for (let i = next.length - 1; i >= 0; i -= 1) {
+        if (next[i].role === 'assistant') {
+          next[i] = {
+            ...next[i],
+            parts: next[i].parts.filter((part) => part.type !== 'reasoning'),
+          };
+          break;
+        }
+      }
+      return next;
+    });
     return stop();
-  }, [stop]);
+  }, [setMessages, stop]);
 
   const handleSendMessage = useCallback(
     (...args: Parameters<typeof sendMessage>) => {
