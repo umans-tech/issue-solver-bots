@@ -9,9 +9,11 @@ import os
 import sys
 from typing import Any, Dict
 
+import boto3
 from morphcloud.api import MorphCloudClient
 
 from issue_solver.agents.claude_code_agent import ClaudeCodeAgent
+from issue_solver.agents.claude_code_docs_agent import ClaudeCodeDocsAgent
 from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.domain import AnyDomainEvent
 from issue_solver.events.serializable_records import deserialize
@@ -20,6 +22,9 @@ from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.webapi.dependencies import (
     get_clock,
     init_agent_message_store,
+)
+from issue_solver.worker.documenting.s3_knowledge_repository import (
+    S3KnowledgeRepository,
 )
 from issue_solver.worker.messages_processing import (
     process_event_message,
@@ -92,9 +97,16 @@ async def load_dependencies_and_process_event_message(
         coding_agent=ClaudeCodeAgent(
             api_key=os.environ["ANTHROPIC_API_KEY"], agent_messages=agent_message_store
         ),
+        knowledge_repository=S3KnowledgeRepository(
+            s3_client=boto3.client("s3"),
+            bucket_name=os.environ["KNOWLEDGE_BUCKET_NAME"],
+        ),
         clock=get_clock(),
         microvm_client=MorphCloudClient() if "MORPH_API_KEY" in os.environ else None,
         is_dev_environment_service_enabled=is_dev_environment_service_enabled,
+        docs_agent=ClaudeCodeDocsAgent(
+            api_key=os.environ["ANTHROPIC_API_KEY"], agent_messages=agent_message_store
+        ),
     )
     await process_event_message(
         event_record,

@@ -74,7 +74,7 @@ async def test_given_issue_resolution_request_start_resolution(
     await process_event_message(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_client, coding_agent, time_under_control
+            event_store, git_client, coding_agent, Mock(), time_under_control
         ),
     )
     # Then
@@ -116,7 +116,9 @@ async def test_resolve_issue_should_fail_when_repo_cant_find_knowledge_base(
     # When
     await process_event_message(
         issue_resolution_requested_event,
-        dependencies=Dependencies(event_store, Mock(), AsyncMock(), time_under_control),
+        dependencies=Dependencies(
+            event_store, Mock(), AsyncMock(), Mock(), time_under_control
+        ),
     )
     # Then
     produced_events = await event_store.get(process_id)
@@ -170,7 +172,7 @@ async def test_resolve_issue_should_fail_when_repo_cant_be_cloned(
     await process_event_message(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_helper, AsyncMock(), time_under_control
+            event_store, git_helper, AsyncMock(), Mock(), time_under_control
         ),
     )
     # Then
@@ -223,7 +225,7 @@ async def test_resolve_issue_should_fail_when_coding_agent_fails(
     await process_event_message(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_helper, coding_agent, time_under_control
+            event_store, git_helper, coding_agent, Mock(), time_under_control
         ),
     )
     # Then
@@ -275,7 +277,7 @@ async def test_resolve_issue_should_fail_when_fail_to_push_changes(
     await process_event_message(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_helper, coding_agent, time_under_control
+            event_store, git_helper, coding_agent, Mock(), time_under_control
         ),
     )
     # Then
@@ -327,7 +329,7 @@ async def test_resolve_issue_should_fail_when_fail_to_submit_pr(
     await process_event_message(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_helper, coding_agent, time_under_control
+            event_store, git_helper, coding_agent, Mock(), time_under_control
         ),
     )
     # Then
@@ -399,6 +401,7 @@ async def test_issue_resolution_should_never_use_vm_when_env_service_is_disabled
             event_store,
             git_helper,
             coding_agent,
+            Mock(),
             time_under_control,
             microvm_client,
             is_dev_environment_service_enabled=False,
@@ -480,6 +483,7 @@ async def test_issue_resolution_should_never_use_vm_when_no_env_required(
             event_store,
             git_helper,
             coding_agent,
+            Mock(),
             time_under_control,
             microvm_client,
             is_dev_environment_service_enabled=True,
@@ -584,6 +588,7 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
             event_store,
             git_helper,
             coding_agent,
+            Mock(),
             time_under_control,
             microvm_client,
             is_dev_environment_service_enabled=True,
@@ -708,6 +713,7 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
             event_store,
             git_helper,
             coding_agent,
+            Mock(),
             time_under_control,
             microvm_client,
             is_dev_environment_service_enabled=True,

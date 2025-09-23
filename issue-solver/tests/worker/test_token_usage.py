@@ -160,7 +160,7 @@ async def test_resolve_issue_uses_most_recent_token(
     await resolve_issue(
         issue_resolution_requested_event,
         dependencies=Dependencies(
-            event_store, git_client, coding_agent, time_under_control
+            event_store, git_client, coding_agent, Mock(), time_under_control
         ),
     )
 

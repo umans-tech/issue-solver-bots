@@ -26,6 +26,7 @@ resource "aws_lambda_function" "worker" {
       MORPH_API_KEY                   = var.morph_api_key,
       DEV_ENVIRONMENT_SERVICE_ENABLED = var.dev_environment_service_enabled,
       WEBHOOK_BASE_URL                = aws_apigatewayv2_api.cudu_api.api_endpoint,
+      KNOWLEDGE_BUCKET_NAME           = data.terraform_remote_state.provision.outputs.blob_bucket_name
     }
   }
 }

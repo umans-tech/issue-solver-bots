@@ -25,3 +25,16 @@ class IssueResolvingAgent(ABC):
     @abstractmethod
     async def resolve_issue(self, command: ResolveIssueCommand) -> None:
         pass
+
+
+class DocumentingAgent(ABC):
+    @abstractmethod
+    async def generate_documentation(
+        self,
+        repo_path: Path,
+        knowledge_base_id: str,
+        output_path: Path,
+        docs_prompts: dict[str, str],
+        process_id: str,
+    ) -> None:
+        pass
