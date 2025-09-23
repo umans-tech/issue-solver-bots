@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { SearchIcon, CopyIcon } from '@/components/icons';
 import { useSession } from 'next-auth/react';
+import { Input } from '@/components/ui/input';
 
 export default function DocsPage() {
   const { data: session } = useSession();
@@ -480,7 +480,7 @@ export default function DocsPage() {
       </div>
       {isSearchOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/10 backdrop-blur-3xl backdrop-saturate-150 px-4 pt-20 dark:bg-black/40"
+          className="docs-search-overlay fixed inset-0 z-50 flex items-start justify-center bg-black/10 backdrop-blur-3xl backdrop-saturate-150 px-4 pt-20 dark:bg-black/40"
           role="dialog"
           aria-modal="true"
           onClick={() => resetSearchState()}
