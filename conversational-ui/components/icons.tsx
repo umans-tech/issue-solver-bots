@@ -716,8 +716,8 @@ export const CodeIcon = ({ size = 16 }: { size?: number }) => {
   );
 };
 
-export const SearchIcon = ({ size = 16 }: { size?: number }) => {
-  return <Search size={size} />;
+export const SearchIcon = ({ size = 16, className }: { size?: number; className?: string }) => {
+  return <Search size={size} className={className} />;
 };
 
 export const PlayIcon = ({ size = 16 }: { size?: number }) => {
@@ -865,4 +865,3 @@ export const BranchIcon = () => {
     </svg>
   );
 };
-
