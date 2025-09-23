@@ -58,7 +58,7 @@ output "redis_connection_string" {
 }
 
 output "blob_bucket_name" {
-  value = aws_s3_bucket.conversational_ui_blob_storage.bucket
+  value = aws_s3_bucket.knowledge_blob_storage.bucket
 }
 
 output "blob_region" {
@@ -66,12 +66,12 @@ output "blob_region" {
 }
 
 output "blob_access_key_id" {
-  value     = aws_iam_access_key.conversational_ui_blob_access_key.id
+  value     = aws_iam_access_key.knowledge_blob_access_key.id
   sensitive = true
 }
 
 output "blob_secret_access_key" {
-  value     = aws_iam_access_key.conversational_ui_blob_access_key.secret
+  value     = aws_iam_access_key.knowledge_blob_access_key.secret
   sensitive = true
 }
 
