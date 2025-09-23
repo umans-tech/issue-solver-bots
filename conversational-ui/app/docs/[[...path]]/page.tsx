@@ -7,10 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { SearchIcon, CopyIcon } from '@/components/icons';
 import { useSession } from 'next-auth/react';
+import { useRouter, useParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 
 export default function DocsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const params = useParams<{ path?: string[] }>();
   const kbId = session?.user?.selectedSpace?.knowledgeBaseId;
   // commit sha is not currently typed on selectedSpace; leave undefined and rely on versions API
   const currentCommit = undefined as string | undefined;
@@ -20,7 +23,7 @@ export default function DocsPage() {
   const [, setIndexMd] = useState<string>('');
   const [fileList, setFileList] = useState<string[]>([]);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
-  const [activePath, setActivePath] = useState<string | null>(null);
+  const [activePath, setActivePathState] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
@@ -31,6 +34,27 @@ export default function DocsPage() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const highlightTermRef = useRef<string | null>(null);
+  const pathSegments = Array.isArray(params?.path) ? params.path : [];
+  const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
+
+  useEffect(() => {
+    setActivePathState(pathParam ?? null);
+  }, [pathParam]);
+
+  const encodePath = useCallback((value: string) => value.split('/').map(segment => encodeURIComponent(segment)).join('/'), []);
+
+  const setActivePath = useCallback((next: string | null, options?: { replace?: boolean }) => {
+    setActivePathState(next);
+    const url = next ? `/docs/${encodePath(next)}` : '/docs';
+    if (options?.replace) {
+      router.replace(url, { scroll: false });
+    } else {
+      router.push(url, { scroll: false });
+    }
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', url);
+    }
+  }, [router, encodePath]);
 
   // Load versions on mount
   useEffect(() => {
@@ -102,10 +126,10 @@ export default function DocsPage() {
   }, [kbId, commitSha, activePath]);
 
   useEffect(() => {
-    if (!activePath && fileList.length > 0) {
-      setActivePath(fileList[0]);
+    if (!pathParam && fileList.length > 0) {
+      setActivePath(fileList[0], { replace: true });
     }
-  }, [fileList, activePath]);
+  }, [fileList, pathParam, setActivePath]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -144,6 +168,16 @@ export default function DocsPage() {
       highlightInContent(pendingHighlight);
     }
   }, [content]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [content, activePath]);
 
   // Provide a link click handler to Markdown so relative links work inside content and index
   const handleMarkdownLink = useCallback((href: string) => {
@@ -208,7 +242,7 @@ export default function DocsPage() {
     }
     setActivePath(path);
     resetSearchState();
-  }, [q, resetSearchState]);
+  }, [q, resetSearchState, setActivePath]);
 
   // Debounced live search after 3 chars
   useEffect(() => {
@@ -323,6 +357,10 @@ export default function DocsPage() {
     const isFocusable = 'focus' in el;
     if (isFocusable) {
       (el as HTMLElement).focus({ preventScroll: true });
+    }
+    if (typeof window !== 'undefined') {
+      const base = activePath ? `/docs/${encodePath(activePath)}` : '/docs';
+      window.history.replaceState(null, '', `${base}#${id}`);
     }
   };
 
