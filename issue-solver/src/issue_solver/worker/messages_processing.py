@@ -6,6 +6,7 @@ from issue_solver.events.domain import (
     IssueResolutionRequested,
     EnvironmentConfigurationProvided,
 )
+from issue_solver.worker.documenting.auto import generate_docs
 from issue_solver.worker.indexing.delta import index_new_changes_codebase
 from issue_solver.worker.indexing.full import index_codebase
 from issue_solver.worker.logging_config import logger
@@ -25,6 +26,7 @@ async def process_event_message(
                 await index_codebase(message)
             case CodeRepositoryIndexed():
                 logger.info("Skipping already processed repository")
+                await generate_docs(message, dependencies)
             case RepositoryIndexationRequested():
                 await index_new_changes_codebase(message)
             case EnvironmentConfigurationProvided():
