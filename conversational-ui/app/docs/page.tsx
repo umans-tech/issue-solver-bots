@@ -406,40 +406,34 @@ export default function DocsPage() {
         </div>
       </SharedHeader>
       <div className="flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6">
           {!kbId ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
           ) : !commitSha ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No docs available yet.</div>
           ) : (
-            <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,220px)]">
-              <aside className="lg:sticky lg:top-24 h-fit space-y-4">
-                <div className="rounded-xl border bg-card/50 backdrop-blur">
-                  <div className="px-4 py-3 border-b">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Index</span>
-                  </div>
-                  <div className="px-2 py-3">
-                    <div className="space-y-1">
-                      {fileList.map((f) => (
-                        <button
-                          key={f}
-                          className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${activePath === f ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                          onClick={() => handleMarkdownLink(f)}
-                        >
-                          <span className="block truncate font-medium">{titleMap[f] || f}</span>
-                          <span className="block text-xs text-muted-foreground/80 truncate">{f}</span>
-                        </button>
-                      ))}
-                      {fileList.length === 0 && (
-                        <div className="rounded-md bg-muted/50 px-3 py-4 text-xs text-muted-foreground">No files found.</div>
-                      )}
-                    </div>
-                  </div>
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)]">
+              <aside className="lg:sticky lg:top-24 h-fit space-y-2 text-sm">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Index</div>
+                <div className="space-y-[2px]">
+                  {fileList.map((f) => (
+                    <button
+                      key={f}
+                      className={`w-full rounded-md px-3 py-2.5 text-left transition-colors ${activePath === f ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/25 hover:text-foreground'}`}
+                      onClick={() => handleMarkdownLink(f)}
+                    >
+                      <span className="block text-sm font-medium leading-snug whitespace-normal break-words">{titleMap[f] || f}</span>
+                      <span className="block text-[11px] text-muted-foreground/70 whitespace-normal break-words leading-tight">{f}</span>
+                    </button>
+                  ))}
+                  {fileList.length === 0 && (
+                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No files found.</div>
+                  )}
                 </div>
               </aside>
 
               <main className="min-w-0">
-                <div className="mx-auto max-w-3xl rounded-2xl border bg-card/70 p-6 shadow-sm" ref={contentRef}>
+                <div className="mx-auto max-w-7xl px-2 sm:px-4" ref={contentRef}>
                   {activePath ? (
                     content ? (
                       <div className="prose prose-neutral dark:prose-invert max-w-none">
@@ -454,29 +448,30 @@ export default function DocsPage() {
                 </div>
               </main>
 
-              <aside className="hidden lg:block lg:sticky lg:top-24 h-fit">
-                <div className="rounded-xl border bg-card/50 p-4">
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">On this page</span>
-                  <div className="mt-3 space-y-1 text-sm">
-                    {toc.length > 0 ? (
-                      toc.map((item) => {
-                        const indent = item.level >= 3 ? 'pl-6' : item.level === 2 ? 'pl-3' : '';
-                        const subdued = item.level >= 3 ? 'text-muted-foreground/70' : 'text-muted-foreground';
-                        return (
+              <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
+                <div className="mt-3 space-y-[2px]">
+                  {toc.length > 0 ? (
+                    toc.map((item) => {
+                      const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
+                      return (
+                        <div key={item.id} className={indent}>
                           <button
-                            key={item.id}
                             type="button"
                             onClick={() => handleTocNavigate(item.id)}
-                            className={`block w-full rounded-md px-2 py-1 text-left transition-colors hover:bg-muted/50 hover:text-foreground ${indent} ${subdued}`}
+                            className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
                           >
-                            {item.text}
+                            <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
+                            <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
+                              {item.text}
+                            </span>
                           </button>
-                        );
-                      })
-                    ) : (
-                      <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
-                    )}
-                  </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
+                  )}
                 </div>
               </aside>
             </div>
@@ -485,7 +480,7 @@ export default function DocsPage() {
       </div>
       {isSearchOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-background/80 backdrop-blur-sm px-4 pt-24"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/10 backdrop-blur-3xl backdrop-saturate-150 px-4 pt-20 dark:bg-black/40"
           role="dialog"
           aria-modal="true"
           onClick={() => resetSearchState()}
