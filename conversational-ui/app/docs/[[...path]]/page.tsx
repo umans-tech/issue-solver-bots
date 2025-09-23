@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,6 +55,41 @@ export default function DocsPage() {
       window.history.replaceState(null, '', url);
     }
   }, [router, encodePath]);
+
+  const groupedFiles = useMemo(() => {
+    const groups = new Map<string, { path: string; title: string }[]>();
+    for (const path of fileList) {
+      const parts = path.split('/');
+      const group = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push({ path, title: titleMap[path] || path });
+    }
+
+    const toLabel = (key: string) => {
+      if (!key) return '';
+      return key
+        .split('/')
+        .map(segment => segment
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b\w/g, char => char.toUpperCase())
+        )
+        .join(' / ');
+    };
+
+    const entries = Array.from(groups.entries()).map(([group, items]) => ({
+      group,
+      label: toLabel(group),
+      entries: items.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
+    }));
+
+    entries.sort((a, b) => {
+      if (a.group === '') return -1;
+      if (b.group === '') return 1;
+      return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    });
+
+    return entries;
+  }, [fileList, titleMap]);
 
   // Load versions on mount
   useEffect(() => {
@@ -451,21 +486,50 @@ export default function DocsPage() {
             <div className="border rounded-md p-6 text-center text-muted-foreground">No docs available yet.</div>
           ) : (
             <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)]">
-              <aside className="lg:sticky lg:top-24 h-fit space-y-2 text-sm">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Index</div>
-                <div className="space-y-[2px]">
-                  {fileList.map((f) => (
-                    <button
-                      key={f}
-                      className={`w-full rounded-md px-3 py-2.5 text-left transition-colors ${activePath === f ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/25 hover:text-foreground'}`}
-                      onClick={() => handleMarkdownLink(f)}
-                    >
-                      <span className="block text-sm font-medium leading-snug whitespace-normal break-words">{titleMap[f] || f}</span>
-                      <span className="block text-[11px] text-muted-foreground/70 whitespace-normal break-words leading-tight">{f}</span>
-                    </button>
-                  ))}
-                  {fileList.length === 0 && (
-                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No files found.</div>
+              <aside className="lg:sticky lg:top-24 h-fit text-sm">
+                <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-5">
+                  {groupedFiles.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">No files found.</div>
+                  ) : (
+                    groupedFiles.map(({ group, label, entries }) => {
+                      if (!label) {
+                        return (
+                          <div key="__root" className="space-y-1">
+                            {entries.map(({ path: filePath, title }) => (
+                              <button
+                                key={filePath}
+                                className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                                onClick={() => handleMarkdownLink(filePath)}
+                              >
+                                <span className="text-sm leading-snug">{title}</span>
+                                <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <details key={group} className="group space-y-1" open>
+                          <summary className="flex cursor-pointer items-center justify-between px-3 py-1 text-sm font-semibold text-foreground list-none">
+                            <span>{label}</span>
+                            <span className="docs-index-caret text-muted-foreground/60 text-xs transition-transform duration-200 group-open:rotate-180">▾</span>
+                          </summary>
+                          <div className="mt-1 space-y-1 pl-3">
+                            {entries.map(({ path: filePath, title }) => (
+                              <button
+                                key={filePath}
+                                className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+                                onClick={() => handleMarkdownLink(filePath)}
+                              >
+                                <span className="text-sm leading-snug">{title}</span>
+                                <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </details>
+                      );
+                    })
                   )}
                 </div>
               </aside>
@@ -488,7 +552,7 @@ export default function DocsPage() {
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
-                <div className="mt-3 space-y-[2px]">
+                <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px]">
                   {toc.length > 0 ? (
                     toc.map((item) => {
                       const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
@@ -604,6 +668,13 @@ export default function DocsPage() {
         {`
         .doc-flash { animation: docFlash 1.2s ease-in-out 1; background-color: rgba(250, 229, 150, 0.9); }
         @keyframes docFlash { 0% { background-color: rgba(250,229,150,0.9); } 100% { background-color: transparent; } }
+        .docs-index details summary { list-style: none; border: none; outline: none; border-radius: 0; background: transparent; }
+        .docs-index details summary:focus-visible,
+        .docs-index details summary:focus { outline: none !important; border: none !important; box-shadow: none !important; background: transparent; }
+        .docs-index details summary::after { display: none; }
+        .docs-index details summary::-webkit-details-marker { display: none; }
+        .docs-index details .docs-index-caret { transform: rotate(0deg); }
+        .docs-index details[open] .docs-index-caret { transform: rotate(180deg); }
         `}
       </style>
     </div>
