@@ -28,15 +28,60 @@ export default function DocsPage() {
   const [content, setContent] = useState<string>('');
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState<{ path: string; snippet: string; line?: number }[]>([]);
+  const [results, setResults] = useState<{ path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const highlightTermRef = useRef<string | null>(null);
+  const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(null);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
+
+  const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
+    const normalized = term.trim();
+    if (!normalized) return;
+
+    const container = contentRef.current;
+    if (!container) return;
+
+    container.querySelectorAll('.doc-flash').forEach((el) => el.classList.remove('doc-flash'));
+
+    requestAnimationFrame(() => {
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+      const searchTerm = normalized.toLowerCase();
+      const targetOccurrence = occurrence ?? 0;
+      let matchIndex = 0;
+      let node: Node | null;
+
+      while ((node = walker.nextNode())) {
+        const textNode = node as Text;
+        const nodeValue = textNode?.nodeValue;
+        if (!nodeValue) continue;
+
+        const lowerValue = nodeValue.toLowerCase();
+        let fromIndex = 0;
+
+        while (true) {
+          const foundIndex = lowerValue.indexOf(searchTerm, fromIndex);
+          if (foundIndex === -1) break;
+
+          if (matchIndex === targetOccurrence) {
+            const element = textNode.parentElement as HTMLElement | null;
+            if (!element) return;
+
+            element.classList.add('doc-flash');
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            window.setTimeout(() => element.classList.remove('doc-flash'), 1200);
+            return;
+          }
+
+          matchIndex += 1;
+          fromIndex = foundIndex + searchTerm.length;
+        }
+      }
+    });
+  }, [contentRef]);
 
   useEffect(() => {
     setActivePathState(pathParam ?? null);
@@ -198,12 +243,12 @@ export default function DocsPage() {
 
     setToc(headings);
 
-    const pendingHighlight = highlightTermRef.current?.trim();
-    if (pendingHighlight) {
+    const pendingHighlight = highlightTermRef.current;
+    if (pendingHighlight?.term.trim()) {
       highlightTermRef.current = null;
       highlightInContent(pendingHighlight);
     }
-  }, [content]);
+  }, [content, highlightInContent]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -271,14 +316,20 @@ export default function DocsPage() {
     }
   }, []);
 
-  const handleResultActivate = useCallback((path: string) => {
+  const handleResultActivate = useCallback((path: string, occurrence?: number) => {
     const term = q.trim();
     if (term) {
-      highlightTermRef.current = term;
+      const highlightPayload = { term, occurrence } as const;
+      highlightTermRef.current = highlightPayload;
+      if (path === activePath) {
+        highlightInContent(highlightPayload);
+        resetSearchState();
+        return;
+      }
     }
     setActivePath(path);
     resetSearchState();
-  }, [q, resetSearchState, setActivePath]);
+  }, [activePath, highlightInContent, q, resetSearchState, setActivePath]);
 
   // Debounced live search after 3 chars
   useEffect(() => {
@@ -355,38 +406,6 @@ export default function DocsPage() {
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
-  };
-
-  const escapeRegExp = (value: string) => value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-
-  const highlightInContent = (term: string) => {
-    const normalized = term.trim();
-    if (!normalized) return;
-
-    const container = contentRef.current;
-    if (!container) return;
-
-    container.querySelectorAll('.doc-flash').forEach((el) => el.classList.remove('doc-flash'));
-
-    requestAnimationFrame(() => {
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-      const regex = new RegExp(escapeRegExp(normalized), 'i');
-      let node: Node | null;
-
-      while ((node = walker.nextNode())) {
-        const textNode = node as Text;
-        if (!textNode?.nodeValue) continue;
-        if (!regex.test(textNode.nodeValue)) continue;
-
-        const element = textNode.parentElement as HTMLElement | null;
-        if (!element) break;
-
-        element.classList.add('doc-flash');
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => element.classList.remove('doc-flash'), 1200);
-        break;
-      }
-    });
   };
 
   const handleTocNavigate = (id: string) => {
@@ -473,16 +492,18 @@ export default function DocsPage() {
   const hasSearchQuery = trimmedQuery.length >= 3;
   const displayedItems = hasSearchQuery
     ? results.map((r) => ({
-      key: `${r.path}-${r.line ?? 0}`,
+      key: `${r.path}-${r.offset ?? r.occurrence ?? r.line ?? 0}`,
       path: r.path,
       title: titleMap[r.path] || r.path,
       snippet: r.snippet || r.path,
+      occurrence: r.occurrence,
     }))
     : fileList.slice(0, 10).map((path) => ({
       key: path,
       path,
       title: titleMap[path] || path,
       snippet: path,
+      occurrence: undefined,
     }));
 
   return (
@@ -653,7 +674,7 @@ export default function DocsPage() {
                     }
                     const target = displayedItems[Math.min(selectedIdx, Math.max(0, displayedItems.length - 1))];
                     if (target) {
-                      handleResultActivate(target.path);
+                      handleResultActivate(target.path, target.occurrence);
                     }
                   } else if (event.key === 'ArrowDown') {
                     event.preventDefault();
@@ -681,7 +702,7 @@ export default function DocsPage() {
                   <button
                     key={item.key}
                     type="button"
-                    onClick={() => handleResultActivate(item.path)}
+                    onClick={() => handleResultActivate(item.path, item.occurrence)}
                     onMouseEnter={() => setSelectedIdx(index)}
                     className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${index === selectedIdx ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}
                   >

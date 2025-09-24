@@ -40,23 +40,39 @@ export async function GET(request: Request) {
     const contents = listed.Contents || [];
     const mdFiles = contents.filter(obj => (obj.Key || '').endsWith('.md'));
 
-    const results: { path: string; snippet: string; line?: number }[] = [];
+    const MAX_RESULTS_PER_FILE = 5;
+    const MAX_TOTAL_RESULTS = 60;
+
+    const results: { path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[] = [];
     for (const obj of mdFiles) {
       const key = obj.Key!;
       const get = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key }));
       // @ts-ignore
       const text = await streamToString(get.Body);
-      const idx = text.toLowerCase().indexOf(q.toLowerCase());
-      if (idx !== -1) {
+      const lowerText = text.toLowerCase();
+      const queryLower = q.toLowerCase();
+      let searchIndex = 0;
+      let matchCountForFile = 0;
+      while (matchCountForFile < MAX_RESULTS_PER_FILE) {
+        const idx = lowerText.indexOf(queryLower, searchIndex);
+        if (idx === -1) break;
+
         const start = Math.max(0, idx - 60);
         const end = Math.min(text.length, idx + q.length + 60);
         const snippet = text.substring(start, end).replace(/\n/g, ' ');
         const relative = key.replace(prefix, '');
-        // compute line number for scroll hints
         const before = text.slice(0, idx);
         const line = before.split('\n').length;
-        results.push({ path: relative, snippet, line });
+        const occurrence = matchCountForFile;
+
+        results.push({ path: relative, snippet, line, occurrence, offset: idx });
+
+        matchCountForFile += 1;
+        if (results.length >= MAX_TOTAL_RESULTS) break;
+        searchIndex = idx + q.length;
       }
+
+      if (results.length >= MAX_TOTAL_RESULTS) break;
     }
 
     return NextResponse.json({ results });
@@ -65,5 +81,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to search' }, { status: 500 });
   }
 }
-
 
