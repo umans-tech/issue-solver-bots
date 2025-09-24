@@ -3,7 +3,6 @@ from pathlib import Path
 
 from openai import OpenAI
 
-from issue_solver.database.init_event_store import extract_direct_database_url
 from issue_solver.events.code_repo_integration import get_access_token
 from issue_solver.events.domain import (
     RepositoryIndexationRequested,
@@ -12,7 +11,6 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIntegrationFailed,
 )
-from issue_solver.factories import init_event_store
 from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitSettings,
@@ -23,6 +21,7 @@ from issue_solver.webapi.dependencies import (
     get_clock,
 )
 from issue_solver.worker.logging_config import logger
+from issue_solver.worker.dependencies import Dependencies
 from issue_solver.worker.vector_store_helper import (
     get_obsolete_files_ids,
     index_new_files,
@@ -30,14 +29,16 @@ from issue_solver.worker.vector_store_helper import (
 )
 
 
-async def index_new_changes_codebase(message: RepositoryIndexationRequested) -> None:
+async def index_new_changes_codebase(
+    message: RepositoryIndexationRequested, dependencies: Dependencies
+) -> None:
     # Extract message data
     process_id = message.process_id
     knowledge_base_id = message.knowledge_base_id
     logger.info(
         f"Processing repository indexation for process: {process_id}, knowledge_base_id: {knowledge_base_id}"
     )
-    event_store = await init_event_store(database_url=extract_direct_database_url())
+    event_store = dependencies.event_store
     events = await event_store.get(process_id)
     last_indexed_event = most_recent_event(events, CodeRepositoryIndexed)
     code_repository_connected = most_recent_event(events, CodeRepositoryConnected)

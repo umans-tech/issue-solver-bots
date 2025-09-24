@@ -14,9 +14,9 @@ from issue_solver.events.code_repo_integration import get_most_recent_access_tok
 from issue_solver.git_operations.git_helper import GitClient
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.worker.solving.process_issue_resolution_request import (
-    Dependencies,
     resolve_issue,
 )
+from issue_solver.worker.dependencies import Dependencies
 from tests.controllable_clock import ControllableClock
 
 

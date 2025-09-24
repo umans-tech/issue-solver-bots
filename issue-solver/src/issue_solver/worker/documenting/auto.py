@@ -4,7 +4,7 @@ from issue_solver.agents.docs_prompts import suggested_docs_prompts
 from issue_solver.events.code_repo_integration import fetch_repo_credentials
 from issue_solver.events.domain import CodeRepositoryIndexed
 from issue_solver.worker.documenting.knowledge_repository import KnowledgeBase
-from issue_solver.worker.solving.process_issue_resolution_request import Dependencies
+from issue_solver.worker.dependencies import Dependencies
 
 
 async def generate_docs(
