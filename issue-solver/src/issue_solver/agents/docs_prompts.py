@@ -45,37 +45,75 @@ def suggested_docs_prompts() -> dict[str, str]:
         include illustrations when relevant and use the colors following event storming conventions. 
         """,
         "assets": """
-        Task: Extract and curate existing documentation from the cloned repo into a clean, navigable Markdown library.
-        Requirements
-        - Discover docs across the repo: Markdown, text, reStructuredText, AsciiDoc, READMEs, ADRs, PRDs, RFCs, API specs (OpenAPI/proto), runbooks, changelogs, onboarding/guides, testing docs, etc.
-        - Classify each doc into a minimal folder taxonomy (create only what applies):
-          adrs/ | prd/ | rfc/ | architecture/ | api/ | data/ | ops/ | guides/ | testing/ | changelogs/ | docs/ | uncategorized/
-        - Normalize to Markdown (UTF-8). Copy referenced assets to OUTPUT_DIR/assets/... and rewrite links to be relative within OUTPUT_DIR.
-        - Add YAML front-matter to every published page:
-          ---
-          title: "<Short Title>"
-          summary: "<1–2 sentence purpose>"
-          classification: "<chosen-bucket>"
-          source_path: "<original relative path>"
-          last_reviewed: "<YYYY-MM-DD>"
-          tags: ["adr"|"prd"|"rfc"|...]
-          ---
-        - Create OUTPUT_DIR/README.md with: purpose, how it’s organized, and a TOC mirroring the folder tree.
-        - Create OUTPUT_DIR/mapping.json with an array of objects:
-          {"source_path": "...", "dest_path": "...", "confidence": 0.0, "reason": "..."}
-        - Keep depth ≤ 3; use kebab-case file names and meaningful folder names (avoid “misc”).
-        - When excerpting, cite exact file paths and line ranges.
-        - Do not modify repository files; do not execute code; write only under OUTPUT_DIR.
+        Task
+        Extract and curate ONLY existing documentation from the cloned repo into a small, navigable Markdown library under OUTPUT_DIR — no content generation.
         
-        Workflow
-        1) Scan → list candidates (prioritize docs/, adr*/ rfc*/ spec*/ design*/ api*/ and root files like README*, CONTRIBUTING*, CHANGELOG*).
-        2) Classify → assign a bucket with a confidence score (store in mapping.json).
-        3) Normalize & copy → convert to Markdown when safe, copy assets, rewrite links.
-        4) Structure → create the minimal set of folders; link pages with relative links.
-        5) Index → update README.md (overview + TOC) so every page is reachable.
-        6) Validate → no broken links, reasonable file sizes, front-matter present.
+        Hard Limits (to ensure fast execution)
+        - Max files converted/copied: 300 total (stop once reached).
+        - Max bytes processed for text docs: 20 MB total; per-file hard cap: 300 KB (skip larger).
+        - Process ONLY these text types for normalization: .md .mdx .rst .adoc .txt
+        - Copy, don’t convert: .pdf .docx .pptx .html (if html ≤ 150 KB, keep as .html and link; no HTML→MD).
+        - Copy only assets that are actually referenced (images: .png .jpg .jpeg .gif .svg; skip others).
+        - Ignore directories: .git/ node_modules/ dist/ build/ target/ .venv/ .mypy_cache/ .pytest_cache/ .idea/ .vscode/ vendor/ third_party/ .next/ out/ coverage/ .terraform/ __pycache__/
+        - Ignore files > 2 MB outright (except PDFs, which are copied if referenced and ≤ 10 MB).
+        - Deterministic processing order: alphabetical by source_path.
+        
+        What to Look For (strict priority order; stop when limits hit)
+        1) Root files: README* CONTRIBUTING* CHANGELOG* LICENSE* SECURITY* CODE_OF_CONDUCT*
+        2) Top-level docs dirs: docs/ doc/ documentation/
+        3) Architectural/decision/spec dirs: adr*/ adrs*/ rfc*/ spec*/ design*/ architecture*/ api*/ openapi*/ swagger*/ schemas*/ data*/
+        4) Ops & runbooks: ops*/ runbook*/ playbook*/ sre*/ oncall*/
+        5) Guides & onboarding & testing: guides*/ guide*/ onboarding*/ handbook*/ testing*/ qa*/
+        6) Anything else that is a text doc in allowed types
+        
+        Classification (create ONLY needed folders)
+        - adrs/ | rfc/ | architecture/ | api/ | data/ | ops/ | guides/ | testing/ | changelogs/ | docs/ | uncategorized/
+        Rules of thumb:
+        - Files under adr*/adrs* → adrs/
+        - rfc*/RFC* → rfc/
+        - openapi*/swagger*/api*/schemas* → api/
+        - design*/architecture* → architecture/
+        - data models/migrations/specs → data/
+        - runbook*/ops*/sre*/oncall* → ops/
+        - guides*/onboarding*/handbook* → guides/
+        - testing*/qa* → testing/
+        - CHANGELOG* → changelogs/
+        - Everything else that is a doc → docs/ (only use uncategorized/ if no reasonable bucket)
+        
+        Normalization & Copy
+        - Normalize allowed text types to Markdown (UTF-8). Keep original wording; no rewriting.
+        - Preserve structure depth ≤ 3 in OUTPUT_DIR. Use kebab-case file names.
+        - Copy only referenced assets (images) under OUTPUT_DIR/assets/…; do not transcode SVG.
+        - Rewrite relative links ONLY when the target exists inside OUTPUT_DIR after copying; else keep the link as-is.
+        - Do not execute code. Do not modify repository files.
+        
+        Front-Matter (minimal, every published page)
+        ---
+        title: "<Short Title>"
+        summary: "<1–2 sentence purpose>"
+        classification: "<chosen-bucket>"
+        source_path: "<original relative path>"
+        tags: ["adr"|"rfc"|"api"|...]
+        ---
+        
+        Index & Mapping
+        - Create OUTPUT_DIR/README.md with: purpose, how it’s organized, and a TOC (one bullet per file; no deep nesting).
+        - Create OUTPUT_DIR/mapping.json: array of
+          {"source_path":"...","dest_path":"...","bucket":"...","confidence":0.0–1.0,"notes":"<why this bucket / any skipped links>"}
+        Confidence heuristic:
+        - 0.9 for files inside canonical dirs (adr, rfc, api, ops, testing).
+        - 0.7 if inferred by filename.
+        - 0.5 if ambiguous (fall back to docs/).
+        
+        Workflow (short-circuit at limits)
+        1) Scan prioritized locations in order; collect candidates up to limits.
+        2) Classify each candidate; compute confidence; decide dest path.
+        3) Normalize/copy candidate and only its referenced assets; rewrite links when resolvable locally.
+        4) Update README.md + mapping.json; ensure every page is reachable from README.
+        5) Validate quickly: front-matter present; relative links point to existing files; counts per bucket.
         
         Return to caller
         - A bulleted list of created folders/files and counts per bucket.
+        - Totals: files processed, files skipped (by reason), bytes processed.
         """,
     }
