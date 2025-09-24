@@ -23,6 +23,14 @@ export function SharedHeader({ enableSessionRefresh = false, children, rightExtr
   const [showRepoDialog, setShowRepoDialog] = useState(false);
   const [isSessionRefreshed, setIsSessionRefreshed] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOpen = () => setShowRepoDialog(true);
+    const listener = (_event: Event) => handleOpen();
+    window.addEventListener('open-repo-dialog', listener);
+    return () => window.removeEventListener('open-repo-dialog', listener);
+  }, []);
+
   // Session refresh logic - only enabled for chat where it's needed
   useEffect(() => {
     if (!enableSessionRefresh) return;
@@ -109,7 +117,7 @@ export function SharedHeader({ enableSessionRefresh = false, children, rightExtr
         {children}
 
         {/* Expandable center area (rightExtra) separated from icons */}
-        <div className="hidden md:flex items-center min-w-0 flex-1 justify-end px-3 border-r">
+        <div className="hidden md:flex shrink-0 items-center justify-end px-3 border-r">
           {rightExtra}
         </div>
 
