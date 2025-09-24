@@ -342,6 +342,10 @@ export default function DocsPage() {
   }, [isSearchOpen]);
 
   const hasVersions = versions.length > 0;
+  const latestCommitSha = hasVersions ? versions[versions.length - 1] : undefined;
+  const orderedVersions = hasVersions ? [...versions].reverse() : [];
+  const isLatestCommit = !!commitSha && !!latestCommitSha && commitSha === latestCommitSha;
+  const truncatedCommitSha = commitSha ? commitSha.slice(0, 7) : '';
   const showVersionSelector = !!kbId && (hasVersions || !!commitSha);
 
   const slugify = (value: string) => {
@@ -401,16 +405,51 @@ export default function DocsPage() {
   };
 
   const versionSelector = showVersionSelector ? (
-    <div className="flex items-center gap-2">
-      <Select value={commitSha} onValueChange={(v) => setCommitSha(v)} disabled={!hasVersions}>
-        <SelectTrigger className="w-[220px]" title={commitSha || undefined}>
-          <SelectValue placeholder={hasVersions ? 'Select version' : 'No versions'} />
+    <div className="flex items-center gap-1.5">
+      <Select
+        value={commitSha}
+        onValueChange={(v) => setCommitSha(v)}
+        disabled={!hasVersions}
+      >
+        <SelectTrigger
+          className="h-9 min-w-[150px] px-3 py-1.5"
+          title={commitSha ? (isLatestCommit ? `Latest (${commitSha})` : commitSha) : undefined}
+        >
+          {commitSha ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                {isLatestCommit ? 'Latest' : truncatedCommitSha}
+              </span>
+              {isLatestCommit && (
+                <span className="font-mono text-xs text-muted-foreground/80">
+                  {truncatedCommitSha}
+                </span>
+              )}
+            </div>
+          ) : (
+            <SelectValue placeholder={hasVersions ? 'Select version' : 'No versions'} />
+          )}
         </SelectTrigger>
         {hasVersions && (
           <SelectContent>
-            {versions.map(v => (
-              <SelectItem key={v} value={v}>{v.slice(0, 7)}</SelectItem>
-            ))}
+            {orderedVersions.map((v) => {
+              const isLatestOption = latestCommitSha === v;
+              const shortHash = v.slice(0, 7);
+              return (
+                <SelectItem key={v} value={v}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {isLatestOption ? 'Latest' : shortHash}
+                    </span>
+                    {isLatestOption && (
+                      <span className="font-mono text-xs text-muted-foreground/80">
+                        {shortHash}
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         )}
       </Select>
@@ -420,11 +459,11 @@ export default function DocsPage() {
           variant="outline"
           size="icon"
           title={`Copy full SHA: ${commitSha}`}
+          aria-label="Copy commit SHA"
           onClick={() => navigator.clipboard.writeText(commitSha)}
-          className="h-8 w-8"
+          className="h-6 w-6 text-muted-foreground"
         >
-          <CopyIcon size={16} />
-          <span className="sr-only">Copy commit</span>
+          <CopyIcon size={12} />
         </Button>
       )}
     </div>
