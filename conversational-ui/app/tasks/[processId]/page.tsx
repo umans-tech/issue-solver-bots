@@ -53,7 +53,8 @@ import {
   Info,
   Activity,
   ArrowDown,
-  Keyboard
+  Keyboard,
+  Clock as ClockIcon
 } from 'lucide-react';
 
 interface ProcessData {
@@ -111,6 +112,9 @@ export default function TaskPage() {
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [isSummaryVisible, setIsSummaryVisible] = useState(true);
+  const completionEvent = processData?.events?.find((event) => event.type === 'issue_resolution_completed');
+  const headerTimeline = processData ? getTimelineMeta(processData) : null;
+
   // Reuse chat scroll-to-bottom behavior
   const {
     containerRef: messagesContainerRef,
@@ -201,6 +205,23 @@ export default function TaskPage() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
+  };
+
+  const getRelativeTime = (dateString?: string) => {
+    if (!dateString) return 'Unknown';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   // Observe header visibility to show status in header when out of view
@@ -317,6 +338,23 @@ export default function TaskPage() {
         return null;
     }
   };
+
+  function getTimelineMeta(process: ProcessData) {
+    const created = process.createdAt || process.events?.find((event) => event.type?.toLowerCase().includes('requested'))?.occurred_at;
+    const updated = process.updatedAt || process.events?.find((event) => event.type?.toLowerCase().includes('completed'))?.occurred_at;
+    const earliestEvent = process.events
+      ?.map((event) => event.occurred_at)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0];
+
+    const initial = created || earliestEvent || updated;
+    if (!initial) return null;
+
+    if (updated && updated !== created) {
+      return { label: 'Updated', value: updated } as const;
+    }
+    return { label: 'Started', value: initial } as const;
+  }
 
   // Get issue information from events
   const getIssueInfo = () => {
@@ -902,16 +940,26 @@ export default function TaskPage() {
               className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted max-w-[50vw]"
               title="Scroll to process details"
             >
-              <span className="truncate font-medium max-w-[28vw]">
+              <span className="truncate font-medium max-w-[24vw]">
                 {getTaskTitle(processData)}
               </span>
               {processData.processType && (
-                <Badge variant="outline" className="text-xs">
-                  {processData.processType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                  {getProcessTypeIcon(processData.processType)}
+                  <span>{processData.processType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
                 </Badge>
               )}
-              <div className="scale-90 origin-right">
+              {headerTimeline && (
+                <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ClockIcon className="h-3 w-3" />
+                  <span>{headerTimeline.label} {getRelativeTime(headerTimeline.value)}</span>
+                </Badge>
+              )}
+              <div className="flex items-center gap-2 scale-90 origin-right">
                 {getStatusBadge(processData.status)}
+                {processData.status?.toLowerCase() === 'in_progress' && (
+                  <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                )}
               </div>
             </button>
           </div>
@@ -981,47 +1029,42 @@ export default function TaskPage() {
                         </TooltipProvider>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-3">
-                      <div className="flex items-center gap-2">
-                        {processData.processType && (
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            {getProcessTypeIcon(processData.processType)}
-                            <span className="text-xs">
-                              {processData.processType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </Badge>
-                        )}
-                        {processData.type && processData.type !== processData.processType && (
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            {getProcessTypeIcon(processData.type)}
-                            <span className="text-xs">
-                              {processData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </Badge>
-                        )}
-                        {getStatusBadge(processData.status)}
-                        {processData.status === 'in_progress' && (
-                          <div className="flex items-center gap-1 text-blue-500">
-                            <Loader2 className="animate-spin h-4 w-4" />
-                          </div>
-                        )}
-                      </div>
-                      {processData.status?.toLowerCase() === 'completed' && 
-                       processData.events?.some(event => 
-                         event.type === 'issue_resolution_completed'
-                       ) &&
-                        <a 
-                          href={processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_url} 
-                          target="_blank" 
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      {processData.processType && (
+                        <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                          {getProcessTypeIcon(processData.processType)}
+                          <span>{processData.processType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        </Badge>
+                      )}
+                      {processData.type && processData.type !== processData.processType && (
+                        <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                          {getProcessTypeIcon(processData.type)}
+                          <span>{processData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        </Badge>
+                      )}
+                      {headerTimeline && (
+                        <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ClockIcon className="h-3 w-3" />
+                          <span>{headerTimeline.label} {getRelativeTime(headerTimeline.value)}</span>
+                        </Badge>
+                      )}
+                      {getStatusBadge(processData.status)}
+                      {processData.status?.toLowerCase() === 'in_progress' && (
+                        <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                      )}
+                      {completionEvent?.pr_url && completionEvent?.pr_number && (
+                        <a
+                          href={completionEvent.pr_url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
                         >
                           <ExternalLink className="h-4 w-4" />
-                          View PR #{processData.events.find(e => e.type === 'issue_resolution_completed')?.pr_number}
+                          PR #{completionEvent.pr_number}
                         </a>
-                      }
+                      )}
                       {processData.status?.toLowerCase() === 'failed' && (
-                        <button 
+                        <button
                           onClick={() => setIsErrorDialogOpen(true)}
                           className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
                         >

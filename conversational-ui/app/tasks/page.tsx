@@ -509,6 +509,7 @@ export default function TasksPage() {
                           const { badge, color: statusColor } = getStatusBadgeWithIcon(process.status);
                           const typeMeta = getProcessTypeWithIcon(process.processType, process.type);
                           const prInfo = getPRInfo(process);
+                          const timelineMeta = getTimelineMeta(process);
 
                           return (
                             <motion.div
@@ -527,16 +528,6 @@ export default function TasksPage() {
                                         </CardTitle>
                                         <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                           <span className="font-mono">{process.id.slice(0, 8)}...</span>
-                                          {(() => {
-                                            const timeline = getTimelineMeta(process);
-                                            if (!timeline) return null;
-                                            return (
-                                              <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.7rem] text-muted-foreground">
-                                                <Clock className="h-3 w-3" />
-                                                <span>{timeline.label} {getRelativeTime(timeline.value)}</span>
-                                              </span>
-                                            );
-                                          })()}
                                         </CardDescription>
                                       </div>
                                       <div className="flex flex-col items-end gap-1">
@@ -563,6 +554,12 @@ export default function TasksPage() {
                                         {typeMeta.icon}
                                         <span className="text-xs">{typeMeta.label}</span>
                                       </Badge>
+                                      {timelineMeta && (
+                                        <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
+                                          <Clock className="h-3 w-3" />
+                                          <span>{timelineMeta.label} {getRelativeTime(timelineMeta.value)}</span>
+                                        </Badge>
+                                      )}
                                     </div>
                                   </CardHeader>
 
