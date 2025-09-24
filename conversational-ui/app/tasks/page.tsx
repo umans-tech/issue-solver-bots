@@ -49,7 +49,32 @@ interface ProcessData {
   events?: ProcessEvent[];
 }
 
-const getTimestamp = (value?: string) => (value ? new Date(value).getTime() : 0);
+const parseTimestamp = (value?: string) => {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
+
+const getProcessActivityTimestamp = (process: ProcessData) => {
+  const timestamps: number[] = [];
+
+  const addTimestamp = (value?: string) => {
+    const parsed = parseTimestamp(value);
+    if (parsed !== null) {
+      timestamps.push(parsed);
+    }
+  };
+
+  addTimestamp(process.updatedAt);
+  addTimestamp(process.createdAt);
+  process.events?.forEach((event) => addTimestamp(event.occurred_at));
+
+  if (timestamps.length === 0) {
+    return 0;
+  }
+
+  return Math.max(...timestamps);
+};
 
 const getProcessTypeWithIcon = (processType?: string, type?: string) => {
   const processTypeValue = (processType || type || 'unknown').toLowerCase();
@@ -93,6 +118,8 @@ const GROUP_PRIORITY = new Map<string, number>([
   ['code_repository_connected', 2],
   ['code_repository_indexed', 3],
 ]);
+
+const LOADING_SKELETON_KEYS = ['one', 'two', 'three', 'four', 'five', 'six'];
 
 const getGroupPriority = (groupType: string) => GROUP_PRIORITY.get(groupType.toLowerCase()) ?? 10;
 
@@ -300,11 +327,7 @@ export default function TasksPage() {
   }, [typeFilter, processTypes]);
 
   const sortedProcesses = useMemo(() => {
-    return [...processes].sort((a, b) => {
-      const bTimestamp = getTimestamp(b.updatedAt || b.createdAt);
-      const aTimestamp = getTimestamp(a.updatedAt || a.createdAt);
-      return bTimestamp - aTimestamp;
-    });
+    return [...processes].sort((a, b) => getProcessActivityTimestamp(b) - getProcessActivityTimestamp(a));
   }, [processes]);
 
   const filteredProcesses = useMemo(() => {
@@ -334,16 +357,22 @@ export default function TasksPage() {
 
     filteredProcesses.forEach((process) => {
       const key = (process.processType || process.type || 'unknown').toLowerCase();
-      if (!groups.has(key)) {
-        groups.set(key, []);
+      const existing = groups.get(key);
+
+      if (existing) {
+        existing.push(process);
+        return;
       }
-      groups.get(key)!.push(process);
+
+      groups.set(key, [process]);
     });
 
     return Array.from(groups.entries())
       .map(([key, items]) => ({
         key,
-        items,
+        items: [...items].sort(
+          (first, second) => getProcessActivityTimestamp(second) - getProcessActivityTimestamp(first),
+        ),
         header: getProcessTypeWithIcon(key),
       }))
       .sort((a, b) => getGroupPriority(a.key) - getGroupPriority(b.key));
@@ -455,8 +484,8 @@ export default function TasksPage() {
         <div className="container mx-auto py-6 px-4 lg:px-6">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, index) => (
-                <Card key={`loading-${index}`}>
+              {LOADING_SKELETON_KEYS.map((placeholderKey) => (
+                <Card key={`loading-${placeholderKey}`}>
                   <CardHeader>
                     <Skeleton className="h-5 w-3/4 mb-2" />
                     <Skeleton className="h-4 w-1/2" />
