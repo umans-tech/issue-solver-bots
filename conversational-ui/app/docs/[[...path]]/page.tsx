@@ -34,6 +34,7 @@ export default function DocsPage() {
   const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const resultsContainerRef = useRef<HTMLDivElement | null>(null);
   const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(null);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
@@ -506,6 +507,22 @@ export default function DocsPage() {
       occurrence: undefined,
     }));
 
+  const scrollResultIntoView = useCallback((index: number) => {
+    if (index < 0) return;
+    requestAnimationFrame(() => {
+      const container = resultsContainerRef.current;
+      if (!container) return;
+      const target = container.querySelector<HTMLButtonElement>(`[data-result-index="${index}"]`);
+      if (!target) return;
+      target.scrollIntoView({ block: 'nearest' });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    scrollResultIntoView(Math.min(selectedIdx, Math.max(displayedItems.length - 1, 0)));
+  }, [displayedItems.length, isSearchOpen, scrollResultIntoView, selectedIdx]);
+
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <SharedHeader rightExtra={
@@ -665,25 +682,29 @@ export default function DocsPage() {
                   setQ(event.target.value);
                   setSelectedIdx(0);
                 }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    if (trimmedQuery.length < 3 && results.length === 0 && displayedItems.length === 0) {
-                      void doSearch();
-                      return;
-                    }
-                    const target = displayedItems[Math.min(selectedIdx, Math.max(0, displayedItems.length - 1))];
-                    if (target) {
-                      handleResultActivate(target.path, target.occurrence);
-                    }
-                  } else if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    setSelectedIdx((index) => Math.min(index + 1, Math.max(0, displayedItems.length - 1)));
-                  } else if (event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    setSelectedIdx((index) => Math.max(index - 1, 0));
-                  }
-                }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        if (trimmedQuery.length < 3 && results.length === 0 && displayedItems.length === 0) {
+                          void doSearch();
+                          return;
+                        }
+                        const target = displayedItems[Math.min(selectedIdx, Math.max(0, displayedItems.length - 1))];
+                        if (target) {
+                          handleResultActivate(target.path, target.occurrence);
+                        }
+                      } else if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        const nextIndex = Math.min(selectedIdx + 1, Math.max(0, displayedItems.length - 1));
+                        setSelectedIdx(nextIndex);
+                        scrollResultIntoView(nextIndex);
+                      } else if (event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const nextIndex = Math.max(selectedIdx - 1, 0);
+                        setSelectedIdx(nextIndex);
+                        scrollResultIntoView(nextIndex);
+                      }
+                    }}
                 className="h-11 border-0 bg-transparent px-0 text-base focus-visible:ring-0"
                 autoFocus
               />
@@ -694,7 +715,10 @@ export default function DocsPage() {
             <div className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-muted-foreground/80">
               {hasSearchQuery ? 'Results' : 'Suggested'}
             </div>
-            <div className="max-h-[320px] overflow-y-auto py-2">
+            <div
+              ref={resultsContainerRef}
+              className="max-h-[320px] overflow-y-auto py-2"
+            >
               {searching ? (
                 <div className="px-4 py-6 text-sm text-muted-foreground">Searching…</div>
               ) : displayedItems.length > 0 ? (
@@ -703,7 +727,11 @@ export default function DocsPage() {
                     key={item.key}
                     type="button"
                     onClick={() => handleResultActivate(item.path, item.occurrence)}
-                    onMouseEnter={() => setSelectedIdx(index)}
+                    onMouseEnter={() => {
+                      setSelectedIdx(index);
+                      scrollResultIntoView(index);
+                    }}
+                    data-result-index={index}
                     className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${index === selectedIdx ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}
                   >
                     <span className="text-sm font-medium text-foreground">{item.title}</span>
