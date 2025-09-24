@@ -82,11 +82,7 @@ async def test_process_docs_generation_should_work(
         repo_path=Path(temp_repo_directory),
         knowledge_base_id=kb_id,
         output_path=Path(temp_repo_directory).joinpath(kb_id),
-        docs_prompts={
-            "domain_events_glossary.md": suggested_docs_prompts().get(
-                "domain_events_glossary.md"
-            ),
-        },
+        docs_prompts=suggested_docs_prompts(),
         process_id=process_id,
     )
     kb_key = KnowledgeBase(id=kb_id, version=repo_indexed.commit_sha)
