@@ -70,6 +70,27 @@ const config: Config = {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      typography: ({ theme }: { theme: (key: string) => any }) => ({
+        DEFAULT: {
+          css: {
+            'code::before': { content: '""' },
+            'code::after': { content: '""' },
+            'pre code::before': { content: '""' },
+            'pre code::after': { content: '""' },
+            code: {
+              fontFamily: theme('fontFamily.mono')?.join(', ') ?? theme('fontFamily.mono'),
+            },
+          },
+        },
+        invert: {
+          css: {
+            'code::before': { content: '""' },
+            'code::after': { content: '""' },
+            'pre code::before': { content: '""' },
+            'pre code::after': { content: '""' },
+          },
+        },
+      }),
     },
   },
   plugins: [
