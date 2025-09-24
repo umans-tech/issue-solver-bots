@@ -27,6 +27,7 @@ export default function DocsPage() {
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
+  const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<{ path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[]>([]);
@@ -206,17 +207,30 @@ export default function DocsPage() {
     if (!kbId || !commitSha) return;
     if (!activePath) {
       setContent('');
+      setContentStatus('idle');
       return;
     }
+    let aborted = false;
+    setContent('');
+    setContentStatus('loading');
     (async () => {
       try {
         const res = await fetch(`/api/docs/file?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(activePath)}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load doc');
         const data = await res.json();
-        setContent(data?.content || '');
+        if (aborted) return;
+        const nextContent = typeof data?.content === 'string' ? data.content : '';
+        setContent(nextContent);
+        setContentStatus('ready');
       } catch {
+        if (aborted) return;
         setContent('');
+        setContentStatus('missing');
       }
     })();
+    return () => {
+      aborted = true;
+    };
   }, [kbId, commitSha, activePath]);
 
   useEffect(() => {
@@ -637,9 +651,13 @@ export default function DocsPage() {
               <main className="min-w-0">
                 <div className="mx-auto max-w-7xl px-2 sm:px-4" ref={contentRef}>
                   {activePath ? (
-                    content ? (
+                    contentStatus === 'ready' ? (
                       <div className="prose prose-neutral dark:prose-invert max-w-none">
                         <Markdown>{content}</Markdown>
+                      </div>
+                    ) : contentStatus === 'missing' ? (
+                      <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+                        We couldn’t find this document in the selected version. Try another version or pick a different doc.
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground">Loading…</div>
