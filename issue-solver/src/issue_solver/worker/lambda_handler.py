@@ -86,7 +86,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 async def load_dependencies_and_process_event_message(
     event_record: AnyDomainEvent,
 ) -> None:
-    event_store = await init_event_store(database_url=extract_direct_database_url())
+    event_store = await init_event_store(
+        database_url=extract_direct_database_url(),
+        queue_url=os.getenv("PROCESS_QUEUE_URL"),
+    )
     agent_message_store = await init_agent_message_store()
     is_dev_environment_service_enabled = bool(
         os.environ["DEV_ENVIRONMENT_SERVICE_ENABLED"]
