@@ -25,12 +25,10 @@ async def process_event_message(
             case CodeRepositoryConnected():
                 await index_codebase(message, dependencies)
             case CodeRepositoryIndexed():
-                logger.info("Skipping already processed repository")
                 await generate_docs(message, dependencies)
             case RepositoryIndexationRequested():
                 await index_new_changes_codebase(message, dependencies)
             case EnvironmentConfigurationProvided():
-                logger.info("Skipping already processed environment")
                 await configure_environment(message, dependencies)
             case IssueResolutionRequested():
                 await resolve_issue(message, dependencies)
