@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/input';
 export default function DocsPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const params = useParams<{ path?: string[] }>();
+  const params = useParams<{ spaceId: string; path?: string[] }>();
   const searchParams = useSearchParams();
-  const kbId = session?.user?.selectedSpace?.knowledgeBaseId;
+  const rawSpaceId = typeof params?.spaceId === 'string' ? params.spaceId : '';
+  const spaceId = rawSpaceId ? decodeURIComponent(rawSpaceId) : '';
+  const kbId = spaceId || session?.user?.selectedSpace?.knowledgeBaseId;
   // commit sha is not currently typed on selectedSpace; leave undefined and rely on versions API
   const currentCommit = undefined as string | undefined;
 
@@ -32,6 +34,7 @@ export default function DocsPage() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<{ path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
+  const [, startTransition] = useTransition();
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -39,10 +42,13 @@ export default function DocsPage() {
   const resultsContainerRef = useRef<HTMLDivElement | null>(null);
   const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(null);
   const lastCommitRef = useRef<string | undefined>(commitSha);
+  const contentCacheRef = useRef<Map<string, string>>(new Map());
+  const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
   const versionParam = searchParams?.get('v')?.trim() ?? null;
   const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
+  const getCacheKey = useCallback((commit: string | undefined, pathValue: string | null) => (commit && pathValue ? `${commit}:${pathValue}` : null), []);
   const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
 
   const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
@@ -98,9 +104,11 @@ export default function DocsPage() {
 
   const setActivePath = useCallback((next: string | null, options?: { replace?: boolean; versionOverride?: string | null }) => {
     setActivePathState(prev => (prev === next ? prev : next));
-    const baseUrl = next ? `/docs/${encodePath(next)}` : '/docs';
+    const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
+    const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
+    const nextPath = next ? `${baseRoot}/${encodePath(next)}` : baseRoot;
     const versionToken = options?.versionOverride ?? shortCommit;
-    const url = versionToken ? `${baseUrl}?v=${encodeURIComponent(versionToken)}` : baseUrl;
+    const url = versionToken ? `${nextPath}?v=${encodeURIComponent(versionToken)}` : nextPath;
     if (options?.replace) {
       router.replace(url, { scroll: false });
     } else {
@@ -109,7 +117,55 @@ export default function DocsPage() {
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', url);
     }
-  }, [router, encodePath, shortCommit]);
+  }, [router, encodePath, shortCommit, spaceId]);
+
+  const fetchDoc = useCallback((pathValue: string) => {
+    if (!kbId || !commitSha) return Promise.resolve<string | null>(null);
+    const key = getCacheKey(commitSha, pathValue);
+    if (!key) return Promise.resolve<string | null>(null);
+    if (contentCacheRef.current.has(key)) {
+      return Promise.resolve(contentCacheRef.current.get(key) ?? '');
+    }
+    const existing = pendingFetchesRef.current.get(key);
+    if (existing) {
+      return existing;
+    }
+    const request = (async () => {
+      try {
+        const res = await fetch(`/api/docs/file?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(pathValue)}`, { cache: 'no-store' });
+        if (!res.ok) {
+          return null;
+        }
+        const data = await res.json();
+        const nextContent = typeof data?.content === 'string' ? data.content : '';
+        contentCacheRef.current.set(key, nextContent);
+        return nextContent;
+      } catch {
+        return null;
+      } finally {
+        pendingFetchesRef.current.delete(key);
+      }
+    })();
+    pendingFetchesRef.current.set(key, request);
+    return request;
+  }, [commitSha, getCacheKey, kbId]);
+
+  const prefetchDoc = useCallback((pathValue: string | null) => {
+    if (!pathValue) return;
+    void fetchDoc(pathValue);
+  }, [fetchDoc]);
+
+  useEffect(() => {
+    contentCacheRef.current.clear();
+    pendingFetchesRef.current.clear();
+  }, [commitSha, kbId]);
+
+  const navigateToPath = useCallback((next: string | null, options?: { replace?: boolean; versionOverride?: string | null }) => {
+    startTransition(() => {
+      setActivePath(next, options);
+    });
+  }, [setActivePath, startTransition]);
+
 
   const groupedFiles = useMemo(() => {
     const groups = new Map<string, { path: string; title: string }[]>();
@@ -210,40 +266,51 @@ export default function DocsPage() {
       setContentStatus('idle');
       return;
     }
-    let aborted = false;
-    setContent('');
-    setContentStatus('loading');
-    (async () => {
-      try {
-        const res = await fetch(`/api/docs/file?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(activePath)}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Failed to load doc');
-        const data = await res.json();
-        if (aborted) return;
-        const nextContent = typeof data?.content === 'string' ? data.content : '';
-        setContent(nextContent);
+    const cacheKey = getCacheKey(commitSha, activePath);
+    if (cacheKey) {
+      const cached = contentCacheRef.current.get(cacheKey);
+      if (cached !== undefined) {
+        setContent(cached);
         setContentStatus('ready');
-      } catch {
-        if (aborted) return;
+        return;
+      }
+    }
+    setContentStatus('loading');
+    let cancelled = false;
+    fetchDoc(activePath).then((doc) => {
+      if (cancelled) return;
+      if (doc !== null) {
+        setContent(doc);
+        setContentStatus('ready');
+      } else {
         setContent('');
         setContentStatus('missing');
       }
-    })();
+    });
     return () => {
-      aborted = true;
+      cancelled = true;
     };
-  }, [kbId, commitSha, activePath]);
+  }, [kbId, commitSha, activePath, fetchDoc, getCacheKey]);
 
   useEffect(() => {
     if (lastCommitRef.current === commitSha) return;
     lastCommitRef.current = commitSha;
+    if (activePath) {
+      prefetchDoc(activePath);
+    }
     setActivePath(activePath, { replace: true });
-  }, [commitSha, activePath, setActivePath]);
+  }, [activePath, commitSha, prefetchDoc, setActivePath]);
 
   useEffect(() => {
-    if (!pathParam && fileList.length > 0) {
-      setActivePath(fileList[0], { replace: true });
+    if (pathParam) {
+      prefetchDoc(pathParam);
+      return;
     }
-  }, [fileList, pathParam, setActivePath]);
+    if (fileList.length > 0) {
+      prefetchDoc(fileList[0]);
+      navigateToPath(fileList[0], { replace: true });
+    }
+  }, [fileList, pathParam, navigateToPath, prefetchDoc]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -296,10 +363,11 @@ export default function DocsPage() {
   // Provide a link click handler to Markdown so relative links work inside content and index
   const handleMarkdownLink = useCallback((href: string) => {
     const normalized = href.replace(/^\.\//, '').replace(/^\//, '');
-    setActivePath(normalized);
+    prefetchDoc(normalized);
+    navigateToPath(normalized);
     setResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [setActivePath, setResults]);
+  }, [navigateToPath, prefetchDoc, setResults]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -360,9 +428,10 @@ export default function DocsPage() {
         return;
       }
     }
-    setActivePath(path);
+    prefetchDoc(path);
+    navigateToPath(path);
     resetSearchState();
-  }, [activePath, highlightInContent, q, resetSearchState, setActivePath]);
+  }, [activePath, highlightInContent, navigateToPath, prefetchDoc, q, resetSearchState]);
 
   // Debounced live search after 3 chars
   useEffect(() => {
@@ -451,9 +520,11 @@ export default function DocsPage() {
       (el as HTMLElement).focus({ preventScroll: true });
     }
     if (typeof window !== 'undefined') {
-      const base = activePath ? `/docs/${encodePath(activePath)}` : '/docs';
+      const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
+      const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
+      const docPath = activePath ? `${baseRoot}/${encodePath(activePath)}` : baseRoot;
       const versionToken = shortCommit ? `?v=${encodeURIComponent(shortCommit)}` : '';
-      window.history.replaceState(null, '', `${base}${versionToken}#${id}`);
+      window.history.replaceState(null, '', `${docPath}${versionToken}#${id}`);
     }
   };
 
@@ -524,6 +595,9 @@ export default function DocsPage() {
 
   const trimmedQuery = q.trim();
   const hasSearchQuery = trimmedQuery.length >= 3;
+  const showContent = contentStatus === 'ready' || (contentStatus === 'loading' && !!content);
+  const showInlineLoader = contentStatus === 'loading' && !!content;
+
   const displayedItems = hasSearchQuery
     ? results.map((r) => ({
       key: `${r.path}-${r.offset ?? r.occurrence ?? r.line ?? 0}`,
@@ -611,6 +685,8 @@ export default function DocsPage() {
                                 key={filePath}
                                 className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
                                 onClick={() => handleMarkdownLink(filePath)}
+                                onMouseEnter={() => prefetchDoc(filePath)}
+                                onFocus={() => prefetchDoc(filePath)}
                               >
                                 <span className="text-sm leading-snug">{title}</span>
                                 <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
@@ -635,6 +711,8 @@ export default function DocsPage() {
                                 key={filePath}
                                 className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
                                 onClick={() => handleMarkdownLink(filePath)}
+                                onMouseEnter={() => prefetchDoc(filePath)}
+                                onFocus={() => prefetchDoc(filePath)}
                               >
                                 <span className="text-sm leading-snug">{title}</span>
                                 <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
@@ -651,13 +729,20 @@ export default function DocsPage() {
               <main className="min-w-0">
                 <div className="mx-auto max-w-7xl px-2 sm:px-4" ref={contentRef}>
                   {activePath ? (
-                    contentStatus === 'ready' ? (
-                      <div className="prose prose-neutral dark:prose-invert max-w-none">
-                        <Markdown>{content}</Markdown>
-                      </div>
-                    ) : contentStatus === 'missing' ? (
+                    contentStatus === 'missing' ? (
                       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
                         We couldn’t find this document in the selected version. Try another version or pick a different doc.
+                      </div>
+                    ) : showContent ? (
+                      <div className="relative">
+                        {showInlineLoader && (
+                          <div className="absolute right-2 top-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                            Loading latest…
+                          </div>
+                        )}
+                        <div className="prose prose-neutral dark:prose-invert max-w-none">
+                          <Markdown>{content}</Markdown>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground">Loading…</div>
@@ -767,7 +852,9 @@ export default function DocsPage() {
                     onMouseEnter={() => {
                       setSelectedIdx(index);
                       scrollResultIntoView(index);
+                      prefetchDoc(item.path);
                     }}
+                    onFocus={() => prefetchDoc(item.path)}
                     data-result-index={index}
                     className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${index === selectedIdx ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}
                   >
