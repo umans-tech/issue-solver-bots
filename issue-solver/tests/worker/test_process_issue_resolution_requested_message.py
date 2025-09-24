@@ -33,7 +33,7 @@ from issue_solver.git_operations.git_helper import (
 )
 from issue_solver.issues.issue import IssueInfo
 from issue_solver.worker.messages_processing import process_event_message
-from issue_solver.worker.solving.process_issue_resolution_request import Dependencies
+from issue_solver.worker.dependencies import Dependencies
 
 
 @pytest.mark.asyncio

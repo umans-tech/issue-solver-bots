@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch, Mock
 
 import pytest
 from issue_solver.events.domain import (
@@ -10,6 +10,7 @@ from issue_solver.events.domain import (
 from issue_solver.git_operations.git_helper import (
     GitValidationError,
 )
+from issue_solver.worker.dependencies import Dependencies
 from issue_solver.worker.indexing.delta import index_new_changes_codebase
 from issue_solver.worker.indexing.full import index_codebase
 from tests.fixtures import NoopGitValidationService
@@ -43,16 +44,8 @@ async def test_index_codebase_git_validation_error():
         )
     )
 
-    # Create our AsyncMock for init_event_store that returns mock_event_store
-    mock_init_event_store = AsyncMock()
-    mock_init_event_store.return_value = mock_event_store
-
     # Patch dependencies
     with (
-        patch(
-            "issue_solver.worker.indexing.full.init_event_store",
-            mock_init_event_store,
-        ),
         patch(
             "issue_solver.worker.indexing.full.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
@@ -66,8 +59,17 @@ async def test_index_codebase_git_validation_error():
             mock_clone,
         ),
     ):
+        dependencies = Dependencies(
+            mock_event_store,
+            Mock(),
+            Mock(),
+            Mock(),
+            Mock(),
+            id_generator=Mock(),
+            docs_agent=Mock(),
+        )
         # When
-        await index_codebase(message)
+        await index_codebase(message, dependencies)
 
         # Then - Verify that CodeRepositoryConnectionFailed event was appended with correct error information
         assert mock_event_store.append.call_count == 1
@@ -138,10 +140,6 @@ async def test_index_new_changes_codebase_git_validation_error():
     # Patch dependencies
     with (
         patch(
-            "issue_solver.worker.indexing.delta.init_event_store",
-            mock_init_event_store,
-        ),
-        patch(
             "issue_solver.worker.indexing.delta.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
         ),
@@ -155,8 +153,17 @@ async def test_index_new_changes_codebase_git_validation_error():
         ),
         patch("pathlib.Path.exists", mock_path_exists),
     ):
+        dependencies = Dependencies(
+            mock_event_store,
+            Mock(),
+            Mock(),
+            Mock(),
+            Mock(),
+            id_generator=Mock(),
+            docs_agent=Mock(),
+        )
         # When
-        await index_new_changes_codebase(message)
+        await index_new_changes_codebase(message, dependencies)
 
         # Then - Verify that CodeRepositoryConnectionFailed event was appended with correct error information
         assert mock_event_store.append.call_count == 1
@@ -226,10 +233,6 @@ async def test_index_new_changes_codebase_clone_git_validation_error():
     # Patch dependencies
     with (
         patch(
-            "issue_solver.worker.indexing.delta.init_event_store",
-            mock_init_event_store,
-        ),
-        patch(
             "issue_solver.worker.indexing.delta.get_clock",
             return_value=MagicMock(now=lambda: "2023-01-01T01:00:00Z"),
         ),
@@ -243,8 +246,17 @@ async def test_index_new_changes_codebase_clone_git_validation_error():
         ),
         patch("pathlib.Path.exists", mock_path_exists),
     ):
+        dependencies = Dependencies(
+            mock_event_store,
+            Mock(),
+            Mock(),
+            Mock(),
+            Mock(),
+            id_generator=Mock(),
+            docs_agent=Mock(),
+        )
         # When
-        await index_new_changes_codebase(message)
+        await index_new_changes_codebase(message, dependencies)
 
         # Then - Verify that CodeRepositoryConnectionFailed event was appended with correct error information
         assert mock_event_store.append.call_count == 1

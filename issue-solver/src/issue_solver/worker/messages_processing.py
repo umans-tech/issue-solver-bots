@@ -12,9 +12,9 @@ from issue_solver.worker.indexing.full import index_codebase
 from issue_solver.worker.logging_config import logger
 from issue_solver.worker.solving.configure_environment import configure_environment
 from issue_solver.worker.solving.process_issue_resolution_request import (
-    Dependencies,
     resolve_issue,
 )
+from issue_solver.worker.dependencies import Dependencies
 
 
 async def process_event_message(
@@ -23,12 +23,12 @@ async def process_event_message(
     try:
         match message:
             case CodeRepositoryConnected():
-                await index_codebase(message)
+                await index_codebase(message, dependencies)
             case CodeRepositoryIndexed():
                 logger.info("Skipping already processed repository")
                 await generate_docs(message, dependencies)
             case RepositoryIndexationRequested():
-                await index_new_changes_codebase(message)
+                await index_new_changes_codebase(message, dependencies)
             case EnvironmentConfigurationProvided():
                 logger.info("Skipping already processed environment")
                 await configure_environment(message, dependencies)

@@ -19,7 +19,7 @@ from issue_solver.events.domain import (
 from issue_solver.git_operations.git_helper import (
     extract_git_clone_default_directory_name,
 )
-from issue_solver.worker.solving.process_issue_resolution_request import Dependencies
+from issue_solver.worker.dependencies import Dependencies
 
 
 async def configure_environment(
