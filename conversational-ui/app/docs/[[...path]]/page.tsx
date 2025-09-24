@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -513,7 +514,10 @@ export default function DocsPage() {
                         <details key={group} className="group space-y-1" open>
                           <summary className="flex cursor-pointer items-center justify-between px-3 py-1 text-sm font-semibold text-foreground list-none">
                             <span>{label}</span>
-                            <span className="docs-index-caret text-muted-foreground/60 text-xs transition-transform duration-200 group-open:rotate-180">▾</span>
+                            <ChevronDown
+                              aria-hidden="true"
+                              className="docs-index-caret h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180"
+                            />
                           </summary>
                           <div className="mt-1 space-y-1 pl-3">
                             {entries.map(({ path: filePath, title }) => (
@@ -673,8 +677,6 @@ export default function DocsPage() {
         .docs-index details summary:focus { outline: none !important; border: none !important; box-shadow: none !important; background: transparent; }
         .docs-index details summary::after { display: none; }
         .docs-index details summary::-webkit-details-marker { display: none; }
-        .docs-index details .docs-index-caret { transform: rotate(0deg); }
-        .docs-index details[open] .docs-index-caret { transform: rotate(180deg); }
         `}
       </style>
     </div>
