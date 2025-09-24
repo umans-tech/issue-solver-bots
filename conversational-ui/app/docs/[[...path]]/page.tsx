@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { SearchIcon, CopyIcon } from '@/components/icons';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 
 export default function DocsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams<{ path?: string[] }>();
+  const searchParams = useSearchParams();
   const kbId = session?.user?.selectedSpace?.knowledgeBaseId;
   // commit sha is not currently typed on selectedSpace; leave undefined and rely on versions API
   const currentCommit = undefined as string | undefined;
@@ -36,8 +37,12 @@ export default function DocsPage() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const resultsContainerRef = useRef<HTMLDivElement | null>(null);
   const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(null);
+  const lastCommitRef = useRef<string | undefined>(commitSha);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
+  const versionParam = searchParams?.get('v')?.trim() ?? null;
+  const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
+  const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
 
   const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
     const normalized = term.trim();
@@ -90,9 +95,11 @@ export default function DocsPage() {
 
   const encodePath = useCallback((value: string) => value.split('/').map(segment => encodeURIComponent(segment)).join('/'), []);
 
-  const setActivePath = useCallback((next: string | null, options?: { replace?: boolean }) => {
-    setActivePathState(next);
-    const url = next ? `/docs/${encodePath(next)}` : '/docs';
+  const setActivePath = useCallback((next: string | null, options?: { replace?: boolean; versionOverride?: string | null }) => {
+    setActivePathState(prev => (prev === next ? prev : next));
+    const baseUrl = next ? `/docs/${encodePath(next)}` : '/docs';
+    const versionToken = options?.versionOverride ?? shortCommit;
+    const url = versionToken ? `${baseUrl}?v=${encodeURIComponent(versionToken)}` : baseUrl;
     if (options?.replace) {
       router.replace(url, { scroll: false });
     } else {
@@ -101,7 +108,7 @@ export default function DocsPage() {
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', url);
     }
-  }, [router, encodePath]);
+  }, [router, encodePath, shortCommit]);
 
   const groupedFiles = useMemo(() => {
     const groups = new Map<string, { path: string; title: string }[]>();
@@ -138,7 +145,7 @@ export default function DocsPage() {
     return entries;
   }, [fileList, titleMap]);
 
-  // Load versions on mount
+  // Load versions on mount and pick commit based on URL query when possible
   useEffect(() => {
     if (!kbId) return;
     (async () => {
@@ -147,13 +154,18 @@ export default function DocsPage() {
         const data = await res.json();
         if (Array.isArray(data.versions)) {
           setVersions(data.versions);
-          if (!commitSha && data.versions.length > 0) {
-            setCommitSha(data.versions[data.versions.length - 1]);
-          }
+          const matchedFromQuery = normalizedVersionParam
+            ? data.versions.find((sha: string) => sha.toLowerCase().startsWith(normalizedVersionParam))
+            : undefined;
+          setCommitSha((prev) => {
+            if (matchedFromQuery) return matchedFromQuery;
+            if (prev && data.versions.includes(prev)) return prev;
+            return data.versions.length > 0 ? data.versions[data.versions.length - 1] : undefined;
+          });
         }
       } catch {}
     })();
-  }, [kbId]);
+  }, [kbId, normalizedVersionParam]);
 
   // Load index.md and files list
   useEffect(() => {
@@ -206,6 +218,12 @@ export default function DocsPage() {
       }
     })();
   }, [kbId, commitSha, activePath]);
+
+  useEffect(() => {
+    if (lastCommitRef.current === commitSha) return;
+    lastCommitRef.current = commitSha;
+    setActivePath(activePath, { replace: true });
+  }, [commitSha, activePath, setActivePath]);
 
   useEffect(() => {
     if (!pathParam && fileList.length > 0) {
@@ -420,7 +438,8 @@ export default function DocsPage() {
     }
     if (typeof window !== 'undefined') {
       const base = activePath ? `/docs/${encodePath(activePath)}` : '/docs';
-      window.history.replaceState(null, '', `${base}#${id}`);
+      const versionToken = shortCommit ? `?v=${encodeURIComponent(shortCommit)}` : '';
+      window.history.replaceState(null, '', `${base}${versionToken}#${id}`);
     }
   };
 
