@@ -80,3 +80,25 @@ async def test_s3_knowledge_repo_should_list_documents(
 
     # Then
     assert set(documents) == {"doc1.md", "doc2.md"}
+
+
+@pytest.mark.asyncio
+async def test_s3_knowledge_repo_should_overwrite_document_with_same_name(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb1", "sha1")
+    knowledge_repository.add(
+        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1"
+    )
+
+    # When
+    knowledge_repository.add(
+        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1 - Updated"
+    )
+
+    # Then
+    retrieved_content = knowledge_repository.get_content(
+        base=knowledge_base_key, document_name="doc1.md"
+    )
+    assert retrieved_content == "# Doc 1 - Updated"
