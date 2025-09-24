@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
@@ -10,6 +10,20 @@ import { SearchIcon, CopyIcon } from '@/components/icons';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+
+type DocFileEntry = {
+  path: string;
+  title: string;
+};
+
+type DocFolderNode = {
+  id: string;
+  name: string;
+  label: string;
+  children: DocFolderNode[];
+  files: DocFileEntry[];
+};
+
 
 export default function DocsPage() {
   const { data: session } = useSession();
@@ -167,39 +181,61 @@ export default function DocsPage() {
   }, [setActivePath, startTransition]);
 
 
-  const groupedFiles = useMemo(() => {
-    const groups = new Map<string, { path: string; title: string }[]>();
-    for (const path of fileList) {
-      const parts = path.split('/');
-      const group = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
-      if (!groups.has(group)) groups.set(group, []);
-      groups.get(group)!.push({ path, title: titleMap[path] || path });
-    }
+  const docTree = useMemo(() => {
+    const formatSegment = (segment: string) => segment
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
-    const toLabel = (key: string) => {
-      if (!key) return '';
-      return key
-        .split('/')
-        .map(segment => segment
-          .replace(/[-_]+/g, ' ')
-          .replace(/\b\w/g, char => char.toUpperCase())
-        )
-        .join(' / ');
+    const root: DocFolderNode = { id: '', name: '', label: '', children: [], files: [] };
+
+    const ensureChild = (parent: DocFolderNode, segment: string): DocFolderNode => {
+      let child = parent.children.find((node) => node.name === segment);
+      if (!child) {
+        const id = parent.id ? `${parent.id}/${segment}` : segment;
+        child = {
+          id,
+          name: segment,
+          label: formatSegment(segment),
+          children: [],
+          files: [],
+        };
+        parent.children.push(child);
+      }
+      return child;
     };
 
-    const entries = Array.from(groups.entries()).map(([group, items]) => ({
-      group,
-      label: toLabel(group),
-      entries: items.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
-    }));
+    for (const path of fileList) {
+      const parts = path.split('/').filter(Boolean);
+      if (parts.length === 0) continue;
+      let cursor = root;
+      parts.forEach((segment, index) => {
+        const isFile = index === parts.length - 1;
+        if (isFile) {
+          cursor.files.push({ path, title: titleMap[path] || segment });
+          return;
+        }
+        cursor = ensureChild(cursor, segment);
+      });
+    }
 
-    entries.sort((a, b) => {
-      if (a.group === '') return -1;
-      if (b.group === '') return 1;
-      return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
-    });
+    const sortNode = (node: DocFolderNode) => {
+      node.children.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+      node.children.forEach(sortNode);
+      node.files.sort((a, b) => {
+        const aName = a.path.split('/').pop() ?? a.path;
+        const bName = b.path.split('/').pop() ?? b.path;
+        const aIsIndex = aName.toLowerCase() === 'index.md';
+        const bIsIndex = bName.toLowerCase() === 'index.md';
+        if (aIsIndex !== bIsIndex) {
+          return aIsIndex ? -1 : 1;
+        }
+        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+      });
+    };
 
-    return entries;
+    sortNode(root);
+
+    return root;
   }, [fileList, titleMap]);
 
   // Load versions on mount and pick commit based on URL query when possible
@@ -630,6 +666,40 @@ export default function DocsPage() {
     scrollResultIntoView(Math.min(selectedIdx, Math.max(displayedItems.length - 1, 0)));
   }, [displayedItems.length, isSearchOpen, scrollResultIntoView, selectedIdx]);
 
+  const renderFileEntry = (entry: DocFileEntry) => (
+    <button
+      key={entry.path}
+      className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === entry.path ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+      onClick={() => handleMarkdownLink(entry.path)}
+      onMouseEnter={() => prefetchDoc(entry.path)}
+      onFocus={() => prefetchDoc(entry.path)}
+    >
+      <span className="text-sm leading-snug">{entry.title}</span>
+      <span className="text-[11px] text-muted-foreground/70 leading-tight">{entry.path}</span>
+    </button>
+  );
+
+  const renderFolder = (node: DocFolderNode): ReactNode => {
+    const label = node.label || node.name;
+    return (
+      <details key={node.id} className="group space-y-1" open>
+        <summary className="flex cursor-pointer items-center justify-between px-3 py-1 text-sm font-semibold text-foreground list-none">
+          <span>{label}</span>
+          <ChevronDown
+            aria-hidden="true"
+            className="docs-index-caret h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180"
+          />
+        </summary>
+        <div className="mt-1 space-y-1 pl-3">
+          {node.files.map(renderFileEntry)}
+          {node.children.map(renderFolder)}
+        </div>
+      </details>
+    );
+  };
+
+  const hasDocs = docTree.files.length > 0 || docTree.children.length > 0;
+
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <SharedHeader rightExtra={
@@ -673,55 +743,17 @@ export default function DocsPage() {
             <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)]">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
                 <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-5">
-                  {groupedFiles.length === 0 ? (
+                  {!hasDocs ? (
                     <div className="px-3 py-2 text-xs text-muted-foreground">No files found.</div>
                   ) : (
-                    groupedFiles.map(({ group, label, entries }) => {
-                      if (!label) {
-                        return (
-                          <div key="__root" className="space-y-1">
-                            {entries.map(({ path: filePath, title }) => (
-                              <button
-                                key={filePath}
-                                className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
-                                onClick={() => handleMarkdownLink(filePath)}
-                                onMouseEnter={() => prefetchDoc(filePath)}
-                                onFocus={() => prefetchDoc(filePath)}
-                              >
-                                <span className="text-sm leading-snug">{title}</span>
-                                <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <details key={group} className="group space-y-1" open>
-                          <summary className="flex cursor-pointer items-center justify-between px-3 py-1 text-sm font-semibold text-foreground list-none">
-                            <span>{label}</span>
-                            <ChevronDown
-                              aria-hidden="true"
-                              className="docs-index-caret h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-open:rotate-180"
-                            />
-                          </summary>
-                          <div className="mt-1 space-y-1 pl-3">
-                            {entries.map(({ path: filePath, title }) => (
-                              <button
-                                key={filePath}
-                                className={`flex w-full flex-col rounded-md px-3 py-2 text-left transition-colors ${activePath === filePath ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
-                                onClick={() => handleMarkdownLink(filePath)}
-                                onMouseEnter={() => prefetchDoc(filePath)}
-                                onFocus={() => prefetchDoc(filePath)}
-                              >
-                                <span className="text-sm leading-snug">{title}</span>
-                                <span className="text-[11px] text-muted-foreground/70 leading-tight">{filePath}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </details>
-                      );
-                    })
+                    <>
+                      {docTree.files.length > 0 && (
+                        <div className="space-y-1">
+                          {docTree.files.map(renderFileEntry)}
+                        </div>
+                      )}
+                      {docTree.children.map(renderFolder)}
+                    </>
                   )}
                 </div>
               </aside>
@@ -740,7 +772,7 @@ export default function DocsPage() {
                             Loading latest…
                           </div>
                         )}
-                        <div className="prose prose-neutral dark:prose-invert max-w-none">
+                        <div className="max-w-none prose prose-neutral dark:prose-invert">
                           <Markdown>{content}</Markdown>
                         </div>
                       </div>
