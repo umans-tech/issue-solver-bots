@@ -64,6 +64,16 @@ export default function DocsPage() {
   const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
   const getCacheKey = useCallback((commit: string | undefined, pathValue: string | null) => (commit && pathValue ? `${commit}:${pathValue}` : null), []);
   const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
+  const sessionVersionShas = useMemo(() => {
+    const space = session?.user?.selectedSpace;
+    if (!space) return undefined;
+    if (space.knowledgeBaseId && kbId && space.knowledgeBaseId !== kbId) return undefined;
+    if (!Array.isArray(space.indexedVersions)) return undefined;
+    const shas = space.indexedVersions
+      .map((entry) => entry?.sha)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+    return shas.length > 0 ? shas : undefined;
+  }, [session?.user?.selectedSpace, kbId]);
 
   const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
     const normalized = term.trim();
@@ -241,24 +251,34 @@ export default function DocsPage() {
   // Load versions on mount and pick commit based on URL query when possible
   useEffect(() => {
     if (!kbId) return;
+
+    const applyVersions = (available: string[]) => {
+      setVersions(available);
+      const matchedFromQuery = normalizedVersionParam
+        ? available.find((sha: string) => sha.toLowerCase().startsWith(normalizedVersionParam))
+        : undefined;
+      setCommitSha((prev) => {
+        if (matchedFromQuery) return matchedFromQuery;
+        if (prev && available.includes(prev)) return prev;
+        return available.length > 0 ? available[available.length - 1] : undefined;
+      });
+    };
+
+    if (sessionVersionShas?.length) {
+      applyVersions(sessionVersionShas);
+      return;
+    }
+
     (async () => {
       try {
         const res = await fetch(`/api/docs/versions?kbId=${encodeURIComponent(kbId)}`, { cache: 'no-store' });
         const data = await res.json();
         if (Array.isArray(data.versions)) {
-          setVersions(data.versions);
-          const matchedFromQuery = normalizedVersionParam
-            ? data.versions.find((sha: string) => sha.toLowerCase().startsWith(normalizedVersionParam))
-            : undefined;
-          setCommitSha((prev) => {
-            if (matchedFromQuery) return matchedFromQuery;
-            if (prev && data.versions.includes(prev)) return prev;
-            return data.versions.length > 0 ? data.versions[data.versions.length - 1] : undefined;
-          });
+          applyVersions(data.versions);
         }
       } catch {}
     })();
-  }, [kbId, normalizedVersionParam]);
+  }, [kbId, normalizedVersionParam, sessionVersionShas]);
 
   // Load index.md and files list
   useEffect(() => {

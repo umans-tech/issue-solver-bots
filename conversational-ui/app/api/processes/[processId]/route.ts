@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
+import { getCachedProcess, setCachedProcess } from '@/lib/process-cache';
 
 export async function GET(
   request: Request,
@@ -39,6 +40,13 @@ export async function GET(
       );
     }
     
+    // Check in-memory cache first to avoid duplicate downstream calls
+    const cached = getCachedProcess(processId);
+    if (cached) {
+      console.log(`Returning cached process snapshot for ${processId}`);
+      return NextResponse.json(cached);
+    }
+
     // Forward the request to the CUDU API
     const apiUrl = `${cuduEndpoint}/processes/${processId}`;
     console.log(`Fetching process status from: ${apiUrl}`);
@@ -66,6 +74,9 @@ export async function GET(
     // Get the response data
     const data = await response.json();
     console.log("Process status data from CUDU:", data);
+
+    // Cache the fresh snapshot for a short window to reduce bursts from the client
+    setCachedProcess(processId, data);
     
     // Enhance the response by ensuring 'status' field is clearly set
     let enhancedResponse = { ...data };
