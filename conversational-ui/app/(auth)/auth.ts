@@ -25,6 +25,7 @@ interface ExtendedSession extends Session {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
+      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
     } | null;
   } & Omit<Session['user'], 'id'>;
 }
@@ -162,7 +163,13 @@ export const {
       if (token.id) {
         const selectedSpace = await getSelectedSpace(token.id as string);
         if (selectedSpace) {
+          const previousSelectedSpace =
+            token.selectedSpace && typeof token.selectedSpace === 'object'
+              ? (token.selectedSpace as Record<string, unknown>)
+              : {};
+
           token.selectedSpace = {
+            ...previousSelectedSpace,
             id: selectedSpace.id,
             name: selectedSpace.name,
             knowledgeBaseId: selectedSpace.knowledgeBaseId,
@@ -200,6 +207,10 @@ export const {
               : {}),
           };
 
+          if (token.selectedSpace.indexedVersions) {
+            session.user.selectedSpace.indexedVersions = token.selectedSpace.indexedVersions;
+          }
+
           // Add an extra check to directly query the database if any critical fields are missing
           // This helps ensure we always have the latest data, especially after repository connection
           const shouldFetchFromDb =
@@ -232,6 +243,7 @@ export const {
                   knowledgeBaseId: spaceFromDb.knowledgeBaseId,
                   processId: spaceFromDb.processId,
                   connectedRepoUrl: spaceFromDb.connectedRepoUrl,
+                  indexedVersions: session.user.selectedSpace.indexedVersions,
                 };
               }
             } catch (error) {

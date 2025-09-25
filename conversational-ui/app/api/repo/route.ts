@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
+import { getCachedProcess, setCachedProcess } from '@/lib/process-cache';
 
 export async function GET(request: Request) {
   try {
@@ -35,26 +36,33 @@ export async function GET(request: Request) {
     }
     
     // Call the process API endpoint to get repository details
-    const apiUrl = `${cuduEndpoint}/processes/${processId}`;
-    console.log(`Fetching repository details from process: ${apiUrl}`);
-    
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      console.error(`Error fetching repository details: ${response.statusText}`);
-      return NextResponse.json(
-        { error: 'Failed to fetch repository details' },
-        { status: response.status }
-      );
+    const cached = getCachedProcess(processId);
+    let data: any;
+    if (cached) {
+      console.log(`Using cached process snapshot for repository details: ${processId}`);
+      data = cached;
+    } else {
+      const apiUrl = `${cuduEndpoint}/processes/${processId}`;
+      console.log(`Fetching repository details from process: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error(`Error fetching repository details: ${response.statusText}`);
+        return NextResponse.json(
+          { error: 'Failed to fetch repository details' },
+          { status: response.status }
+        );
+      }
+      
+      data = await response.json();
+      setCachedProcess(processId, data);
     }
-    
-    // Get the response data
-    const data = await response.json();
     
     // Find the repository_connected event if available
     const repoEvent = data.events?.find((event: { type: string }) => 

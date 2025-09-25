@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { extractRepositoryIndexedEvents } from '@/lib/repository-events';
 
 /**
  * Hook to poll the process status at regular intervals
@@ -92,7 +93,8 @@ export function useProcessStatus(
       errorCountRef.current = 0;
       
       const data = await response.json();
-      
+      const indexedVersions = extractRepositoryIndexedEvents(data?.events);
+     
       // Only log in development environment
       if (process.env.NODE_ENV === 'development') {
         console.log("Full process status API response:", data);
@@ -128,6 +130,8 @@ export function useProcessStatus(
       // Update the session with the new status
       if (session?.user?.selectedSpace) {
         try {
+          const indexedPayload = indexedVersions.length > 0 ? { indexedVersions } : {};
+
           await update({
             user: {
               ...session.user,
@@ -135,7 +139,8 @@ export function useProcessStatus(
                 ...session.user.selectedSpace,
                 processStatus: newStatus,
                 processId: processId || session.user.selectedSpace.processId,
-                knowledgeBaseId: session.user.selectedSpace.knowledgeBaseId
+                knowledgeBaseId: session.user.selectedSpace.knowledgeBaseId,
+                ...indexedPayload,
               }
             }
           });

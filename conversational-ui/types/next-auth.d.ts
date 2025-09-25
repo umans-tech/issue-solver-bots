@@ -11,6 +11,7 @@ declare module "next-auth" {
         processId?: string | null;
         connectedRepoUrl?: string | null;
         isDefault?: boolean;
+        indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
       } | null;
       spaces?: Array<{
         id: string;
@@ -19,6 +20,7 @@ declare module "next-auth" {
         processId?: string | null;
         connectedRepoUrl?: string | null;
         isDefault?: boolean;
+        indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
       }>;
     } & DefaultSession["user"];
   }
@@ -32,6 +34,7 @@ declare module "next-auth" {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
+      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
     } | null;
     spaces?: Array<{
       id: string;
@@ -40,6 +43,7 @@ declare module "next-auth" {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
+      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
     }>;
   }
-} 
+}
