@@ -528,6 +528,12 @@ export function RepoConnectionDialog({
                   </span>
                 </Button>
               </div>
+              {repoDetails?.url && (
+                <ProactiveTokenGenerator
+                  repositoryUrl={repoDetails.url}
+                  className="mt-2 p-2 bg-muted/30 rounded-md border animate-in fade-in-0 slide-in-from-top-2 duration-200"
+                />
+              )}
               <div className="flex gap-2">
                 <Button
                   type="button"

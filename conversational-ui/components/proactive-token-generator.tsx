@@ -27,7 +27,7 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
   },
   gitlab: {
     name: 'GitLab', 
-    tokenUrl: 'https://gitlab.com/-/user_settings/personal_access_tokens?name=Issue-Solver-Platform&scopes[]=api&scopes[]=read_user&scopes[]=read_repository&scopes[]=write_repository',
+    tokenUrl: 'https://gitlab.com/-/user_settings/personal_access_tokens?name=Umans-AI-Platform&scopes=api,read_user,read_repository,write_repository',
     scopes: ['api', 'read_user', 'read_repository', 'write_repository'],
     instructions: 'Select API, read user, read/write repository scopes'
   },
