@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileText } from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { SearchIcon, CopyIcon } from '@/components/icons';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -742,7 +743,17 @@ export default function DocsPage() {
           {!kbId ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
           ) : !commitSha ? (
-            <div className="border rounded-md p-6 text-center text-muted-foreground">No docs available yet.</div>
+            <Card className="mx-auto max-w-xl border-dashed border-muted">
+              <CardHeader className="flex flex-col items-center gap-2 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <FileText className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <CardTitle className="text-lg">No docs yet</CardTitle>
+                <CardDescription className="max-w-md">
+                  Once documentation is synced to this knowledge base, you will see the versions and files here.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           ) : (
             <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)]">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
