@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { auth } from '@/app/(auth)/auth';
-import { getCachedProcess, setCachedProcess } from '@/lib/process-cache';
-import { extractRepositoryIndexedEvents } from '@/lib/repository-events';
 
 export async function GET(request: Request) {
   try {
@@ -13,70 +11,7 @@ export async function GET(request: Request) {
     const kbId = searchParams.get('kbId') || session.user.selectedSpace?.knowledgeBaseId;
     if (!kbId) return NextResponse.json({ error: 'kbId is required' }, { status: 400 });
 
-    let versions: string[] = [];
-
-    const selectedSpace = session.user.selectedSpace;
-    const processId = selectedSpace?.processId;
-    const isMatchingSpace = selectedSpace?.knowledgeBaseId && selectedSpace.knowledgeBaseId === kbId;
-
-    if (processId && isMatchingSpace) {
-      let processData = getCachedProcess(processId);
-      if (!processData) {
-        const cuduEndpoint = process.env.CUDU_ENDPOINT;
-        if (!cuduEndpoint) {
-          console.error('CUDU API endpoint is not configured');
-        } else {
-          const apiUrl = `${cuduEndpoint}/processes/${processId}`;
-          try {
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-            if (response.ok) {
-              processData = await response.json();
-              setCachedProcess(processId, processData);
-            } else {
-              console.warn(`Failed to fetch process snapshot for versions (${response.status})`);
-            }
-          } catch (error) {
-            console.error('Error fetching process snapshot for versions:', error);
-          }
-        }
-      }
-
-      if (processData) {
-        const indexed = extractRepositoryIndexedEvents(processData.events);
-        versions = indexed.map((entry) => entry.sha);
-      }
-    }
-
-    if (versions.length === 0) {
-      const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
-      const s3Client = new S3Client({
-        region: process.env.BLOB_REGION || '',
-        endpoint: process.env.BLOB_ENDPOINT || '',
-        forcePathStyle: !!process.env.BLOB_ENDPOINT,
-        credentials: {
-          accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
-          secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
-        },
-      });
-
-      const prefix = `base/${kbId}/docs/`;
-      const cmd = new ListObjectsV2Command({ Bucket: BUCKET_NAME, Prefix: prefix, Delimiter: '/' });
-      const res = await s3Client.send(cmd);
-      if (res.CommonPrefixes) {
-        for (const cp of res.CommonPrefixes) {
-          const p = cp.Prefix || '';
-          const parts = p.split('/');
-          const sha = parts.filter(Boolean).pop();
-          if (sha) versions.push(sha);
-        }
-      }
-    }
-
+    const versions = await listVersionsFromBlobStorage(kbId);
     return NextResponse.json({ versions });
   } catch (error) {
     console.error('Error listing versions:', error);
@@ -84,3 +19,56 @@ export async function GET(request: Request) {
   }
 }
 
+async function listVersionsFromBlobStorage(kbId: string): Promise<string[]> {
+  const bucketName = process.env.BLOB_BUCKET_NAME || '';
+  if (!bucketName) {
+    console.error('BLOB_BUCKET_NAME is not configured');
+    return [];
+  }
+
+  const s3Client = new S3Client({
+    region: process.env.BLOB_REGION || '',
+    endpoint: process.env.BLOB_ENDPOINT || '',
+    forcePathStyle: !!process.env.BLOB_ENDPOINT,
+    credentials: {
+      accessKeyId: process.env.BLOB_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.BLOB_READ_WRITE_TOKEN || '',
+    },
+  });
+
+  const prefix = `base/${kbId}/docs/`;
+  const seen = new Map<string, number>();
+  let continuationToken: string | undefined;
+
+  do {
+    const cmd = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    });
+    const res = await s3Client.send(cmd);
+
+    for (const obj of res.Contents ?? []) {
+      const key = obj.Key;
+      if (!key || !key.startsWith(prefix)) continue;
+
+      const remainder = key.slice(prefix.length);
+      if (!remainder) continue;
+
+      const sha = remainder.split('/')[0]?.trim();
+      if (!sha) continue;
+
+      const lastModified = obj.LastModified ? obj.LastModified.getTime() : 0;
+      const previous = seen.get(sha) ?? 0;
+      if (lastModified >= previous) {
+        seen.set(sha, lastModified);
+      }
+    }
+
+    continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return Array.from(seen.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([sha]) => sha);
+}

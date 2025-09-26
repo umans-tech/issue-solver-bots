@@ -64,17 +64,6 @@ export default function DocsPage() {
   const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
   const getCacheKey = useCallback((commit: string | undefined, pathValue: string | null) => (commit && pathValue ? `${commit}:${pathValue}` : null), []);
   const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
-  const sessionVersionShas = useMemo(() => {
-    const space = session?.user?.selectedSpace;
-    if (!space) return undefined;
-    if (space.knowledgeBaseId && kbId && space.knowledgeBaseId !== kbId) return undefined;
-    if (!Array.isArray(space.indexedVersions)) return undefined;
-    const shas = space.indexedVersions
-      .map((entry) => entry?.sha)
-      .filter((value): value is string => typeof value === 'string' && value.length > 0);
-    return shas.length > 0 ? shas : undefined;
-  }, [session?.user?.selectedSpace, kbId]);
-
   const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
     const normalized = term.trim();
     if (!normalized) return;
@@ -264,11 +253,6 @@ export default function DocsPage() {
       });
     };
 
-    if (sessionVersionShas?.length) {
-      applyVersions(sessionVersionShas);
-      return;
-    }
-
     (async () => {
       try {
         const res = await fetch(`/api/docs/versions?kbId=${encodeURIComponent(kbId)}`, { cache: 'no-store' });
@@ -278,7 +262,7 @@ export default function DocsPage() {
         }
       } catch {}
     })();
-  }, [kbId, normalizedVersionParam, sessionVersionShas]);
+  }, [kbId, normalizedVersionParam]);
 
   // Load index.md and files list
   useEffect(() => {
