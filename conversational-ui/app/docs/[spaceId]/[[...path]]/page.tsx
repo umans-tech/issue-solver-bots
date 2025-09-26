@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { SearchIcon, CopyIcon } from '@/components/icons';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -41,10 +42,12 @@ export default function DocsPage() {
   const [versions, setVersions] = useState<string[]>([]);
   const [, setIndexMd] = useState<string>('');
   const [fileList, setFileList] = useState<string[]>([]);
+  const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
+  const [versionsLoading, setVersionsLoading] = useState(true);
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<{ path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[]>([]);
@@ -240,7 +243,10 @@ export default function DocsPage() {
 
   // Load versions on mount and pick commit based on URL query when possible
   useEffect(() => {
-    if (!kbId) return;
+    if (!kbId) {
+      setVersionsLoading(false);
+      return;
+    }
 
     const applyVersions = (available: string[]) => {
       setVersions(available);
@@ -254,6 +260,7 @@ export default function DocsPage() {
       });
     };
 
+    setVersionsLoading(true);
     (async () => {
       try {
         const res = await fetch(`/api/docs/versions?kbId=${encodeURIComponent(kbId)}`, { cache: 'no-store' });
@@ -262,25 +269,37 @@ export default function DocsPage() {
           applyVersions(data.versions);
         }
       } catch {}
+      setVersionsLoading(false);
     })();
   }, [kbId, normalizedVersionParam]);
 
   // Load index.md and files list
   useEffect(() => {
-    if (!kbId || !commitSha) return;
+    if (!kbId || !commitSha) {
+      setIsIndexLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIsIndexLoading(true);
     (async () => {
       try {
         const idx = await fetch(`/api/docs/index?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const idxJson = await idx.json();
-        setIndexMd(idxJson?.content || '');
+        if (!cancelled) {
+          setIndexMd(idxJson?.content || '');
+        }
       } catch {
-        setIndexMd('');
+        if (!cancelled) {
+          setIndexMd('');
+        }
       }
       try {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
-        setFileList(files);
+        if (!cancelled) {
+          setFileList(files);
+        }
         // lazily resolve titles for index entries
         const entries = await Promise.all(files.map(async (f: string) => {
           try {
@@ -291,13 +310,24 @@ export default function DocsPage() {
             return [f, f] as const;
           }
         }));
-        const map: Record<string, string> = {};
-        for (const [k, v] of entries) map[k] = v;
-        setTitleMap(map);
+        if (!cancelled) {
+          const map: Record<string, string> = {};
+          for (const [k, v] of entries) map[k] = v;
+          setTitleMap(map);
+        }
       } catch {
-        setFileList([]);
+        if (!cancelled) {
+          setFileList([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsIndexLoading(false);
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [kbId, commitSha]);
 
   useEffect(() => {
@@ -704,6 +734,9 @@ export default function DocsPage() {
   };
 
   const hasDocs = docTree.files.length > 0 || docTree.children.length > 0;
+  const showLoadingShell = versionsLoading || isIndexLoading;
+  const showEmptyState = !showLoadingShell && (!commitSha || !hasDocs);
+  const isContentLoading = contentStatus === 'loading';
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
@@ -742,7 +775,7 @@ export default function DocsPage() {
         <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6">
           {!kbId ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
-          ) : !commitSha ? (
+          ) : showEmptyState ? (
             <Card className="mx-auto max-w-xl border-dashed border-muted">
               <CardHeader className="flex flex-col items-center gap-2 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -755,10 +788,16 @@ export default function DocsPage() {
               </CardHeader>
             </Card>
           ) : (
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)]">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)] lg:items-start">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
-                <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-5">
-                  {!hasDocs ? (
+                <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 pt-4 space-y-4">
+                  {showLoadingShell ? (
+                    <div className="space-y-3 px-3">
+                      {[0, 1, 2, 3, 4].map((key) => (
+                        <Skeleton key={key} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  ) : !hasDocs ? (
                     <div className="px-3 py-2 text-xs text-muted-foreground">No files found.</div>
                   ) : (
                     <>
@@ -774,8 +813,17 @@ export default function DocsPage() {
               </aside>
 
               <main className="min-w-0">
-                <div className="mx-auto max-w-7xl px-2 sm:px-4" ref={contentRef}>
-                  {activePath ? (
+                <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
+                  {showLoadingShell ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-8 w-1/2" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  ) : activePath ? (
                     contentStatus === 'missing' ? (
                       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
                         We couldn’t find this document in the selected version. Try another version or pick a different doc.
@@ -792,7 +840,14 @@ export default function DocsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">Loading…</div>
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-1/2" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
                     )
                   ) : (
                     <div className="text-sm text-muted-foreground">Select a document from the index.</div>
@@ -802,8 +857,15 @@ export default function DocsPage() {
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
-                <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px]">
-                  {toc.length > 0 ? (
+                <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
+                  {showLoadingShell || isContentLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  ) : toc.length > 0 ? (
                     toc.map((item) => {
                       const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
                       return (
@@ -917,9 +979,11 @@ export default function DocsPage() {
                     ? 'No matches found.'
                     : trimmedQuery.length > 0
                       ? 'Type at least 3 characters to search.'
-                      : fileList.length === 0
-                        ? 'No documents available yet.'
-                        : 'Start typing to search docs.'}
+                      : showLoadingShell
+                        ? 'Loading docs…'
+                        : fileList.length === 0
+                          ? 'No documents available yet.'
+                          : 'Start typing to search docs.'}
                 </div>
               )}
             </div>
