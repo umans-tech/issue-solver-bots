@@ -43,6 +43,7 @@ export default function LandingPage() {
       ctaHref: '/go-to-app',
       ctaType: 'internal',
       ctaVariant: 'primary',
+      popular: false,
       pricing: {
         monthly: { amount: '$0', descriptor: 'per user / month' },
         yearly: { amount: '$0', descriptor: 'per user / month' },
@@ -57,10 +58,11 @@ export default function LandingPage() {
         'Extended runs with GPT-5, Claude Sonnet & Claude Code',
         'Personal workspace with persistent context & docs',
       ],
-      ctaLabel: 'Get Individual',
+      ctaLabel: 'Get started',
       ctaHref: 'https://buy.stripe.com/individual-plan-link',
       ctaType: 'external',
       ctaVariant: 'secondary',
+      popular: false,
       pricing: {
         monthly: { amount: '$24', descriptor: 'per user / month' },
         yearly: { amount: '$19', descriptor: 'per user / month' },
@@ -75,7 +77,7 @@ export default function LandingPage() {
         'Shared spaces with cross-conversation memory',
         'Seats for up to 5 collaborators (per-user pricing)',
       ],
-      ctaLabel: 'Get Team',
+      ctaLabel: 'Get started',
       ctaHref: 'https://buy.stripe.com/team-plan-link',
       ctaType: 'external',
       ctaVariant: 'primary',
@@ -94,13 +96,14 @@ export default function LandingPage() {
         'Dedicated environment profiles per team',
         'White-glove enablement + shared roadmap planning',
       ],
-      ctaLabel: 'Talk to sales',
+      ctaLabel: 'Contact us',
       ctaHref: 'mailto:contact@umans.ai',
       ctaType: 'external',
       ctaVariant: 'secondary',
+      popular: false,
       pricing: {
-        monthly: { amount: 'Contact us', descriptor: 'Let’s design the right package' },
-        yearly: { amount: 'Contact us', descriptor: 'Let’s design the right package' },
+        monthly: { amount: 'Flexible billing', descriptor: '' },
+        yearly: { amount: 'Flexible billing', descriptor: '' },
       },
     },
   ] as const;
@@ -363,10 +366,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-8"
           >
-            <h2 className="text-3xl font-bold text-foreground mb-4">Pricing that grows with your team</h2>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Pick the plan that fits today. Upgrade only when you need more collaboration and guidance.
-            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-2">Pricing</h2>
           </motion.div>
 
           <motion.div
@@ -382,10 +382,11 @@ export default function LandingPage() {
                   key={cycle}
                   type="button"
                   onClick={() => setBillingCycle(cycle)}
-                  className={`rounded-full px-4 py-2 transition-colors ${
+                  aria-pressed={billingCycle === cycle}
+                  className={`rounded-full px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                     billingCycle === cycle
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                   }`}
                 >
                   {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
@@ -394,23 +395,16 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.15 }}
-            viewport={{ once: true }}
-            className="text-center text-sm text-muted-foreground mb-12"
-          >
-            All plans include GPT-5, Claude Sonnet, Claude Code, and upcoming agents inside the Umans conversational workspace.
-          </motion.p>
+          {/* Subtitle removed for simplicity */}
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4 items-stretch">
             {pricingPlans.map((plan, index) => {
               const activePricing = plan.pricing[billingCycle];
+              const isEnterprise = plan.name === 'Enterprise';
               const buttonClasses =
                 plan.ctaVariant === 'primary'
-                  ? 'mt-8 inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
-                  : 'mt-8 inline-flex items-center justify-center rounded-md border border-border/60 bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+                  ? 'mt-8 inline-flex w-full items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+                  : 'mt-8 inline-flex w-full items-center justify-center rounded-md border border-border/60 bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
               return (
                 <motion.div
@@ -419,10 +413,10 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   viewport={{ once: true }}
-                  className={`group flex h-full flex-col rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/80 p-8 shadow-lg transition-all duration-300 hover:border-border/80 hover:shadow-xl backdrop-blur-sm ${plan.popular ? 'border-primary/70 shadow-primary/30' : ''}`}
+                  className={`group relative flex h-full flex-col rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/80 p-8 shadow-lg transition-all duration-300 hover:border-border/80 hover:shadow-xl backdrop-blur-sm ${plan.popular ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow-xl' : ''}`}
                 >
                   {plan.popular && (
-                    <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
                       Most popular
                     </span>
                   )}
@@ -434,23 +428,21 @@ export default function LandingPage() {
 
                   <div className="mt-6">
                     <div className="flex items-baseline gap-2">
-                      <p className="text-4xl font-bold text-foreground">{activePricing.amount}</p>
-                      <span className="text-sm text-muted-foreground">{activePricing.descriptor}</span>
+                      <p className={`${isEnterprise ? 'text-2xl' : 'text-4xl whitespace-nowrap'} font-bold text-foreground`}>{activePricing.amount}</p>
+                      <span className={`text-sm text-muted-foreground ${isEnterprise ? '' : 'whitespace-nowrap'}`}>{activePricing.descriptor}</span>
                     </div>
                   </div>
 
                   <p className="mt-4 text-sm text-muted-foreground">{plan.description}</p>
 
-                  <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+                  <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
                     {plan.features.map((feature) => (
-                      <div key={feature} className="flex items-start gap-3">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-primary">
-                          <Check className="h-3 w-3" />
-                        </span>
-                        <span>{feature}</span>
-                      </div>
+                      <li key={feature} className="flex items-start gap-3">
+                        <Check className="shrink-0 mt-1 h-4 w-4 text-primary" />
+                        <span className="leading-relaxed">{feature}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
 
                   <div className="mt-auto">
                     {plan.ctaType === 'internal' ? (
