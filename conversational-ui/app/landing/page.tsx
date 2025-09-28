@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { IconUmansLogo } from '@/components/icons';
 import { LandingNavbar } from '@/components/landing-navbar';
-import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Settings, DollarSign, Calendar, MessageSquare, Mail } from 'lucide-react';
+import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Check } from 'lucide-react';
 
 export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -26,6 +26,84 @@ export default function LandingPage() {
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+  const pricingPlans = [
+    {
+      name: 'Free',
+      tagline: 'Great for exploring Umans',
+      description: 'Spin up our browser-based coding agents and see how far the platform takes you.',
+      features: [
+        '5 daily agent credits (up to 50 monthly)',
+        'GPT-5, Claude Sonnet & Claude Code in-browser sessions',
+        'Auto-generated docs & diagrams for a personal space',
+      ],
+      ctaLabel: 'Start for free',
+      ctaHref: '/go-to-app',
+      ctaType: 'internal',
+      ctaVariant: 'primary',
+      pricing: {
+        monthly: { amount: '$0', descriptor: 'per user / month' },
+        yearly: { amount: '$0', descriptor: 'per user / month' },
+      },
+    },
+    {
+      name: 'Individual',
+      tagline: 'For solo founders and indie hackers',
+      description: 'Level up with more credits and access to our newest GPT-5 powered workflows.',
+      features: [
+        '300 monthly agent credits',
+        'Extended runs with GPT-5, Claude Sonnet & Claude Code',
+        'Personal workspace with persistent context & docs',
+      ],
+      ctaLabel: 'Get Individual',
+      ctaHref: 'https://buy.stripe.com/individual-plan-link',
+      ctaType: 'external',
+      ctaVariant: 'secondary',
+      pricing: {
+        monthly: { amount: '$24', descriptor: 'per user / month' },
+        yearly: { amount: '$19', descriptor: 'per user / month' },
+      },
+    },
+    {
+      name: 'Team',
+      tagline: 'Built for product teams that ship together',
+      description: 'Share context across teammates and keep everyone aligned with living docs.',
+      features: [
+        '600 shared monthly agent credits',
+        'Shared spaces with cross-conversation memory',
+        'Seats for up to 5 collaborators (per-user pricing)',
+      ],
+      ctaLabel: 'Get Team',
+      ctaHref: 'https://buy.stripe.com/team-plan-link',
+      ctaType: 'external',
+      ctaVariant: 'primary',
+      popular: true,
+      pricing: {
+        monthly: { amount: '$49', descriptor: 'per user / month' },
+        yearly: { amount: '$41', descriptor: 'per user / month' },
+      },
+    },
+    {
+      name: 'Enterprise',
+      tagline: 'Tailored to your engineering org',
+      description: 'Custom rollouts with deeper controls, security, and agent guardrails.',
+      features: [
+        'Custom credit pools & scaling guarantees',
+        'Dedicated environment profiles per team',
+        'White-glove enablement + shared roadmap planning',
+      ],
+      ctaLabel: 'Talk to sales',
+      ctaHref: 'mailto:contact@umans.ai',
+      ctaType: 'external',
+      ctaVariant: 'secondary',
+      pricing: {
+        monthly: { amount: 'Contact us', descriptor: 'Let’s design the right package' },
+        yearly: { amount: 'Contact us', descriptor: 'Let’s design the right package' },
+      },
+    },
+  ] as const;
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -275,102 +353,121 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Pricing Transparency Section */}
+      {/* Pricing Section */}
       <div className="relative z-10 bg-muted/30 py-24">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8"
           >
-            <h2 className="text-3xl font-bold text-foreground mb-4">Transparent Pricing</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We believe in honest, transparent pricing. Help us build the right model for you.
+            <h2 className="text-3xl font-bold text-foreground mb-4">Pricing that grows with your team</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Pick the plan that fits today. Upgrade only when you need more collaboration and guidance.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            {/* Current Status */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="mb-4">
-                <div className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-sm font-medium">
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Currently Free
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">While we build something amazing</h3>
-              <p className="text-muted-foreground">
-                Get full access to all current features while we develop and refine the platform.
-                No limits, no hidden costs - just pure innovation.
-              </p>
-            </motion.div>
-
-            {/* Future Plans */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="mb-4">
-                <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Paid Plans Coming
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Q3-Q4 2025</h3>
-              <p className="text-muted-foreground mb-4">
-                Early users get special pricing when we launch our subscription model.
-                You'll be grandfathered into the best rates.
-              </p>
-              <div className="inline-flex items-center px-3 py-1 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs font-medium">
-                Early Access Advantage
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Feedback Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
             viewport={{ once: true }}
-            className="text-center mt-12"
+            className="mb-6 flex justify-center"
           >
-            <div className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm">
-              <div className="mb-6">
-                <MessageSquare className="w-8 h-8 text-primary mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-                <h3 className="text-xl font-bold text-foreground mb-2">Help Shape Our Pricing</h3>
-                <p className="text-muted-foreground">
-                  Your input matters. Tell us what pricing model would work best for your team.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <a
-                  href="https://docs.google.com/forms/d/e/1FAIpQLScKnZwyFyizdnt3gBKOY7EFdnIHnuYWYGaaxqMpV1fWQk-szw/viewform?usp=header"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
+            <div className="inline-flex items-center rounded-full border border-border/60 bg-card/80 p-1 text-sm font-medium shadow-sm backdrop-blur">
+              {(['monthly', 'yearly'] as const).map((cycle) => (
+                <button
+                  key={cycle}
+                  type="button"
+                  onClick={() => setBillingCycle(cycle)}
+                  className={`rounded-full px-4 py-2 transition-colors ${
+                    billingCycle === cycle
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  Share Your Feedback
-                </a>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Questions? <a href="mailto:contact@umans.ai" className="ml-1 text-primary hover:underline">contact@umans.ai</a>
-                </div>
-              </div>
+                  {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                </button>
+              ))}
             </div>
           </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.15 }}
+            viewport={{ once: true }}
+            className="text-center text-sm text-muted-foreground mb-12"
+          >
+            All plans include GPT-5, Claude Sonnet, Claude Code, and upcoming agents inside the Umans conversational workspace.
+          </motion.p>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">
+            {pricingPlans.map((plan, index) => {
+              const activePricing = plan.pricing[billingCycle];
+              const buttonClasses =
+                plan.ctaVariant === 'primary'
+                  ? 'mt-8 inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+                  : 'mt-8 inline-flex items-center justify-center rounded-md border border-border/60 bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+
+              return (
+                <motion.div
+                  key={plan.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 * index }}
+                  viewport={{ once: true }}
+                  className={`group flex h-full flex-col rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/80 p-8 shadow-lg transition-all duration-300 hover:border-border/80 hover:shadow-xl backdrop-blur-sm ${plan.popular ? 'border-primary/70 shadow-primary/30' : ''}`}
+                >
+                  {plan.popular && (
+                    <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      Most popular
+                    </span>
+                  )}
+
+                  <div className="mt-4 space-y-2">
+                    <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">{plan.tagline}</p>
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-4xl font-bold text-foreground">{activePricing.amount}</p>
+                      <span className="text-sm text-muted-foreground">{activePricing.descriptor}</span>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-sm text-muted-foreground">{plan.description}</p>
+
+                  <div className="mt-6 space-y-3 text-sm text-muted-foreground">
+                    {plan.features.map((feature) => (
+                      <div key={feature} className="flex items-start gap-3">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-primary">
+                          <Check className="h-3 w-3" />
+                        </span>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-auto">
+                    {plan.ctaType === 'internal' ? (
+                      <Link href={plan.ctaHref} className={buttonClasses}>
+                        {plan.ctaLabel}
+                      </Link>
+                    ) : (
+                      <a href={plan.ctaHref} target="_blank" rel="noopener noreferrer" className={buttonClasses}>
+                        {plan.ctaLabel}
+                      </a>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
         </div>
       </div>
 
