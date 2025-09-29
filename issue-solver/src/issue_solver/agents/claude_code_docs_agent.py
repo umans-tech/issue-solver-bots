@@ -20,7 +20,7 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.models.supported_models import (
     QualifiedAIModel,
     SupportedAnthropicModel,
-    LATEST_CLAUDE_4_VERSION,
+    LATEST_CLAUDE_4_5_VERSION,
     VersionedAIModel,
 )
 
@@ -45,8 +45,8 @@ class ClaudeCodeDocsAgent(DocumentingAgent):
 
         # Configure Claude Code options
         default_model: VersionedAIModel = QualifiedAIModel(
-            ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
-            version=LATEST_CLAUDE_4_VERSION,
+            ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4_5,
+            version=LATEST_CLAUDE_4_5_VERSION,
         )
         options = ClaudeCodeOptions(
             cwd=str(repo_location),

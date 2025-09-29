@@ -18,10 +18,12 @@ class SupportedAnthropicModel(StrEnum):
     CLAUDE_35_HAIKU = "claude-3-5-haiku"
     CLAUDE_37_SONNET = "claude-3-7-sonnet"
     CLAUDE_SONNET_4 = "claude-sonnet-4"
+    CLAUDE_SONNET_4_5 = "claude-sonnet-4-5"
     CLAUDE_OPUS_4 = "claude-opus-4"
 
 
 LATEST_CLAUDE_4_VERSION = "20250514"
+LATEST_CLAUDE_4_5_VERSION = "20250929"
 
 
 class SupportedDeepSeekModel(StrEnum):

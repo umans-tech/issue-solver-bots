@@ -10,7 +10,7 @@ from issue_solver.issues.issue import IssueInfo
 from issue_solver.models.supported_models import (
     SupportedAIModel,
     SupportedAnthropicModel,
-    LATEST_CLAUDE_4_VERSION,
+    LATEST_CLAUDE_4_5_VERSION,
 )
 
 
@@ -37,8 +37,8 @@ class ResolveIssueRequest(BaseSchema):
     issue: IssueInfo
     agent: SupportedAgent = SupportedAgent.CLAUDE_CODE
     max_turns: int = 100
-    ai_model: SupportedAIModel = SupportedAnthropicModel.CLAUDE_SONNET_4
-    ai_model_version: str | None = LATEST_CLAUDE_4_VERSION
+    ai_model: SupportedAIModel = SupportedAnthropicModel.CLAUDE_SONNET_4_5
+    ai_model_version: str | None = LATEST_CLAUDE_4_5_VERSION
     execution_environment: ExecutionEnvironmentPreference = (
         ExecutionEnvironmentPreference.ENV_PREFERRED
     )
