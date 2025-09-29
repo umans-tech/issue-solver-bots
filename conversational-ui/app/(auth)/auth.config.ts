@@ -21,6 +21,12 @@ export const authConfig = {
       const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
 
       if (isLoggedIn && (isOnLogin || isOnRegister)) {
+        // If a pending checkout cookie exists, send user to billing/start first
+        const cookie = (nextUrl as unknown as URL).searchParams.get('force');
+        const hasPending = (nextUrl as unknown as URL).searchParams.get('pending');
+        if (!cookie && !hasPending) {
+          // We cannot read cookies here easily; rely on client redirect after login.
+        }
         return Response.redirect(new URL('/', nextUrl as unknown as URL));
       }
 
