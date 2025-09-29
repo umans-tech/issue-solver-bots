@@ -4,7 +4,6 @@ from pathlib import Path
 from issue_solver.agents.issue_resolving_agent import (
     ResolveIssueCommand,
 )
-from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.cli.prepare_command import PrepareCommandSettings
 from issue_solver.cli.solve_command_settings import SolveCommandSettings
 from issue_solver.env_setup.dev_environments_management import (
@@ -29,8 +28,6 @@ from issue_solver.git_operations.git_helper import (
     GitSettings,
 )
 from issue_solver.models.supported_models import (
-    SupportedAnthropicModel,
-    LATEST_CLAUDE_4_5_VERSION,
     QualifiedAIModel,
 )
 from issue_solver.worker.dependencies import Dependencies
@@ -136,10 +133,10 @@ async def resolve_issue(
                 solve_command_settings = SolveCommandSettings(
                     process_id=process_id,
                     issue=message.issue,
-                    agent=SupportedAgent.CLAUDE_CODE,
+                    agent=message.agent,
                     git=GitSettings(repository_url=url, access_token=access_token),
-                    ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4_5,
-                    ai_model_version=LATEST_CLAUDE_4_5_VERSION,
+                    ai_model=message.ai_model,
+                    ai_model_version=message.ai_model_version,
                     repo_path=default_clone_path,
                     webhook_base_url=os.environ.get("WEBHOOK_BASE_URL"),
                     process_queue_url=None,
@@ -197,8 +194,8 @@ async def resolve_issue(
                 ResolveIssueCommand(
                     process_id=message.process_id,
                     model=QualifiedAIModel(
-                        ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4_5,
-                        version=LATEST_CLAUDE_4_5_VERSION,
+                        ai_model=message.ai_model,
+                        version=message.ai_model_version,
                     ),
                     issue=message.issue,
                     repo_path=repo_path,
