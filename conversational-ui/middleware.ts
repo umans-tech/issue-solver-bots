@@ -12,6 +12,10 @@ export default function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
+  // Allow public billing endpoints (checkout returns 401 JSON; webhook used by Stripe)
+  if (req.nextUrl.pathname.startsWith('/api/billing/')) {
+    return NextResponse.next();
+  }
   
   return auth(req as any);
 }

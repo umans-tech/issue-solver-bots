@@ -38,6 +38,10 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planKey, cycle: billingCycle }),
       });
+      if (res.status === 401) {
+        window.location.href = '/register';
+        return;
+      }
       const data = await res.json();
       if (data?.url) {
         window.location.href = data.url as string;
