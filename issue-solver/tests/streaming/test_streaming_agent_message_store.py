@@ -12,7 +12,7 @@ from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.models.supported_models import (
     VersionedAIModel,
     SupportedAnthropicModel,
-    LATEST_CLAUDE_4_VERSION,
+    LATEST_CLAUDE_4_5_VERSION,
 )
 from issue_solver.streaming.streaming_agent_message_store import (
     StreamingAgentMessageStore,
@@ -33,8 +33,8 @@ async def test_streaming_agent_message_store_should_append_and_publish(redis_cli
     message_id = await streaming_agent_message_store.append(
         process_id="resolve-issue-123",
         model=VersionedAIModel(
-            ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4,
-            version=LATEST_CLAUDE_4_VERSION,
+            ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4_5,
+            version=LATEST_CLAUDE_4_5_VERSION,
         ),
         turn=5,
         agent=SupportedAgent.CLAUDE_CODE,
@@ -51,7 +51,7 @@ async def test_streaming_agent_message_store_should_append_and_publish(redis_cli
         type="AssistantMessage",
         turn=5,
         agent=SupportedAgent.CLAUDE_CODE,
-        model=VersionedAIModel(ai_model="claude-sonnet-4", version="20250514"),
+        model=VersionedAIModel(ai_model="claude-sonnet-4-5", version="20250929"),
         payload=payload,
     )
     assert process_messages == [expected_agent_message]
@@ -64,7 +64,7 @@ async def test_streaming_agent_message_store_should_append_and_publish(redis_cli
     assert data["payload"] == payload
     assert data["turn"] == 5
     assert data["agent"] == SupportedAgent.CLAUDE_CODE
-    assert data["model"] == {"ai_model": "claude-sonnet-4", "version": "20250514"}
+    assert data["model"] == {"ai_model": "claude-sonnet-4-5", "version": "20250929"}
 
 
 def get_first_published_message(subscriber: PubSub) -> dict | None:

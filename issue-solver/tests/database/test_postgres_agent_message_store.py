@@ -37,7 +37,7 @@ async def test_append_and_get_agent_result_message(
     )
     await agent_message_store.append(
         process_id,
-        model=VersionedAIModel(SupportedAnthropicModel.CLAUDE_SONNET_4),
+        model=VersionedAIModel(SupportedAnthropicModel.CLAUDE_SONNET_4_5),
         turn=16,
         message=message,
         agent="CLAUDE_CODE",
