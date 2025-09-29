@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
-from claude_code_sdk import UserMessage
+from claude_agent_sdk import UserMessage
 
 from issue_solver.agents.agent_message_store import (
     InMemoryAgentMessageStore,
@@ -152,7 +152,10 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
                 ai_model=SupportedAnthropicModel.CLAUDE_OPUS_4,
                 version=LATEST_CLAUDE_4_VERSION,
             ),
-            payload={"content": "Hello, can you solve this issue about serialization?"},
+            payload={
+                "content": "Hello, can you solve this issue about serialization?",
+                "parent_tool_use_id": None,
+            },
         )
     ]
     http_client_mock.post.assert_called_once_with(
@@ -162,7 +165,8 @@ async def test_webhook_notifying_agent_message_store_should_append_and_get_messa
             "agent_message": {
                 "id": message_id,
                 "payload": {
-                    "content": "Hello, can you solve this issue about serialization?"
+                    "content": "Hello, can you solve this issue about serialization?",
+                    "parent_tool_use_id": None,
                 },
                 "model": {"ai_model": "claude-opus-4", "version": "20250514"},
                 "turn": 1,

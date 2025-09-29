@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from claude_code_sdk import AssistantMessage, TextBlock
+from claude_agent_sdk import AssistantMessage, TextBlock
 from redis.client import PubSub
 
 from issue_solver.agents.agent_message_store import (

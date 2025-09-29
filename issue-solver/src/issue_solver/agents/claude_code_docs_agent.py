@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from claude_code_sdk import (
+from claude_agent_sdk import (
     AssistantMessage,
-    ClaudeCodeOptions,
+    ClaudeAgentOptions,
     ResultMessage,
     TextBlock,
     query,
@@ -48,7 +48,7 @@ class ClaudeCodeDocsAgent(DocumentingAgent):
             ai_model=SupportedAnthropicModel.CLAUDE_SONNET_4_5,
             version=LATEST_CLAUDE_4_5_VERSION,
         )
-        options = ClaudeCodeOptions(
+        options = ClaudeAgentOptions(
             cwd=str(repo_location),
             model=str(default_model),
             max_turns=100,

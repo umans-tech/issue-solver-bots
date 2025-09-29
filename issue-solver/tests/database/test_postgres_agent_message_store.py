@@ -1,5 +1,5 @@
 import pytest
-from claude_code_sdk import ResultMessage
+from claude_agent_sdk import ResultMessage
 
 from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.models.supported_models import (

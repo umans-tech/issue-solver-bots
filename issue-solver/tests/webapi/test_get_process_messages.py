@@ -1,7 +1,7 @@
 from unittest.mock import ANY
 
 import pytest
-from claude_code_sdk import SystemMessage
+from claude_agent_sdk import SystemMessage
 
 from issue_solver.agents.agent_message_store import AgentMessageStore
 from issue_solver.models.supported_models import (
