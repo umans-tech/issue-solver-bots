@@ -22,9 +22,9 @@ dependencies = [
     "tenacity",
     "pygithub",
     "cryptography",
-    "claude-code-sdk",
     "redis",
     "morphcloud>=0.1.85",
+    "claude-agent-sdk>=0.1.0",
 ]
 
 [project.scripts]

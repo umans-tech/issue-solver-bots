@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from claude_code_sdk import (
+from claude_agent_sdk import (
     AssistantMessage,
-    ClaudeCodeOptions,
+    ClaudeAgentOptions,
     ResultMessage,
     TextBlock,
     query,
@@ -35,7 +35,7 @@ class ClaudeCodeAgent(IssueResolvingAgent):
         issue_description = command.issue.description
 
         # Configure Claude Code options
-        options = ClaudeCodeOptions(
+        options = ClaudeAgentOptions(
             cwd=str(repo_location),
             model=str(command.model),
             max_turns=100,
