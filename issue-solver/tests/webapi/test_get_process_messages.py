@@ -24,7 +24,7 @@ async def test_get_process_messages_with_one_historical_message(
     await agent_message_store.append(
         process_id=process_id,
         model=VersionedAIModel(
-            SupportedAnthropicModel.CLAUDE_SONNET_4, version="20250514"
+            SupportedAnthropicModel.CLAUDE_SONNET_4_5, version="20250929"
         ),
         turn=1,
         message=SystemMessage(data=original_message_data, subtype="init"),
@@ -44,7 +44,7 @@ async def test_get_process_messages_with_one_historical_message(
             "type": "SystemMessage",
             "turn": 1,
             "agent": "CLAUDE_CODE",
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-5-20250929",
             "payload": original_message,
         }
     ]
@@ -67,7 +67,7 @@ async def test_get_process_messages_with_two_historical_messages(
     await agent_message_store.append(
         process_id=process_id,
         model=VersionedAIModel(
-            SupportedAnthropicModel.CLAUDE_SONNET_4, version="20250514"
+            SupportedAnthropicModel.CLAUDE_SONNET_4_5, version="20250929"
         ),
         turn=1,
         message=SystemMessage(data=original_message_data, subtype="init \n"),
@@ -85,7 +85,7 @@ async def test_get_process_messages_with_two_historical_messages(
     await agent_message_store.append(
         process_id=process_id,
         model=VersionedAIModel(
-            SupportedAnthropicModel.CLAUDE_SONNET_4, version="20250514"
+            SupportedAnthropicModel.CLAUDE_SONNET_4_5, version="20250929"
         ),
         turn=2,
         message=SystemMessage(data=second_message_data, subtype="follow_up"),
@@ -105,7 +105,7 @@ async def test_get_process_messages_with_two_historical_messages(
             "type": "SystemMessage",
             "turn": 1,
             "agent": "CLAUDE_CODE",
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-5-20250929",
             "payload": original_message,
         },
         {
@@ -113,7 +113,7 @@ async def test_get_process_messages_with_two_historical_messages(
             "type": "SystemMessage",
             "turn": 2,
             "agent": "CLAUDE_CODE",
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-5-20250929",
             "payload": second_message,
         },
     ]
@@ -145,7 +145,7 @@ async def first_system_message():
     return {
         "cwd": "/tmp/repo/bed8374f-535e-4e50-a7d9-49346eb8263c",
         "type": "system",
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-5-20250929",
         "tools": [
             "Task",
             "Bash",
