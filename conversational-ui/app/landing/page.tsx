@@ -39,7 +39,9 @@ export default function LandingPage() {
         body: JSON.stringify({ plan: planKey, cycle: billingCycle }),
       });
       if (res.status === 401) {
-        window.location.href = '/register';
+        const payload = encodeURIComponent(JSON.stringify({ plan: planKey, cycle: billingCycle }));
+        document.cookie = `pending_checkout=${payload}; Path=/; Max-Age=3600; SameSite=Lax`;
+        window.location.href = `/register?plan=${planKey}&cycle=${billingCycle}`;
         return;
       }
       const data = await res.json();
