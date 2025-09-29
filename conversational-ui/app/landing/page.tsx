@@ -28,6 +28,25 @@ export default function LandingPage() {
   };
 
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [checkoutLoading, setCheckoutLoading] = useState<null | 'individual' | 'team'>(null);
+
+  const startCheckout = async (planKey: 'individual' | 'team') => {
+    try {
+      setCheckoutLoading(planKey);
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planKey, cycle: billingCycle }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url as string;
+      }
+    } catch (e) {
+      console.error('Failed to start checkout', e);
+      setCheckoutLoading(null);
+    }
+  };
 
   const pricingPlans = [
     {
@@ -445,7 +464,16 @@ export default function LandingPage() {
                   </ul>
 
                   <div className="mt-auto">
-                    {plan.ctaType === 'internal' ? (
+                    {plan.name === 'Individual' || plan.name === 'Team' ? (
+                      <button
+                        type="button"
+                        onClick={() => startCheckout(plan.name.toLowerCase() as 'individual' | 'team')}
+                        disabled={checkoutLoading === (plan.name.toLowerCase() as 'individual' | 'team')}
+                        className={`${buttonClasses} ${checkoutLoading === (plan.name.toLowerCase() as 'individual' | 'team') ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        {plan.ctaLabel}
+                      </button>
+                    ) : plan.ctaType === 'internal' ? (
                       <Link href={plan.ctaHref} className={buttonClasses}>
                         {plan.ctaLabel}
                       </Link>
