@@ -36,6 +36,10 @@ export const user = pgTable('User', {
   emailVerificationToken: varchar('emailVerificationToken', { length: 255 }),
   hasCompletedOnboarding: boolean('hasCompletedOnboarding').notNull().default(false),
   profileNotes: text('profileNotes'),
+  // Billing
+  plan: varchar('plan', { length: 32 }).notNull().default('free'),
+  subscriptionStatus: varchar('subscriptionStatus', { length: 32 }),
+  stripeCustomerId: varchar('stripeCustomerId', { length: 255 }),
 });
 
 export type User = InferSelectModel<typeof user>;
