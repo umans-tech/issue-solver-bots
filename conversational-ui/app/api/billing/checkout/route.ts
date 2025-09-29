@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     payment_method_types: ['card'],
     line_items: [{ price, quantity: 1 }],
     success_url: `${baseUrl}/?billing=success`,
-    cancel_url: `${baseUrl}/pricing?billing=cancelled`,
+    cancel_url: `${baseUrl}/?billing=cancelled`,
     customer_email: dbUser?.email || email || undefined,
     client_reference_id: userId || undefined,
     metadata: { userId: userId || '', plan, cycle },
