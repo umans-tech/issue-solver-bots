@@ -382,7 +382,7 @@ export default function LandingPage() {
       </div>
 
       {/* Pricing Section */}
-      <div className="relative z-10 bg-muted/30 py-24">
+      <div id="pricing" className="relative z-10 bg-muted/30 py-24 scroll-mt-24">
         <div className="mx-auto max-w-6xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
