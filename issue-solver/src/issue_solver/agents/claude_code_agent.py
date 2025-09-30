@@ -24,6 +24,7 @@ from issue_solver.agents.resolution_approaches import (
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 class ClaudeCodeAgent(IssueResolvingAgent):
