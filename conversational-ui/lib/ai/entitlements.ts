@@ -1,7 +1,7 @@
 import { startOfDay, startOfMonth } from 'date-fns';
 import { getTokenUsageByUser } from '@/lib/db/queries';
 
-type PlanKey = 'free' | 'individual' | 'team' | 'enterprise' | string;
+type PlanKey = 'free' | 'solo' | 'pro' | 'enterprise' | string;
 
 type Limits = {
   dailyCompletions?: number;
@@ -10,8 +10,8 @@ type Limits = {
 
 const PLAN_LIMITS: Record<string, Limits> = {
   free: { dailyCompletions: 5, monthlyCompletions: 50 },
-  individual: { monthlyCompletions: 300 },
-  team: { monthlyCompletions: 600 },
+  solo: { monthlyCompletions: 200 },
+  pro: { monthlyCompletions: 600 },
   enterprise: {}, // unlimited
 };
 

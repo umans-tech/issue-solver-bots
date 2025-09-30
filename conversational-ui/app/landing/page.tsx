@@ -79,7 +79,7 @@ export default function LandingPage() {
       tagline: 'For solo founders and indie hackers',
       description: 'Level up with more credits and access to our newest GPT-5 powered workflows.',
       features: [
-        '300 monthly agent credits',
+        '200 monthly agent credits',
         'Extended runs with GPT-5, Claude Sonnet & Claude Code',
         'Personal workspace with persistent context & docs',
       ],
