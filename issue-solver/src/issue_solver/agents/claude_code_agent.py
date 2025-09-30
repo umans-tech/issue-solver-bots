@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 from claude_agent_sdk import (
     AssistantMessage,
@@ -20,6 +21,9 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.agents.resolution_approaches import (
     pragmatic_coding_agent_system_prompt,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeCodeAgent(IssueResolvingAgent):
@@ -65,14 +69,20 @@ class ClaudeCodeAgent(IssueResolvingAgent):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
-                            print(f"Claude: {block.text}")
+                            logger.info("Claude: %s", block.text)
                         elif isinstance(block, ToolUseBlock):
-                            print(
-                                f"Tool Use: {block.name} - id:{block.id} - input: {block.input}"
+                            logger.info(
+                                "Tool Use: %s - id:%s - input: %s",
+                                block.name,
+                                block.id,
+                                block.input,
                             )
                         elif isinstance(block, ToolResultBlock):
-                            print(
-                                f"Tool Result: {block.is_error} - id: {block.tool_use_id} - output: {block.content}"
+                            logger.info(
+                                "Tool Result: %s - id: %s - output: %s",
+                                block.is_error,
+                                block.tool_use_id,
+                                block.content,
                             )
 
                 elif isinstance(message, ResultMessage):
@@ -80,11 +90,11 @@ class ClaudeCodeAgent(IssueResolvingAgent):
                         message.total_cost_usd is not None
                         and message.total_cost_usd > 0
                     ):
-                        print(f"Cost: ${message.total_cost_usd:.4f}")
+                        logger.info("Cost: $%.4f", message.total_cost_usd)
                 elif isinstance(message, UserMessage):
-                    print(f"User: {message.content}")
+                    logger.info("User: %s", message.content)
                 elif isinstance(message, SystemMessage):
-                    print(f"System: {message.subtype} - data: {message.data}")
+                    logger.info("System: %s - data: %s", message.subtype, message.data)
 
         except Exception as e:
             raise RuntimeError(f"Claude Code agent failed: {str(e)}", e)
