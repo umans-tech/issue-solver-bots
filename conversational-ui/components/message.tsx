@@ -258,7 +258,7 @@ const PurePreviewMessage = ({
                     <div key={key} className="flex flex-col gap-2">
                       <div
                         data-testid="message-content"
-                        className={cn('flex flex-col gap-4', {
+                        className={cn('flex flex-col gap-4 relative', {
                           'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                             message.role === 'user',
                         })}
@@ -266,53 +266,73 @@ const PurePreviewMessage = ({
                         <Markdown>{part.text}</Markdown>
                       </div>
                       
-                      {/* Show edit button below user message */}
-                      {message.role === 'user' && !isReadonly && (
-                        <div className="flex justify-end gap-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                data-testid="message-edit-button"
-                                variant="ghost"
-                                className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                                onClick={() => {
-                                  setMode('edit');
-                                }}
-                              >
-                                <Pencil />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Edit message</TooltipContent>
-                          </Tooltip>
-                          
-                          {/* Copy button for user messages */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                                variant="ghost"
-                                onClick={async () => {
-                                  const textFromParts = message.parts
-                                    ?.filter((part) => part.type === 'text')
-                                    .map((part) => part.text)
-                                    .join('\n')
-                                    .trim();
-
-                                  if (!textFromParts) {
-                                    toast.error("There's no text to copy!");
-                                    return;
-                                  }
-
-                                  await navigator.clipboard.writeText(textFromParts);
-                                  toast.success('Copied to clipboard!');
-                                }}
-                              >
-                                <Copy />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Copy</TooltipContent>
-                          </Tooltip>
+                      {/* For unsaved messages, replace action buttons with clear notice */}
+                      {message.role === 'user' && (message as any).unsaved === true ? (
+                        <div className="flex justify-end">
+                          <div className="text-[11px] rounded-md bg-amber-100/90 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 border border-amber-300/60 px-2 py-1">
+                            This message wasn’t saved. <button className="underline inline-flex items-center" onClick={async () => {
+                              const textFromParts = message.parts
+                                ?.filter((p) => p.type === 'text')
+                                .map((p) => p.text)
+                                .join('\n')
+                                .trim();
+                              if (!textFromParts) {
+                                toast.error("There's no text to copy!");
+                                return;
+                              }
+                              await navigator.clipboard.writeText(textFromParts);
+                              toast.success('Copied to clipboard!');
+                            }}>Copy <Copy className="h-3 w-3 ml-1" /></button>
+                          </div>
                         </div>
+                      ) : (
+                        // Normal actions
+                        message.role === 'user' && !isReadonly && (
+                          <div className="flex justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  data-testid="message-edit-button"
+                                  variant="ghost"
+                                  className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                  onClick={() => {
+                                    setMode('edit');
+                                  }}
+                                >
+                                  <Pencil />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit message</TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                                  variant="ghost"
+                                  onClick={async () => {
+                                    const textFromParts = message.parts
+                                      ?.filter((part) => part.type === 'text')
+                                      .map((part) => part.text)
+                                      .join('\n')
+                                      .trim();
+
+                                    if (!textFromParts) {
+                                      toast.error("There's no text to copy!");
+                                      return;
+                                    }
+
+                                    await navigator.clipboard.writeText(textFromParts);
+                                    toast.success('Copied to clipboard!');
+                                  }}
+                                >
+                                  <Copy />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Copy</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )
                       )}
                     </div>
                   );

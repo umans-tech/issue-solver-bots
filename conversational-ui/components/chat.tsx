@@ -15,7 +15,7 @@ import { PricingDialog } from '@/components/pricing-dialog';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
-import { fetcher, generateUUID, fetchWithErrorHandlers } from '@/lib/utils';
+import { fetcher, generateUUID, fetchWithErrorHandlers, getMostRecentUserMessage } from '@/lib/utils';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
 import { Artifact } from './artifact';
@@ -168,11 +168,40 @@ export function Chat({
       const retryAt = typeof payload?.retryAt === 'string' ? payload.retryAt : undefined;
       const retryText = retryAt ? `Try again in ${timeUntil(retryAt)}` : '';
       if (daily) {
-        setLimitMessage(`Daily limit reached (${daily[1]}). ${retryText}`);
+        setLimitMessage(`Daily limit reached (${daily[1]}). ${retryText}`.trim());
+        const last = getMostRecentUserMessage(messages);
+        if (last) {
+          // Mark last user message as unsaved visually
+          setMessages((prev) => {
+            const clone = [...prev];
+            for (let i = clone.length - 1; i >= 0; i -= 1) {
+              if (clone[i].role === 'user') {
+                (clone[i] as any).unsaved = true;
+                (clone[i] as any).limitText = `Daily limit reached (${daily[1]}). ${retryText}`.trim();
+                break;
+              }
+            }
+            return clone;
+          });
+        }
         return;
       }
       if (monthly) {
-        setLimitMessage(`Monthly limit reached (${monthly[1]}). ${retryText}`);
+        setLimitMessage(`Monthly limit reached (${monthly[1]}). ${retryText}`.trim());
+        const last = getMostRecentUserMessage(messages);
+        if (last) {
+          setMessages((prev) => {
+            const clone = [...prev];
+            for (let i = clone.length - 1; i >= 0; i -= 1) {
+              if (clone[i].role === 'user') {
+                (clone[i] as any).unsaved = true;
+                (clone[i] as any).limitText = `Monthly limit reached (${monthly[1]}). ${retryText}`.trim();
+                break;
+              }
+            }
+            return clone;
+          });
+        }
         return;
       }
       toast.error('An error occured, please try again!');
@@ -283,7 +312,7 @@ export function Chat({
                 onClick={() => {
                   window.dispatchEvent(new Event('open-pricing-dialog'));
                 }}
-               >Upgrade</button>
+              >Upgrade</button>
             </div>
           </div>
         )}
