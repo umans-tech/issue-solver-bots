@@ -17,6 +17,8 @@ import { authConfig } from './auth.config';
 interface ExtendedSession extends Session {
   user: {
     id: string;
+    plan?: string;
+    subscriptionStatus?: string | null;
     hasCompletedOnboarding?: boolean;
     selectedSpace?: {
       id: string;
@@ -145,6 +147,8 @@ export const {
         const [dbUser] = await getUser(user.email!);
         if (dbUser?.id) {
           token.id = dbUser.id;
+          token.plan = dbUser.plan;
+          token.subscriptionStatus = dbUser.subscriptionStatus;
           token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
         } else {
           console.error('❌ JWT: Could not find database user for email:', user.email);
@@ -157,6 +161,8 @@ export const {
         const [dbUser] = await getUser(token.email as string);
         if (dbUser) {
           token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
+          token.plan = dbUser.plan;
+          token.subscriptionStatus = dbUser.subscriptionStatus;
         }
       }
 
@@ -191,6 +197,8 @@ export const {
     }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.plan = token.plan as string | undefined;
+        session.user.subscriptionStatus = token.subscriptionStatus as string | undefined;
         session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
 
         // Add selected space info to the session
