@@ -5,6 +5,8 @@ import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { PricingDialog } from '@/components/pricing-dialog';
 
 import {
   DropdownMenu,
@@ -23,6 +25,8 @@ import { Avatar } from '@/components/ui/avatar';
 export function SidebarUserNav({ user }: { user: User }) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
+  const { data: session } = useSession();
+  const plan = (session?.user as any)?.plan || 'free';
 
   return (
     <SidebarMenu>
@@ -42,10 +46,34 @@ export function SidebarUserNav({ user }: { user: User }) {
               <ChevronUp className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
+            <DropdownMenuContent
             side="top"
             className="w-[--radix-popper-anchor-width]"
           >
+            <div className="px-2.5 py-2 text-xs text-muted-foreground flex items-center justify-between">
+              <span>Plan</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${plan === 'free' ? 'bg-muted text-foreground' : 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-300 border-emerald-600/20'}`}>{plan}</span>
+            </div>
+            <DropdownMenuItem asChild>
+              <div className="w-full">
+                {plan === 'free' ? (
+                  <button
+                    type="button"
+                    className="w-full text-left font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Open pricing dialog programmatically to avoid nested trigger closing
+                      window.dispatchEvent(new Event('open-pricing-dialog'));
+                    }}
+                  >
+                    Upgrade plan
+                  </button>
+                ) : (
+                  <button type="button" className="w-full text-left font-medium" onClick={(e) => { e.stopPropagation(); router.push('/'); }}>Manage billing</button>
+                )}
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
               onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

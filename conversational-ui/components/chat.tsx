@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { PricingDialog } from '@/components/pricing-dialog';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -227,6 +229,18 @@ export function Chat({
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
         />
+
+        {(session?.user as any)?.plan === 'free' && (
+          <div className="mx-auto mt-3">
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-background/70">
+              <span className="text-muted-foreground">Free plan</span>
+              <span className="text-muted-foreground">•</span>
+              <PricingDialog>
+                <button className="text-foreground hover:underline">Upgrade</button>
+              </PricingDialog>
+            </div>
+          </div>
+        )}
 
         <Messages
           chatId={id}
