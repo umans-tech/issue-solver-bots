@@ -26,6 +26,7 @@ import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from '@/components/data-stream-provider';
+import { differenceInMinutes, differenceInHours } from 'date-fns';
 
 export function Chat({
   id,
@@ -75,6 +76,21 @@ export function Chat({
   
   const { mutate } = useSWRConfig();
   const { setDataStream } = useDataStream();
+
+  function timeUntil(iso: string): string {
+    try {
+      const target = new Date(iso);
+      const now = new Date();
+      const mins = Math.max(1, differenceInMinutes(target, now));
+      if (mins >= 60) {
+        const hrs = Math.max(1, differenceInHours(target, now));
+        return `${hrs}h`;
+      }
+      return `${mins}m`;
+    } catch {
+      return 'a while';
+    }
+  }
 
   const [input, setInput] = useState<string>('');
   const [resumeBlocked, setResumeBlocked] = useState(false);
@@ -145,15 +161,18 @@ export function Chat({
         }).catch(() => {});
         return;
       }
+      const payload = (error as any)?.payload;
       const msg = String(error?.message || '').toLowerCase();
       const daily = /daily message limit reached\s*\((\d+)\)/i.exec(msg);
       const monthly = /monthly message limit reached\s*\((\d+)\)/i.exec(msg);
+      const retryAt = typeof payload?.retryAt === 'string' ? payload.retryAt : undefined;
+      const retryText = retryAt ? ` or try again in ${timeUntil(retryAt)}` : '';
       if (daily) {
-        setLimitMessage(`Daily limit reached (${daily[1]}).`);
+        setLimitMessage(`Daily limit reached (${daily[1]})${retryText}.`);
         return;
       }
       if (monthly) {
-        setLimitMessage(`Monthly limit reached (${monthly[1]}).`);
+        setLimitMessage(`Monthly limit reached (${monthly[1]})${retryText}.`);
         return;
       }
       toast.error('An error occured, please try again!');
@@ -234,13 +253,15 @@ export function Chat({
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
+        {/* Mount pricing dialog globally so programmatic open works even mid-conversation */}
+        <PricingDialog />
         <ChatHeader
           chatId={id}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
         />
 
-        {(session?.user as any)?.plan === 'free' && (
+        {(session?.user as any)?.plan === 'free' && messages.length === 0 && (
           <div className="mx-auto mt-3">
             <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-background/70">
               <span className="text-muted-foreground">Free plan</span>

@@ -23,6 +23,7 @@ export type EntitlementResult = {
   usedThisMonth: number;
   limitMonth?: number;
   reason?: string;
+  retryAt?: string; // ISO when the limit resets for user messaging
 };
 
 export async function checkChatEntitlements({
@@ -63,6 +64,11 @@ export async function checkChatEntitlements({
       ? 'daily-limit'
       : !withinMonthly
         ? 'monthly-limit'
+        : undefined,
+    retryAt: !withinDaily
+      ? new Date(startOfDay(new Date()).getTime() + 24 * 60 * 60 * 1000).toISOString()
+      : !withinMonthly
+        ? new Date(startOfMonth(new Date()).setMonth(new Date().getMonth() + 1)).toISOString()
         : undefined,
   };
 }

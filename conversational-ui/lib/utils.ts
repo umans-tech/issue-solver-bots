@@ -50,8 +50,12 @@ export async function fetchWithErrorHandlers(
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const body = await response.json();
-        const cause = (body && (body.cause || body.message)) ?? JSON.stringify(body);
-        throw new Error(cause);
+        // stringify structured error object so callers can parse extra fields like retryAt
+        const cause = (body && (body.cause || body.message)) ?? '';
+        const err = new Error(cause || JSON.stringify(body));
+        // @ts-ignore attach raw body for consumers
+        (err as any).payload = body;
+        throw err;
       } else {
         const text = await response.text();
         throw new Error(text || `${response.status} ${response.statusText}`);
