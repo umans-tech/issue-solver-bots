@@ -166,13 +166,13 @@ export function Chat({
       const daily = /daily message limit reached\s*\((\d+)\)/i.exec(msg);
       const monthly = /monthly message limit reached\s*\((\d+)\)/i.exec(msg);
       const retryAt = typeof payload?.retryAt === 'string' ? payload.retryAt : undefined;
-      const retryText = retryAt ? ` or try again in ${timeUntil(retryAt)}` : '';
+      const retryText = retryAt ? `Try again in ${timeUntil(retryAt)}` : '';
       if (daily) {
-        setLimitMessage(`Daily limit reached (${daily[1]})${retryText}.`);
+        setLimitMessage(`Daily limit reached (${daily[1]}). ${retryText}`);
         return;
       }
       if (monthly) {
-        setLimitMessage(`Monthly limit reached (${monthly[1]})${retryText}.`);
+        setLimitMessage(`Monthly limit reached (${monthly[1]}). ${retryText}`);
         return;
       }
       toast.error('An error occured, please try again!');
@@ -277,15 +277,13 @@ export function Chat({
           <div className="mx-auto mt-3">
             <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
               <span>{limitMessage}</span>
-              <span>•</span>
+              <span className="opacity-80">or</span>
               <button
                 className="underline"
                 onClick={() => {
                   window.dispatchEvent(new Event('open-pricing-dialog'));
                 }}
-              >
-                Upgrade
-              </button>
+               >Upgrade</button>
             </div>
           </div>
         )}
