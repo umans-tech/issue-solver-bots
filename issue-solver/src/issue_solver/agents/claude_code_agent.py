@@ -98,4 +98,5 @@ class ClaudeCodeAgent(IssueResolvingAgent):
                     logger.info("System: %s - data: %s", message.subtype, message.data)
 
         except Exception as e:
+            logger.error("Claude Code agent failed: %s", e)
             raise RuntimeError(f"Claude Code agent failed: {str(e)}", e)
