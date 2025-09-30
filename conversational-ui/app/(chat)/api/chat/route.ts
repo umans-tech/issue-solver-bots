@@ -33,6 +33,7 @@ import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
 import { ChatMessage } from '@/lib/types';
+import { checkChatEntitlements } from '@/lib/ai/entitlements';
 
 export const maxDuration = 60;
 const maxSteps = 40;
@@ -128,6 +129,22 @@ export async function POST(request: Request) {
           title,
           spaceId: currentSpace.id
         });
+    }
+
+    // Enforce simple per-plan limits (inspired by Vercel AI chatbot entitlements)
+    try {
+      const plan = ((session.user as any).plan as string) || 'free';
+      const entitlement = await checkChatEntitlements({ userId: session.user.id, plan });
+      if (!entitlement.ok) {
+        const explain =
+          entitlement.reason === 'daily-limit'
+            ? `Daily message limit reached (${entitlement.limitToday}).`
+            : `Monthly message limit reached (${entitlement.limitMonth}).`;
+        return new Response(explain, { status: 402 });
+      }
+    } catch (e) {
+      // Fail-open to avoid blocking users on transient errors
+      console.warn('Entitlement check failed (continuing):', e);
     }
 
     await saveMessages({

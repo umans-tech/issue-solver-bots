@@ -78,6 +78,7 @@ export function Chat({
 
   const [input, setInput] = useState<string>('');
   const [resumeBlocked, setResumeBlocked] = useState(false);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
 
   const isNetworkLikeError = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
@@ -131,8 +132,6 @@ export function Chat({
       mutate('/api/history');
     },
     onError: (error) => {
-      console.error('Error in useChat:\n', error.message);
-      console.error('Call stack:\n', error.stack);
       if (resumeBlocked) {
         return;
       }
@@ -144,6 +143,17 @@ export function Chat({
           maxTimeout: 3000,
           randomize: true,
         }).catch(() => {});
+        return;
+      }
+      const msg = String(error?.message || '').toLowerCase();
+      const daily = /daily message limit reached\s*\((\d+)\)/i.exec(msg);
+      const monthly = /monthly message limit reached\s*\((\d+)\)/i.exec(msg);
+      if (daily) {
+        setLimitMessage(`Daily limit reached (${daily[1]}).`);
+        return;
+      }
+      if (monthly) {
+        setLimitMessage(`Monthly limit reached (${monthly[1]}).`);
         return;
       }
       toast.error('An error occured, please try again!');
@@ -238,6 +248,23 @@ export function Chat({
               <PricingDialog>
                 <button className="text-foreground hover:underline">Upgrade</button>
               </PricingDialog>
+            </div>
+          </div>
+        )}
+
+        {limitMessage && (
+          <div className="mx-auto mt-3">
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
+              <span>{limitMessage}</span>
+              <span>•</span>
+              <button
+                className="underline"
+                onClick={() => {
+                  window.dispatchEvent(new Event('open-pricing-dialog'));
+                }}
+              >
+                Upgrade
+              </button>
             </div>
           </div>
         )}
