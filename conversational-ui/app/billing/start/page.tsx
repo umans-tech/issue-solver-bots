@@ -14,12 +14,12 @@ export default function BillingStartPage() {
     const run = async () => {
       try {
         const raw = getCookie('pending_checkout');
-        let plan: 'individual' | 'team' = 'individual';
+        let plan: 'solo' | 'pro' = 'solo';
         let cycle: 'monthly' | 'yearly' = 'monthly';
         if (raw) {
           try {
             const parsed = JSON.parse(decodeURIComponent(raw));
-            if (parsed?.plan === 'individual' || parsed?.plan === 'team') plan = parsed.plan;
+            if (parsed?.plan === 'solo' || parsed?.plan === 'pro') plan = parsed.plan;
             if (parsed?.cycle === 'monthly' || parsed?.cycle === 'yearly') cycle = parsed.cycle;
           } catch {}
         }

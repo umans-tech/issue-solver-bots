@@ -11,18 +11,18 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export type PlanKey = 'individual' | 'team';
+export type PlanKey = 'solo' | 'pro';
 export type BillingCycle = 'monthly' | 'yearly';
 
 // Map plans to Stripe price IDs via env vars for simplicity
 export const priceMap: Record<PlanKey, Record<BillingCycle, string>> = {
-  individual: {
-    monthly: process.env.STRIPE_PRICE_INDIVIDUAL_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_INDIVIDUAL_YEARLY || '',
+  solo: {
+    monthly: process.env.STRIPE_PRICE_SOLO_MONTHLY || '',
+    yearly: process.env.STRIPE_PRICE_SOLO_YEARLY || '',
   },
-  team: {
-    monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_TEAM_YEARLY || '',
+  pro: {
+    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
+    yearly: process.env.STRIPE_PRICE_PRO_YEARLY || '',
   },
 };
 

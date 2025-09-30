@@ -28,9 +28,9 @@ export default function LandingPage() {
   };
 
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [checkoutLoading, setCheckoutLoading] = useState<null | 'individual' | 'team'>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<null | 'solo' | 'pro'>(null);
 
-  const startCheckout = async (planKey: 'individual' | 'team') => {
+  const startCheckout = async (planKey: 'solo' | 'pro') => {
     try {
       setCheckoutLoading(planKey);
       const res = await fetch('/api/billing/checkout', {
@@ -75,7 +75,7 @@ export default function LandingPage() {
       },
     },
     {
-      name: 'Individual',
+      name: 'Solo',
       tagline: 'For solo founders and indie hackers',
       description: 'Level up with more credits and access to our newest GPT-5 powered workflows.',
       features: [
@@ -84,7 +84,7 @@ export default function LandingPage() {
         'Personal workspace with persistent context & docs',
       ],
       ctaLabel: 'Get started',
-      ctaHref: 'https://buy.stripe.com/individual-plan-link',
+      ctaHref: 'https://buy.stripe.com/solo-plan-link',
       ctaType: 'external',
       ctaVariant: 'secondary',
       popular: false,
@@ -94,16 +94,16 @@ export default function LandingPage() {
       },
     },
     {
-      name: 'Team',
-      tagline: 'Built for product teams that ship together',
-      description: 'Share context across teammates and keep everyone aligned with living docs.',
+      name: 'Pro',
+      tagline: 'Built for product pros that ship together',
+      description: 'Share context across promates and keep everyone aligned with living docs.',
       features: [
         '600 shared monthly agent credits',
         'Shared spaces with cross-conversation memory',
         'Seats for up to 5 collaborators (per-user pricing)',
       ],
       ctaLabel: 'Get started',
-      ctaHref: 'https://buy.stripe.com/team-plan-link',
+      ctaHref: 'https://buy.stripe.com/pro-plan-link',
       ctaType: 'external',
       ctaVariant: 'primary',
       popular: true,
@@ -118,7 +118,7 @@ export default function LandingPage() {
       description: 'Custom rollouts with deeper controls, security, and agent guardrails.',
       features: [
         'Custom credit pools & scaling guarantees',
-        'Dedicated environment profiles per team',
+        'Dedicated environment profiles per pro',
         'White-glove enablement + shared roadmap planning',
       ],
       ctaLabel: 'Contact us',
@@ -173,7 +173,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto">
-          Bridge the gap between what your system does, what business needs, and what your team plans to build.
+          Bridge the gap between what your system does, what business needs, and what your pro plans to build.
           </p>
 
 
@@ -211,7 +211,7 @@ export default function LandingPage() {
           >
             <h2 className="text-3xl font-bold text-foreground mb-4">What You Get Today</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              AI agents that understand your codebase and collaborate with your team
+              AI agents that understand your codebase and collaborate with your pro
             </p>
           </motion.div>
 
@@ -229,7 +229,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Deep Codebase Understanding</h3>
               <p className="text-muted-foreground">
-                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your team navigate even the most complex codebases with confidence.
+                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your pro navigate even the most complex codebases with confidence.
               </p>
             </motion.div>
 
@@ -368,7 +368,7 @@ export default function LandingPage() {
               Ready to transform your software delivery?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join teams that are already using AI agents to bridge the gap between 
+              Join pros that are already using AI agents to bridge the gap between
               business understanding and technical implementation.
             </p>
             <Link
@@ -470,12 +470,12 @@ export default function LandingPage() {
                   </ul>
 
                   <div className="mt-auto">
-                    {plan.name === 'Individual' || plan.name === 'Team' ? (
+                    {plan.name === 'Solo' || plan.name === 'Pro' ? (
                       <button
                         type="button"
-                        onClick={() => startCheckout(plan.name.toLowerCase() as 'individual' | 'team')}
-                        disabled={checkoutLoading === (plan.name.toLowerCase() as 'individual' | 'team')}
-                        className={`${buttonClasses} ${checkoutLoading === (plan.name.toLowerCase() as 'individual' | 'team') ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        onClick={() => startCheckout(plan.name.toLowerCase() as 'solo' | 'pro')}
+                        disabled={checkoutLoading === (plan.name.toLowerCase() as 'solo' | 'pro')}
+                        className={`${buttonClasses} ${checkoutLoading === (plan.name.toLowerCase() as 'solo' | 'pro') ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
                         {plan.ctaLabel}
                       </button>

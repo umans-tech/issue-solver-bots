@@ -11,7 +11,7 @@ type Cycle = 'monthly' | 'yearly';
 
 const plans = [
   {
-    name: 'Individual',
+    name: 'Solo',
     description: 'For solo founders and indie hackers',
     features: [
       '300 monthly agent credits',
@@ -19,22 +19,22 @@ const plans = [
       'Personal workspace with persistent context & docs',
     ],
     cta: 'Get started',
-    planKey: 'individual' as const,
+    planKey: 'solo' as const,
     pricing: {
       monthly: { amount: '$24', descriptor: 'per user / month' },
       yearly: { amount: '$19', descriptor: 'per user / month' },
     },
   },
   {
-    name: 'Team',
-    description: 'Built for product teams that ship together',
+    name: 'Pro',
+    description: 'Built for product pros that ship together',
     features: [
       '600 shared monthly agent credits',
       'Shared spaces with cross-conversation memory',
       'Seats for up to 5 collaborators (per-user pricing)',
     ],
     cta: 'Get started',
-    planKey: 'team' as const,
+    planKey: 'pro' as const,
     popular: true,
     pricing: {
       monthly: { amount: '$49', descriptor: 'per user / month' },
@@ -46,7 +46,7 @@ const plans = [
     description: 'Tailored to your engineering org',
     features: [
       'Custom credit pools & scaling guarantees',
-      'Dedicated environment profiles per team',
+      'Dedicated environment profiles per pro',
       'White-glove enablement + shared roadmap planning',
     ],
     cta: 'Contact us',
@@ -74,7 +74,7 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
     };
   }, []);
 
-  const startCheckout = async (planKey: 'individual' | 'team') => {
+  const startCheckout = async (planKey: 'solo' | 'pro') => {
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -123,8 +123,8 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
             const price = p.pricing[cycle];
             const isEnterprise = p.planKey === 'enterprise';
             return (
-              <div key={p.name} className={`relative rounded-2xl border p-5 bg-card/80 ${p.planKey === 'team' ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow' : 'border-border/50'}`}>
-                {p.planKey === 'team' && (
+              <div key={p.name} className={`relative rounded-2xl border p-5 bg-card/80 ${p.planKey === 'pro' ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow' : 'border-border/50'}`}>
+                {p.planKey === 'pro' && (
                   <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
                     Most popular
                   </span>
