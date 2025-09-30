@@ -5,7 +5,7 @@ services:
     image: localstack/localstack:latest
     container_name: issue-solver-localstack
     environment:
-      - SERVICES=sqs
+      - SERVICES=sqs,s3
       - DEBUG=1
       - DATA_DIR=/tmp/localstack_data
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -36,7 +36,10 @@ services:
       sleep 10 &&
       echo 'Creating SQS queue...' &&
       aws --endpoint-url=http://localstack:4566 sqs create-queue --queue-name process-queue &&
-      echo 'SQS queue created successfully!'
+      echo 'SQS queue created successfully!' &&
+      echo 'Creating S3 bucket...' &&
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://conversational-ui-blob &&
+      echo 'S3 bucket created successfully!'
       "
     restart: "no"
   postgres:
