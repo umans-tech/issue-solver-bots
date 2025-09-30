@@ -31,14 +31,30 @@ export function LandingNavbar() {
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo on the left */}
-          <div>
+          {/* Left area: logo + primary nav */}
+          <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center">
               <IconUmansLogo className="h-8 w-auto" />
             </Link>
+            <nav className="landing-nav hidden md:flex items-center gap-6 text-sm">
+              <a
+                href="https://discord.gg/Q5hdNrk7Rw"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground/80 hover:text-foreground transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-0 px-0 py-0"
+              >
+                Community
+              </a>
+              <Link
+                href="#pricing"
+                className="text-foreground/80 hover:text-foreground transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-0 px-0 py-0"
+              >
+                Pricing
+              </Link>
+            </nav>
           </div>
 
-          {/* Right side navigation */}
+          {/* Right side actions */}
           <div className="flex items-center space-x-4">
             {/* Theme Toggle */}
             <ThemeToggle variant="ghost" />

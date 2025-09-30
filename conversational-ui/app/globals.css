@@ -240,10 +240,17 @@
 
 /* Add translucent effect to sidebar in light mode */
 :not(.dark) [role="dialog"],
+
 :not(.dark) nav {
     background-color: hsla(240, 12%, 96%, 0.9) !important;
     backdrop-filter: blur(12px);
     border-right: 1px solid hsla(240, 12%, 82%, 0.5);
+}
+
+:not(.dark) nav.landing-nav {
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    border-right: none !important;
 }
 
 :not(.dark) .docs-search-overlay {
@@ -407,6 +414,12 @@ form textarea::-webkit-scrollbar {
     background-color: hsla(240, 12%, 15%, 0.9) !important;
     backdrop-filter: blur(12px);
     border-right: 1px solid hsla(240, 14%, 32%, 0.3);
+}
+
+.dark nav.landing-nav {
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    border-right: none !important;
 }
 
 .dark .docs-search-overlay {
