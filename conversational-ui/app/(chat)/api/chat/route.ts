@@ -136,11 +136,15 @@ export async function POST(request: Request) {
       const plan = ((session.user as any).plan as string) || 'free';
       const entitlement = await checkChatEntitlements({ userId: session.user.id, plan });
       if (!entitlement.ok) {
-        const explain =
-          entitlement.reason === 'daily-limit'
-            ? `Daily message limit reached (${entitlement.limitToday}).`
-            : `Monthly message limit reached (${entitlement.limitMonth}).`;
-        return new Response(explain, { status: 402 });
+        const explain = JSON.stringify({
+          code: entitlement.reason,
+          message:
+            entitlement.reason === 'daily-limit'
+              ? `Daily message limit reached (${entitlement.limitToday}).`
+              : `Monthly message limit reached (${entitlement.limitMonth}).`,
+          retryAt: entitlement.retryAt,
+        });
+        return new Response(explain, { status: 402, headers: { 'content-type': 'application/json' } });
       }
     } catch (e) {
       // Fail-open to avoid blocking users on transient errors
