@@ -14,7 +14,7 @@ const plans = [
     name: 'Solo',
     description: 'For solo founders and indie hackers',
     features: [
-      '300 monthly agent credits',
+      '200 monthly agent credits',
       'Extended runs with GPT-5, Claude Sonnet & Claude Code',
       'Personal workspace with persistent context & docs',
     ],
