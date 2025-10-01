@@ -29,6 +29,25 @@ resource "aws_iam_role" "conversational_ui_app_runner_role" {
   })
 }
 
+# Allow App Runner to retrieve secrets from Secrets Manager when the Stripe webhook is managed
+resource "aws_iam_role_policy" "conversational_ui_stripe_secret_access" {
+  count = var.stripe_webhook_enabled ? 1 : 0
+
+  name = "conversational-ui${local.environment_name_suffix}-stripe-webhook-secret-access"
+  role = aws_iam_role.conversational_ui_app_runner_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+        Resource = aws_secretsmanager_secret.stripe_webhook_secret[0].arn
+      }
+    ]
+  })
+}
+
 # Policy for ECR access
 resource "aws_iam_role_policy_attachment" "app_runner_ecr_policy" {
   role       = aws_iam_role.conversational_ui_app_runner_role.name
@@ -80,8 +99,11 @@ resource "aws_apprunner_service" "conversational_ui" {
           POSTHOG_KEY                  = var.posthog_key
           POSTHOG_HOST                 = var.posthog_host
           STRIPE_SECRET_KEY            = var.stripe_secret_key
-          STRIPE_WEBHOOK_SECRET        = aws_secretsmanager_secret.stripe_webhook_secret[0].arn
         }
+
+        runtime_environment_secrets = var.stripe_webhook_enabled ? {
+          STRIPE_WEBHOOK_SECRET = aws_secretsmanager_secret.stripe_webhook_secret[0].arn
+        } : {}
       }
       image_identifier      = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.conversational_ui_image_tag}"
       image_repository_type = "ECR"
