@@ -14,22 +14,45 @@ export function getStripe(): Stripe {
 export type PlanKey = 'solo' | 'pro';
 export type BillingCycle = 'monthly' | 'yearly';
 
-// Map plans to Stripe price IDs via env vars for simplicity
-export const priceMap: Record<PlanKey, Record<BillingCycle, string>> = {
+// Map plans to Stripe price lookup keys
+const lookupKeyMap: Record<PlanKey, Record<BillingCycle, string>> = {
   solo: {
-    monthly: process.env.STRIPE_PRICE_SOLO_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_SOLO_YEARLY || '',
+    monthly: 'solo_monthly',
+    yearly: 'solo_yearly',
   },
   pro: {
-    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_PRO_YEARLY || '',
+    monthly: 'pro_monthly',
+    yearly: 'pro_yearly',
   },
 };
 
-export function getPriceId(plan: PlanKey, cycle: BillingCycle): string {
-  const id = priceMap[plan]?.[cycle];
-  if (!id) throw new Error(`Missing Stripe price ID for ${plan}/${cycle}`);
-  return id;
+const priceCache = new Map<string, string>();
+
+export async function getPriceId(plan: PlanKey, cycle: BillingCycle): Promise<string> {
+  const lookupKey = lookupKeyMap[plan]?.[cycle];
+  if (!lookupKey) {
+    throw new Error(`Missing Stripe price lookup key for ${plan}/${cycle}`);
+  }
+
+  const cached = priceCache.get(lookupKey);
+  if (cached) {
+    return cached;
+  }
+
+  const stripe = getStripe();
+  const prices = await stripe.prices.list({
+    lookup_keys: [lookupKey],
+    active: true,
+    limit: 1,
+  });
+
+  const price = prices.data?.[0];
+  if (!price?.id) {
+    throw new Error(`Stripe price not found for lookup key ${lookupKey}`);
+  }
+
+  priceCache.set(lookupKey, price.id);
+  return price.id;
 }
 
 
