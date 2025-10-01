@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const price = getPriceId(plan, cycle);
+  const price = await getPriceId(plan, cycle);
   const email = session.user.email;
   const userId = session.user.id;
   const [dbUser] = await getUser(email);
