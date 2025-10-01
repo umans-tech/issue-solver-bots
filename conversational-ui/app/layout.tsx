@@ -70,7 +70,9 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               window.__RUNTIME_CONFIG__ = {
-                POSTHOG_KEY: ${JSON.stringify(process.env.POSTHOG_KEY ?? '')}
+                POSTHOG_KEY: ${JSON.stringify(process.env.POSTHOG_KEY ?? '')},
+                STRIPE_BILLING_PORTAL_URL: ${JSON.stringify(process.env.STRIPE_BILLING_PORTAL_URL ?? '')},
+                UMANS_BILLING_SUPPORT_EMAIL: ${JSON.stringify(process.env.UMANS_BILLING_SUPPORT_EMAIL ?? '')}
               };
             `,
           }}

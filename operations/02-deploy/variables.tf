@@ -119,3 +119,9 @@ variable "stripe_webhook_enabled" {
   type        = bool
   default     = true
 }
+
+variable "stripe_billing_portal_url" {
+  description = "URL for the Stripe billing portal"
+  type        = string
+  default     = ""
+}

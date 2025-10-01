@@ -99,6 +99,7 @@ resource "aws_apprunner_service" "conversational_ui" {
           POSTHOG_KEY                  = var.posthog_key
           POSTHOG_HOST                 = var.posthog_host
           STRIPE_SECRET_KEY            = var.stripe_secret_key
+          STRIPE_BILLING_PORTAL_URL    = var.stripe_billing_portal_url
         }
 
         runtime_environment_secrets = var.stripe_webhook_enabled ? {

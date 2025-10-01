@@ -21,6 +21,13 @@ stripe_secret_key := `bash -c 'if [ "{{ws}}" = "production" ]; then \
     echo "$STRIPE_SECRET_KEY_DEV"; \
   fi'`
 
+# set stripe_billing_portal_url to STRIPE_BILLING_PORTAL_URL_PROD if production workspace else STRIPE_BILLING_PORTAL_URL_DEV
+stripe_billing_portal_url := `bash -c 'if [ "{{ws}}" = "production" ]; then \
+    echo "$STRIPE_BILLING_PORTAL_URL_PROD"; \
+  else \
+    echo "$STRIPE_BILLING_PORTAL_URL_DEV"; \
+  fi'`
+
 # 🎬 Initialize terraform workspace for apps deployment
 init:
     @echo ">>> Using workspace: {{ws}}"
@@ -30,16 +37,16 @@ init:
 
 # 🗺️ Plan changes for apps deployment
 plan: init
-    @terraform plan -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}"
+    @terraform plan -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -var "stripe_billing_portal_url={{stripe_billing_portal_url}}"
 
 # 🚀 Apply changes for apps deployment
 apply: init
-    @terraform apply -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -auto-approve
+    @terraform apply -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -var "stripe_billing_portal_url={{stripe_billing_portal_url}}" -auto-approve
     @echo ">>> Deployed App URLs:"
     @echo ">>> AWS:"
     @terraform output conversational_ui_url
 
 # 💣 Destroy all resources for apps deployment
 destroy: init
-    @terraform destroy -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -auto-approve
+    @terraform destroy -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -var "stripe_billing_portal_url={{stripe_billing_portal_url}}" -auto-approve
     @echo ">>> Destroyed all resources for branch '{{branch_name}}'."
