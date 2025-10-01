@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { PricingDialog } from '@/components/pricing-dialog';
+import { ManageBillingDialog } from '@/components/manage-billing-dialog';
 
 import {
   DropdownMenu,
@@ -69,7 +69,16 @@ export function SidebarUserNav({ user }: { user: User }) {
                     Upgrade plan
                   </button>
                 ) : (
-                  <button type="button" className="w-full text-left font-medium" onClick={(e) => { e.stopPropagation(); router.push('/'); }}>Manage billing</button>
+                  <button
+                    type="button"
+                    className="w-full text-left font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.dispatchEvent(new Event('open-manage-billing'));
+                    }}
+                  >
+                    Manage billing
+                  </button>
                 )}
               </div>
             </DropdownMenuItem>
@@ -115,6 +124,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <ManageBillingDialog />
       </SidebarMenuItem>
     </SidebarMenu>
   );
