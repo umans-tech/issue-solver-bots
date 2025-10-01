@@ -80,11 +80,8 @@ resource "aws_apprunner_service" "conversational_ui" {
           POSTHOG_KEY                  = var.posthog_key
           POSTHOG_HOST                 = var.posthog_host
           STRIPE_SECRET_KEY            = var.stripe_secret_key
+          STRIPE_WEBHOOK_SECRET        = aws_secretsmanager_secret.stripe_webhook_secret[0].arn
         }
-
-        runtime_environment_secrets = var.stripe_webhook_enabled ? {
-          STRIPE_WEBHOOK_SECRET = aws_secretsmanager_secret.stripe_webhook_secret[0].arn
-        } : {}
       }
       image_identifier      = "${data.aws_caller_identity.current.account_id}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:${var.conversational_ui_image_tag}"
       image_repository_type = "ECR"
