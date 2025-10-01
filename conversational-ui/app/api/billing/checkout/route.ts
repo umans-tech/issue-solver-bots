@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     customer_email: dbUser?.email || email || undefined,
     client_reference_id: userId || undefined,
     metadata: { userId: userId || '', plan, cycle },
+    allow_promotion_codes: true,
   });
 
   return NextResponse.json({ url: checkout.url });
