@@ -156,6 +156,8 @@ jobs:
             EMAIL_FROM="sender@domain"
             POSTHOG_KEY=dummy-key-for-build-only
             POSTHOG_HOST="https://eu.i.posthog.com"
+            STRIPE_SECRET_KEY=sk_test_dummy_key_for_build_only
+            STRIPE_WEBHOOK_SECRET=whsec_dummy_key_for_build_only
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ github.sha }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-conversational-ui-${{ env.IMAGE_ENV_TAG }}
@@ -262,6 +264,7 @@ jobs:
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
           TF_VAR_morph_api_key: ${{ secrets.TF_VAR_MORPH_API_KEY }}
           TF_VAR_posthog_key: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_POSTHOG_KEY_PROD || secrets.TF_VAR_POSTHOG_KEY_DEV }}
+          TF_VAR_stripe_secret_key: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_STRIPE_SECRET_KEY_PROD || secrets.TF_VAR_STRIPE_SECRET_KEY_DEV }}
   cleanup:
     needs: detect-changes
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

@@ -106,3 +106,10 @@ variable "posthog_host" {
   type        = string
   default     = "https://eu.i.posthog.com"
 }
+
+variable "stripe_secret_key" {
+  description = "Stripe secret key for payment processing"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
