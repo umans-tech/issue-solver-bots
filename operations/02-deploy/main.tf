@@ -4,11 +4,20 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0.0"
     }
+
+    stripe = {
+      source  = "lukasaron/stripe"
+      version = "3.4.0"
+    }
   }
 }
 
 provider "aws" {
   region = "eu-west-3"
+}
+
+provider "stripe" {
+  api_key = var.stripe_secret_key
 }
 
 # Data source to access the remote state from the 01-provision layer
