@@ -15,11 +15,11 @@ export default function PrivacyPage() {
           <p className="text-sm text-gray-400 mb-4">Effective Date: Thursday, 27 March 2025</p>
           
           <div className="space-y-6">
-            <p>Umans Tech ("we," "us," "our") respects your privacy. This Privacy Policy describes how we collect, use, and share personal data when you use the Umans AI platform and related services (the "Services").</p>
+            <p>Umans AI ("we," "us," "our") respects your privacy. This Privacy Policy describes how we collect, use, and share personal data when you use the Umans AI platform and related services (the "Services").</p>
 
             <div className="space-y-4">
               <h3 className="text-xl font-semibold">1. Who We Are</h3>
-              <p>We are Umans Tech, located at 14 Rue de Sévigné, 92120 Montrouge, France. You can reach us at contact@umans.tech.</p>
+              <p>We are Umans AI, located at 14 Rue de Sévigné, 92120 Montrouge, France. You can reach us at contact@umans.tech.</p>
 
               <h3 className="text-xl font-semibold">2. Personal Data We Collect</h3>
               <ul className="list-disc pl-6 space-y-2">
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
             <div className="mt-8 text-sm text-gray-400">
               <p>Last Updated: 27 March 2025</p>
               <p className="mt-2">For any questions, please contact us at:</p>
-              <p>Umans Tech<br />
+              <p>Umans AI<br />
               14 Rue de Sévigné<br />
               92120 Montrouge, France<br />
               Email: contact@umans.tech</p>
