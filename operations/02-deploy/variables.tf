@@ -113,3 +113,9 @@ variable "stripe_secret_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "stripe_webhook_enabled" {
+  description = "Whether to manage the Stripe webhook endpoint via Terraform"
+  type        = bool
+  default     = true
+}
