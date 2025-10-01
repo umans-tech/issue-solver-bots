@@ -15,7 +15,7 @@ export default function TermsPage() {
           <p className="text-sm text-gray-400 mb-4">Effective Date: Thursday, 27 March 2025</p>
           
           <div className="space-y-6">
-            <p>Welcome to Umans AI, a B2B SaaS platform developed by Umans Tech ("Company," "we," "our," or "us"). These Terms of Use ("Terms") govern your ("Client," "you," or "your") access to and use of the Umans AI services, including our web-based interface, APIs, websites, and related tools (collectively, the "Services").</p>
+            <p>Welcome to Umans AI, a B2B SaaS platform developed by Umans AI ("Company," "we," "our," or "us"). These Terms of Use ("Terms") govern your ("Client," "you," or "your") access to and use of the Umans AI services, including our web-based interface, APIs, websites, and related tools (collectively, the "Services").</p>
             
             <p>By creating an account or otherwise using the Services, you agree to be bound by these Terms. If you do not agree, do not access or use the Services.</p>
 
@@ -29,7 +29,7 @@ export default function TermsPage() {
               </ul>
 
               <h3 className="text-xl font-semibold">2. Acceptance and Modification of Terms</h3>
-              <p>These Terms form a legally binding agreement between you and Umans Tech upon the earlier of:</p>
+              <p>These Terms form a legally binding agreement between you and Umans AI upon the earlier of:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Clicking "I agree" (or similar)</li>
                 <li>Your use of the Services</li>
@@ -55,14 +55,14 @@ export default function TermsPage() {
               <ul className="list-disc pl-6 space-y-2">
                 <li>You retain all rights and ownership in your Client Data</li>
                 <li>Subject to payment of applicable fees, you own the Output generated specifically for you</li>
-                <li>You grant Umans Tech and its LLM Provider a non-exclusive license to process your data</li>
+                <li>You grant Umans AI and its LLM Provider a non-exclusive license to process your data</li>
               </ul>
             </div>
 
             <div className="mt-8 text-sm text-gray-400">
               <p>Last Updated: 27 March 2025</p>
               <p className="mt-2">For any questions, please contact us at:</p>
-              <p>Umans Tech<br />
+              <p>Umans AI<br />
               14 Rue de Sévigné<br />
               92120 Montrouge, France<br />
               Email: contact@umans.tech</p>
