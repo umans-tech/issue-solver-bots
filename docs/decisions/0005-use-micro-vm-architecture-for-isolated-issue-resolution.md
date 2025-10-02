@@ -128,6 +128,23 @@ sequenceDiagram
 **Selected: Morphcloud** - Superior SDK, API, and documentation with excellent abstractions. The developer experience
 and snapshot management capabilities make it the clear choice over raw Firecracker implementation.
 
+### Other Alternatives (Previously Considered)
+
+- Nothing / Status Quo (continue with current Lambda approach)
+- Firecracker
+- Managed Sandbox
+  Services ( [modal](https://modal.com), [e2b](https://e2b.dev), [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) )
+- Code Execution Tools (
+  like [Claude's Code Execution Tool](https://docs.claude.com/en/docs/agents-and-tools/tool-use/code-execution-tool),
+  OpenAI's has a similar tool )
+- Containerized Environments:
+    - ECS
+    - Docker (vanilla)
+    - [Docker dev environments](https://docs.docker.com/desktop/features/dev-environments/)
+- [VS Code container environments](https://code.visualstudio.com/docs/containers/choosing-dev-environment)
+- Code spaces
+- Gitpod
+
 ## Consequences
 
 ### Positive
