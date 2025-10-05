@@ -9,7 +9,7 @@ type Limits = {
 };
 
 const PLAN_LIMITS: Record<string, Limits> = {
-  free: { dailyCompletions: 5, monthlyCompletions: 50 },
+  free: { dailyCompletions: 15, monthlyCompletions: 50 },
   solo: { monthlyCompletions: 200 },
   pro: { monthlyCompletions: 600 },
   enterprise: {}, // unlimited

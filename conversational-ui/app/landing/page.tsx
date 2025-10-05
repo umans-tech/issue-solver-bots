@@ -60,7 +60,7 @@ export default function LandingPage() {
       tagline: 'Great for exploring Umans',
       description: 'Spin up our browser-based coding agents and see how far the platform takes you.',
       features: [
-        '5 daily agent credits (up to 50 monthly)',
+        '15 daily agent credits (up to 50 monthly)',
         'GPT-5, Claude Sonnet & Claude Code in-browser sessions',
         'Auto-generated docs & diagrams for a personal space',
       ],
