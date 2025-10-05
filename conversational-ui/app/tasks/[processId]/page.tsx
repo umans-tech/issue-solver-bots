@@ -313,7 +313,7 @@ export default function TaskPage() {
       case 'starting':
         return <Badge className="bg-blue-100 text-blue-800">Starting</Badge>;
       case 'configuring':
-        return <Badge className="bg-blue-100 text-blue-800 border border-blue-200">Configuring</Badge>;
+        return <Badge className="bg-blue-500 text-white">Configuring</Badge>;
       case 'indexed':
         return (
           <Badge className="bg-green-500 text-white flex items-center gap-1">

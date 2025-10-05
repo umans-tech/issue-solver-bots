@@ -81,8 +81,8 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
     } else if (type.includes('provided')) {
       return {
         icon: <ClockRewind size={16} />,
-        color: 'bg-blue-100 border-blue-200',
-        textColor: 'text-blue-700',
+        color: 'bg-blue-500/10 border-blue-500/20',
+        textColor: 'text-blue-500',
         label: actionLabel || 'Provided'
       };
     } else if (type.includes('prepared')) {
