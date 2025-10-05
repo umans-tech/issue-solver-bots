@@ -632,12 +632,16 @@ export GIT__USER_NAME=\'umans-agent\'
 export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
-    started_instance.exec.assert_called_once_with(
-        to_script(
-            command="cudu solve",
-            dotenv_settings=solve_settings,
-        )
+    # Verify fire-and-forget execution: nohup wraps the solve command
+    expected_inner_script = to_script(
+        command="cudu solve",
+        dotenv_settings=solve_settings,
     )
+    started_instance.exec.assert_called_once()
+    actual_call = started_instance.exec.call_args[0][0]
+    assert actual_call.startswith("nohup bash -c ")
+    assert "/tmp/cudu_solve.log" in actual_call
+    assert "2>&1 &" in actual_call
 
 
 @pytest.mark.asyncio
@@ -790,9 +794,12 @@ export GIT__USER_NAME=\'umans-agent\'
 export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
-    started_instance.exec.assert_called_once_with(
-        to_script(command="cudu solve", dotenv_settings=solve_settings)
-    )
+    # Verify fire-and-forget execution: nohup wraps the solve command
+    started_instance.exec.assert_called_once()
+    actual_call = started_instance.exec.call_args[0][0]
+    assert actual_call.startswith("nohup bash -c ")
+    assert "/tmp/cudu_solve.log" in actual_call
+    assert "2>&1 &" in actual_call
 
 
 def to_script(

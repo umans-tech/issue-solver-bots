@@ -144,23 +144,18 @@ async def resolve_issue(
                 )
                 env_script = solve_command_settings.to_env_script()
                 instance.wait_until_ready()
+
+                # Fire-and-forget execution: start CLI in background and return immediately
                 solve_command_script = run_as_umans_with_env(env_script, "cudu solve")
-                instance_exec_response = instance.exec(solve_command_script)
-                print(f"Instance exec STDOUT: {instance_exec_response.stdout}")
-                print(f"Instance exec STDERR: {instance_exec_response.stderr}")
-                if instance_exec_response.exit_code != 0:
-                    logger.error(
-                        f"Instance execution failed with return code {instance_exec_response.exit_code}"
-                    )
-                    await event_store.append(
-                        process_id,
-                        IssueResolutionFailed(
-                            process_id=process_id,
-                            occurred_at=dependencies.clock.now(),
-                            reason="instance_exec_failed",
-                            error_message=instance_exec_response.stderr,
-                        ),
-                    )
+                background_script = f"nohup bash -c {solve_command_script!r} > /tmp/cudu_solve.log 2>&1 &"
+
+                logger.info(f"Starting fire-and-forget CLI execution for process {process_id}")
+                instance.exec(background_script)
+                logger.info(
+                    f"CLI started in background on VM {instance.id}, Lambda returning immediately. "
+                    f"CLI will report completion via webhooks (IssueResolutionCompleted/Failed events). "
+                    f"VM will auto-terminate after {MICROVM_LIFETIME_IN_SECONDS}s TTL."
+                )
     else:
         repo_path = Path(f"/tmp/repo/{process_id}")
         try:
