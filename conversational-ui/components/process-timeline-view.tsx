@@ -71,7 +71,28 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
 
     const actionLabel = getActionFromType(type);
     
-    if (type.includes('start')) {
+    if (type.includes('validated')) {
+      return {
+        icon: <Check className="h-4 w-4" />,
+        color: 'bg-green-100 border-green-200',
+        textColor: 'text-green-700',
+        label: actionLabel || 'Validated'
+      };
+    } else if (type.includes('provided')) {
+      return {
+        icon: <ClockRewind size={16} />,
+        color: 'bg-blue-100 border-blue-200',
+        textColor: 'text-blue-700',
+        label: actionLabel || 'Provided'
+      };
+    } else if (type.includes('prepared')) {
+      return {
+        icon: <ClockRewind size={16} />,
+        color: 'bg-blue-100 border-blue-200',
+        textColor: 'text-blue-700',
+        label: actionLabel || 'Prepared'
+      };
+    } else if (type.includes('start')) {
       return {
         icon: <ClockRewind size={16} />,
         color: 'bg-blue-500/10 border-blue-500/20',
