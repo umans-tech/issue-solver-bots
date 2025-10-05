@@ -21,6 +21,7 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationProvided,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
+    IssueResolutionEnvironmentPrepared,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -86,6 +87,8 @@ class ProcessTimelineView(BaseModel):
                 status = "indexed"
             case RepositoryIndexationRequested():
                 status = "indexing"
+            case IssueResolutionEnvironmentPrepared():
+                status = "starting"
             case IssueResolutionRequested():
                 status = "requested"
             case IssueResolutionStarted():

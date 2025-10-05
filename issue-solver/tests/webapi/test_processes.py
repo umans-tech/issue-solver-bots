@@ -450,3 +450,20 @@ def test_should_be_failed_when_latest_event_is_env_validation_failed():
     # Then
     assert process_timeline_view.status == "failed"
     assert process_timeline_view.type == "dev_environment_setup"
+
+
+def test_should_prepared_when_latest_event_is_environment_prepared():
+    # Given
+    history = [
+        BriceDeNice.requested_issue_resolution(),
+        BriceDeNice.got_his_environment_prepared(),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id=BriceDeNice.first_env_configuration_process_id(), events=history
+    )
+
+    # Then
+    assert process_timeline_view.status == "starting"
+    assert process_timeline_view.type == "issue_resolution"

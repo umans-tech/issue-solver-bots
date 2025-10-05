@@ -147,16 +147,6 @@ class BriceDeNice:
         )
 
     @classmethod
-    def got_his_environment_prepared(cls) -> IssueResolutionEnvironmentPrepared:
-        return IssueResolutionEnvironmentPrepared(
-            process_id="brice-environment-preparation-process-001",
-            occurred_at=datetime.fromisoformat("2025-01-02T08:15:00Z"),
-            environment_id="brice-environment-001",
-            instance_id="i-brice-env-instance-001",
-            knowledge_base_id="brice-kb-001",
-        )
-
-    @classmethod
     def requested_issue_resolution(cls) -> IssueResolutionRequested:
         return IssueResolutionRequested(
             process_id=cls.first_issue_resolution_process_id(),
@@ -167,6 +157,16 @@ class BriceDeNice:
                 title="Fix login bug",
                 description="Users are unable to log in with correct credentials.",
             ),
+        )
+
+    @classmethod
+    def got_his_environment_prepared(cls) -> IssueResolutionEnvironmentPrepared:
+        return IssueResolutionEnvironmentPrepared(
+            process_id="brice-environment-preparation-process-001",
+            occurred_at=datetime.fromisoformat("2025-01-02T09:00:10Z"),
+            environment_id="brice-environment-001",
+            instance_id="i-brice-env-instance-001",
+            knowledge_base_id="brice-kb-001",
         )
 
     @classmethod
@@ -256,8 +256,8 @@ class BriceDeNice:
             cls.got_his_environment_configuration_validated(),  # 08:01:05 - Environment config validated
             cls.got_his_second_environment_configuration_provided(),
             cls.got_his_second_environment_configuration_validation_failed(),
-            cls.got_his_environment_prepared(),  # 08:15:00 - Environment prepared
             cls.requested_issue_resolution(),  # 09:00:00 - First issue requested
+            cls.got_his_environment_prepared(),  # 09:00:10 - Environment prepared
             cls.started_issue_resolution(),  # 09:05:00 - Issue resolution started
             cls.completed_issue_resolution(),  # 10:30:00 - Issue resolved with PR
             # Day 3: Token rotation and second issue (failed)
