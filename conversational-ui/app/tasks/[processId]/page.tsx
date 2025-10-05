@@ -297,6 +297,13 @@ export default function TaskPage() {
             Completed
           </Badge>
         );
+      case 'ready':
+        return (
+          <Badge className="bg-green-500 text-white flex items-center gap-1">
+            <Check className="h-3 w-3" />
+            Ready
+          </Badge>
+        );
       case 'failed':
       case 'error':
         return <Badge className="bg-red-500 text-white">Failed</Badge>;
