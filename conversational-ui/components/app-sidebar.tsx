@@ -30,6 +30,30 @@ import { SpaceCreateDialog } from '@/components/space-create-dialog';
 import { SpaceInviteDialog } from '@/components/space-invite-dialog';
 import { SpaceMembersDialog } from '@/components/space-members-dialog';
 
+type SpaceSummary = {
+  id: string;
+  name: string;
+  knowledgeBaseId?: string | null;
+  processId?: string | null;
+  connectedRepoUrl?: string | null;
+  isDefault?: boolean;
+};
+
+const toSpaceSummary = (maybeSpace: any): SpaceSummary | null => {
+  if (!maybeSpace?.id || !maybeSpace?.name) {
+    return null;
+  }
+
+  return {
+    id: maybeSpace.id,
+    name: maybeSpace.name,
+    knowledgeBaseId: maybeSpace.knowledgeBaseId ?? null,
+    processId: maybeSpace.processId ?? null,
+    connectedRepoUrl: maybeSpace.connectedRepoUrl ?? null,
+    isDefault: maybeSpace.isDefault ?? false,
+  };
+};
+
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
@@ -38,20 +62,22 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
-  const [spaces, setSpaces] = useState<any[]>([]);
 
-  const fetchSpaces = async () => {
+  const [spaces, setSpaces] = useState<SpaceSummary[]>([]);
+  const [activeSpace, setActiveSpace] = useState<SpaceSummary | null>(
+    toSpaceSummary(session?.user?.selectedSpace ?? user?.selectedSpace ?? null),
+  );
+
+  const fetchSpaces = async (): Promise<SpaceSummary[] | undefined> => {
     if (!session?.user?.id) return;
     
     try {
-      console.log('Fetching spaces...');
       const response = await fetch('/api/spaces/list');
       if (!response.ok) {
         throw new Error('Failed to fetch spaces');
       }
-      const fetchedSpaces = await response.json();
-      console.log('Fetched spaces:', fetchedSpaces);
-      
+      const fetchedSpaces: SpaceSummary[] = await response.json();
+
       setSpaces(fetchedSpaces);
       
       // Update session with spaces
@@ -62,18 +88,51 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           spaces: fetchedSpaces,
         },
       });
+
+      return fetchedSpaces;
     } catch (error) {
       console.error('Error fetching spaces:', error);
+      return;
     }
   };
 
   // Charger la liste des spaces au chargement initial et quand la session change
   useEffect(() => {
     if (session?.user?.id) {
-      console.log('Session changed, fetching spaces...');
       fetchSpaces();
     }
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    const sessionSpace = toSpaceSummary(session?.user?.selectedSpace ?? null);
+    if (sessionSpace) {
+      setActiveSpace((previous) => {
+        if (!previous || previous.id !== sessionSpace.id) {
+          return sessionSpace;
+        }
+
+        if (previous.name !== sessionSpace.name) {
+          return { ...previous, name: sessionSpace.name };
+        }
+
+        return previous;
+      });
+    }
+  }, [session?.user?.selectedSpace?.id, session?.user?.selectedSpace?.name]);
+
+  useEffect(() => {
+    if (!spaces.length) return;
+
+    setActiveSpace((previous) => {
+      if (previous) {
+        const matchingSpace = spaces.find((space) => space.id === previous.id);
+        return matchingSpace ?? previous;
+      }
+
+      const fallbackSpace = spaces.find((space) => space.isDefault) ?? spaces[0];
+      return fallbackSpace ?? null;
+    });
+  }, [spaces]);
 
   const handleCreateSpace = () => {
     setIsCreateDialogOpen(true);
@@ -131,12 +190,25 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         throw new Error('Failed to switch space');
       }
 
+      const switchedSpace = toSpaceSummary(await response.json());
+
+      let latestSpaces = spaces;
       if (!skipSpaceListRefresh) {
-        await fetchSpaces();
+        const refreshedSpaces = await fetchSpaces();
+        if (refreshedSpaces) {
+          latestSpaces = refreshedSpaces;
+        }
       }
       
       // Find the space in our local state
-      const selectedSpace = spaces.find(space => space.id === spaceId);
+      let selectedSpace = latestSpaces.find((space) => space.id === spaceId);
+      if (!selectedSpace && switchedSpace) {
+        selectedSpace = switchedSpace;
+        if (!latestSpaces.some((space) => space.id === switchedSpace.id)) {
+          latestSpaces = [...latestSpaces, switchedSpace];
+          setSpaces(latestSpaces);
+        }
+      }
 
       // Update the session with the new selected space and all spaces
       await updateSession({
@@ -144,9 +216,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         user: {
           ...session?.user,
           selectedSpace: selectedSpace,
-          spaces: spaces,
+          spaces: latestSpaces,
         },
       });
+
+      if (selectedSpace) {
+        setActiveSpace(selectedSpace);
+      }
 
       // Navigate based on whether the current chat belongs to the new space
       if (shouldRedirectToHome) {
@@ -163,14 +239,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   };
 
   const handleCreateSuccess = async (newSpaceId: string) => {
-    console.log('Space created, refreshing list...');
     await fetchSpaces();
-    
     await switchToSpace(newSpaceId, true);
   };
-
-  console.log('Current session:', session);
-  console.log('Current spaces:', spaces);
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -178,8 +249,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarMenu>
           <div className="flex w-full flex-row justify-between items-center">
             <SpaceSelector 
-              spaceName={session?.user?.selectedSpace?.name || 'Chatbot'}
-              spaceId={session?.user?.selectedSpace?.id || ''}
+              spaceName={activeSpace?.name || 'Loading space...'}
+              spaceId={activeSpace?.id || ''}
               spaces={spaces}
               onCreateSpace={handleCreateSpace}
               onInviteToSpace={handleInviteToSpace}
@@ -276,8 +347,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SpaceRenameDialog
         open={isRenameDialogOpen}
         onOpenChange={setIsRenameDialogOpen}
-        currentName={session?.user?.selectedSpace?.name || ''}
-        spaceId={session?.user?.selectedSpace?.id || ''}
+        currentName={activeSpace?.name || ''}
+        spaceId={activeSpace?.id || ''}
       />
       <SpaceCreateDialog
         open={isCreateDialogOpen}
@@ -287,14 +358,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SpaceInviteDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
-        spaceId={session?.user?.selectedSpace?.id || ''}
-        spaceName={session?.user?.selectedSpace?.name || ''}
+        spaceId={activeSpace?.id || ''}
+        spaceName={activeSpace?.name || ''}
       />
       <SpaceMembersDialog
         open={isMembersDialogOpen}
         onOpenChange={setIsMembersDialogOpen}
-        spaceId={session?.user?.selectedSpace?.id || ''}
-        spaceName={session?.user?.selectedSpace?.name || ''}
+        spaceId={activeSpace?.id || ''}
+        spaceName={activeSpace?.name || ''}
       />
     </Sidebar>
   );
