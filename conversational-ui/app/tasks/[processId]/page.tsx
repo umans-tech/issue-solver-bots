@@ -310,6 +310,8 @@ export default function TaskPage() {
       case 'in_progress':
       case 'running':
         return <Badge className="bg-blue-500 text-white">In Progress</Badge>;
+      case 'starting':
+        return <Badge className="bg-blue-100 text-blue-800">Starting</Badge>;
       case 'indexed':
         return (
           <Badge className="bg-green-500 text-white flex items-center gap-1">
