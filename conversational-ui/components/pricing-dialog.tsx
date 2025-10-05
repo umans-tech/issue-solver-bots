@@ -27,7 +27,7 @@ const plans = [
   },
   {
     name: 'Pro',
-    description: 'Built for product pros that ship together',
+    description: 'Built for product teams that ship together',
     features: [
       '600 shared monthly agent credits',
       'Shared spaces with cross-conversation memory',
@@ -46,7 +46,7 @@ const plans = [
     description: 'Tailored to your engineering org',
     features: [
       'Custom credit pools & scaling guarantees',
-      'Dedicated environment profiles per pro',
+      'Dedicated environment profiles per team',
       'White-glove enablement + shared roadmap planning',
     ],
     cta: 'Contact us',

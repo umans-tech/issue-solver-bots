@@ -95,8 +95,8 @@ export default function LandingPage() {
     },
     {
       name: 'Pro',
-      tagline: 'Built for product pros that ship together',
-      description: 'Share context across promates and keep everyone aligned with living docs.',
+      tagline: 'Built for product teams that ship together',
+      description: 'Share context across teammates and keep everyone aligned with living docs.',
       features: [
         '600 shared monthly agent credits',
         'Shared spaces with cross-conversation memory',
@@ -118,7 +118,7 @@ export default function LandingPage() {
       description: 'Custom rollouts with deeper controls, security, and agent guardrails.',
       features: [
         'Custom credit pools & scaling guarantees',
-        'Dedicated environment profiles per pro',
+        'Dedicated environment profiles per team',
         'White-glove enablement + shared roadmap planning',
       ],
       ctaLabel: 'Contact us',
@@ -173,7 +173,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto">
-          Bridge the gap between what your system does, what business needs, and what your pro plans to build.
+          Bridge the gap between what your system does, what business needs, and what your team plans to build.
           </p>
 
 
@@ -211,7 +211,7 @@ export default function LandingPage() {
           >
             <h2 className="text-3xl font-bold text-foreground mb-4">What You Get Today</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              AI agents that understand your codebase and collaborate with your pro
+              AI agents that understand your codebase and collaborate with your team
             </p>
           </motion.div>
 
@@ -229,7 +229,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-foreground mb-4">Deep Codebase Understanding</h3>
               <p className="text-muted-foreground">
-                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your pro navigate even the most complex codebases with confidence.
+                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your team navigate even the most complex codebases with confidence.
               </p>
             </motion.div>
 
@@ -368,7 +368,7 @@ export default function LandingPage() {
               Ready to transform your software delivery?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join pros that are already using AI agents to bridge the gap between
+              Join teams that are already using AI agents to bridge the gap between
               business understanding and technical implementation.
             </p>
             <Link
