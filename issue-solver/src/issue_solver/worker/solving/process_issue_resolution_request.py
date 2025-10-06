@@ -145,21 +145,11 @@ async def resolve_issue(
                 env_script = solve_command_settings.to_env_script()
                 instance.wait_until_ready()
                 solve_command_script = run_as_umans_with_env(env_script, "cudu solve")
-                instance_exec_response = instance.exec(solve_command_script)
-                print(f"Instance exec STDOUT: {instance_exec_response.stdout}")
-                print(f"Instance exec STDERR: {instance_exec_response.stderr}")
-                if instance_exec_response.exit_code != 0:
-                    logger.error(
-                        f"Instance execution failed with return code {instance_exec_response.exit_code}"
-                    )
-                    await event_store.append(
-                        process_id,
-                        IssueResolutionFailed(
-                            process_id=process_id,
-                            occurred_at=dependencies.clock.now(),
-                            reason="instance_exec_failed",
-                            error_message=instance_exec_response.stderr,
-                        ),
+                # Fire-and-forget: execute CLI in background, Lambda returns immediately
+                # CLI will report progress/completion via webhooks to event store
+                with instance.ssh() as ssh:
+                    ssh.run(
+                        f"nohup {solve_command_script} > /tmp/cudu.log 2>&1 &"
                     )
     else:
         repo_path = Path(f"/tmp/repo/{process_id}")

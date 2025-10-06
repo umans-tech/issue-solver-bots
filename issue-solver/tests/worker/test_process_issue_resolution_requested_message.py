@@ -575,9 +575,10 @@ async def test_issue_resolution_should_use_vm_when_env_config_script_is_provided
     started_instance = Mock(spec=Instance)
     microvm_client.instances.start.return_value = started_instance
     started_instance.id = microvm_instance_id
-    started_instance.exec.return_value = InstanceExecResponse(
-        exit_code=0, stdout="success", stderr=""
-    )
+    # Mock SSH for fire-and-forget execution
+    ssh_mock = Mock()
+    started_instance.ssh.return_value.__enter__.return_value = ssh_mock
+    started_instance.ssh.return_value.__exit__.return_value = None
     os.environ.clear()
     os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
 
@@ -632,11 +633,13 @@ export GIT__USER_NAME=\'umans-agent\'
 export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
-    started_instance.exec.assert_called_once_with(
-        to_script(
-            command="cudu solve",
-            dotenv_settings=solve_settings,
-        )
+    # Verify fire-and-forget: SSH used with nohup background execution
+    expected_script = to_script(
+        command="cudu solve",
+        dotenv_settings=solve_settings,
+    )
+    ssh_mock.run.assert_called_once_with(
+        f"nohup {expected_script} > /tmp/cudu.log 2>&1 &"
     )
 
 
@@ -700,9 +703,10 @@ async def test_issue_resolution_should_use_vm_and_prepare_snapshot_when_env_conf
     prepared_snapshot = Mock()
     base_snapshot.exec.return_value = prepared_snapshot
     prepared_snapshot.id = dev_snapshot_id
-    started_instance.exec.return_value = InstanceExecResponse(
-        exit_code=0, stdout="success", stderr=""
-    )
+    # Mock SSH for fire-and-forget execution
+    ssh_mock = Mock()
+    started_instance.ssh.return_value.__enter__.return_value = ssh_mock
+    started_instance.ssh.return_value.__exit__.return_value = None
     os.environ.clear()
     os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-api-key"
 
@@ -790,8 +794,10 @@ export GIT__USER_NAME=\'umans-agent\'
 export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
-    started_instance.exec.assert_called_once_with(
-        to_script(command="cudu solve", dotenv_settings=solve_settings)
+    # Verify fire-and-forget: SSH used with nohup background execution
+    expected_script = to_script(command="cudu solve", dotenv_settings=solve_settings)
+    ssh_mock.run.assert_called_once_with(
+        f"nohup {expected_script} > /tmp/cudu.log 2>&1 &"
     )
 
 
