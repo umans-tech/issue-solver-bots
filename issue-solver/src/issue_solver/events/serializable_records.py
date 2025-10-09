@@ -25,6 +25,9 @@ from issue_solver.events.domain import (
     IssueResolutionEnvironmentPrepared,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
+    NotionIntegrationConnected,
+    NotionIntegrationTokenRotated,
+    NotionIntegrationFailed,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -60,6 +63,12 @@ def get_record_type(event_type: Type[T]) -> str:
             return "environment_configuration_provided"
         case type() if event_type is IssueResolutionEnvironmentPrepared:
             return "issue_resolution_environment_prepared"
+        case type() if event_type is NotionIntegrationConnected:
+            return "notion_integration_connected"
+        case type() if event_type is NotionIntegrationTokenRotated:
+            return "notion_integration_token_rotated"
+        case type() if event_type is NotionIntegrationFailed:
+            return "notion_integration_failed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -137,6 +146,115 @@ class CodeRepositoryConnectedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
             token_permissions=event.token_permissions,
+        )
+
+
+class NotionIntegrationConnectedRecord(BaseModel):
+    type: Literal["notion_integration_connected"] = "notion_integration_connected"
+    occurred_at: datetime
+    access_token: str
+    user_id: str
+    space_id: str
+    process_id: str
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+
+    def safe_copy(self) -> Self:
+        return self.model_copy(update={"access_token": obfuscate(self.access_token)})
+
+    def to_domain_event(self) -> NotionIntegrationConnected:
+        return NotionIntegrationConnected(
+            occurred_at=self.occurred_at,
+            access_token=_decrypt_token(self.access_token),
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+            workspace_id=self.workspace_id,
+            workspace_name=self.workspace_name,
+            bot_id=self.bot_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationConnected) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            access_token=_encrypt_token(event.access_token),
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
+            workspace_id=event.workspace_id,
+            workspace_name=event.workspace_name,
+            bot_id=event.bot_id,
+        )
+
+
+class NotionIntegrationTokenRotatedRecord(BaseModel):
+    type: Literal["notion_integration_token_rotated"] = (
+        "notion_integration_token_rotated"
+    )
+    occurred_at: datetime
+    new_access_token: str
+    user_id: str
+    space_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy(
+            update={"new_access_token": obfuscate(self.new_access_token)}
+        )
+
+    def to_domain_event(self) -> NotionIntegrationTokenRotated:
+        return NotionIntegrationTokenRotated(
+            occurred_at=self.occurred_at,
+            new_access_token=_decrypt_token(self.new_access_token),
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationTokenRotated) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            new_access_token=_encrypt_token(event.new_access_token),
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
+        )
+
+
+class NotionIntegrationFailedRecord(BaseModel):
+    type: Literal["notion_integration_failed"] = "notion_integration_failed"
+    occurred_at: datetime
+    error_type: str
+    error_message: str
+    user_id: str
+    space_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> NotionIntegrationFailed:
+        return NotionIntegrationFailed(
+            occurred_at=self.occurred_at,
+            error_type=self.error_type,
+            error_message=self.error_message,
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            error_type=event.error_type,
+            error_message=event.error_message,
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
         )
 
 
@@ -559,6 +677,9 @@ ProcessTimelineEventRecords = (
     | IssueResolutionEnvironmentPreparedRecord
     | EnvironmentConfigurationValidatedRecord
     | EnvironmentValidationFailedRecord
+    | NotionIntegrationConnectedRecord
+    | NotionIntegrationTokenRotatedRecord
+    | NotionIntegrationFailedRecord
 )
 
 
@@ -594,6 +715,12 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return EnvironmentConfigurationValidatedRecord.create_from(event)
         case EnvironmentValidationFailed():
             return EnvironmentValidationFailedRecord.create_from(event)
+        case NotionIntegrationConnected():
+            return NotionIntegrationConnectedRecord.create_from(event)
+        case NotionIntegrationTokenRotated():
+            return NotionIntegrationTokenRotatedRecord.create_from(event)
+        case NotionIntegrationFailed():
+            return NotionIntegrationFailedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -650,6 +777,18 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "environment_validation_failed":
             return EnvironmentValidationFailedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_connected":
+            return NotionIntegrationConnectedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_token_rotated":
+            return NotionIntegrationTokenRotatedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_failed":
+            return NotionIntegrationFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

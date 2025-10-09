@@ -174,6 +174,41 @@ class EnvironmentValidationFailed(DomainEvent):
         return self.stderr
 
 
+@dataclass(frozen=True, slots=True)
+class NotionIntegrationConnected(DomainEvent):
+    access_token: str
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NotionIntegrationTokenRotated(DomainEvent):
+    new_access_token: str
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class NotionIntegrationFailed(DomainEvent):
+    error_type: str
+    error_message: str
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+
+    @property
+    def reason(self) -> str:
+        return self.error_type
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -188,6 +223,9 @@ AnyDomainEvent = (
     | IssueResolutionEnvironmentPrepared
     | EnvironmentConfigurationValidated
     | EnvironmentValidationFailed
+    | NotionIntegrationConnected
+    | NotionIntegrationTokenRotated
+    | NotionIntegrationFailed
 )
 
 

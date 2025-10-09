@@ -16,6 +16,8 @@ from issue_solver.events.domain import (
     AnyDomainEvent,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
+    NotionIntegrationConnected,
+    NotionIntegrationTokenRotated,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -43,6 +45,29 @@ class BriceDeNice:
                 "missing_scopes": [],
                 "is_optimal": True,
             },
+        )
+
+    @classmethod
+    def connected_notion_workspace(cls) -> NotionIntegrationConnected:
+        return NotionIntegrationConnected(
+            process_id="brice-notion-integration-process-001",
+            occurred_at=datetime.fromisoformat("2025-01-01T12:05:00Z"),
+            access_token="notion_brice_token_987654",
+            user_id="brice-user-001",
+            space_id="brice-space-001",
+            workspace_id="brice-notion-workspace",
+            workspace_name="Brice Knowledge Base",
+            bot_id="notion-bot-001",
+        )
+
+    @classmethod
+    def rotated_notion_token(cls) -> NotionIntegrationTokenRotated:
+        return NotionIntegrationTokenRotated(
+            process_id="brice-notion-integration-process-001",
+            occurred_at=datetime.fromisoformat("2025-01-03T08:30:00Z"),
+            new_access_token="notion_brice_new_token_4321",
+            user_id="brice-user-001",
+            space_id="brice-space-001",
         )
 
     @classmethod
@@ -251,6 +276,7 @@ class BriceDeNice:
             cls.got_his_first_repo_connected(),  # 12:00:00 - Repo connected
             cls.requested_repository_indexation(),  # 12:00:15 - Indexation requested
             cls.got_his_first_repo_indexed(),  # 12:00:30 - Repo indexed
+            cls.connected_notion_workspace(),  # 11:00:00 - Notion workspace connected
             # Day 2: Environment setup and first issue resolution
             cls.got_his_environment_configuration_provided(),  # 08:00:00 - Environment config provided
             cls.got_his_environment_configuration_validated(),  # 08:01:05 - Environment config validated
@@ -262,6 +288,7 @@ class BriceDeNice:
             cls.completed_issue_resolution(),  # 10:30:00 - Issue resolved with PR
             # Day 3: Token rotation and second issue (failed)
             cls.got_his_token_rotated(),  # 08:00:00 - Token rotated for security
+            cls.rotated_notion_token(),  # 07:30:00 - Notion token rotated
             cls.requested_second_issue_resolution(),  # 14:00:00 - Second issue requested
             cls.failed_second_issue_resolution(),  # 16:45:00 - Second issue failed
             # Day 4: Failed integration attempt

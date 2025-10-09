@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from issue_solver.webapi.main import app
+from issue_solver.webapi.routers import notion_integration
 
 client = TestClient(app)
 
@@ -193,6 +194,40 @@ def test_returns_processes_filtered_by_status(api_client, time_under_control):
     assert data["processes"][0]["status"] == "requested"
     assert data["processes"][0]["type"] == "issue_resolution"
     assert data["total"] == 1
+
+
+def test_returns_notion_integration_process(
+    api_client, time_under_control, monkeypatch
+):
+    time_under_control.set_from_iso_format("2025-01-05T08:00:00")
+
+    async def fake_validate(_token: str) -> dict:
+        return {
+            "object": "user",
+            "id": "bot-id",
+            "bot": {
+                "workspace_id": "workspace-123",
+                "workspace_name": "Acme Workspace",
+            },
+        }
+
+    monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
+
+    connect_response = api_client.post(
+        "/integrations/notion/",
+        json={"access_token": "notion-secret", "space_id": "brice-space-001"},
+        headers={"X-User-ID": "brice-user-001"},
+    )
+    assert connect_response.status_code == 201
+
+    response = api_client.get("/processes?space_id=brice-space-001")
+    assert response.status_code == 200
+    data = response.json()
+    notion_processes = [
+        p for p in data["processes"] if p["type"] == "notion_integration"
+    ]
+    assert len(notion_processes) == 1
+    assert notion_processes[0]["status"] == "connected"
 
 
 def test_returns_processes_with_default_pagination(api_client, time_under_control):

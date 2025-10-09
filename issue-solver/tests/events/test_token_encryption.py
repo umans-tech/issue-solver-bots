@@ -3,12 +3,18 @@ import pytest
 from datetime import datetime
 from unittest.mock import patch
 
-from issue_solver.events.domain import CodeRepositoryConnected
+from issue_solver.events.domain import (
+    CodeRepositoryConnected,
+    NotionIntegrationConnected,
+    NotionIntegrationTokenRotated,
+)
 from issue_solver.events.serializable_records import (
     CodeRepositoryConnectedRecord,
     _encrypt_token,
     _decrypt_token,
     serialize,
+    NotionIntegrationConnectedRecord,
+    NotionIntegrationTokenRotatedRecord,
 )
 
 
@@ -23,6 +29,31 @@ def sample_event():
         space_id="test-space",
         knowledge_base_id="kb-123",
         process_id="proc-123",
+    )
+
+
+@pytest.fixture
+def sample_notion_connected_event():
+    return NotionIntegrationConnected(
+        occurred_at=datetime(2024, 5, 1, 9, 30, 0),
+        access_token="notion-secret-token",
+        user_id="notion-user",
+        space_id="notion-space",
+        process_id="notion-process",
+        workspace_id="workspace-abc",
+        workspace_name="Acme Knowledge",
+        bot_id="bot-123",
+    )
+
+
+@pytest.fixture
+def sample_notion_rotated_event():
+    return NotionIntegrationTokenRotated(
+        occurred_at=datetime(2024, 5, 2, 8, 0, 0),
+        new_access_token="notion-new-token",
+        user_id="notion-user",
+        space_id="notion-space",
+        process_id="notion-process",
     )
 
 
@@ -237,3 +268,44 @@ def test_token_rotated_event_with_permissions(encryption_key):
         serialized_record = serialize(event)
         assert isinstance(serialized_record, CodeRepositoryTokenRotatedRecord)
         assert serialized_record.token_permissions == permissions
+
+
+def test_notion_integration_connected_record_encryption(
+    sample_notion_connected_event, encryption_key
+):
+    with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
+        record = NotionIntegrationConnectedRecord.create_from(
+            sample_notion_connected_event
+        )
+
+    assert record.access_token != sample_notion_connected_event.access_token
+
+    restored = record.to_domain_event()
+    assert restored.access_token == sample_notion_connected_event.access_token
+    assert restored.workspace_id == sample_notion_connected_event.workspace_id
+    assert restored.workspace_name == sample_notion_connected_event.workspace_name
+
+    safe = record.safe_copy()
+    assert safe.access_token.endswith(record.access_token[-4:])
+    assert safe.access_token.count("*") >= len(record.access_token) - 4
+
+
+def test_notion_integration_token_rotated_record_encryption(
+    sample_notion_rotated_event, encryption_key
+):
+    with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
+        record = NotionIntegrationTokenRotatedRecord.create_from(
+            sample_notion_rotated_event
+        )
+
+        assert record.new_access_token != sample_notion_rotated_event.new_access_token
+
+        restored = record.to_domain_event()
+        assert restored.new_access_token == sample_notion_rotated_event.new_access_token
+
+        serialized = serialize(sample_notion_rotated_event)
+        assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
+
+        safe_record = serialized.safe_copy()
+        assert safe_record.new_access_token.endswith(serialized.new_access_token[-4:])
+        assert "*" in safe_record.new_access_token

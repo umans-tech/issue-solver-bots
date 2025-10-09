@@ -14,6 +14,8 @@ from issue_solver.webapi.routers import (
     resolutions,
     mcp_repositories_proxy,
     webhooks,
+    notion_integration,
+    mcp_notion_proxy,
 )
 
 
@@ -46,6 +48,8 @@ app.include_router(resolutions.router)
 app.include_router(repository.router)
 app.include_router(processes.router)
 app.include_router(mcp_repositories_proxy.router)
+app.include_router(notion_integration.router)
+app.include_router(mcp_notion_proxy.router)
 app.include_router(webhooks.router)
 
 
