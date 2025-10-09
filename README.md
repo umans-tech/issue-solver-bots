@@ -192,7 +192,8 @@ just apply
 - **GitHub**: Full integration with repositories and issues
 - **GitLab**: Complete support for repositories and issue tracking
 - **Self-hosted Git**: Support for custom Git deployments
-- **Jira and Notion**: Coming soon!
+- **Notion**: Available via secure MCP proxy integration
+- **Jira**: Coming soon!
 
 ### Agents
 

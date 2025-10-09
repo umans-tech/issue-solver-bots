@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { IntegrationsHeader } from '@/components/integrations-header';
 import { RepoConnectionDialog } from '@/components/repo-connection-dialog';
+import { NotionIntegrationDialog } from '@/components/notion-integration-dialog';
 
 interface Integration {
   id: string;
@@ -64,7 +65,7 @@ const integrations: Integration[] = [
     description: 'Integrate with Notion to access and manage your knowledge base and documentation.',
     icon: ({ className }) => <SiNotion className={className} color="default" />,
     category: 'Knowledge Base',
-    status: 'coming-soon',
+    status: 'available',
     features: ['Page sync', 'Database queries', 'Content search', 'Real-time updates']
   },
   {
@@ -89,17 +90,23 @@ const integrations: Integration[] = [
 
 export default function IntegrationsPage() {
   const [showRepoDialog, setShowRepoDialog] = useState(false);
+  const [showNotionDialog, setShowNotionDialog] = useState(false);
   const availableIntegrations = integrations.filter(integration => integration.status === 'available');
   const comingSoonIntegrations = integrations.filter(integration => integration.status === 'coming-soon');
 
   const handleConnect = (integrationId: string) => {
-    // For code repository integrations, open the repo connection dialog
-    const integration = integrations.find(i => i.id === integrationId);
-    if (integration && integration.category === 'Code Repository') {
-      setShowRepoDialog(true);
-    } else {
-      // TODO: Implement other integration types
-      console.log('Connecting to integration:', integrationId);
+    switch (integrationId) {
+      case 'github':
+      case 'gitlab':
+      case 'azure-devops':
+      case 'self-hosted-git':
+        setShowRepoDialog(true);
+        break;
+      case 'notion':
+        setShowNotionDialog(true);
+        break;
+      default:
+        console.log('Connecting to integration:', integrationId);
     }
   };
 
@@ -253,6 +260,10 @@ export default function IntegrationsPage() {
         key={/* key by space if available via a sessioned header; keep stable here */ 'integrations'} 
         open={showRepoDialog} 
         onOpenChange={setShowRepoDialog} 
+      />
+      <NotionIntegrationDialog 
+        open={showNotionDialog} 
+        onOpenChange={setShowNotionDialog} 
       />
     </>
   );

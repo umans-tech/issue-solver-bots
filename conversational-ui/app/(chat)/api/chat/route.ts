@@ -32,6 +32,7 @@ import { setController, deleteController } from '@/lib/stream/controller-registr
 import { after } from 'next/server';
 import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
+import { notionMCPClient } from '@/lib/ai/tools/notion_mcp';
 import { ChatMessage } from '@/lib/types';
 import { checkChatEntitlements } from '@/lib/ai/entitlements';
 
@@ -179,9 +180,29 @@ export async function POST(request: Request) {
     } : undefined;
     
     // Initialize fresh MCP client with user context for this request
-    const clientWrapper = await codeRepositoryMCPClient(userContext);
-    const mcpClient = clientWrapper.client;
-    const mcpTools = await mcpClient.tools();
+    const repoMcpWrapper = await codeRepositoryMCPClient(userContext);
+    const notionMcpWrapper = await notionMCPClient(userContext);
+    const mcpWrappers = [repoMcpWrapper, notionMcpWrapper];
+    const toolMaps = await Promise.all(mcpWrappers.map((wrapper) => wrapper.client.tools()));
+    const mcpTools = Object.assign({}, ...toolMaps);
+    const mcpActiveTools = Array.from(
+      new Set([
+        ...mcpWrappers.flatMap((wrapper) => wrapper.activeTools()),
+        ...Object.keys(mcpTools),
+      ]),
+    );
+    const cleanupClients = () => {
+      for (const wrapper of mcpWrappers) {
+        const { client } = wrapper;
+        if (typeof (client as any)?.close === 'function') {
+          try {
+            (client as any).close();
+          } catch (error) {
+            console.warn('Failed to close MCP client', error);
+          }
+        }
+      }
+    };
 
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
@@ -216,7 +237,7 @@ export async function POST(request: Request) {
                     'remoteCodingAgent',
                     'fetchWebpage',
                     // @ts-ignore
-                    ...clientWrapper.activeTools()
+                    ...mcpActiveTools,
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
                 tools: {
@@ -328,11 +349,13 @@ export async function POST(request: Request) {
             console.error('Failed to save chat');
           } finally {
             deleteController(streamId);
+            cleanupClients();
           }
       },
         onError: (error) => {
             console.error('Error during streaming:', error);
             deleteController(streamId);
+            cleanupClients();
             return 'Oops, an error occured!';
         },
     });
