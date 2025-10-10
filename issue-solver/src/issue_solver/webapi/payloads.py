@@ -50,6 +50,7 @@ class NotionIntegrationView(BaseSchema):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
+    token_expires_at: datetime | None = None
     has_valid_token: bool = True
 
 

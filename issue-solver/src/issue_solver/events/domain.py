@@ -174,25 +174,32 @@ class EnvironmentValidationFailed(DomainEvent):
         return self.stderr
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(kw_only=True, frozen=True, slots=True)
 class NotionIntegrationConnected(DomainEvent):
-    access_token: str
     user_id: str
     space_id: str
     process_id: str
     occurred_at: datetime
+    access_token: str
+    refresh_token: str | None = None
+    token_expires_at: datetime | None = None
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(kw_only=True, frozen=True, slots=True)
 class NotionIntegrationTokenRotated(DomainEvent):
-    new_access_token: str
     user_id: str
     space_id: str
     process_id: str
     occurred_at: datetime
+    new_access_token: str
+    new_refresh_token: str | None = None
+    token_expires_at: datetime | None = None
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

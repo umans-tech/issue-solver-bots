@@ -66,7 +66,13 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
 
     captured: dict[str, object | None] = {}
 
-    async def fake_forward(token: str, payload: dict, session_id: str | None):
+    async def fake_forward(
+        endpoint: str,
+        token: str,
+        payload: dict,
+        session_id: str | None,
+    ):
+        captured["endpoint"] = endpoint
         captured["token"] = token
         captured["payload"] = payload
         captured["session"] = session_id
@@ -83,6 +89,9 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     assert response.headers["mcp-session-id"] == "session-1"
+    endpoint = captured["endpoint"]
+    assert isinstance(endpoint, str)
+    assert endpoint == mcp_notion_proxy.NOTION_MCP_REMOTE_ENDPOINT
     assert captured["token"] == "secret"
     assert isinstance(captured["payload"], dict)
     assert captured["session"] == "session-1"
