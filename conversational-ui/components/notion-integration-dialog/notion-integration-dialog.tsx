@@ -5,8 +5,6 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Sheet,
   SheetContent,
@@ -17,7 +15,6 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircleFillIcon, AlertCircle, ClockRewind } from '@/components/icons';
-import { ExternalLink } from 'lucide-react';
 
 interface NotionIntegrationDialogProps {
   open: boolean;
@@ -30,6 +27,22 @@ interface NotionIntegrationDetails {
   workspaceName?: string | null;
   botId?: string | null;
   processId: string;
+  tokenExpiresAt?: string | null;
+}
+
+function formatExpiration(expiresAt?: string | null): string {
+  if (!expiresAt) {
+    return 'Token will refresh automatically after first authorization.';
+  }
+  const expiryDate = new Date(expiresAt);
+  if (Number.isNaN(expiryDate.getTime())) {
+    return 'Unknown expiration';
+  }
+  const now = new Date();
+  if (expiryDate <= now) {
+    return `Expired ${expiryDate.toLocaleString()}`;
+  }
+  return `Refreshes ${expiryDate.toLocaleString()}`;
 }
 
 export function NotionIntegrationDialog({
@@ -41,16 +54,8 @@ export function NotionIntegrationDialog({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accessToken, setAccessToken] = useState('');
-  const [integration, setIntegration] = useState<NotionIntegrationDetails | null>(
-    null,
-  );
+  const [integration, setIntegration] = useState<NotionIntegrationDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [rotateMode, setRotateMode] = useState(false);
-
-  const openNotionIntegrationSettings = () => {
-    window.open('https://www.notion.so/my-integrations', '_blank', 'noopener,noreferrer');
-  };
 
   const statusBadge = useMemo(() => {
     if (integration) {
@@ -79,8 +84,6 @@ export function NotionIntegrationDialog({
 
   useEffect(() => {
     if (!open) {
-      setAccessToken('');
-      setRotateMode(false);
       setError(null);
       return;
     }
@@ -93,12 +96,12 @@ export function NotionIntegrationDialog({
     setIsLoading(true);
     fetch(`/api/notion?spaceId=${spaceId}`, { cache: 'no-store' })
       .then(async (res) => {
+        if (res.status === 404) {
+          setIntegration(null);
+          setError(null);
+          return;
+        }
         if (!res.ok) {
-          if (res.status === 404) {
-            setIntegration(null);
-            setError(null);
-            return;
-          }
           const payload = await res.json().catch(() => ({}));
           throw new Error(payload?.error || 'Failed to load Notion integration');
         }
@@ -106,11 +109,13 @@ export function NotionIntegrationDialog({
         if (payload?.connected && payload.integration) {
           const details = payload.integration;
           setIntegration({
-            connectedAt: details.connected_at ?? details.connectedAt ?? new Date().toISOString(),
-            workspaceId: details.workspace_id ?? null,
-            workspaceName: details.workspace_name ?? null,
-            botId: details.bot_id ?? null,
-            processId: details.process_id,
+            connectedAt:
+              details.connected_at ?? details.connectedAt ?? new Date().toISOString(),
+            workspaceId: details.workspace_id ?? details.workspaceId ?? null,
+            workspaceName: details.workspace_name ?? details.workspaceName ?? null,
+            botId: details.bot_id ?? details.botId ?? null,
+            processId: details.process_id ?? details.processId,
+            tokenExpiresAt: details.token_expires_at ?? details.tokenExpiresAt ?? null,
           });
           setError(null);
         } else {
@@ -126,10 +131,6 @@ export function NotionIntegrationDialog({
   }, [open, spaceId]);
 
   const handleConnect = async () => {
-    if (!accessToken.trim()) {
-      toast.error('Provide a Notion integration token.');
-      return;
-    }
     if (!spaceId) {
       toast.error('Select a space before connecting Notion.');
       return;
@@ -138,97 +139,36 @@ export function NotionIntegrationDialog({
     try {
       setIsSubmitting(true);
       setError(null);
-      const response = await fetch('/api/notion', {
+      const response = await fetch('/api/notion/oauth/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ accessToken, spaceId }),
+        body: JSON.stringify({
+          spaceId,
+          returnPath: '/integrations/notion/callback',
+        }),
       });
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result?.error || 'Failed to connect Notion');
+        throw new Error(result?.error || 'Failed to start Notion OAuth flow');
       }
-
-      toast.success('Notion integration connected');
-      setIntegration({
-        connectedAt: result.connected_at ?? result.connectedAt ?? new Date().toISOString(),
-        workspaceId: result.workspace_id ?? null,
-        workspaceName: result.workspace_name ?? null,
-        botId: result.bot_id ?? null,
-        processId: result.process_id,
-      });
-      setAccessToken('');
-      setRotateMode(false);
+      if (result?.authorizeUrl) {
+        window.location.href = result.authorizeUrl;
+      } else {
+        throw new Error('Missing authorization URL from server.');
+      }
     } catch (err: any) {
-      console.error('Failed to connect Notion', err);
-      toast.error(err.message || 'Failed to connect Notion');
+      console.error('Failed to initiate Notion OAuth', err);
+      toast.error(err.message || 'Failed to start Notion OAuth flow');
       setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleRotate = async () => {
-    if (!accessToken.trim()) {
-      toast.error('Provide a new Notion token before rotating.');
-      return;
-    }
-    if (!spaceId) {
-      toast.error('Select a space before rotating the token.');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      const response = await fetch('/api/notion', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ accessToken, spaceId }),
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result?.error || 'Failed to rotate Notion token');
-      }
-
-      toast.success('Notion token rotated');
-      setAccessToken('');
-      setRotateMode(false);
-      setIntegration((current) =>
-        current
-          ? {
-              ...current,
-              workspaceId: result.workspace_id ?? current.workspaceId,
-              workspaceName: result.workspace_name ?? current.workspaceName,
-              botId: result.bot_id ?? current.botId,
-            }
-          : current,
-      );
-    } catch (err: any) {
-      console.error('Failed to rotate Notion token', err);
-      toast.error(err.message || 'Failed to rotate Notion token');
-      setError(err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const actionHandler =
-    integration && !rotateMode
-      ? () => setRotateMode(true)
-      : integration && rotateMode
-        ? handleRotate
-        : handleConnect;
-  const actionLabel = integration
-    ? rotateMode
-      ? 'Confirm rotation'
-      : 'Rotate token'
-    : 'Connect Notion';
+  const actionLabel = integration ? 'Reconnect Notion' : 'Connect Notion';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -236,7 +176,8 @@ export function NotionIntegrationDialog({
         <SheetHeader>
           <SheetTitle>Connect Notion</SheetTitle>
           <SheetDescription>
-            Securely connect your Notion workspace so MCP tools can read structured content when you need documentation context.
+            Securely connect your Notion workspace so MCP tools can use it as context
+            when solving issues.
           </SheetDescription>
         </SheetHeader>
 
@@ -257,67 +198,63 @@ export function NotionIntegrationDialog({
             <div className="rounded-md border bg-muted/20 p-3">
               <p className="text-sm font-medium">Workspace</p>
               <p className="text-sm text-muted-foreground">
-                {integration.workspaceName}
-                {integration.workspaceId ? ` (${integration.workspaceId})` : ''}
+                {integration.workspaceName} ({integration.workspaceId ?? 'unknown'})
               </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="notion-token">Notion integration token</Label>
-            <Input
-              id="notion-token"
-              type="password"
-              placeholder="secret_..."
-              value={accessToken}
-              disabled={isSubmitting}
-              onChange={(event) => setAccessToken(event.target.value)}
-            />
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-2">
-                <span>Generate a token from your Notion integration settings.</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={openNotionIntegrationSettings}
-                  disabled={isSubmitting}
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  Open Notion
-                </Button>
-              </div>
-              <p>The token stays on the server side and is encrypted at rest.</p>
+          {integration?.botId && (
+            <div className="rounded-md border bg-muted/20 p-3">
+              <p className="text-sm font-medium">Connection ID</p>
+              <p className="text-sm text-muted-foreground">{integration.botId}</p>
             </div>
+          )}
+
+          <div className="rounded-md border bg-muted/20 p-3">
+            <p className="text-sm font-medium">Token status</p>
+            <p className="text-sm text-muted-foreground">
+              {formatExpiration(integration?.tokenExpiresAt ?? null)}
+            </p>
           </div>
 
+          <p className="text-xs text-muted-foreground">
+            You will be redirected to Notion to approve access. When the connection
+            succeeds, refresh this dialog to see the latest status.
+          </p>
+        </div>
+
+        <SheetFooter className="flex flex-col gap-3 sm:flex-col">
           {error && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
-        </div>
 
-        <SheetFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setRotateMode(false);
-              setAccessToken('');
-              onOpenChange(false);
-            }}
-            disabled={isSubmitting}
-          >
-            Close
-          </Button>
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              className="sm:w-auto"
+              onClick={() =>
+                window.open(
+                  'https://developers.notion.com/docs/get-started-with-mcp',
+                  '_blank',
+                  'noopener,noreferrer',
+                )
+              }
+            >
+              View Notion MCP guide
+            </Button>
 
-          <Button
-            onClick={actionHandler}
-            disabled={isSubmitting || isLoading || !spaceId}
-          >
-            {isSubmitting ? 'Saving…' : actionLabel}
-          </Button>
+            <Button
+              type="button"
+              onClick={handleConnect}
+              disabled={isSubmitting || isLoading || !spaceId}
+              className="sm:w-auto"
+            >
+              {isSubmitting ? 'Redirecting…' : actionLabel}
+            </Button>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
