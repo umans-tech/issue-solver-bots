@@ -46,6 +46,11 @@ resource "aws_lambda_function" "webapi" {
       PROCESS_QUEUE_URL            = aws_sqs_queue.process_queue.url,
       TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
       REDIS_URL                    = data.terraform_remote_state.provision.outputs.redis_connection_string,
+      NOTION_OAUTH_CLIENT_ID       = var.notion_oauth_client_id,
+      NOTION_OAUTH_CLIENT_SECRET   = var.notion_oauth_client_secret,
+      NOTION_OAUTH_REDIRECT_URI    = "https://${local.api_domain}/integrations/notion/oauth/callback",
+      NOTION_OAUTH_RETURN_BASE_URL = "https://${local.app_domain}",
+      NOTION_OAUTH_STATE_TTL_SECONDS = tostring(var.notion_oauth_state_ttl_seconds),
     }
   }
 }

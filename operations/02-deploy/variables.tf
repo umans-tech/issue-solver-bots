@@ -107,6 +107,24 @@ variable "posthog_host" {
   default     = "https://eu.i.posthog.com"
 }
 
+variable "notion_oauth_client_id" {
+  description = "Client ID for the public Notion OAuth integration"
+  type        = string
+  sensitive   = true
+}
+
+variable "notion_oauth_client_secret" {
+  description = "Client secret for the public Notion OAuth integration"
+  type        = string
+  sensitive   = true
+}
+
+variable "notion_oauth_state_ttl_seconds" {
+  description = "TTL (in seconds) for OAuth state stored in Redis"
+  type        = number
+  default     = 600
+}
+
 variable "stripe_secret_key" {
   description = "Stripe secret key for payment processing"
   type        = string

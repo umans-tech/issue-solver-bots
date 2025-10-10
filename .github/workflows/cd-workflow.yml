@@ -260,6 +260,8 @@ jobs:
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
+          TF_VAR_notion_oauth_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_DEV }}
+          TF_VAR_notion_oauth_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_DEV }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
@@ -310,6 +312,8 @@ jobs:
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
+          TF_VAR_notion_oauth_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_DEV }}
+          TF_VAR_notion_oauth_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_DEV }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
