@@ -1,9 +1,12 @@
 """Tests for Notion MCP proxy functionality."""
 
+from datetime import datetime, UTC, timedelta
+
 import pytest
 from starlette.testclient import TestClient
 
 from issue_solver.webapi.routers import notion_integration, mcp_notion_proxy
+from issue_solver.events.notion_integration import NotionCredentials
 
 
 @pytest.fixture(autouse=True)
@@ -57,14 +60,25 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
     space_id = "space-with-notion"
     user_id = "user-123"
 
-    connect_response = api_client.post(
-        "/integrations/notion/",
-        json={"access_token": "secret", "space_id": space_id},
-        headers={"X-User-ID": user_id},
-    )
-    assert connect_response.status_code == 201
-
     captured: dict[str, object | None] = {}
+
+    credentials = NotionCredentials(
+        access_token="secret",
+        refresh_token="refresh-secret",
+        token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-secret",
+        auth_mode="oauth",
+    )
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        assert requested_space_id == space_id
+        return credentials
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
 
     async def fake_forward(
         endpoint: str,
@@ -78,6 +92,24 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         captured["session"] = session_id
         return {"status": "ok"}, session_id or "session-generated"
 
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+
+    async def fake_get_mcp_token(*, access_token, logger):
+        assert access_token == "secret"
+        return "mcp-secret-token"
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "get_mcp_access_token",
+        fake_get_mcp_token,
+    )
     monkeypatch.setattr(mcp_notion_proxy, "_forward_to_notion", fake_forward)
 
     response = api_client.post(
@@ -92,6 +124,6 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
     endpoint = captured["endpoint"]
     assert isinstance(endpoint, str)
     assert endpoint == mcp_notion_proxy.NOTION_MCP_REMOTE_ENDPOINT
-    assert captured["token"] == "secret"
+    assert captured["token"] == "mcp-secret-token"
     assert isinstance(captured["payload"], dict)
     assert captured["session"] == "session-1"

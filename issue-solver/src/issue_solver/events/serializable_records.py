@@ -153,26 +153,42 @@ class NotionIntegrationConnectedRecord(BaseModel):
     type: Literal["notion_integration_connected"] = "notion_integration_connected"
     occurred_at: datetime
     access_token: str
+    refresh_token: str | None = None
+    token_expires_at: datetime | None = None
     user_id: str
     space_id: str
     process_id: str
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
+    auth_mode: Literal["manual", "oauth"] = "manual"
 
     def safe_copy(self) -> Self:
-        return self.model_copy(update={"access_token": obfuscate(self.access_token)})
+        obfuscated_refresh = (
+            obfuscate(self.refresh_token) if self.refresh_token else None
+        )
+        return self.model_copy(
+            update={
+                "access_token": obfuscate(self.access_token),
+                "refresh_token": obfuscated_refresh,
+            }
+        )
 
     def to_domain_event(self) -> NotionIntegrationConnected:
         return NotionIntegrationConnected(
             occurred_at=self.occurred_at,
             access_token=_decrypt_token(self.access_token),
+            refresh_token=_decrypt_token(self.refresh_token)
+            if self.refresh_token
+            else None,
+            token_expires_at=self.token_expires_at,
             user_id=self.user_id,
             space_id=self.space_id,
             process_id=self.process_id,
             workspace_id=self.workspace_id,
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
+            auth_mode=self.auth_mode,
         )
 
     @classmethod
@@ -180,12 +196,17 @@ class NotionIntegrationConnectedRecord(BaseModel):
         return cls(
             occurred_at=event.occurred_at,
             access_token=_encrypt_token(event.access_token),
+            refresh_token=_encrypt_token(event.refresh_token)
+            if event.refresh_token
+            else None,
+            token_expires_at=event.token_expires_at,
             user_id=event.user_id,
             space_id=event.space_id,
             process_id=event.process_id,
             workspace_id=event.workspace_id,
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
+            auth_mode=event.auth_mode,
         )
 
 
@@ -195,22 +216,42 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     )
     occurred_at: datetime
     new_access_token: str
+    new_refresh_token: str | None = None
+    token_expires_at: datetime | None = None
     user_id: str
     space_id: str
     process_id: str
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+    auth_mode: Literal["manual", "oauth"] = "manual"
 
     def safe_copy(self) -> Self:
+        obfuscated_refresh = (
+            obfuscate(self.new_refresh_token) if self.new_refresh_token else None
+        )
         return self.model_copy(
-            update={"new_access_token": obfuscate(self.new_access_token)}
+            update={
+                "new_access_token": obfuscate(self.new_access_token),
+                "new_refresh_token": obfuscated_refresh,
+            }
         )
 
     def to_domain_event(self) -> NotionIntegrationTokenRotated:
         return NotionIntegrationTokenRotated(
             occurred_at=self.occurred_at,
             new_access_token=_decrypt_token(self.new_access_token),
+            new_refresh_token=_decrypt_token(self.new_refresh_token)
+            if self.new_refresh_token
+            else None,
+            token_expires_at=self.token_expires_at,
             user_id=self.user_id,
             space_id=self.space_id,
             process_id=self.process_id,
+            workspace_id=self.workspace_id,
+            workspace_name=self.workspace_name,
+            bot_id=self.bot_id,
+            auth_mode=self.auth_mode,
         )
 
     @classmethod
@@ -218,9 +259,17 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
         return cls(
             occurred_at=event.occurred_at,
             new_access_token=_encrypt_token(event.new_access_token),
+            new_refresh_token=_encrypt_token(event.new_refresh_token)
+            if event.new_refresh_token
+            else None,
+            token_expires_at=event.token_expires_at,
             user_id=event.user_id,
             space_id=event.space_id,
             process_id=event.process_id,
+            workspace_id=event.workspace_id,
+            workspace_name=event.workspace_name,
+            bot_id=event.bot_id,
+            auth_mode=event.auth_mode,
         )
 
 

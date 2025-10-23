@@ -37,12 +37,15 @@ def sample_notion_connected_event():
     return NotionIntegrationConnected(
         occurred_at=datetime(2024, 5, 1, 9, 30, 0),
         access_token="notion-secret-token",
+        refresh_token="notion-refresh-token",
+        token_expires_at=datetime(2024, 5, 2, 9, 30, 0),
         user_id="notion-user",
         space_id="notion-space",
         process_id="notion-process",
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
+        auth_mode="oauth",
     )
 
 
@@ -51,9 +54,15 @@ def sample_notion_rotated_event():
     return NotionIntegrationTokenRotated(
         occurred_at=datetime(2024, 5, 2, 8, 0, 0),
         new_access_token="notion-new-token",
+        new_refresh_token="notion-new-refresh",
+        token_expires_at=datetime(2024, 5, 3, 8, 0, 0),
         user_id="notion-user",
         space_id="notion-space",
         process_id="notion-process",
+        workspace_id="workspace-abc",
+        workspace_name="Acme Knowledge",
+        bot_id="bot-123",
+        auth_mode="oauth",
     )
 
 
@@ -279,15 +288,21 @@ def test_notion_integration_connected_record_encryption(
         )
 
     assert record.access_token != sample_notion_connected_event.access_token
+    assert record.refresh_token != sample_notion_connected_event.refresh_token
 
     restored = record.to_domain_event()
     assert restored.access_token == sample_notion_connected_event.access_token
+    assert restored.refresh_token == sample_notion_connected_event.refresh_token
     assert restored.workspace_id == sample_notion_connected_event.workspace_id
     assert restored.workspace_name == sample_notion_connected_event.workspace_name
+    assert restored.auth_mode == sample_notion_connected_event.auth_mode
 
     safe = record.safe_copy()
     assert safe.access_token.endswith(record.access_token[-4:])
     assert safe.access_token.count("*") >= len(record.access_token) - 4
+    assert safe.refresh_token
+    assert safe.refresh_token.endswith(record.refresh_token[-4:])
+    assert safe.refresh_token.count("*") >= len(record.refresh_token) - 4
 
 
 def test_notion_integration_token_rotated_record_encryption(
@@ -299,9 +314,14 @@ def test_notion_integration_token_rotated_record_encryption(
         )
 
         assert record.new_access_token != sample_notion_rotated_event.new_access_token
+        assert record.new_refresh_token != sample_notion_rotated_event.new_refresh_token
 
         restored = record.to_domain_event()
         assert restored.new_access_token == sample_notion_rotated_event.new_access_token
+        assert (
+            restored.new_refresh_token == sample_notion_rotated_event.new_refresh_token
+        )
+        assert restored.auth_mode == sample_notion_rotated_event.auth_mode
 
         serialized = serialize(sample_notion_rotated_event)
         assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
@@ -309,3 +329,6 @@ def test_notion_integration_token_rotated_record_encryption(
         safe_record = serialized.safe_copy()
         assert safe_record.new_access_token.endswith(serialized.new_access_token[-4:])
         assert "*" in safe_record.new_access_token
+        assert safe_record.new_refresh_token
+        assert safe_record.new_refresh_token.endswith(serialized.new_refresh_token[-4:])
+        assert "*" in safe_record.new_refresh_token

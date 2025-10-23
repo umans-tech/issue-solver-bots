@@ -15,6 +15,7 @@ from issue_solver.events.notion_integration import get_notion_credentials
 from issue_solver.webapi.dependencies import get_clock, get_event_store, get_logger
 from issue_solver.webapi.routers.notion_integration import (
     ensure_fresh_notion_credentials,
+    get_mcp_access_token,
 )
 
 NOTION_MCP_REMOTE_STREAM_ENDPOINT = "https://mcp.notion.com/sse"
@@ -96,6 +97,11 @@ async def proxy_notion_mcp(
             user_id,
         )
 
+        mcp_access_token = await get_mcp_access_token(
+            access_token=notion_credentials.access_token,
+            logger=logger,
+        )
+
         # Avoid forwarding proxy-specific metadata to Notion MCP API.
         notion_payload = dict(payload)
         notion_payload.pop("meta", None)
@@ -104,9 +110,15 @@ async def proxy_notion_mcp(
             list(notion_payload.keys()),
         )
 
+        logger.debug(
+            "Forwarding Notion MCP request for space %s with MCP token len=%d",
+            space_id,
+            len(mcp_access_token),
+        )
+
         result, outgoing_session_id = await _forward_to_notion(
             NOTION_MCP_REMOTE_ENDPOINT,
-            notion_credentials.access_token,
+            mcp_access_token,
             notion_payload,
             incoming_session_id,
         )
@@ -149,21 +161,17 @@ async def _forward_to_notion(
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
+            logging.getLogger("issue_solver.webapi.routers.notion_mcp").debug(
+                "Forwarding Notion MCP request with token prefix %s (len=%d)",
+                access_token[:6],
+                len(access_token),
+            )
             response = await client.post(endpoint, json=payload, headers=headers)
         except httpx.RequestError as exc:
             raise HTTPException(
                 status_code=503,
                 detail="Unable to connect to Notion MCP server. Please try again later.",
             ) from exc
-
-    if response.status_code == 401:
-        raise HTTPException(
-            status_code=401,
-            detail=(
-                "Notion MCP authentication failed. Reconnect Notion from the Issue "
-                "Solver integrations page to refresh permissions."
-            ),
-        )
 
     if not response.is_success:
         error_text = response.text
@@ -172,10 +180,23 @@ async def _forward_to_notion(
             error_summary = response.json()
         except ValueError:
             error_summary = error_text
+        auth_header = response.headers.get("www-authenticate")
 
         logging.getLogger("issue_solver.webapi.routers.notion_mcp").warning(
-            "Notion MCP returned %s: %s", response.status_code, error_summary
+            "Notion MCP returned %s: %s (auth header=%s)",
+            response.status_code,
+            error_summary,
+            auth_header,
         )
+
+        if response.status_code == 401:
+            raise HTTPException(
+                status_code=401,
+                detail=(
+                    "Notion MCP authentication failed. Reconnect Notion from the Issue "
+                    "Solver integrations page to refresh permissions."
+                ),
+            )
 
         raise HTTPException(
             status_code=response.status_code,

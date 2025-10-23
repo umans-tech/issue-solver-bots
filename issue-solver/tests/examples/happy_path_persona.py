@@ -53,11 +53,14 @@ class BriceDeNice:
             process_id="brice-notion-integration-process-001",
             occurred_at=datetime.fromisoformat("2025-01-01T12:05:00Z"),
             access_token="notion_brice_token_987654",
+            refresh_token="notion_brice_refresh_token_123",
+            token_expires_at=None,
             user_id="brice-user-001",
             space_id="brice-space-001",
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
+            auth_mode="oauth",
         )
 
     @classmethod
@@ -66,8 +69,14 @@ class BriceDeNice:
             process_id="brice-notion-integration-process-001",
             occurred_at=datetime.fromisoformat("2025-01-03T08:30:00Z"),
             new_access_token="notion_brice_new_token_4321",
+            new_refresh_token="notion_brice_new_refresh_token_4321",
+            token_expires_at=None,
             user_id="brice-user-001",
             space_id="brice-space-001",
+            workspace_id="brice-notion-workspace",
+            workspace_name="Brice Knowledge Base",
+            bot_id="notion-bot-001",
+            auth_mode="oauth",
         )
 
     @classmethod

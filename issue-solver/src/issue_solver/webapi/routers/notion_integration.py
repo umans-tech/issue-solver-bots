@@ -6,7 +6,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlencode, urljoin, urlparse, parse_qsl, urlunparse
 
 import httpx
@@ -56,6 +56,9 @@ class NotionOAuthConfig:
     redirect_uri: str
     return_base_url: str | None
     state_ttl_seconds: int
+    mcp_audience: str
+    mcp_requested_token_type: str
+    mcp_scope: str | None
 
 
 _OAUTH_CONFIG: NotionOAuthConfig | None = None
@@ -107,6 +110,7 @@ async def _upsert_notion_integration(
     event_store: EventStore,
     clock: Clock,
     logger: logging.Logger | logging.LoggerAdapter,
+    auth_mode: Literal["manual", "oauth"],
 ) -> NotionIntegrationView:
     integration = await get_notion_integration_event(event_store, space_id)
     now = clock.now()
@@ -117,11 +121,15 @@ async def _upsert_notion_integration(
     resolved_workspace_id = workspace_id
     resolved_workspace_name = workspace_name
     resolved_bot_id = bot_id
+    resolved_auth_mode = auth_mode
 
     if integration:
         resolved_workspace_id = resolved_workspace_id or integration.workspace_id
         resolved_workspace_name = resolved_workspace_name or integration.workspace_name
         resolved_bot_id = resolved_bot_id or integration.bot_id
+        resolved_auth_mode = (
+            auth_mode if auth_mode != integration.auth_mode else integration.auth_mode
+        )
 
         rotation_event = NotionIntegrationTokenRotated(
             occurred_at=now,
@@ -134,6 +142,7 @@ async def _upsert_notion_integration(
             workspace_id=resolved_workspace_id,
             workspace_name=resolved_workspace_name,
             bot_id=resolved_bot_id,
+            auth_mode=resolved_auth_mode,
         )
         await event_store.append(integration.process_id, rotation_event)
         process_id = integration.process_id
@@ -156,6 +165,7 @@ async def _upsert_notion_integration(
             workspace_id=resolved_workspace_id,
             workspace_name=resolved_workspace_name,
             bot_id=resolved_bot_id,
+            auth_mode=resolved_auth_mode,
         )
         await event_store.append(process_id, connected_event)
         connected_at = now
@@ -209,6 +219,7 @@ async def connect_notion_integration(
         event_store=event_store,
         clock=clock,
         logger=logger,
+        auth_mode="manual",
     )
 
 
@@ -253,6 +264,7 @@ async def rotate_notion_token(
         event_store=event_store,
         clock=clock,
         logger=logger,
+        auth_mode=integration.auth_mode,
     )
 
 
@@ -446,6 +458,11 @@ async def handle_notion_oauth_callback(
         event_store=event_store,
         clock=clock,
         logger=logger,
+        auth_mode="oauth",
+    )
+    logger.debug(
+        "Notion OAuth authorization code response keys: %s",
+        list(token_response.keys()),
     )
 
     redirect_url = _build_return_url(
@@ -494,6 +511,13 @@ def _get_oauth_config() -> NotionOAuthConfig:
     redirect_uri = os.environ.get("NOTION_OAUTH_REDIRECT_URI")
     return_base_url = os.environ.get("NOTION_OAUTH_RETURN_BASE_URL")
     state_ttl = int(os.environ.get("NOTION_OAUTH_STATE_TTL_SECONDS", "600"))
+    mcp_audience = os.environ.get(
+        "NOTION_MCP_TOKEN_AUDIENCE", "https://mcp.notion.com/mcp"
+    )
+    mcp_requested_token_type = os.environ.get(
+        "NOTION_MCP_REQUESTED_TOKEN_TYPE", "urn:ietf:params:oauth:token-type:jwt"
+    )
+    mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
 
     if not client_id or not client_secret or not redirect_uri:
         raise RuntimeError(
@@ -507,6 +531,9 @@ def _get_oauth_config() -> NotionOAuthConfig:
         redirect_uri=redirect_uri,
         return_base_url=return_base_url,
         state_ttl_seconds=state_ttl,
+        mcp_audience=mcp_audience,
+        mcp_requested_token_type=mcp_requested_token_type,
+        mcp_scope=mcp_scope,
     )
     return _OAUTH_CONFIG
 
@@ -558,6 +585,72 @@ async def _refresh_access_token(
         "refresh_token": refresh_token,
     }
     return await _request_oauth_token(payload=payload, config=config, logger=logger)
+
+
+async def _exchange_for_mcp_token(
+    *,
+    config: NotionOAuthConfig,
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": access_token,
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "requested_token_type": config.mcp_requested_token_type,
+        "audience": config.mcp_audience,
+    }
+    if config.mcp_scope:
+        payload["scope"] = config.mcp_scope
+    return await _request_oauth_token(payload=payload, config=config, logger=logger)
+
+
+async def get_mcp_access_token(
+    *,
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> str:
+    try:
+        config = _get_oauth_config()
+    except RuntimeError as exc:  # pragma: no cover - configuration error
+        logger.error("Notion MCP token exchange requires OAuth config: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Notion OAuth is not configured for MCP token exchange.",
+        ) from exc
+
+    try:
+        exchange_response = await _exchange_for_mcp_token(
+            config=config,
+            access_token=access_token,
+            logger=logger,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("Unexpected error exchanging Notion MCP token: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to exchange Notion MCP token. Try reconnecting Notion.",
+        ) from exc
+
+    mcp_access_token = exchange_response.get("access_token")
+    if not isinstance(mcp_access_token, str) or not mcp_access_token.strip():
+        logger.error(
+            "Notion MCP token exchange response missing access_token: %s",
+            exchange_response,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Notion MCP token exchange returned an invalid response.",
+        )
+
+    logger.debug(
+        "Received Notion MCP token (len=%d, requested_token_type=%s)",
+        len(mcp_access_token),
+        config.mcp_requested_token_type,
+    )
+    return mcp_access_token
 
 
 async def _request_oauth_token(
@@ -612,7 +705,21 @@ async def ensure_fresh_notion_credentials(
     clock: Clock,
     logger: logging.Logger | logging.LoggerAdapter,
 ) -> NotionCredentials:
-    # If there is no refresh token, we cannot refresh automatically.
+    if credentials.auth_mode != "oauth":
+        logger.warning(
+            "Notion MCP requires OAuth-connected credentials; space %s is using %s mode",
+            space_id,
+            credentials.auth_mode,
+        )
+        raise HTTPException(
+            status_code=401,
+            detail=(
+                "Notion MCP requires an OAuth-connected integration. "
+                "Reconnect Notion from the integrations page to continue."
+            ),
+        )
+
+    # If there is no refresh token (some OAuth tokens are long-lived), allow usage.
     if not credentials.refresh_token:
         return credentials
 
@@ -637,6 +744,10 @@ async def ensure_fresh_notion_credentials(
             config=config,
             refresh_token=credentials.refresh_token,
             logger=logger,
+        )
+        logger.debug(
+            "Notion OAuth refresh response keys: %s",
+            list(token_response.keys()),
         )
     except HTTPException:
         raise
@@ -670,6 +781,7 @@ async def ensure_fresh_notion_credentials(
         event_store=event_store,
         clock=clock,
         logger=logger,
+        auth_mode=credentials.auth_mode,
     )
 
     refreshed = await get_notion_credentials(event_store, space_id)

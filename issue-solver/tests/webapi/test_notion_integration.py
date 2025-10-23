@@ -1,7 +1,8 @@
 from contextlib import contextmanager
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 
 import pytest
+from fastapi import HTTPException
 from starlette.testclient import TestClient
 
 from issue_solver.webapi.routers import notion_integration, mcp_notion_proxy
@@ -9,6 +10,7 @@ from issue_solver.webapi.main import app
 from issue_solver.webapi.dependencies import get_event_store, get_clock
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.clock import Clock
+from issue_solver.events.notion_integration import NotionCredentials
 
 
 class _FrozenClock(Clock):
@@ -142,13 +144,22 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
     space_id = "space-proxy"
     user_id = "user-proxy"
 
-    api_client.post(
-        "/integrations/notion/",
-        json={"access_token": "proxy-token", "space_id": space_id},
-        headers={"X-User-ID": user_id},
+    captured: dict[str, object | None] = {}
+
+    credentials = NotionCredentials(
+        access_token="proxy-token",
+        refresh_token="proxy-refresh-token",
+        token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-proxy",
+        auth_mode="oauth",
     )
 
-    captured: dict[str, object | None] = {}
+    async def fake_get_credentials(event_store, requested_space_id):
+        assert requested_space_id == space_id
+        return credentials
 
     async def fake_forward(
         endpoint: str,
@@ -162,6 +173,28 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
         captured["session"] = session_id
         return {"status": "ok", "tool": "list_pages"}, session_id or "generated-session"
 
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+
+    async def fake_get_mcp_token(*, access_token, logger):
+        assert access_token == "proxy-token"
+        return "mcp-proxy-token"
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "get_mcp_access_token",
+        fake_get_mcp_token,
+    )
     monkeypatch.setattr(mcp_notion_proxy, "_forward_to_notion", fake_forward)
 
     response = api_client.post(
@@ -179,9 +212,91 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
     endpoint = captured["endpoint"]
     assert isinstance(endpoint, str)
     assert endpoint == mcp_notion_proxy.NOTION_MCP_REMOTE_ENDPOINT
-    assert captured["token"] == "proxy-token"
+    assert captured["token"] == "mcp-proxy-token"
     assert isinstance(captured["payload"], dict)
     assert captured["session"] == "session-1"
+
+
+def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
+    space_id = "space-mcp-fail"
+
+    credentials = NotionCredentials(
+        access_token="proxy-token",
+        refresh_token="proxy-refresh-token",
+        token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-proxy",
+        auth_mode="oauth",
+    )
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        assert requested_space_id == space_id
+        return credentials
+
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+
+    async def fake_get_mcp_token(**_kwargs):
+        raise HTTPException(status_code=503, detail="exchange failed")
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "get_mcp_access_token",
+        fake_get_mcp_token,
+    )
+
+    response = api_client.post(
+        "/mcp/notion/proxy",
+        json={"meta": {"space_id": space_id, "user_id": "user"}},
+        headers={"mcp-session-id": "session-1"},
+    )
+
+    assert response.status_code == 503
+    assert "exchange failed" in response.json()["detail"]
+
+
+def test_notion_mcp_proxy_rejects_credentials_without_refresh_token(
+    api_client, monkeypatch
+):
+    space_id = "space-manual"
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        assert requested_space_id == space_id
+        return NotionCredentials(
+            access_token="legacy-token",
+            refresh_token=None,
+            token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            workspace_id=None,
+            workspace_name=None,
+            bot_id=None,
+            process_id="process-manual",
+            auth_mode="manual",
+        )
+
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+
+    response = api_client.post(
+        "/mcp/notion/proxy",
+        json={"meta": {"space_id": space_id, "user_id": "user"}},
+        headers={"mcp-session-id": "session-legacy"},
+    )
+
+    assert response.status_code == 401
+    assert "requires an OAuth-connected integration" in response.json()["detail"]
 
 
 def test_notion_oauth_start_and_callback(monkeypatch):

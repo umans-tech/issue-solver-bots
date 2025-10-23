@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any, Literal, Sequence
 
 from issue_solver.events.domain import (
     DomainEvent,
@@ -24,6 +24,7 @@ class NotionCredentials:
     workspace_name: str | None
     bot_id: str | None
     process_id: str
+    auth_mode: Literal["manual", "oauth"] = "manual"
 
 
 async def get_notion_integration_event(
@@ -125,6 +126,9 @@ async def get_notion_credentials(
         workspace_name=workspace_name,
         bot_id=bot_id,
         process_id=notion_connected.process_id,
+        auth_mode=(
+            latest_rotation.auth_mode if latest_rotation else notion_connected.auth_mode
+        ),
     )
 
 
