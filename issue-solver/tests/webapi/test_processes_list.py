@@ -213,15 +213,6 @@ def test_returns_notion_integration_process(
 
     monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
 
-    async def fake_register_mcp_client(*, config, access_token, logger):
-        return ("stub-mcp-client-id", "stub-mcp-client-secret", "client_secret_post")
-
-    monkeypatch.setattr(
-        notion_integration,
-        "_register_mcp_client",
-        fake_register_mcp_client,
-    )
-
     monkeypatch.setattr(
         notion_integration,
         "_OAUTH_CONFIG",
@@ -231,12 +222,16 @@ def test_returns_notion_integration_process(
             redirect_uri="https://example.com/notion/callback",
             return_base_url=None,
             state_ttl_seconds=600,
-            mcp_audience="https://mcp.notion.com/mcp",
-            mcp_requested_token_type="urn:ietf:params:oauth:token-type:jwt",
+            mcp_client_id="stub-mcp-client-id",
+            mcp_client_secret="stub-mcp-client-secret",
+            mcp_token_endpoint="https://mcp.notion.com/token",
             mcp_scope=None,
-            mcp_token_endpoint_override=None,
+            mcp_token_auth_method="client_secret_post",
         ),
     )
+
+    monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
+    monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
 
     connect_response = api_client.post(
         "/integrations/notion/",

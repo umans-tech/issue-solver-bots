@@ -46,9 +46,6 @@ def sample_notion_connected_event():
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
         auth_mode="oauth",
-        mcp_client_id="mcp-client-id-123",
-        mcp_client_secret="mcp-client-secret-xyz",
-        mcp_token_endpoint_auth_method="client_secret_post",
     )
 
 
@@ -66,9 +63,6 @@ def sample_notion_rotated_event():
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
         auth_mode="oauth",
-        mcp_client_id="mcp-client-id-123",
-        mcp_client_secret="mcp-client-secret-xyz",
-        mcp_token_endpoint_auth_method="client_secret_post",
     )
 
 
@@ -295,7 +289,6 @@ def test_notion_integration_connected_record_encryption(
 
     assert record.access_token != sample_notion_connected_event.access_token
     assert record.refresh_token != sample_notion_connected_event.refresh_token
-    assert record.mcp_client_secret != sample_notion_connected_event.mcp_client_secret
 
     restored = record.to_domain_event()
     assert restored.access_token == sample_notion_connected_event.access_token
@@ -303,12 +296,6 @@ def test_notion_integration_connected_record_encryption(
     assert restored.workspace_id == sample_notion_connected_event.workspace_id
     assert restored.workspace_name == sample_notion_connected_event.workspace_name
     assert restored.auth_mode == sample_notion_connected_event.auth_mode
-    assert restored.mcp_client_id == sample_notion_connected_event.mcp_client_id
-    assert restored.mcp_client_secret == sample_notion_connected_event.mcp_client_secret
-    assert (
-        restored.mcp_token_endpoint_auth_method
-        == sample_notion_connected_event.mcp_token_endpoint_auth_method
-    )
 
     safe = record.safe_copy()
     assert safe.access_token.endswith(record.access_token[-4:])
@@ -316,9 +303,6 @@ def test_notion_integration_connected_record_encryption(
     assert safe.refresh_token
     assert safe.refresh_token.endswith(record.refresh_token[-4:])
     assert safe.refresh_token.count("*") >= len(record.refresh_token) - 4
-    assert safe.mcp_client_secret
-    assert safe.mcp_client_secret.endswith(record.mcp_client_secret[-4:])
-    assert safe.mcp_client_secret.count("*") >= len(record.mcp_client_secret) - 4
 
 
 def test_notion_integration_token_rotated_record_encryption(
@@ -331,7 +315,6 @@ def test_notion_integration_token_rotated_record_encryption(
 
         assert record.new_access_token != sample_notion_rotated_event.new_access_token
         assert record.new_refresh_token != sample_notion_rotated_event.new_refresh_token
-        assert record.mcp_client_secret != sample_notion_rotated_event.mcp_client_secret
 
         restored = record.to_domain_event()
         assert restored.new_access_token == sample_notion_rotated_event.new_access_token
@@ -339,14 +322,6 @@ def test_notion_integration_token_rotated_record_encryption(
             restored.new_refresh_token == sample_notion_rotated_event.new_refresh_token
         )
         assert restored.auth_mode == sample_notion_rotated_event.auth_mode
-        assert restored.mcp_client_id == sample_notion_rotated_event.mcp_client_id
-        assert (
-            restored.mcp_client_secret == sample_notion_rotated_event.mcp_client_secret
-        )
-        assert (
-            restored.mcp_token_endpoint_auth_method
-            == sample_notion_rotated_event.mcp_token_endpoint_auth_method
-        )
 
         serialized = serialize(sample_notion_rotated_event)
         assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
@@ -357,6 +332,3 @@ def test_notion_integration_token_rotated_record_encryption(
         assert safe_record.new_refresh_token
         assert safe_record.new_refresh_token.endswith(serialized.new_refresh_token[-4:])
         assert "*" in safe_record.new_refresh_token
-        assert safe_record.mcp_client_secret
-        assert safe_record.mcp_client_secret.endswith(serialized.mcp_client_secret[-4:])
-        assert "*" in safe_record.mcp_client_secret

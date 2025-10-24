@@ -73,6 +73,9 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         auth_mode="oauth",
     )
 
+    monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
+    monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
+
     async def fake_get_credentials(event_store, requested_space_id):
         assert requested_space_id == space_id
         return credentials
@@ -99,15 +102,6 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         mcp_notion_proxy,
         "ensure_fresh_notion_credentials",
         fake_ensure_fresh_credentials,
-    )
-
-    async def fake_ensure_mcp_credentials(**kwargs):
-        return kwargs["credentials"]
-
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "ensure_mcp_client_credentials",
-        fake_ensure_mcp_credentials,
     )
 
     async def fake_get_mcp_token(*, credentials, logger):

@@ -48,10 +48,9 @@ sequenceDiagram
 - **Oct 24 (morning):** Enforced OAuth-only integrations, removed token logging, and ensured that `ensure_fresh_notion_credentials` rejects non-OAuth credentials.
 - **Oct 24 (midday):** Added RFC 8693 token exchange attempts via the REST OAuth endpoint; Notion returned 400 (`grant_type` not supported).
 - **Oct 24 (afternoon):**
-  - Discovered Notion MCP protected resource metadata endpoint.
-  - Implemented metadata discovery to obtain the authorization server and token endpoint, plus token caching scaffolding.
-  - Adjusted requests to use `application/x-www-form-urlencoded`, as required by Notion.
-  - Added support for `client_secret_basic` and `client_secret_post` auth methods based on advertised capabilities.
+  - Discovered Notion MCP protected resource metadata endpoint and attempted dynamic client registration/token exchange.
+  - Simplified implementation to rely on a pre-configured MCP client ID/secret (env vars) and `grant_type=client_credentials` against `https://mcp.notion.com/token`.
+  - Adjusted requests to use `application/x-www-form-urlencoded`, as required by Notion, with support for both `client_secret_basic` and `client_secret_post`.
 - **Latest State:** Dynamic client registration now succeeds (`201 Created`), but the subsequent token request fails with `400 {"error":"unsupported_grant_type"}` when we submit `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`. Manual end-to-end flow still fails at the MCP exchange step.
 
 ## Root Causes Identified
@@ -65,7 +64,7 @@ sequenceDiagram
 - **Logging hygiene:** Removed plaintext token logs; added debug logs for metadata keys and token lengths only.
 - **MCP metadata discovery:** Fetch and cache `https://mcp.notion.com/.well-known/oauth-protected-resource` and `.well-known/oauth-authorization-server` to determine token endpoint, supported auth methods, and resource identifier.
 - **Token exchange helper:** Added `get_mcp_access_token` to exchange the refreshed OAuth access token for an MCP token using advertised endpoint and supported auth method (Basic or POST).
-- **Dynamic client registration:** Discovery logic fetches MCP metadata, performs RFC 7591 registration, and now persists the returned `client_id`/`client_secret` per space.  Token exchange still fails because the advertised grant types do not include token exchange.
+- **MCP credential configuration:** The simplified proxy now expects `NOTION_MCP_CLIENT_ID` / `NOTION_MCP_CLIENT_SECRET` environment variables and obtains an MCP token via `grant_type=client_credentials` against `https://mcp.notion.com/token` (falling back to the existing OAuth client if the MCP-specific pair isn't set).
 - **HTTP form encoding:** All OAuth-related requests now use `application/x-www-form-urlencoded`.
 - **Tests:** Updated mocks to simulate MCP token retrieval, added new failure-path coverage, and ensured auth mode tracking for credentials.
 
@@ -77,7 +76,7 @@ sequenceDiagram
   - `registration_endpoint`: `https://mcp.notion.com/register`
 - Notion’s hosted MCP service requires **Dynamic Client Registration (DCR)**. Standard REST integration credentials (`NOTION_OAUTH_CLIENT_ID/SECRET`) are **not** recognized by the MCP authorization server.
 - MCP Inspector/third-party guides (Stacklok, Traefik Hub, Qiita, etc.) confirm the required flow: discover metadata > POST to `registration_endpoint` > persist returned `client_id`/`client_secret` > execute OAuth code/token exchanges with the registered client.
-- Registration returns a new MCP client ID/secret, but `grant_types_supported` in the metadata includes only `authorization_code` and `refresh_token`; the token endpoint rejects token exchange with `unsupported_grant_type`. We must either request a supported grant (likely `client_credentials` or `authorization_code`) or adjust the registration payload to match Notion’s expected flow.
+- Using the configured MCP client ID/secret (via env vars) we now call the token endpoint with `grant_type=client_credentials`; the server still responds with `unsupported_grant_type`, indicating we need authoritative guidance on the proper grant (likely `authorization_code` for the MCP-specific client).
 
 ## Outstanding Issues
 - **Finalize MCP token grant:** Determine which grant type Notion expects after DCR (e.g., `client_credentials` or another documented flow) and adjust the exchange accordingly.

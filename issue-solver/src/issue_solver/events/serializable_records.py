@@ -162,22 +162,15 @@ class NotionIntegrationConnectedRecord(BaseModel):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
-    mcp_client_id: str | None = None
-    mcp_client_secret: str | None = None
-    mcp_token_endpoint_auth_method: str | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
             obfuscate(self.refresh_token) if self.refresh_token else None
         )
-        obfuscated_mcp_secret = (
-            obfuscate(self.mcp_client_secret) if self.mcp_client_secret else None
-        )
         return self.model_copy(
             update={
                 "access_token": obfuscate(self.access_token),
                 "refresh_token": obfuscated_refresh,
-                "mcp_client_secret": obfuscated_mcp_secret,
             }
         )
 
@@ -196,13 +189,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
             auth_mode=self.auth_mode,
-            mcp_client_id=self.mcp_client_id,
-            mcp_client_secret=(
-                _decrypt_token(self.mcp_client_secret)
-                if self.mcp_client_secret
-                else None
-            ),
-            mcp_token_endpoint_auth_method=self.mcp_token_endpoint_auth_method,
         )
 
     @classmethod
@@ -221,11 +207,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
             auth_mode=event.auth_mode,
-            mcp_client_id=event.mcp_client_id,
-            mcp_client_secret=_encrypt_token(event.mcp_client_secret)
-            if event.mcp_client_secret
-            else None,
-            mcp_token_endpoint_auth_method=event.mcp_token_endpoint_auth_method,
         )
 
 
@@ -244,22 +225,15 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
-    mcp_client_id: str | None = None
-    mcp_client_secret: str | None = None
-    mcp_token_endpoint_auth_method: str | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
             obfuscate(self.new_refresh_token) if self.new_refresh_token else None
         )
-        obfuscated_mcp_secret = (
-            obfuscate(self.mcp_client_secret) if self.mcp_client_secret else None
-        )
         return self.model_copy(
             update={
                 "new_access_token": obfuscate(self.new_access_token),
                 "new_refresh_token": obfuscated_refresh,
-                "mcp_client_secret": obfuscated_mcp_secret,
             }
         )
 
@@ -278,13 +252,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
             auth_mode=self.auth_mode,
-            mcp_client_id=self.mcp_client_id,
-            mcp_client_secret=(
-                _decrypt_token(self.mcp_client_secret)
-                if self.mcp_client_secret
-                else None
-            ),
-            mcp_token_endpoint_auth_method=self.mcp_token_endpoint_auth_method,
         )
 
     @classmethod
@@ -303,11 +270,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
             auth_mode=event.auth_mode,
-            mcp_client_id=event.mcp_client_id,
-            mcp_client_secret=_encrypt_token(event.mcp_client_secret)
-            if event.mcp_client_secret
-            else None,
-            mcp_token_endpoint_auth_method=event.mcp_token_endpoint_auth_method,
         )
 
 
