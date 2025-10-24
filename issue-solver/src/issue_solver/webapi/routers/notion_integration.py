@@ -61,6 +61,7 @@ class NotionOAuthConfig:
     mcp_token_endpoint: str
     mcp_scope: str | None
     mcp_token_auth_method: str
+    mcp_registration_endpoint: str
 
 
 _OAUTH_CONFIG: NotionOAuthConfig | None = None
@@ -519,7 +520,10 @@ def _get_oauth_config() -> NotionOAuthConfig:
     )
     mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
     mcp_token_auth_method = os.environ.get(
-        "NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post"
+        "NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic"
+    )
+    mcp_registration_endpoint = os.environ.get(
+        "NOTION_MCP_REGISTRATION_ENDPOINT", "https://mcp.notion.com/register"
     )
 
     if not client_id or not client_secret or not redirect_uri:
@@ -539,6 +543,7 @@ def _get_oauth_config() -> NotionOAuthConfig:
         mcp_token_endpoint=mcp_token_endpoint,
         mcp_scope=mcp_scope,
         mcp_token_auth_method=mcp_token_auth_method,
+        mcp_registration_endpoint=mcp_registration_endpoint,
     )
     return _OAUTH_CONFIG
 
@@ -595,12 +600,18 @@ async def _refresh_access_token(
 async def _exchange_for_mcp_token(
     *,
     config: NotionOAuthConfig,
+    credentials: NotionCredentials,
     logger: logging.Logger | logging.LoggerAdapter,
 ) -> dict[str, Any]:
-    if not config.mcp_client_id or not config.mcp_client_secret:
-        raise HTTPException(
-            status_code=503,
-            detail="Notion MCP client credentials are not configured.",
+    client_id = config.mcp_client_id
+    client_secret = config.mcp_client_secret
+    auth_method = config.mcp_token_auth_method
+
+    if not client_id or not client_secret:
+        client_id, client_secret, auth_method = await _register_mcp_client(
+            registration_endpoint=config.mcp_registration_endpoint,
+            access_token=credentials.access_token,
+            logger=logger,
         )
 
     payload: dict[str, Any] = {"grant_type": "client_credentials"}
@@ -614,9 +625,9 @@ async def _exchange_for_mcp_token(
         config=config,
         logger=logger,
         endpoint=config.mcp_token_endpoint,
-        auth_method=config.mcp_token_auth_method,
-        client_id_override=config.mcp_client_id,
-        client_secret_override=config.mcp_client_secret,
+        auth_method=auth_method,
+        client_id_override=client_id,
+        client_secret_override=client_secret,
     )
 
 
@@ -637,6 +648,7 @@ async def get_mcp_access_token(
     try:
         exchange_response = await _exchange_for_mcp_token(
             config=config,
+            credentials=credentials,
             logger=logger,
         )
     except HTTPException:
@@ -664,6 +676,54 @@ async def get_mcp_access_token(
         len(mcp_access_token),
     )
     return mcp_access_token
+
+
+async def _register_mcp_client(
+    *,
+    registration_endpoint: str,
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> tuple[str, str, str]:
+    headers = {"Content-Type": "application/json"}
+    if access_token:
+        headers["Authorization"] = f"Bearer {access_token}"
+
+    payload = {
+        "client_name": "Issue Solver MCP Proxy",
+        "grant_types": ["client_credentials"],
+        "token_endpoint_auth_method": "client_secret_post",
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(
+            registration_endpoint, json=payload, headers=headers
+        )
+
+    if response.status_code not in {200, 201}:
+        logger.error(
+            "Notion MCP client registration failed (%s): %s",
+            response.status_code,
+            response.text,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to register client with Notion MCP authorization server.",
+        )
+
+    body = response.json()
+    client_id = body.get("client_id")
+    client_secret = body.get("client_secret")
+    auth_method = body.get("token_endpoint_auth_method") or "client_secret_post"
+
+    if not isinstance(client_id, str) or not isinstance(client_secret, str):
+        logger.error("Notion MCP registration returned invalid payload: %s", body)
+        raise HTTPException(
+            status_code=502,
+            detail="Notion MCP registration returned invalid client credentials.",
+        )
+
+    logger.info("Registered Notion MCP client using auth method %s", auth_method)
+    return client_id, client_secret, auth_method
 
 
 async def _request_oauth_token(

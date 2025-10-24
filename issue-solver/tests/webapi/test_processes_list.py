@@ -227,11 +227,13 @@ def test_returns_notion_integration_process(
             mcp_token_endpoint="https://mcp.notion.com/token",
             mcp_scope=None,
             mcp_token_auth_method="client_secret_post",
+            mcp_registration_endpoint="https://mcp.notion.com/register",
         ),
     )
 
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
+    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
 
     connect_response = api_client.post(
         "/integrations/notion/",

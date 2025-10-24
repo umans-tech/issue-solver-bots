@@ -66,11 +66,13 @@ def stub_notion_oauth_config(monkeypatch):
         mcp_token_endpoint="https://mcp.notion.com/token",
         mcp_scope=None,
         mcp_token_auth_method="client_secret_post",
+        mcp_registration_endpoint="https://mcp.notion.com/register",
     )
 
     monkeypatch.setattr(notion_integration, "_OAUTH_CONFIG", config)
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
+    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
     monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
     monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
 
