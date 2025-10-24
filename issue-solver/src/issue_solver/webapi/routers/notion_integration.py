@@ -5,7 +5,7 @@ import os
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Literal
 from urllib.parse import urlencode, urljoin, urlparse, parse_qsl, urlunparse
 
@@ -40,6 +40,10 @@ from issue_solver.webapi.payloads import (
 
 NOTION_API_BASE_URL = "https://api.notion.com/v1"
 NOTION_MCP_VERSION = "2022-06-28"
+NOTION_MCP_RESOURCE_METADATA_URL = (
+    "https://mcp.notion.com/.well-known/oauth-protected-resource"
+)
+NOTION_MCP_METADATA_TTL_SECONDS = 300
 
 router = APIRouter(prefix="/integrations/notion", tags=["notion-integrations"])
 
@@ -59,9 +63,11 @@ class NotionOAuthConfig:
     mcp_audience: str
     mcp_requested_token_type: str
     mcp_scope: str | None
+    mcp_token_endpoint_override: str | None
 
 
 _OAUTH_CONFIG: NotionOAuthConfig | None = None
+_MCP_METADATA_CACHE: dict[str, tuple[dict[str, Any], dict[str, Any], datetime]] = {}
 
 
 async def _validate_notion_token(access_token: str) -> dict:
@@ -518,6 +524,7 @@ def _get_oauth_config() -> NotionOAuthConfig:
         "NOTION_MCP_REQUESTED_TOKEN_TYPE", "urn:ietf:params:oauth:token-type:jwt"
     )
     mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
+    mcp_token_endpoint_override = os.environ.get("NOTION_MCP_TOKEN_ENDPOINT")
 
     if not client_id or not client_secret or not redirect_uri:
         raise RuntimeError(
@@ -534,6 +541,7 @@ def _get_oauth_config() -> NotionOAuthConfig:
         mcp_audience=mcp_audience,
         mcp_requested_token_type=mcp_requested_token_type,
         mcp_scope=mcp_scope,
+        mcp_token_endpoint_override=mcp_token_endpoint_override,
     )
     return _OAUTH_CONFIG
 
@@ -593,16 +601,49 @@ async def _exchange_for_mcp_token(
     access_token: str,
     logger: logging.Logger | logging.LoggerAdapter,
 ) -> dict[str, Any]:
+    resource_metadata, auth_metadata = await _get_mcp_oauth_metadata(logger=logger)
+    token_endpoint = (
+        config.mcp_token_endpoint_override
+        or auth_metadata.get("token_endpoint")
+        or NOTION_OAUTH_TOKEN_URL
+    )
+    supported_methods = auth_metadata.get("token_endpoint_auth_methods_supported") or []
+    auth_method = "client_secret_basic"
+    if supported_methods:
+        if "client_secret_basic" in supported_methods:
+            auth_method = "client_secret_basic"
+        elif "client_secret_post" in supported_methods:
+            auth_method = "client_secret_post"
+        else:
+            auth_method = supported_methods[0]
+    logger.debug(
+        "Using Notion MCP token endpoint %s with auth method %s",
+        token_endpoint,
+        auth_method,
+    )
+
     payload: dict[str, Any] = {
         "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
         "subject_token": access_token,
         "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
         "requested_token_type": config.mcp_requested_token_type,
-        "audience": config.mcp_audience,
     }
+
+    resource_identifier = resource_metadata.get("resource")
+    if resource_identifier:
+        payload["resource"] = resource_identifier
+    if config.mcp_audience:
+        payload["audience"] = config.mcp_audience
     if config.mcp_scope:
         payload["scope"] = config.mcp_scope
-    return await _request_oauth_token(payload=payload, config=config, logger=logger)
+
+    return await _request_oauth_token(
+        payload=payload,
+        config=config,
+        logger=logger,
+        endpoint=token_endpoint,
+        auth_method=auth_method,
+    )
 
 
 async def get_mcp_access_token(
@@ -653,23 +694,98 @@ async def get_mcp_access_token(
     return mcp_access_token
 
 
+async def _get_mcp_oauth_metadata(
+    *, logger: logging.Logger | logging.LoggerAdapter
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    cached = _MCP_METADATA_CACHE.get(NOTION_MCP_RESOURCE_METADATA_URL)
+    now = datetime.now(timezone.utc)
+    if cached and cached[2] > now:
+        return cached[0], cached[1]
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resource_response = await client.get(
+            NOTION_MCP_RESOURCE_METADATA_URL, headers={"Accept": "application/json"}
+        )
+        resource_response.raise_for_status()
+        resource_metadata = resource_response.json()
+
+        authorization_servers = resource_metadata.get("authorization_servers") or []
+        if not authorization_servers:
+            logger.error(
+                "Notion MCP resource metadata missing authorization_servers: %s",
+                resource_metadata,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="Notion MCP server did not advertise an authorization server.",
+            )
+
+        auth_metadata: dict[str, Any] | None = None
+        for server in authorization_servers:
+            server_url = server.rstrip("/")
+            discovery_url = urljoin(
+                server_url + "/", ".well-known/oauth-authorization-server"
+            )
+            try:
+                response = await client.get(
+                    discovery_url, headers={"Accept": "application/json"}
+                )
+                response.raise_for_status()
+                auth_metadata = response.json()
+                break
+            except httpx.HTTPError as exc:  # pragma: no cover - fallback
+                logger.warning(
+                    "Failed to fetch Notion MCP authorization metadata from %s: %s",
+                    discovery_url,
+                    exc,
+                )
+                continue
+
+        if not auth_metadata:
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to discover Notion MCP authorization server metadata.",
+            )
+
+    _MCP_METADATA_CACHE[NOTION_MCP_RESOURCE_METADATA_URL] = (
+        resource_metadata,
+        auth_metadata,
+        now + timedelta(seconds=NOTION_MCP_METADATA_TTL_SECONDS),
+    )
+    return resource_metadata, auth_metadata
+
+
 async def _request_oauth_token(
     *,
     payload: dict[str, Any],
     config: NotionOAuthConfig,
     logger: logging.Logger | logging.LoggerAdapter,
+    endpoint: str | None = None,
+    auth_method: str = "client_secret_basic",
 ) -> dict[str, Any]:
-    auth = base64.b64encode(
-        f"{config.client_id}:{config.client_secret}".encode("utf-8")
-    ).decode("utf-8")
     headers = {
-        "Authorization": f"Basic {auth}",
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
     }
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(
-            NOTION_OAUTH_TOKEN_URL, json=payload, headers=headers
+    form_payload = {k: str(v) for k, v in payload.items() if v is not None}
+
+    if auth_method == "client_secret_basic":
+        auth = base64.b64encode(
+            f"{config.client_id}:{config.client_secret}".encode("utf-8")
+        ).decode("utf-8")
+        headers["Authorization"] = f"Basic {auth}"
+    elif auth_method == "client_secret_post":
+        form_payload["client_id"] = config.client_id
+        form_payload["client_secret"] = config.client_secret
+    else:  # pragma: no cover - unexpected
+        logger.error("Unsupported OAuth client auth method: %s", auth_method)
+        raise HTTPException(
+            status_code=503,
+            detail="Unsupported OAuth client authentication method for Notion token exchange.",
         )
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        target = endpoint or NOTION_OAUTH_TOKEN_URL
+        response = await client.post(target, data=form_payload, headers=headers)
 
     if response.status_code == 400:
         try:
