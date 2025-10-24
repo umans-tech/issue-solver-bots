@@ -187,6 +187,9 @@ class NotionIntegrationConnected(DomainEvent):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
+    mcp_client_id: str | None = None
+    mcp_client_secret: str | None = None
+    mcp_token_endpoint_auth_method: str | None = None
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -202,6 +205,9 @@ class NotionIntegrationTokenRotated(DomainEvent):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
+    mcp_client_id: str | None = None
+    mcp_client_secret: str | None = None
+    mcp_token_endpoint_auth_method: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

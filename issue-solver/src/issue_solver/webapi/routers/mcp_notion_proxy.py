@@ -15,6 +15,7 @@ from issue_solver.events.notion_integration import get_notion_credentials
 from issue_solver.webapi.dependencies import get_clock, get_event_store, get_logger
 from issue_solver.webapi.routers.notion_integration import (
     ensure_fresh_notion_credentials,
+    ensure_mcp_client_credentials,
     get_mcp_access_token,
 )
 
@@ -91,6 +92,19 @@ async def proxy_notion_mcp(
             logger=logger,
         )
 
+        if notion_credentials.auth_mode == "oauth" and (
+            not notion_credentials.mcp_client_id
+            or not notion_credentials.mcp_client_secret
+        ):
+            notion_credentials = await ensure_mcp_client_credentials(
+                credentials=notion_credentials,
+                event_store=event_store,
+                clock=clock,
+                logger=logger,
+                space_id=space_id,
+                user_id=user_id or "unknown-user-id",
+            )
+
         logger.info(
             "Using Notion token for space %s (user=%s)",
             space_id,
@@ -98,7 +112,7 @@ async def proxy_notion_mcp(
         )
 
         mcp_access_token = await get_mcp_access_token(
-            access_token=notion_credentials.access_token,
+            credentials=notion_credentials,
             logger=logger,
         )
 

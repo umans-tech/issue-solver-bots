@@ -213,6 +213,31 @@ def test_returns_notion_integration_process(
 
     monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
 
+    async def fake_register_mcp_client(*, config, access_token, logger):
+        return ("stub-mcp-client-id", "stub-mcp-client-secret", "client_secret_post")
+
+    monkeypatch.setattr(
+        notion_integration,
+        "_register_mcp_client",
+        fake_register_mcp_client,
+    )
+
+    monkeypatch.setattr(
+        notion_integration,
+        "_OAUTH_CONFIG",
+        notion_integration.NotionOAuthConfig(
+            client_id="test-client-id",
+            client_secret="test-client-secret",
+            redirect_uri="https://example.com/notion/callback",
+            return_base_url=None,
+            state_ttl_seconds=600,
+            mcp_audience="https://mcp.notion.com/mcp",
+            mcp_requested_token_type="urn:ietf:params:oauth:token-type:jwt",
+            mcp_scope=None,
+            mcp_token_endpoint_override=None,
+        ),
+    )
+
     connect_response = api_client.post(
         "/integrations/notion/",
         json={"access_token": "notion-secret", "space_id": "brice-space-001"},

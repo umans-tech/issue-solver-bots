@@ -52,6 +52,36 @@ def stub_notion_validation(monkeypatch):
     monkeypatch.delattr(notion_integration, "_validate_notion_token")
 
 
+@pytest.fixture(autouse=True)
+def stub_notion_oauth_config(monkeypatch):
+    original_config = notion_integration._OAUTH_CONFIG
+    config = notion_integration.NotionOAuthConfig(
+        client_id="test-client-id",
+        client_secret="test-client-secret",
+        redirect_uri="https://example.com/notion/callback",
+        return_base_url=None,
+        state_ttl_seconds=600,
+        mcp_audience="https://mcp.notion.com/mcp",
+        mcp_requested_token_type="urn:ietf:params:oauth:token-type:jwt",
+        mcp_scope=None,
+        mcp_token_endpoint_override=None,
+    )
+
+    monkeypatch.setattr(notion_integration, "_OAUTH_CONFIG", config)
+
+    async def fake_register_mcp_client(*, config, access_token, logger):
+        return ("stub-mcp-client-id", "stub-mcp-client-secret", "client_secret_post")
+
+    monkeypatch.setattr(
+        notion_integration,
+        "_register_mcp_client",
+        fake_register_mcp_client,
+    )
+
+    yield
+    notion_integration._OAUTH_CONFIG = original_config
+
+
 def test_connect_notion_integration_success(api_client):
     space_id = "space-123"
     user_id = "user-42"
@@ -186,8 +216,17 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
         fake_ensure_fresh_credentials,
     )
 
-    async def fake_get_mcp_token(*, access_token, logger):
-        assert access_token == "proxy-token"
+    async def fake_ensure_mcp_credentials(**kwargs):
+        return kwargs["credentials"]
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_mcp_client_credentials",
+        fake_ensure_mcp_credentials,
+    )
+
+    async def fake_get_mcp_token(*, credentials, logger):
+        assert credentials.access_token == "proxy-token"
         return "mcp-proxy-token"
 
     monkeypatch.setattr(
@@ -246,6 +285,15 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
         mcp_notion_proxy,
         "ensure_fresh_notion_credentials",
         fake_ensure_fresh_credentials,
+    )
+
+    async def fake_ensure_mcp_credentials(**kwargs):
+        return kwargs["credentials"]
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_mcp_client_credentials",
+        fake_ensure_mcp_credentials,
     )
 
     async def fake_get_mcp_token(**_kwargs):
@@ -353,14 +401,15 @@ def test_notion_oauth_start_and_callback(monkeypatch):
             follow_redirects=False,
         )
         assert callback_resp.status_code == 303
-        assert callback_resp.headers["location"].startswith(
+        location = callback_resp.headers["location"]
+        assert location.startswith(
             "/integrations/notion/callback"
-        )
+        ) or location.startswith("https://example.com/integrations/notion/callback")
 
         integration_resp = client.get(f"/integrations/notion/{space_id}")
 
-    assert integration_resp.status_code == 200
-    integration_data = integration_resp.json()
-    assert integration_data["workspaceId"] == "workspace-oauth"
-    assert integration_data["hasValidToken"] is True
-    assert integration_data["tokenExpiresAt"] is not None
+        assert integration_resp.status_code == 200
+        integration_data = integration_resp.json()
+        assert integration_data["workspaceId"] == "workspace-oauth"
+        assert integration_data["hasValidToken"] is True
+        assert integration_data["tokenExpiresAt"] is not None

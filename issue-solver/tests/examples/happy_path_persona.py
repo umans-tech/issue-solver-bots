@@ -61,6 +61,9 @@ class BriceDeNice:
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
             auth_mode="oauth",
+            mcp_client_id="brice-mcp-client-id",
+            mcp_client_secret="brice-mcp-client-secret",
+            mcp_token_endpoint_auth_method="client_secret_post",
         )
 
     @classmethod
@@ -77,6 +80,9 @@ class BriceDeNice:
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
             auth_mode="oauth",
+            mcp_client_id="brice-mcp-client-id",
+            mcp_client_secret="brice-mcp-client-secret",
+            mcp_token_endpoint_auth_method="client_secret_post",
         )
 
     @classmethod

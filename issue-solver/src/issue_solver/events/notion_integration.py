@@ -25,6 +25,9 @@ class NotionCredentials:
     bot_id: str | None
     process_id: str
     auth_mode: Literal["manual", "oauth"] = "manual"
+    mcp_client_id: str | None = None
+    mcp_client_secret: str | None = None
+    mcp_token_endpoint_auth_method: str | None = None
 
 
 async def get_notion_integration_event(
@@ -118,6 +121,22 @@ async def get_notion_credentials(
     if not workspace_id and bot_id:
         workspace_id = bot_id
 
+    mcp_client_id = (
+        latest_rotation.mcp_client_id
+        if latest_rotation and latest_rotation.mcp_client_id
+        else notion_connected.mcp_client_id
+    )
+    mcp_client_secret = (
+        latest_rotation.mcp_client_secret
+        if latest_rotation and latest_rotation.mcp_client_secret
+        else notion_connected.mcp_client_secret
+    )
+    mcp_token_endpoint_auth_method = (
+        latest_rotation.mcp_token_endpoint_auth_method
+        if latest_rotation and latest_rotation.mcp_token_endpoint_auth_method
+        else notion_connected.mcp_token_endpoint_auth_method
+    )
+
     return NotionCredentials(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -129,6 +148,9 @@ async def get_notion_credentials(
         auth_mode=(
             latest_rotation.auth_mode if latest_rotation else notion_connected.auth_mode
         ),
+        mcp_client_id=mcp_client_id,
+        mcp_client_secret=mcp_client_secret,
+        mcp_token_endpoint_auth_method=mcp_token_endpoint_auth_method,
     )
 
 

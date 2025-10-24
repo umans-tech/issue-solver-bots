@@ -17,7 +17,7 @@
   - Implemented metadata discovery to obtain the authorization server and token endpoint, plus token caching scaffolding.
   - Adjusted requests to use `application/x-www-form-urlencoded`, as required by Notion.
   - Added support for `client_secret_basic` and `client_secret_post` auth methods based on advertised capabilities.
-- **Latest State:** MCP token exchange still returns `401 {"error":"invalid_client","error_description":"Client not found"}`. All integration tests pass; manual end-to-end flow still fails at the MCP exchange step.
+- **Latest State:** Dynamic client registration now succeeds (`201 Created`), but the subsequent token request fails with `400 {"error":"unsupported_grant_type"}` when we submit `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`. Manual end-to-end flow still fails at the MCP exchange step.
 
 ## Root Causes Identified
 1. **Missing MCP Token Exchange:** The proxy never exchanged the OAuth access token for the MCP-specific bearer; MCP endpoint rejects non-MCP tokens.
@@ -30,10 +30,11 @@
 - **Logging hygiene:** Removed plaintext token logs; added debug logs for metadata keys and token lengths only.
 - **MCP metadata discovery:** Fetch and cache `https://mcp.notion.com/.well-known/oauth-protected-resource` and `.well-known/oauth-authorization-server` to determine token endpoint, supported auth methods, and resource identifier.
 - **Token exchange helper:** Added `get_mcp_access_token` to exchange the refreshed OAuth access token for an MCP token using advertised endpoint and supported auth method (Basic or POST).
+- **Dynamic client registration:** Discovery logic fetches MCP metadata, performs RFC 7591 registration, and now persists the returned `client_id`/`client_secret` per space.  Token exchange still fails because the advertised grant types do not include token exchange.
 - **HTTP form encoding:** All OAuth-related requests now use `application/x-www-form-urlencoded`.
 - **Tests:** Updated mocks to simulate MCP token retrieval, added new failure-path coverage, and ensured auth mode tracking for credentials.
 
-## Updated Findings (Oct 24, 2025 – 12:00 PM)
+## Updated Findings (Oct 24, 2025 – 4:45 PM)
 - Fetching the MCP protected-resource metadata (`https://mcp.notion.com/.well-known/oauth-protected-resource`) succeeds and advertises at least one authorization server.
 - The authorization-server metadata includes:
   - `token_endpoint`: `https://mcp.notion.com/token`
@@ -41,13 +42,12 @@
   - `registration_endpoint`: `https://mcp.notion.com/register`
 - Notion’s hosted MCP service requires **Dynamic Client Registration (DCR)**. Standard REST integration credentials (`NOTION_OAUTH_CLIENT_ID/SECRET`) are **not** recognized by the MCP authorization server.
 - MCP Inspector/third-party guides (Stacklok, Traefik Hub, Qiita, etc.) confirm the required flow: discover metadata > POST to `registration_endpoint` > persist returned `client_id`/`client_secret` > execute OAuth code/token exchanges with the registered client.
-- Our current implementation still submits the REST client credentials, so the MCP token endpoint responds with `{"error":"invalid_client","error_description":"Client not found"}`.
+- Registration returns a new MCP client ID/secret, but `grant_types_supported` in the metadata includes only `authorization_code` and `refresh_token`; the token endpoint rejects token exchange with `unsupported_grant_type`. We must either request a supported grant (likely `client_credentials` or `authorization_code`) or adjust the registration payload to match Notion’s expected flow.
 
 ## Outstanding Issues
-- **Complete DCR flow:** We must implement dynamic registration, store MCP-issued client credentials per space, and reuse them for all subsequent authorization/token exchanges.
+- **Finalize MCP token grant:** Determine which grant type Notion expects after DCR (e.g., `client_credentials` or another documented flow) and adjust the exchange accordingly.
 - **Credential lifecycle:** Need a secure storage story (event store record or secret manager) for the MCP client credentials and rotation strategy.
 - **Token storage:** MCP access tokens are still minted on every proxy call; once DCR succeeds we should cache the short-lived token until expiry.
-- **Token storage:** MCP token currently exchanged per request; caching could reduce latency once a valid token is obtained.
 - **Documentation:** Need guidance on MCP client registration, expected scopes, and operational runbook for refreshing MCP integrations.
 
 ## Next Steps / Recommendations

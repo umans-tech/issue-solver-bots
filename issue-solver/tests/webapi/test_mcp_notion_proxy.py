@@ -101,8 +101,17 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         fake_ensure_fresh_credentials,
     )
 
-    async def fake_get_mcp_token(*, access_token, logger):
-        assert access_token == "secret"
+    async def fake_ensure_mcp_credentials(**kwargs):
+        return kwargs["credentials"]
+
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_mcp_client_credentials",
+        fake_ensure_mcp_credentials,
+    )
+
+    async def fake_get_mcp_token(*, credentials, logger):
+        assert credentials.access_token == "secret"
         return "mcp-secret-token"
 
     monkeypatch.setattr(
