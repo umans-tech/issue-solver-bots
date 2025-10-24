@@ -1,5 +1,40 @@
 # Notion MCP Integration Investigation (October 24, 2025)
 
+## Architecture Overview
+
+```mermaid
+sequenceDiagram
+    participant UI as Conversational UI (Next.js)
+    participant API as Issue Solver Web API
+    participant ES as Event Store / SQS
+    participant NotionOAuth as Notion OAuth Service
+    participant NotionMCP as Notion MCP Server
+
+    UI->>API: GET /integrations/notion (status)
+    alt User connects Notion via OAuth
+        UI->>API: GET /integrations/notion/oauth/start
+        API-->>UI: authorizeUrl + state
+        UI->>NotionOAuth: Redirect user to authorizeUrl
+        NotionOAuth-->>API: OAuth callback (code, state)
+        API->>NotionOAuth: POST /oauth/token (authorization_code)
+        API->>NotionMCP: POST /register (Dynamic Client Registration)
+        API->>ES: Append Notion + MCP credentials to space stream
+        API-->>UI: 303 redirect to integrations/notion/callback
+    end
+
+    opt MCP tool invocation
+        UI->>API: POST /mcp/notion/proxy (JSON-RPC + meta)
+        API->>ES: Load space credentials
+        API->>NotionMCP: POST /register (if MCP client missing)
+        API->>NotionMCP: POST /token (currently failures)
+        API->>NotionMCP: POST /mcp (forwarded tool call)
+        NotionMCP-->>API: MCP response
+        API-->>UI: Proxied response/stream
+    end
+```
+
+**Why the proxy?** Tokens remain in the Issue Solver backend, enabling space-centric access (ADR-0003) and a uniform MCP surface for GitHub, Notion, and future tools. Conversational UI only sends MCP requests with `space_id`/`user_id`; the backend injects credentials, records events through SQS-backed event sourcing, and mediates all outbound calls.
+
 ## Incident Summary
 - **Symptom:** Requests to `POST /mcp/notion/proxy` consistently failed with `401 Unauthorized` (`invalid_token` or `invalid_client`) responses from `https://mcp.notion.com/mcp` after a user initiated the Notion MCP tool from the UI.
 - **Key Observations:**

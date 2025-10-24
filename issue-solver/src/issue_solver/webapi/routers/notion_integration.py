@@ -659,7 +659,6 @@ async def _refresh_access_token(
 async def _exchange_for_mcp_token(
     *,
     config: NotionOAuthConfig,
-    access_token: str,
     logger: logging.Logger | logging.LoggerAdapter,
     credentials: NotionCredentials,
 ) -> dict[str, Any]:
@@ -685,17 +684,12 @@ async def _exchange_for_mcp_token(
     )
 
     payload: dict[str, Any] = {
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        "subject_token": access_token,
-        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-        "requested_token_type": config.mcp_requested_token_type,
+        "grant_type": "client_credentials",
     }
 
     resource_identifier = resource_metadata.get("resource")
     if resource_identifier:
         payload["resource"] = resource_identifier
-    if config.mcp_audience:
-        payload["audience"] = config.mcp_audience
     if config.mcp_scope:
         payload["scope"] = config.mcp_scope
 
@@ -736,7 +730,6 @@ async def get_mcp_access_token(
     try:
         exchange_response = await _exchange_for_mcp_token(
             config=config,
-            access_token=credentials.access_token,
             logger=logger,
             credentials=credentials,
         )
