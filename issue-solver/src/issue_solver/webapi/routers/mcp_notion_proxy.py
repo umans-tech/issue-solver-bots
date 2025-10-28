@@ -98,6 +98,55 @@ NOTION_TOOLS = [
             "required": ["block_id"],
         },
     },
+    {
+        "name": "notion_list_databases",
+        "description": "List all databases in the Notion workspace. Returns database titles, IDs, and metadata.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "name": "notion_get_database",
+        "description": "Get database schema and properties. Shows what fields/columns a database has before querying it.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "database_id": {
+                    "type": "string",
+                    "description": "The ID of the database",
+                },
+            },
+            "required": ["database_id"],
+        },
+    },
+    {
+        "name": "notion_query_database",
+        "description": "Query a database with optional filters and sorts. Returns matching database entries with their properties.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "database_id": {
+                    "type": "string",
+                    "description": "The ID of the database to query",
+                },
+                "filter": {
+                    "type": "object",
+                    "description": "Optional Notion filter object to filter results",
+                },
+                "sorts": {
+                    "type": "array",
+                    "description": "Optional array of sort objects",
+                },
+                "page_size": {
+                    "type": "integer",
+                    "description": "Number of results to return (max 100)",
+                    "default": 100,
+                },
+            },
+            "required": ["database_id"],
+        },
+    },
 ]
 
 
@@ -219,6 +268,12 @@ async def _call_notion_tool(
         return await _notion_get_page(arguments, access_token, logger)
     elif tool_name == "notion_get_block_children":
         return await _notion_get_block_children(arguments, access_token, logger)
+    elif tool_name == "notion_list_databases":
+        return await _notion_list_databases(arguments, access_token, logger)
+    elif tool_name == "notion_get_database":
+        return await _notion_get_database(arguments, access_token, logger)
+    elif tool_name == "notion_query_database":
+        return await _notion_query_database(arguments, access_token, logger)
     else:
         raise HTTPException(status_code=404, detail=f"Unknown tool: {tool_name}")
 
@@ -367,6 +422,216 @@ async def _notion_get_block_children(
             "block_count": len(blocks),
             "has_more": data.get("has_more", False),
             "blocks": blocks,
+        },
+    }
+
+
+async def _notion_list_databases(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """List all databases in the Notion workspace."""
+    # Search for databases only
+    payload = {
+        "filter": {"property": "object", "value": "database"},
+        "page_size": 100,
+    }
+
+    data = await _notion_api_request(
+        "POST",
+        "/search",
+        access_token,
+        logger,
+        json_payload=payload,
+    )
+
+    # Format database list
+    results = data.get("results", [])
+    formatted_databases = []
+    for db in results:
+        formatted_db = {
+            "id": db.get("id"),
+            "title": "",
+            "url": db.get("url"),
+            "created_time": db.get("created_time"),
+            "last_edited_time": db.get("last_edited_time"),
+        }
+
+        # Extract title
+        title_list = db.get("title", [])
+        if title_list:
+            formatted_db["title"] = title_list[0].get("plain_text", "Untitled")
+
+        formatted_databases.append(formatted_db)
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Found {len(formatted_databases)} databases",
+            }
+        ],
+        "isError": False,
+        "_meta": {
+            "databases": formatted_databases,
+            "has_more": data.get("has_more", False),
+        },
+    }
+
+
+async def _notion_get_database(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Get database schema and properties."""
+    database_id = arguments.get("database_id")
+    if not database_id:
+        raise HTTPException(status_code=400, detail="database_id is required")
+
+    data = await _notion_api_request(
+        "GET",
+        f"/databases/{database_id}",
+        access_token,
+        logger,
+    )
+
+    # Extract database schema information
+    title = ""
+    title_list = data.get("title", [])
+    if title_list:
+        title = title_list[0].get("plain_text", "Untitled")
+
+    properties = data.get("properties", {})
+    property_schema = {}
+    for prop_name, prop_config in properties.items():
+        property_schema[prop_name] = {
+            "type": prop_config.get("type"),
+            "id": prop_config.get("id"),
+        }
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Database: {title}\nProperties: {len(property_schema)}",
+            }
+        ],
+        "isError": False,
+        "_meta": {
+            "id": data.get("id"),
+            "title": title,
+            "url": data.get("url"),
+            "properties": property_schema,
+            "created_time": data.get("created_time"),
+            "last_edited_time": data.get("last_edited_time"),
+        },
+    }
+
+
+async def _notion_query_database(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Query a database with optional filters and sorts."""
+    database_id = arguments.get("database_id")
+    if not database_id:
+        raise HTTPException(status_code=400, detail="database_id is required")
+
+    # Build query payload
+    payload: dict[str, Any] = {}
+    if arguments.get("filter"):
+        payload["filter"] = arguments["filter"]
+    if arguments.get("sorts"):
+        payload["sorts"] = arguments["sorts"]
+
+    page_size = arguments.get("page_size", 100)
+    payload["page_size"] = min(page_size, 100)
+
+    data = await _notion_api_request(
+        "POST",
+        f"/databases/{database_id}/query",
+        access_token,
+        logger,
+        json_payload=payload,
+    )
+
+    # Format query results
+    results = data.get("results", [])
+    formatted_results = []
+    for page in results:
+        formatted_page = {
+            "id": page.get("id"),
+            "url": page.get("url"),
+            "created_time": page.get("created_time"),
+            "last_edited_time": page.get("last_edited_time"),
+            "properties": {},
+        }
+
+        # Extract property values
+        properties = page.get("properties", {})
+        for prop_name, prop_value in properties.items():
+            prop_type = prop_value.get("type")
+            formatted_page["properties"][prop_name] = {
+                "type": prop_type,
+            }
+
+            # Extract value based on type
+            if prop_type == "title":
+                title_content = prop_value.get("title", [])
+                if title_content:
+                    formatted_page["properties"][prop_name]["value"] = title_content[
+                        0
+                    ].get("plain_text", "")
+            elif prop_type == "rich_text":
+                rich_text = prop_value.get("rich_text", [])
+                if rich_text:
+                    formatted_page["properties"][prop_name]["value"] = rich_text[0].get(
+                        "plain_text", ""
+                    )
+            elif prop_type in ["number", "checkbox", "url", "email", "phone_number"]:
+                formatted_page["properties"][prop_name]["value"] = prop_value.get(
+                    prop_type
+                )
+            elif prop_type == "select":
+                select_obj = prop_value.get("select")
+                if select_obj:
+                    formatted_page["properties"][prop_name]["value"] = select_obj.get(
+                        "name"
+                    )
+            elif prop_type == "multi_select":
+                multi_select = prop_value.get("multi_select", [])
+                formatted_page["properties"][prop_name]["value"] = [
+                    item.get("name") for item in multi_select
+                ]
+            elif prop_type == "status":
+                status_obj = prop_value.get("status")
+                if status_obj:
+                    formatted_page["properties"][prop_name]["value"] = status_obj.get(
+                        "name"
+                    )
+            elif prop_type == "date":
+                date_obj = prop_value.get("date")
+                if date_obj:
+                    formatted_page["properties"][prop_name]["value"] = date_obj.get(
+                        "start"
+                    )
+
+        formatted_results.append(formatted_page)
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Found {len(formatted_results)} entries",
+            }
+        ],
+        "isError": False,
+        "_meta": {
+            "results": formatted_results,
+            "has_more": data.get("has_more", False),
         },
     }
 

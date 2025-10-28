@@ -50,6 +50,13 @@ export function isNotionMCPTool(toolName: string): boolean {
   return toolName.startsWith('notion_');
 }
 
+function formatPropertyValue(value: unknown): string {
+  if (value === null || value === undefined) return '-';
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'boolean') return value ? '✓' : '✗';
+  return String(value);
+}
+
 interface NotionMCPResultProps {
   toolName: string;
   result?: unknown;
@@ -96,6 +103,73 @@ export const NotionMCPResult = memo(function NotionMCPResult({
           Retrieved successfully
         </div>
       )}
+
+      {toolName === 'notion_list_databases' && meta?.databases && Array.isArray(meta.databases) ? (
+        <div className="space-y-2">
+          {(meta.databases as Array<Record<string, unknown>>).slice(0, 5).map((db, idx) => (
+            <div key={idx} className="text-xs border-l-2 border-muted pl-2">
+              <div className="font-medium">{db.title as string || 'Untitled Database'}</div>
+              <div className="text-muted-foreground text-[10px]">
+                ID: {String(db.id).slice(0, 8)}... • Last edited: {new Date(db.last_edited_time as string).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+          {(meta.databases as Array<unknown>).length > 5 && (
+            <div className="text-xs text-muted-foreground">
+              +{(meta.databases as Array<unknown>).length - 5} more databases
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {toolName === 'notion_get_database' && meta?.properties ? (
+        <div className="space-y-1">
+          <div className="text-xs font-medium mb-1">Schema:</div>
+          {Object.entries(meta.properties as Record<string, { type: string }>).slice(0, 10).map(([propName, propConfig]) => (
+            <div key={propName} className="text-xs flex justify-between">
+              <span className="font-medium">{propName}</span>
+              <span className="text-muted-foreground text-[10px] uppercase">{propConfig.type}</span>
+            </div>
+          ))}
+          {Object.keys(meta.properties as Record<string, unknown>).length > 10 && (
+            <div className="text-xs text-muted-foreground">
+              +{Object.keys(meta.properties as Record<string, unknown>).length - 10} more properties
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {toolName === 'notion_query_database' && meta?.results && Array.isArray(meta.results) ? (
+        <div className="space-y-2">
+          {(meta.results as Array<Record<string, unknown>>).slice(0, 5).map((entry, idx) => {
+            const properties = entry.properties as Record<string, { type: string; value: unknown }>;
+            const titleProp = Object.entries(properties).find(([_, prop]) => prop.type === 'title');
+            const title = titleProp ? formatPropertyValue(titleProp[1].value) : 'Untitled';
+            
+            return (
+              <div key={idx} className="text-xs border-l-2 border-muted pl-2">
+                <div className="font-medium mb-1">{title}</div>
+                <div className="space-y-0.5">
+                  {Object.entries(properties)
+                    .filter(([_, prop]) => prop.type !== 'title')
+                    .slice(0, 3)
+                    .map(([propName, propValue]) => (
+                      <div key={propName} className="text-[10px] flex gap-2">
+                        <span className="text-muted-foreground">{propName}:</span>
+                        <span>{formatPropertyValue(propValue.value)}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          })}
+          {(meta.results as Array<unknown>).length > 5 && (
+            <div className="text-xs text-muted-foreground">
+              +{(meta.results as Array<unknown>).length - 5} more entries
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 });
