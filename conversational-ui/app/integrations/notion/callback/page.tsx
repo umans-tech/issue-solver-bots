@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,11 @@ function closeWindowFallback() {
   }
 }
 
-export default function NotionCallbackPage() {
+function NotionCallbackContent() {
   const searchParams = useSearchParams();
-  const status = searchParams.get('status');
-  const error = searchParams.get('error');
-  const workspaceId = searchParams.get('workspaceId');
+  const status = searchParams?.get('status') ?? null;
+  const error = searchParams?.get('error') ?? null;
+  const workspaceId = searchParams?.get('workspaceId') ?? null;
 
   const { title, description, Icon, iconClass } = useMemo(() => {
     if (status === 'success') {
@@ -74,5 +74,17 @@ export default function NotionCallbackPage() {
         Close window
       </Button>
     </div>
+  );
+}
+
+export default function NotionCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    }>
+      <NotionCallbackContent />
+    </Suspense>
   );
 }

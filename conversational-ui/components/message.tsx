@@ -30,6 +30,7 @@ import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
+import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool } from './notion-mcp';
 import { chatModels } from '@/lib/ai/models';
 import { TodoDisplay } from './todo-display';
 import { ChatMessage, ChatTools } from '@/lib/types';
@@ -372,7 +373,7 @@ const PurePreviewMessage = ({
                 const isAnimating = state === 'input-available' || state === 'input-streaming' || state === 'call' || state === 'partial-call';
                 const isResult = state === 'output-available' || state === 'result' || state === 'finished';
 
-                // Only handle GitHub MCP tools to keep this change minimal
+                // Handle GitHub MCP tools
                 if (isGitHubMCPTool(toolName)) {
                   if (isAnimating) {
                     return (
@@ -383,6 +384,21 @@ const PurePreviewMessage = ({
                   if (isResult) {
                     return (
                       <GitHubMCPResult key={toolCallId} toolName={toolName} result={output} args={input} />
+                    );
+                  }
+                }
+
+                // Handle Notion MCP tools
+                if (isNotionMCPTool(toolName)) {
+                  if (isAnimating) {
+                    return (
+                      <NotionMCPAnimation key={toolCallId} toolName={toolName} args={input} />
+                    );
+                  }
+
+                  if (isResult) {
+                    return (
+                      <NotionMCPResult key={toolCallId} toolName={toolName} result={output} />
                     );
                   }
                 }
@@ -445,6 +461,8 @@ const PurePreviewMessage = ({
                         <FetchWebpageAnimation url={(input as ChatTools['fetchWebpage']['input'])?.url} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPAnimation toolName={toolName} args={input} />
+                      ) : isNotionMCPTool(toolName) ? (
+                        <NotionMCPAnimation toolName={toolName} args={input} />
                       ) : null}
                     </div>
                   );
@@ -573,6 +591,8 @@ const PurePreviewMessage = ({
                         />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
+                      ) : isNotionMCPTool(toolName) ? (
+                        <NotionMCPResult toolName={toolName} result={result} />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}

@@ -1,4 +1,4 @@
-"""Notion MCP Proxy Router for Issue Solver."""
+"""Notion MCP Proxy Router - REST-backed MCP tools for Notion."""
 
 import logging
 from typing import Annotated, Any
@@ -6,8 +6,6 @@ from typing import Annotated, Any
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from starlette.responses import Response as StarletteResponse
-from starlette.responses import StreamingResponse
 
 from issue_solver.clock import Clock
 from issue_solver.events.event_store import EventStore
@@ -15,41 +13,92 @@ from issue_solver.events.notion_integration import get_notion_credentials
 from issue_solver.webapi.dependencies import get_clock, get_event_store, get_logger
 from issue_solver.webapi.routers.notion_integration import (
     ensure_fresh_notion_credentials,
-    get_mcp_access_token,
 )
 
-NOTION_MCP_REMOTE_STREAM_ENDPOINT = "https://mcp.notion.com/sse"
-NOTION_MCP_REMOTE_ENDPOINT = "https://mcp.notion.com/mcp"
+NOTION_API_BASE_URL = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
 
 router = APIRouter()
 
 
-@router.get("/mcp/notion/proxy")
-async def proxy_notion_mcp_stream(request: Request) -> StarletteResponse:  # type: ignore[name-defined]
-    session_id = request.headers.get("mcp-session-id")
-    if session_id is None:
-        return JSONResponse(
-            status_code=400, content={"detail": "Missing mcp-session-id header"}
-        )
-
-    headers = {
-        "mcp-session-id": session_id,
-        "User-Agent": "Issue-Solver-Notion-MCP-Proxy/1.0",
-        "Accept": "text/event-stream",
-        "Notion-Version": NOTION_VERSION,
-    }
-
-    async def event_stream():
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream(
-                "GET", NOTION_MCP_REMOTE_STREAM_ENDPOINT, headers=headers
-            ) as resp:
-                resp.raise_for_status()
-                async for chunk in resp.aiter_bytes():
-                    yield chunk
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+# MCP Tool Definitions
+NOTION_TOOLS = [
+    {
+        "name": "notion_search",
+        "description": "Search across all pages and databases in the Notion workspace. Returns titles, IDs, and basic metadata.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The text to search for",
+                },
+                "filter": {
+                    "type": "object",
+                    "description": "Optional filter by object type (page or database)",
+                    "properties": {
+                        "value": {
+                            "type": "string",
+                            "enum": ["page", "database"],
+                        },
+                        "property": {
+                            "type": "string",
+                            "enum": ["object"],
+                        },
+                    },
+                },
+                "sort": {
+                    "type": "object",
+                    "description": "Sort results by last edited time",
+                    "properties": {
+                        "direction": {
+                            "type": "string",
+                            "enum": ["ascending", "descending"],
+                        },
+                        "timestamp": {
+                            "type": "string",
+                            "enum": ["last_edited_time"],
+                        },
+                    },
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "notion_get_page",
+        "description": "Retrieve a Notion page by its ID. Returns page properties and metadata.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "page_id": {
+                    "type": "string",
+                    "description": "The ID of the page to retrieve",
+                }
+            },
+            "required": ["page_id"],
+        },
+    },
+    {
+        "name": "notion_get_block_children",
+        "description": "Get the content blocks of a page or block. Returns the actual content of a Notion page.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "block_id": {
+                    "type": "string",
+                    "description": "The ID of the block or page to get children from",
+                },
+                "page_size": {
+                    "type": "integer",
+                    "description": "Number of blocks to return (max 100)",
+                    "default": 100,
+                },
+            },
+            "required": ["block_id"],
+        },
+    },
+]
 
 
 @router.post("/mcp/notion/proxy")
@@ -62,29 +111,35 @@ async def proxy_notion_mcp(
         Depends(lambda: get_logger("issue_solver.webapi.routers.notion_mcp")),
     ],
 ) -> JSONResponse:
-    logger.info("Processing Notion MCP proxy request")
+    """Handle MCP JSON-RPC requests for Notion tools."""
     try:
         payload: dict[str, Any] = await raw_request.json()
-        incoming_session_id: str | None = raw_request.headers.get("mcp-session-id")
+        method = payload.get("method")
+        request_id = payload.get("id")
+
+        # Extract user context
         user_id = payload.get("meta", {}).get("user_id")
         space_id = payload.get("meta", {}).get("space_id")
 
         if not space_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Missing space_id. MCP tools require a valid space context.",
+            return _error_response(
+                request_id,
+                -32602,
+                "Missing space_id in request metadata",
             )
 
-        notion_credentials = await get_notion_credentials(event_store, space_id)
-        if not notion_credentials:
-            raise HTTPException(
-                status_code=404,
-                detail="No Notion integration connected to this space. Please connect Notion to enable MCP tools.",
+        # Get and refresh credentials
+        credentials = await get_notion_credentials(event_store, space_id)
+        if not credentials:
+            return _error_response(
+                request_id,
+                -32001,
+                "No Notion integration connected to this space",
             )
 
-        notion_credentials = await ensure_fresh_notion_credentials(
+        credentials = await ensure_fresh_notion_credentials(
             event_store=event_store,
-            credentials=notion_credentials,
+            credentials=credentials,
             space_id=space_id,
             user_id=user_id or "unknown-user-id",
             clock=clock,
@@ -92,120 +147,307 @@ async def proxy_notion_mcp(
         )
 
         logger.info(
-            "Using Notion token for space %s (user=%s)",
+            "Processing Notion MCP request: method=%s, space=%s",
+            method,
             space_id,
-            user_id,
         )
 
-        mcp_access_token = await get_mcp_access_token(
-            credentials=notion_credentials,
-            logger=logger,
+        # Handle MCP protocol methods
+        if method == "initialize":
+            return _success_response(
+                request_id,
+                {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "tools": {},
+                    },
+                    "serverInfo": {
+                        "name": "notion-mcp-proxy",
+                        "version": "1.0.0",
+                    },
+                },
+            )
+
+        if method == "tools/list":
+            return _success_response(request_id, {"tools": NOTION_TOOLS})
+
+        if method == "tools/call":
+            tool_name = payload.get("params", {}).get("name")
+            tool_args = payload.get("params", {}).get("arguments", {})
+
+            result = await _call_notion_tool(
+                tool_name=tool_name,
+                arguments=tool_args,
+                access_token=credentials.access_token,
+                logger=logger,
+            )
+            return _success_response(request_id, result)
+
+        return _error_response(
+            request_id,
+            -32601,
+            f"Unknown method: {method}",
         )
 
-        # Avoid forwarding proxy-specific metadata to Notion MCP API.
-        notion_payload = dict(payload)
-        notion_payload.pop("meta", None)
-        logger.debug(
-            "Forwarding Notion MCP payload with keys: %s",
-            list(notion_payload.keys()),
+    except HTTPException as exc:
+        logger.warning("HTTP exception in Notion MCP proxy: %s", exc.detail)
+        return _error_response(
+            request_id if "request_id" in locals() else None,
+            exc.status_code,
+            str(exc.detail),
         )
-
-        logger.debug(
-            "Forwarding Notion MCP request for space %s with MCP token len=%d",
-            space_id,
-            len(mcp_access_token),
-        )
-
-        result, outgoing_session_id = await _forward_to_notion(
-            NOTION_MCP_REMOTE_ENDPOINT,
-            mcp_access_token,
-            notion_payload,
-            incoming_session_id,
-        )
-
-        response_json = JSONResponse(content=result)
-        if outgoing_session_id:
-            response_json.headers["mcp-session-id"] = outgoing_session_id
-        return response_json
-
-    except httpx.RequestError as exc:
-        logger.error("Network error connecting to Notion MCP server: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail="Unable to connect to Notion MCP server. Please try again later.",
-        )
-    except HTTPException:
-        raise
-    except Exception as exc:  # pragma: no cover - defensive catch
-        logger.error("Unexpected error in Notion MCP proxy: %s", exc)
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error while processing Notion MCP request.",
+    except Exception:
+        logger.exception("Unexpected error in Notion MCP proxy")
+        return _error_response(
+            request_id if "request_id" in locals() else None,
+            -32603,
+            "Internal server error",
         )
 
 
-async def _forward_to_notion(
+async def _call_notion_tool(
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Execute a Notion tool by calling the REST API."""
+    if tool_name == "notion_search":
+        return await _notion_search(arguments, access_token, logger)
+    elif tool_name == "notion_get_page":
+        return await _notion_get_page(arguments, access_token, logger)
+    elif tool_name == "notion_get_block_children":
+        return await _notion_get_block_children(arguments, access_token, logger)
+    else:
+        raise HTTPException(status_code=404, detail=f"Unknown tool: {tool_name}")
+
+
+async def _notion_search(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Search Notion workspace using the search API."""
+    query = arguments.get("query", "")
+    filter_obj = arguments.get("filter")
+    sort_obj = arguments.get("sort")
+
+    payload: dict[str, Any] = {"query": query}
+    if filter_obj:
+        payload["filter"] = filter_obj
+    if sort_obj:
+        payload["sort"] = sort_obj
+
+    data = await _notion_api_request(
+        "POST",
+        "/search",
+        access_token,
+        logger,
+        json_payload=payload,
+    )
+
+    # Format results for MCP response
+    results = data.get("results", [])
+    formatted_results = []
+    for item in results:
+        formatted_item = {
+            "id": item.get("id"),
+            "object": item.get("object"),
+            "created_time": item.get("created_time"),
+            "last_edited_time": item.get("last_edited_time"),
+            "url": item.get("url"),
+        }
+
+        # Extract title based on object type
+        if item.get("object") == "page":
+            properties = item.get("properties", {})
+            title_prop = properties.get("title", {})
+            if title_prop:
+                title_content = title_prop.get("title", [])
+                if title_content:
+                    formatted_item["title"] = title_content[0].get("plain_text", "")
+        elif item.get("object") == "database":
+            title_list = item.get("title", [])
+            if title_list:
+                formatted_item["title"] = title_list[0].get("plain_text", "")
+
+        formatted_results.append(formatted_item)
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Found {len(formatted_results)} results",
+            }
+        ],
+        "isError": False,
+        "_meta": {
+            "results": formatted_results,
+            "has_more": data.get("has_more", False),
+        },
+    }
+
+
+async def _notion_get_page(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Get a Notion page by ID."""
+    page_id = arguments.get("page_id")
+    if not page_id:
+        raise HTTPException(status_code=400, detail="page_id is required")
+
+    data = await _notion_api_request(
+        "GET",
+        f"/pages/{page_id}",
+        access_token,
+        logger,
+    )
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Retrieved page: {page_id}",
+            }
+        ],
+        "isError": False,
+        "_meta": data,
+    }
+
+
+async def _notion_get_block_children(
+    arguments: dict[str, Any],
+    access_token: str,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> dict[str, Any]:
+    """Get block children (content) from a page or block."""
+    block_id = arguments.get("block_id")
+    if not block_id:
+        raise HTTPException(status_code=400, detail="block_id is required")
+
+    page_size = arguments.get("page_size", 100)
+
+    data = await _notion_api_request(
+        "GET",
+        f"/blocks/{block_id}/children?page_size={page_size}",
+        access_token,
+        logger,
+    )
+
+    # Extract text content from blocks
+    blocks = data.get("results", [])
+    content_parts = []
+
+    for block in blocks:
+        block_type = block.get("type")
+        block_content = block.get(block_type, {})
+
+        # Extract text from rich_text fields
+        if "rich_text" in block_content:
+            for text_obj in block_content["rich_text"]:
+                if text_obj.get("plain_text"):
+                    content_parts.append(text_obj["plain_text"])
+
+    content_text = (
+        "\n".join(content_parts) if content_parts else "No text content found"
+    )
+
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": content_text,
+            }
+        ],
+        "isError": False,
+        "_meta": {
+            "block_count": len(blocks),
+            "has_more": data.get("has_more", False),
+            "blocks": blocks,
+        },
+    }
+
+
+async def _notion_api_request(
+    method: str,
     endpoint: str,
     access_token: str,
-    payload: dict[str, Any],
-    incoming_session_id: str | None,
-) -> tuple[dict[str, Any], str | None]:
+    logger: logging.Logger | logging.LoggerAdapter,
+    json_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Make a request to the Notion REST API."""
+    url = f"{NOTION_API_BASE_URL}{endpoint}"
     headers = {
         "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-        "User-Agent": "Issue-Solver-Notion-MCP-Proxy/1.0",
         "Notion-Version": NOTION_VERSION,
+        "Content-Type": "application/json",
     }
-    if incoming_session_id:
-        headers["mcp-session-id"] = incoming_session_id
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            logging.getLogger("issue_solver.webapi.routers.notion_mcp").debug(
-                "Forwarding Notion MCP request with token prefix %s (len=%d)",
-                access_token[:6],
-                len(access_token),
+            if method == "GET":
+                response = await client.get(url, headers=headers)
+            elif method == "POST":
+                response = await client.post(url, headers=headers, json=json_payload)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
+
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "Notion API error %s: %s",
+                exc.response.status_code,
+                exc.response.text,
             )
-            response = await client.post(endpoint, json=payload, headers=headers)
+            if exc.response.status_code == 401:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Notion authentication failed. Reconnect the integration.",
+                )
+            elif exc.response.status_code == 404:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Notion resource not found. Check the ID and permissions.",
+                )
+            else:
+                raise HTTPException(
+                    status_code=exc.response.status_code,
+                    detail=f"Notion API error: {exc.response.text}",
+                )
         except httpx.RequestError as exc:
+            logger.error("Network error calling Notion API: %s", exc)
             raise HTTPException(
                 status_code=503,
-                detail="Unable to connect to Notion MCP server. Please try again later.",
-            ) from exc
-
-    if not response.is_success:
-        error_text = response.text
-        error_summary: Any = None
-        try:
-            error_summary = response.json()
-        except ValueError:
-            error_summary = error_text
-        auth_header = response.headers.get("www-authenticate")
-
-        logging.getLogger("issue_solver.webapi.routers.notion_mcp").warning(
-            "Notion MCP returned %s: %s (auth header=%s)",
-            response.status_code,
-            error_summary,
-            auth_header,
-        )
-
-        if response.status_code == 401:
-            raise HTTPException(
-                status_code=401,
-                detail=(
-                    "Notion MCP authentication failed. Reconnect Notion from the Issue "
-                    "Solver integrations page to refresh permissions."
-                ),
+                detail="Unable to connect to Notion API. Please try again later.",
             )
 
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Notion MCP server error: {error_text}",
-        )
 
-    try:
-        body = response.json() if response.text.strip() else {"status": "accepted"}
-    except ValueError:
-        body = {"status": "success", "data": response.text}
+def _success_response(request_id: Any, result: dict[str, Any]) -> JSONResponse:
+    """Format a successful MCP JSON-RPC response."""
+    return JSONResponse(
+        content={
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": result,
+        }
+    )
 
-    return body, response.headers.get("mcp-session-id")
+
+def _error_response(request_id: Any, code: int, message: str) -> JSONResponse:
+    """Format an error MCP JSON-RPC response."""
+    return JSONResponse(
+        content={
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {
+                "code": code,
+                "message": message,
+            },
+        },
+        status_code=200,  # MCP uses 200 even for errors
+    )
