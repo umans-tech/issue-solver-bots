@@ -170,6 +170,59 @@ export const NotionMCPResult = memo(function NotionMCPResult({
           )}
         </div>
       ) : null}
+
+      {toolName === 'notion_create_page' && meta?.page_id ? (
+        <div className="space-y-1">
+          <div className="text-xs">
+            <span className="text-green-600 dark:text-green-400 font-medium">✓ Page created</span>
+          </div>
+          <div className="text-[10px] text-muted-foreground space-y-0.5">
+            <div>ID: {String(meta.page_id).slice(0, 12)}...</div>
+            {meta.url ? (
+              <a 
+                href={meta.url as string} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Open in Notion →
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {toolName === 'notion_update_page' && meta?.page_id ? (
+        <div className="space-y-1">
+          <div className="text-xs">
+            <span className="text-green-600 dark:text-green-400 font-medium">✓ Page updated</span>
+          </div>
+          <div className="text-[10px] text-muted-foreground space-y-0.5">
+            <div>ID: {String(meta.page_id).slice(0, 12)}...</div>
+            {meta.last_edited_time ? (
+              <div>Updated: {new Date(meta.last_edited_time as string).toLocaleString()}</div>
+            ) : null}
+            {meta.url ? (
+              <a 
+                href={meta.url as string} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View page →
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {toolName === 'notion_append_blocks' && meta?.block_count !== undefined ? (
+        <div className="text-xs">
+          <span className="text-green-600 dark:text-green-400 font-medium">
+            ✓ Appended {meta.block_count as number} block{(meta.block_count as number) !== 1 ? 's' : ''}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 });

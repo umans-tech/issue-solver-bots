@@ -169,7 +169,7 @@ def test_mcp_notion_proxy_tools_list(api_client: TestClient, monkeypatch):
     assert "result" in data
     assert "tools" in data["result"]
     tools = data["result"]["tools"]
-    assert len(tools) == 6
+    assert len(tools) == 9
     tool_names = [t["name"] for t in tools]
     assert "notion_search" in tool_names
     assert "notion_get_page" in tool_names
@@ -177,6 +177,9 @@ def test_mcp_notion_proxy_tools_list(api_client: TestClient, monkeypatch):
     assert "notion_list_databases" in tool_names
     assert "notion_get_database" in tool_names
     assert "notion_query_database" in tool_names
+    assert "notion_create_page" in tool_names
+    assert "notion_update_page" in tool_names
+    assert "notion_append_blocks" in tool_names
 
 
 def test_mcp_notion_proxy_search_tool(api_client: TestClient, monkeypatch):
@@ -693,3 +696,278 @@ def test_mcp_notion_proxy_query_database_tool(api_client: TestClient, monkeypatc
         data["result"]["_meta"]["results"][0]["properties"]["Status"]["value"]
         == "In Progress"
     )
+
+
+def test_mcp_notion_proxy_create_page_tool(api_client: TestClient, monkeypatch):
+    """Test that notion_create_page tool creates a page in a database."""
+    space_id = "space-with-notion"
+    database_id = "db-123"
+
+    credentials = NotionCredentials(
+        access_token="secret-token",
+        refresh_token=None,
+        token_expires_at=None,
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-secret",
+        auth_mode="oauth",
+    )
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        return credentials
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
+
+    fake_created_page = {
+        "id": "page-new-123",
+        "url": "https://notion.so/page-new-123",
+        "created_time": "2024-01-15T10:00:00Z",
+        "properties": {
+            "Name": {
+                "type": "title",
+                "title": [{"plain_text": "New Task"}],
+            },
+        },
+    }
+
+    async def fake_notion_api_request(method, endpoint, access_token, logger, **kwargs):
+        assert method == "POST"
+        assert endpoint == "/pages"
+        # Verify the payload structure
+        payload = kwargs.get("json_payload", {})
+        assert "parent" in payload
+        assert "properties" in payload
+        return fake_created_page
+
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy, "_notion_api_request", fake_notion_api_request
+    )
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "id": 8,
+        "params": {
+            "name": "notion_create_page",
+            "arguments": {
+                "parent": {"database_id": database_id},
+                "properties": {
+                    "Name": "New Task",
+                    "Priority": "High",
+                    "Completed": False,
+                },
+            },
+        },
+        "meta": {
+            "user_id": "user-123",
+            "space_id": space_id,
+        },
+    }
+
+    response = api_client.post("/mcp/notion/proxy", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "result" in data
+    assert data["result"]["isError"] is False
+    assert "Created page: New Task" in data["result"]["content"][0]["text"]
+    assert data["result"]["_meta"]["page_id"] == "page-new-123"
+    assert "url" in data["result"]["_meta"]
+
+
+def test_mcp_notion_proxy_update_page_tool(api_client: TestClient, monkeypatch):
+    """Test that notion_update_page tool updates page properties."""
+    space_id = "space-with-notion"
+    page_id = "page-123"
+
+    credentials = NotionCredentials(
+        access_token="secret-token",
+        refresh_token=None,
+        token_expires_at=None,
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-secret",
+        auth_mode="oauth",
+    )
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        return credentials
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
+
+    fake_updated_page = {
+        "id": page_id,
+        "url": "https://notion.so/page-123",
+        "last_edited_time": "2024-01-15T11:00:00Z",
+        "properties": {
+            "Status": {
+                "type": "select",
+                "select": {"name": "Complete"},
+            },
+        },
+    }
+
+    async def fake_notion_api_request(method, endpoint, access_token, logger, **kwargs):
+        assert method == "PATCH"
+        assert endpoint == f"/pages/{page_id}"
+        payload = kwargs.get("json_payload", {})
+        assert "properties" in payload
+        return fake_updated_page
+
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy, "_notion_api_request", fake_notion_api_request
+    )
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "id": 9,
+        "params": {
+            "name": "notion_update_page",
+            "arguments": {
+                "page_id": page_id,
+                "properties": {
+                    "Status": "Complete",
+                    "Completed": True,
+                },
+            },
+        },
+        "meta": {
+            "user_id": "user-123",
+            "space_id": space_id,
+        },
+    }
+
+    response = api_client.post("/mcp/notion/proxy", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "result" in data
+    assert data["result"]["isError"] is False
+    assert f"Updated page: {page_id}" in data["result"]["content"][0]["text"]
+    assert data["result"]["_meta"]["page_id"] == page_id
+
+
+def test_mcp_notion_proxy_append_blocks_tool(api_client: TestClient, monkeypatch):
+    """Test that notion_append_blocks tool appends content blocks to a page."""
+    space_id = "space-with-notion"
+    block_id = "page-123"
+
+    credentials = NotionCredentials(
+        access_token="secret-token",
+        refresh_token=None,
+        token_expires_at=None,
+        workspace_id="workspace-123",
+        workspace_name="Acme Workspace",
+        bot_id="bot-id",
+        process_id="process-secret",
+        auth_mode="oauth",
+    )
+
+    async def fake_get_credentials(event_store, requested_space_id):
+        return credentials
+
+    async def fake_ensure_fresh_credentials(**_kwargs):
+        return credentials
+
+    fake_append_response = {
+        "results": [
+            {
+                "id": "block-1",
+                "type": "paragraph",
+                "paragraph": {"rich_text": [{"plain_text": "New paragraph content"}]},
+            },
+            {
+                "id": "block-2",
+                "type": "heading_1",
+                "heading_1": {"rich_text": [{"plain_text": "New Heading"}]},
+            },
+        ]
+    }
+
+    async def fake_notion_api_request(method, endpoint, access_token, logger, **kwargs):
+        assert method == "PATCH"
+        assert endpoint == f"/blocks/{block_id}/children"
+        payload = kwargs.get("json_payload", {})
+        assert "children" in payload
+        return fake_append_response
+
+    monkeypatch.setattr(
+        mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy,
+        "ensure_fresh_notion_credentials",
+        fake_ensure_fresh_credentials,
+    )
+    monkeypatch.setattr(
+        mcp_notion_proxy, "_notion_api_request", fake_notion_api_request
+    )
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "id": 10,
+        "params": {
+            "name": "notion_append_blocks",
+            "arguments": {
+                "block_id": block_id,
+                "children": [
+                    {
+                        "object": "block",
+                        "type": "paragraph",
+                        "paragraph": {
+                            "rich_text": [
+                                {
+                                    "type": "text",
+                                    "text": {"content": "New paragraph content"},
+                                }
+                            ]
+                        },
+                    },
+                    {
+                        "object": "block",
+                        "type": "heading_1",
+                        "heading_1": {
+                            "rich_text": [
+                                {"type": "text", "text": {"content": "New Heading"}}
+                            ]
+                        },
+                    },
+                ],
+            },
+        },
+        "meta": {
+            "user_id": "user-123",
+            "space_id": space_id,
+        },
+    }
+
+    response = api_client.post("/mcp/notion/proxy", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "result" in data
+    assert data["result"]["isError"] is False
+    assert "Appended 2 blocks" in data["result"]["content"][0]["text"]
+    assert data["result"]["_meta"]["block_count"] == 2
