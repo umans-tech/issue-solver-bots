@@ -14,6 +14,8 @@ supabase:
 start-services:
     @echo "Starting backing services..."
     @docker-compose up -d
+    echo "Waiting services to start..."
+    sleep 2
 
 # 🛑 stop backing services
 stop-services:
