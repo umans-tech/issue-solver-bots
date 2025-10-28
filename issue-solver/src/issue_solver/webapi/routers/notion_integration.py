@@ -516,7 +516,7 @@ def _get_oauth_config() -> NotionOAuthConfig:
     mcp_client_id = os.environ.get("NOTION_MCP_CLIENT_ID")
     mcp_client_secret = os.environ.get("NOTION_MCP_CLIENT_SECRET")
     mcp_token_endpoint = os.environ.get(
-        "NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token"
+        "NOTION_MCP_TOKEN_ENDPOINT", "https://api.notion.com/v1/oauth/token"
     )
     mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
     mcp_token_auth_method = os.environ.get(

@@ -63,18 +63,20 @@ def stub_notion_oauth_config(monkeypatch):
         state_ttl_seconds=600,
         mcp_client_id="stub-mcp-client-id",
         mcp_client_secret="stub-mcp-client-secret",
-        mcp_token_endpoint="https://mcp.notion.com/token",
+        mcp_token_endpoint="https://api.notion.com/v1/oauth/token",
         mcp_scope=None,
-        mcp_token_auth_method="client_secret_post",
+        mcp_token_auth_method="client_secret_basic",
         mcp_registration_endpoint="https://mcp.notion.com/register",
     )
 
     monkeypatch.setattr(notion_integration, "_OAUTH_CONFIG", config)
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
+    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic")
+    monkeypatch.setenv(
+        "NOTION_MCP_TOKEN_ENDPOINT", "https://api.notion.com/v1/oauth/token"
+    )
+    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic")
 
     yield
     notion_integration._OAUTH_CONFIG = original_config
