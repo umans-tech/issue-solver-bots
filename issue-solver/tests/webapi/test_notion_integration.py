@@ -439,7 +439,7 @@ def test_notion_oauth_start_and_callback(monkeypatch):
         mcp_state = parse_qs(parsed.query)["state"][0]
 
         mcp_callback_resp = client.get(
-            "/integrations/notion/oauth/mcp/callback",
+            "/integrations/notion/mcp/oauth/callback",
             params={"code": "mcp-code", "state": mcp_state},
             headers={"X-User-ID": user_id},
             follow_redirects=False,
@@ -546,7 +546,7 @@ def test_notion_mcp_oauth_flow(monkeypatch):
         mcp_state = mcp_start_resp.json()["state"]
 
         mcp_callback_resp = client.get(
-            "/integrations/notion/oauth/mcp/callback",
+            "/integrations/notion/mcp/oauth/callback",
             params={"code": "mcp-code", "state": mcp_state},
             headers={"X-User-ID": user_id},
             follow_redirects=False,

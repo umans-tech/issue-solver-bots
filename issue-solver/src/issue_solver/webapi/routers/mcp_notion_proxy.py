@@ -5,9 +5,7 @@ from typing import Annotated, Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
-from starlette.responses import Response as StarletteResponse
-from starlette.responses import StreamingResponse, Response
+from starlette.responses import Response
 
 from issue_solver.clock import Clock
 from issue_solver.events.event_store import EventStore
@@ -19,39 +17,11 @@ from issue_solver.webapi.routers.notion_integration import (
     get_mcp_access_token,
 )
 
-NOTION_MCP_REMOTE_STREAM_ENDPOINT = "https://mcp.notion.com/sse"
 NOTION_MCP_REMOTE_ENDPOINT = "https://mcp.notion.com/mcp"
 NOTION_VERSION = "2022-06-28"
 MCP_RECONNECT_MESSAGE = "Notion MCP credentials have expired. Reconnect the Notion MCP integration to continue."
 
 router = APIRouter()
-
-
-@router.get("/mcp/notion/proxy")
-async def proxy_notion_mcp_stream(request: Request) -> StarletteResponse:  # type: ignore[name-defined]
-    session_id = request.headers.get("mcp-session-id")
-    if session_id is None:
-        return JSONResponse(
-            status_code=400, content={"detail": "Missing mcp-session-id header"}
-        )
-
-    headers = {
-        "mcp-session-id": session_id,
-        "User-Agent": "Issue-Solver-Notion-MCP-Proxy/1.0",
-        "Accept": "text/event-stream",
-        "Notion-Version": NOTION_VERSION,
-    }
-
-    async def event_stream():
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream(
-                "GET", NOTION_MCP_REMOTE_STREAM_ENDPOINT, headers=headers
-            ) as resp:
-                resp.raise_for_status()
-                async for chunk in resp.aiter_bytes():
-                    yield chunk
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("/mcp/notion/proxy")

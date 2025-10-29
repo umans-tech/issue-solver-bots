@@ -647,7 +647,7 @@ async def start_notion_mcp_oauth_flow(
     return {"authorizeUrl": authorize_url, "state": state}
 
 
-@router.get("/oauth/mcp/callback")
+@router.get("/mcp/oauth/callback")
 async def handle_notion_mcp_oauth_callback(
     redis_client: Annotated[Redis, Depends(get_redis_client)],
     event_store: Annotated[EventStore, Depends(get_event_store)],
@@ -799,30 +799,6 @@ async def handle_notion_mcp_oauth_callback(
         },
     )
     return RedirectResponse(url=redirect_url, status_code=303)
-
-
-@router.get("/mcp/oauth/callback")
-async def handle_notion_mcp_oauth_callback_legacy(
-    redis_client: Annotated[Redis, Depends(get_redis_client)],
-    event_store: Annotated[EventStore, Depends(get_event_store)],
-    clock: Annotated[Clock, Depends(get_clock)],
-    logger: Annotated[
-        logging.Logger | logging.LoggerAdapter,
-        Depends(lambda: get_logger("issue_solver.webapi.routers.notion.mcp.oauth")),
-    ],
-    code: str | None = None,
-    state: str | None = None,
-    error: str | None = None,
-):
-    return await handle_notion_mcp_oauth_callback(
-        redis_client=redis_client,
-        event_store=event_store,
-        clock=clock,
-        logger=logger,
-        code=code,
-        state=state,
-        error=error,
-    )
 
 
 def _normalize_return_path(return_path: str | None) -> str:
@@ -1368,6 +1344,8 @@ async def ensure_fresh_notion_credentials(
             detail="Notion credentials expired. Reconnect Notion to continue.",
         ) from exc
 
+    mcp_expires_in: int | None = None
+
     try:
         token_response = await _refresh_access_token(
             config=config,
@@ -1384,7 +1362,6 @@ async def ensure_fresh_notion_credentials(
                 "Notion rejected stored refresh token for space %s; clearing cached refresh credentials.",
                 space_id,
             )
-            mcp_expires_in = None
             if (
                 credentials.mcp_token_expires_at
                 and credentials.mcp_token_expires_at > clock.now()
