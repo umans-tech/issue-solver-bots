@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 from datetime import datetime, UTC, timedelta
+from urllib.parse import urlparse, parse_qs
 
+import httpx
 import pytest
 from fastapi import HTTPException
 from starlette.testclient import TestClient
@@ -66,7 +68,12 @@ def stub_notion_oauth_config(monkeypatch):
         mcp_token_endpoint="https://mcp.notion.com/token",
         mcp_scope=None,
         mcp_token_auth_method="client_secret_post",
+        api_resource="https://api.notion.com",
+        mcp_resource="https://mcp.notion.com",
         mcp_registration_endpoint="https://mcp.notion.com/register",
+        mcp_client_name="Issue Solver MCP (Test)",
+        mcp_authorize_endpoint="https://mcp.notion.com/authorize",
+        mcp_redirect_uri="https://example.com/notion/mcp/callback",
     )
 
     monkeypatch.setattr(notion_integration, "_OAUTH_CONFIG", config)
@@ -74,7 +81,10 @@ def stub_notion_oauth_config(monkeypatch):
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
     monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
     monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
+    monkeypatch.setenv(
+        "NOTION_MCP_OAUTH_REDIRECT_URI",
+        "https://example.com/notion/mcp/callback",
+    )
 
     yield
     notion_integration._OAUTH_CONFIG = original_config
@@ -97,6 +107,7 @@ def test_connect_notion_integration_success(api_client):
     assert data["botId"] == "bot-id"
     assert "processId" in data
     assert data.get("tokenExpiresAt") is None
+    assert data["hasMcpToken"] is False
 
     fetch_response = api_client.get(f"/integrations/notion/{space_id}")
     assert fetch_response.status_code == 200
@@ -105,6 +116,7 @@ def test_connect_notion_integration_success(api_client):
     assert fetched["workspaceId"] == "workspace-123"
     assert fetched["hasValidToken"] is True
     assert fetched.get("tokenExpiresAt") is None
+    assert fetched["hasMcpToken"] is False
 
 
 def test_get_notion_integration_returns_404_when_missing(api_client):
@@ -178,6 +190,9 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
         access_token="proxy-token",
         refresh_token="proxy-refresh-token",
         token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        mcp_access_token=None,
+        mcp_refresh_token="proxy-mcp-refresh",
+        mcp_token_expires_at=None,
         workspace_id="workspace-123",
         workspace_name="Acme Workspace",
         bot_id="bot-id",
@@ -202,7 +217,16 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
         captured["token"] = access_token
         captured["payload"] = payload
         captured["session"] = session_id
-        return {"status": "ok", "tool": "list_pages"}, session_id or "generated-session"
+        next_session = session_id or "generated-session"
+        response = httpx.Response(
+            status_code=200,
+            json={"status": "ok", "tool": "list_pages"},
+            headers={
+                "mcp-session-id": next_session,
+                "content-type": "application/json",
+            },
+        )
+        return response, next_session
 
     monkeypatch.setattr(
         mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
@@ -255,6 +279,9 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
         access_token="proxy-token",
         refresh_token="proxy-refresh-token",
         token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        mcp_access_token=None,
+        mcp_refresh_token="proxy-mcp-refresh",
+        mcp_token_expires_at=None,
         workspace_id="workspace-123",
         workspace_name="Acme Workspace",
         bot_id="bot-id",
@@ -312,6 +339,9 @@ def test_notion_mcp_proxy_rejects_credentials_without_refresh_token(
             access_token="legacy-token",
             refresh_token=None,
             token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            mcp_access_token=None,
+            mcp_refresh_token=None,
+            mcp_token_expires_at=None,
             workspace_id=None,
             workspace_name=None,
             bot_id=None,
@@ -344,8 +374,26 @@ def test_notion_oauth_start_and_callback(monkeypatch):
         "https://backend.test/integrations/notion/oauth/callback",
     )
 
-    async def fake_request_oauth_token(*, payload, config, logger):
+    async def fake_request_oauth_token(
+        *, payload, config, logger, form_encode=False, **kwargs
+    ):
         grant_type = payload.get("grant_type")
+        endpoint = kwargs.get("endpoint")
+        if (
+            endpoint == "https://mcp.notion.com/token"
+            and grant_type == "authorization_code"
+        ):
+            return {
+                "access_token": "mcp-access-token",
+                "refresh_token": "mcp-refresh-token",
+                "expires_in": 3600,
+            }
+        if endpoint == "https://mcp.notion.com/token" and grant_type == "refresh_token":
+            return {
+                "access_token": "mcp-access-token-refreshed",
+                "refresh_token": payload["refresh_token"],
+                "expires_in": 3600,
+            }
         if grant_type == "authorization_code":
             return {
                 "access_token": "oauth-access-token",
@@ -387,15 +435,127 @@ def test_notion_oauth_start_and_callback(monkeypatch):
             follow_redirects=False,
         )
         assert callback_resp.status_code == 303
-        location = callback_resp.headers["location"]
-        assert location.startswith(
+        first_location = callback_resp.headers["location"]
+        assert first_location.startswith("https://mcp.notion.com/authorize")
+
+        parsed = urlparse(first_location)
+        mcp_state = parse_qs(parsed.query)["state"][0]
+
+        mcp_callback_resp = client.get(
+            "/integrations/notion/oauth/mcp/callback",
+            params={"code": "mcp-code", "state": mcp_state},
+            headers={"X-User-ID": user_id},
+            follow_redirects=False,
+        )
+        assert mcp_callback_resp.status_code == 303
+        final_location = mcp_callback_resp.headers["location"]
+        assert final_location.startswith(
             "/integrations/notion/callback"
-        ) or location.startswith("https://example.com/integrations/notion/callback")
+        ) or final_location.startswith(
+            "https://example.com/integrations/notion/callback"
+        )
 
         integration_resp = client.get(f"/integrations/notion/{space_id}")
 
         assert integration_resp.status_code == 200
         integration_data = integration_resp.json()
+        assert integration_data["spaceId"] == space_id
         assert integration_data["workspaceId"] == "workspace-oauth"
         assert integration_data["hasValidToken"] is True
         assert integration_data["tokenExpiresAt"] is not None
+        assert integration_data["hasMcpToken"] is True
+
+
+def test_notion_mcp_oauth_flow(monkeypatch):
+    space_id = "space-mcp"
+    user_id = "user-mcp"
+
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "client-id")
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "client-secret")
+    monkeypatch.setenv(
+        "NOTION_OAUTH_REDIRECT_URI",
+        "https://backend.test/integrations/notion/oauth/callback",
+    )
+
+    async def fake_request_oauth_token(
+        *, payload, config, logger, form_encode=False, **kwargs
+    ):
+        grant_type = payload.get("grant_type")
+        endpoint = kwargs.get("endpoint")
+        if (
+            endpoint == "https://mcp.notion.com/token"
+            and grant_type == "authorization_code"
+        ):
+            return {
+                "access_token": "mcp-access-token",
+                "refresh_token": "mcp-refresh-token",
+                "expires_in": 3600,
+            }
+        if endpoint == "https://mcp.notion.com/token" and grant_type == "refresh_token":
+            return {
+                "access_token": "mcp-access-token-refreshed",
+                "refresh_token": payload["refresh_token"],
+                "expires_in": 3600,
+            }
+        if grant_type == "authorization_code":
+            return {
+                "access_token": "oauth-access-token",
+                "refresh_token": "oauth-refresh-token",
+                "expires_in": 3600,
+                "workspace_id": "workspace-mcp",
+                "workspace_name": "MCP Workspace",
+                "bot_id": "bot-mcp",
+            }
+        if grant_type == "refresh_token":
+            return {
+                "access_token": "oauth-access-token-refreshed",
+                "refresh_token": payload["refresh_token"],
+                "expires_in": 3600,
+            }
+        raise AssertionError(f"Unexpected grant type: {grant_type}")
+
+    monkeypatch.setattr(
+        notion_integration,
+        "_request_oauth_token",
+        fake_request_oauth_token,
+    )
+
+    with notion_test_client(InMemoryEventStore(), _FrozenClock()) as client:
+        start_resp = client.get(
+            "/integrations/notion/oauth/start",
+            params={"space_id": space_id},
+            headers={"X-User-ID": user_id},
+        )
+        assert start_resp.status_code == 200
+        start_state = start_resp.json()["state"]
+
+        callback_resp = client.get(
+            "/integrations/notion/oauth/callback",
+            params={"code": "auth-code", "state": start_state},
+            headers={"X-User-ID": user_id},
+            follow_redirects=False,
+        )
+        assert callback_resp.status_code == 303
+
+        integration_before = client.get(f"/integrations/notion/{space_id}").json()
+        assert integration_before["hasMcpToken"] is False
+
+        mcp_start_resp = client.get(
+            "/integrations/notion/oauth/mcp/start",
+            params={"space_id": space_id},
+            headers={"X-User-ID": user_id},
+        )
+        assert mcp_start_resp.status_code == 200
+        mcp_state = mcp_start_resp.json()["state"]
+
+        mcp_callback_resp = client.get(
+            "/integrations/notion/oauth/mcp/callback",
+            params={"code": "mcp-code", "state": mcp_state},
+            headers={"X-User-ID": user_id},
+            follow_redirects=False,
+        )
+        assert mcp_callback_resp.status_code == 303
+
+        integration_after = client.get(f"/integrations/notion/{space_id}").json()
+        assert integration_after["hasMcpToken"] is True
+        assert integration_after["workspaceId"] == "workspace-mcp"

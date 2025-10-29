@@ -162,15 +162,26 @@ class NotionIntegrationConnectedRecord(BaseModel):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
             obfuscate(self.refresh_token) if self.refresh_token else None
         )
+        obfuscated_mcp_access = (
+            obfuscate(self.mcp_access_token) if self.mcp_access_token else None
+        )
+        obfuscated_mcp_refresh = (
+            obfuscate(self.mcp_refresh_token) if self.mcp_refresh_token else None
+        )
         return self.model_copy(
             update={
                 "access_token": obfuscate(self.access_token),
                 "refresh_token": obfuscated_refresh,
+                "mcp_access_token": obfuscated_mcp_access,
+                "mcp_refresh_token": obfuscated_mcp_refresh,
             }
         )
 
@@ -189,6 +200,13 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
             auth_mode=self.auth_mode,
+            mcp_access_token=_decrypt_token(self.mcp_access_token)
+            if self.mcp_access_token
+            else None,
+            mcp_refresh_token=_decrypt_token(self.mcp_refresh_token)
+            if self.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=self.mcp_token_expires_at,
         )
 
     @classmethod
@@ -207,6 +225,13 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
             auth_mode=event.auth_mode,
+            mcp_access_token=_encrypt_token(event.mcp_access_token)
+            if event.mcp_access_token
+            else None,
+            mcp_refresh_token=_encrypt_token(event.mcp_refresh_token)
+            if event.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=event.mcp_token_expires_at,
         )
 
 
@@ -225,15 +250,28 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     workspace_name: str | None = None
     bot_id: str | None = None
     auth_mode: Literal["manual", "oauth"] = "manual"
+    new_mcp_access_token: str | None = None
+    new_mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
             obfuscate(self.new_refresh_token) if self.new_refresh_token else None
         )
+        obfuscated_mcp_access = (
+            obfuscate(self.new_mcp_access_token) if self.new_mcp_access_token else None
+        )
+        obfuscated_mcp_refresh = (
+            obfuscate(self.new_mcp_refresh_token)
+            if self.new_mcp_refresh_token
+            else None
+        )
         return self.model_copy(
             update={
                 "new_access_token": obfuscate(self.new_access_token),
                 "new_refresh_token": obfuscated_refresh,
+                "new_mcp_access_token": obfuscated_mcp_access,
+                "new_mcp_refresh_token": obfuscated_mcp_refresh,
             }
         )
 
@@ -252,6 +290,13 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
             auth_mode=self.auth_mode,
+            new_mcp_access_token=_decrypt_token(self.new_mcp_access_token)
+            if self.new_mcp_access_token
+            else None,
+            new_mcp_refresh_token=_decrypt_token(self.new_mcp_refresh_token)
+            if self.new_mcp_refresh_token
+            else None,
+            mcp_token_expires_at=self.mcp_token_expires_at,
         )
 
     @classmethod
@@ -270,6 +315,13 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
             auth_mode=event.auth_mode,
+            new_mcp_access_token=_encrypt_token(event.new_mcp_access_token)
+            if event.new_mcp_access_token
+            else None,
+            new_mcp_refresh_token=_encrypt_token(event.new_mcp_refresh_token)
+            if event.new_mcp_refresh_token
+            else None,
+            mcp_token_expires_at=event.mcp_token_expires_at,
         )
 
 

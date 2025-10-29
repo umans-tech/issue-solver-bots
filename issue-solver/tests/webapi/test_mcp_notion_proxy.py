@@ -2,6 +2,7 @@
 
 from datetime import datetime, UTC, timedelta
 
+import httpx
 import pytest
 from starlette.testclient import TestClient
 
@@ -66,6 +67,9 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         access_token="secret",
         refresh_token="refresh-secret",
         token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+        mcp_access_token=None,
+        mcp_refresh_token="mcp-refresh-secret",
+        mcp_token_expires_at=None,
         workspace_id="workspace-123",
         workspace_name="Acme Workspace",
         bot_id="bot-id",
@@ -94,7 +98,16 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         captured["token"] = token
         captured["payload"] = payload
         captured["session"] = session_id
-        return {"status": "ok"}, session_id or "session-generated"
+        next_session = session_id or "session-generated"
+        response = httpx.Response(
+            status_code=200,
+            json={"status": "ok"},
+            headers={
+                "mcp-session-id": next_session,
+                "content-type": "application/json",
+            },
+        )
+        return response, next_session
 
     monkeypatch.setattr(
         mcp_notion_proxy, "get_notion_credentials", fake_get_credentials

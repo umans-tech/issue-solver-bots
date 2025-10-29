@@ -28,6 +28,7 @@ interface NotionIntegrationDetails {
   botId?: string | null;
   processId: string;
   tokenExpiresAt?: string | null;
+  hasMcpToken: boolean;
 }
 
 function formatExpiration(expiresAt?: string | null): string {
@@ -59,6 +60,14 @@ export function NotionIntegrationDialog({
 
   const statusBadge = useMemo(() => {
     if (integration) {
+      if (!integration.hasMcpToken) {
+        return (
+          <Badge variant="secondary" className="gap-1 text-xs">
+            <AlertCircle size={14} />
+            MCP authorization required
+          </Badge>
+        );
+      }
       return (
         <Badge variant="outline" className="gap-1 text-xs">
           <CheckCircleFillIcon size={14} className="text-green-500" />
@@ -116,6 +125,8 @@ export function NotionIntegrationDialog({
             botId: details.bot_id ?? details.botId ?? null,
             processId: details.process_id ?? details.processId,
             tokenExpiresAt: details.token_expires_at ?? details.tokenExpiresAt ?? null,
+            hasMcpToken:
+              details.has_mcp_token ?? details.hasMcpToken ?? details.hasMcp ?? false,
           });
           setError(null);
         } else {
@@ -215,6 +226,12 @@ export function NotionIntegrationDialog({
             <p className="text-sm text-muted-foreground">
               {formatExpiration(integration?.tokenExpiresAt ?? null)}
             </p>
+            {!integration?.hasMcpToken && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Notion MCP access isn&apos;t granted yet. Select “{actionLabel}” to approve
+                the Notion MCP consent screen after the standard authorization.
+              </p>
+            )}
           </div>
 
           <p className="text-xs text-muted-foreground">

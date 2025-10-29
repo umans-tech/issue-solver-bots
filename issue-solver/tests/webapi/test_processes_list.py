@@ -227,13 +227,23 @@ def test_returns_notion_integration_process(
             mcp_token_endpoint="https://mcp.notion.com/token",
             mcp_scope=None,
             mcp_token_auth_method="client_secret_post",
+            api_resource="https://api.notion.com",
+            mcp_resource="https://mcp.notion.com",
             mcp_registration_endpoint="https://mcp.notion.com/register",
+            mcp_client_name="Issue Solver MCP (Test)",
+            mcp_authorize_endpoint="https://mcp.notion.com/authorize",
+            mcp_redirect_uri="https://example.com/notion/mcp/callback",
         ),
     )
 
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
     monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
+    monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
+    monkeypatch.setenv(
+        "NOTION_MCP_OAUTH_REDIRECT_URI",
+        "https://example.com/notion/mcp/callback",
+    )
 
     connect_response = api_client.post(
         "/integrations/notion/",

@@ -185,6 +185,15 @@ export async function POST(request: Request) {
     const mcpWrappers = [repoMcpWrapper, notionMcpWrapper];
     const toolMaps = await Promise.all(mcpWrappers.map((wrapper) => wrapper.client.tools()));
     const mcpTools = Object.assign({}, ...toolMaps);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        '[MCP] available tools:',
+        Object.entries(mcpTools).map(([name, tool]) => ({
+          name,
+          description: (tool as any)?.description,
+        })),
+      );
+    }
     const mcpActiveTools = Array.from(
       new Set([
         ...mcpWrappers.flatMap((wrapper) => wrapper.activeTools()),
@@ -213,8 +222,20 @@ export async function POST(request: Request) {
             setController(streamId, abortController);
 
             const result = streamText({
-                model: myProvider.languageModel(selectedChatModel),
-                system: systemPrompt({ selectedChatModel }),
+            model: myProvider.languageModel(selectedChatModel),
+            system: (() => {
+              const base = systemPrompt({ selectedChatModel });
+              if (!Object.keys(mcpTools).length) {
+                return base;
+              }
+              const toolList = Object.entries(mcpTools)
+                .map(([name, tool]) => {
+                  const desc = (tool as any)?.description?.trim();
+                  return `- **\`${name}\`**${desc ? ` – ${desc}` : ''}`;
+                })
+                .join('\n');
+              return `${base}\n\n## Notion MCP tools available\n${toolList}\nUse these tools for workspace content, pages, databases, or search in Notion.`;
+            })(),
                 messages: convertToModelMessages(messages),
                 stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,

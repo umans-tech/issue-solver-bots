@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from starlette.responses import Response as StarletteResponse
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, Response
 
 from issue_solver.clock import Clock
 from issue_solver.events.event_store import EventStore
@@ -61,7 +61,7 @@ async def proxy_notion_mcp(
         logging.Logger | logging.LoggerAdapter,
         Depends(lambda: get_logger("issue_solver.webapi.routers.notion_mcp")),
     ],
-) -> JSONResponse:
+) -> Response:
     logger.info("Processing Notion MCP proxy request")
     try:
         payload: dict[str, Any] = await raw_request.json()
@@ -116,14 +116,19 @@ async def proxy_notion_mcp(
             len(mcp_access_token),
         )
 
-        result, outgoing_session_id = await _forward_to_notion(
+        http_response, outgoing_session_id = await _forward_to_notion(
             NOTION_MCP_REMOTE_ENDPOINT,
             mcp_access_token,
             notion_payload,
             incoming_session_id,
         )
 
-        response_json = JSONResponse(content=result)
+        content_type = http_response.headers.get("content-type")
+        response_json = Response(
+            content=http_response.content,
+            media_type=content_type,
+            status_code=http_response.status_code,
+        )
         if outgoing_session_id:
             response_json.headers["mcp-session-id"] = outgoing_session_id
         return response_json
@@ -149,12 +154,13 @@ async def _forward_to_notion(
     access_token: str,
     payload: dict[str, Any],
     incoming_session_id: str | None,
-) -> tuple[dict[str, Any], str | None]:
+) -> tuple[httpx.Response, str | None]:
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "User-Agent": "Issue-Solver-Notion-MCP-Proxy/1.0",
         "Notion-Version": NOTION_VERSION,
+        "Accept": "application/json, text/event-stream",
     }
     if incoming_session_id:
         headers["mcp-session-id"] = incoming_session_id
@@ -203,9 +209,4 @@ async def _forward_to_notion(
             detail=f"Notion MCP server error: {error_text}",
         )
 
-    try:
-        body = response.json() if response.text.strip() else {"status": "accepted"}
-    except ValueError:
-        body = {"status": "success", "data": response.text}
-
-    return body, response.headers.get("mcp-session-id")
+    return response, response.headers.get("mcp-session-id")

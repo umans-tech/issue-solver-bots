@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Sequence
+from typing import Any, Literal, Sequence, TypedDict
 
 from issue_solver.events.domain import (
     DomainEvent,
@@ -15,11 +15,25 @@ from issue_solver.events.event_store import EventStore
 logger = logging.getLogger("issue_solver.events.notion_integration")
 
 
+class NotionTokenBundle(TypedDict):
+    """Type definition for Notion token bundle."""
+
+    access_token: str | None
+    refresh_token: str | None
+    token_expires_at: datetime | None
+    mcp_access_token: str | None
+    mcp_refresh_token: str | None
+    mcp_token_expires_at: datetime | None
+
+
 @dataclass(kw_only=True)
 class NotionCredentials:
     access_token: str
     refresh_token: str | None
     token_expires_at: datetime | None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
     workspace_id: str | None
     workspace_name: str | None
     bot_id: str | None
@@ -49,11 +63,15 @@ async def get_notion_credentials(
         return None
 
     events = await event_store.get(notion_connected.process_id)
-    (
-        access_token,
-        refresh_token,
-        token_expires_at,
-    ) = get_most_recent_notion_token(events)
+    token_bundle = get_most_recent_notion_token(events)
+
+    access_token = token_bundle["access_token"]
+    refresh_token = token_bundle["refresh_token"]
+    token_expires_at = token_bundle["token_expires_at"]
+    mcp_access_token = token_bundle["mcp_access_token"]
+    mcp_refresh_token = token_bundle["mcp_refresh_token"]
+    mcp_token_expires_at = token_bundle["mcp_token_expires_at"]
+
     if not access_token:
         return None
 
@@ -122,6 +140,9 @@ async def get_notion_credentials(
         access_token=access_token,
         refresh_token=refresh_token,
         token_expires_at=token_expires_at,
+        mcp_access_token=mcp_access_token,
+        mcp_refresh_token=mcp_refresh_token,
+        mcp_token_expires_at=mcp_token_expires_at,
         workspace_id=workspace_id,
         workspace_name=workspace_name,
         bot_id=bot_id,
@@ -134,38 +155,75 @@ async def get_notion_credentials(
 
 def get_most_recent_notion_token(
     domain_events: Sequence[DomainEvent],
-) -> tuple[str | None, str | None, datetime | None]:
+) -> NotionTokenBundle:
     rotated = most_recent_event(domain_events, NotionIntegrationTokenRotated)
     connected = most_recent_event(domain_events, NotionIntegrationConnected)
 
+    def bundle(
+        *,
+        access_token: str | None,
+        refresh_token: str | None,
+        token_expires_at: datetime | None,
+        mcp_access_token: str | None,
+        mcp_refresh_token: str | None,
+        mcp_token_expires_at: datetime | None,
+    ) -> NotionTokenBundle:
+        return NotionTokenBundle(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_expires_at=token_expires_at,
+            mcp_access_token=mcp_access_token,
+            mcp_refresh_token=mcp_refresh_token,
+            mcp_token_expires_at=mcp_token_expires_at,
+        )
+
     if rotated and connected:
         if rotated.occurred_at >= connected.occurred_at:
-            return (
-                rotated.new_access_token,
-                rotated.new_refresh_token,
-                rotated.token_expires_at,
+            return bundle(
+                access_token=rotated.new_access_token,
+                refresh_token=rotated.new_refresh_token,
+                token_expires_at=rotated.token_expires_at,
+                mcp_access_token=rotated.new_mcp_access_token,
+                mcp_refresh_token=rotated.new_mcp_refresh_token,
+                mcp_token_expires_at=rotated.mcp_token_expires_at,
             )
-        return (
-            connected.access_token,
-            connected.refresh_token,
-            connected.token_expires_at,
+        return bundle(
+            access_token=connected.access_token,
+            refresh_token=connected.refresh_token,
+            token_expires_at=connected.token_expires_at,
+            mcp_access_token=connected.mcp_access_token,
+            mcp_refresh_token=connected.mcp_refresh_token,
+            mcp_token_expires_at=connected.mcp_token_expires_at,
         )
 
     if rotated:
-        return (
-            rotated.new_access_token,
-            rotated.new_refresh_token,
-            rotated.token_expires_at,
+        return bundle(
+            access_token=rotated.new_access_token,
+            refresh_token=rotated.new_refresh_token,
+            token_expires_at=rotated.token_expires_at,
+            mcp_access_token=rotated.new_mcp_access_token,
+            mcp_refresh_token=rotated.new_mcp_refresh_token,
+            mcp_token_expires_at=rotated.mcp_token_expires_at,
         )
 
     if connected:
-        return (
-            connected.access_token,
-            connected.refresh_token,
-            connected.token_expires_at,
+        return bundle(
+            access_token=connected.access_token,
+            refresh_token=connected.refresh_token,
+            token_expires_at=connected.token_expires_at,
+            mcp_access_token=connected.mcp_access_token,
+            mcp_refresh_token=connected.mcp_refresh_token,
+            mcp_token_expires_at=connected.mcp_token_expires_at,
         )
 
-    return (None, None, None)
+    return bundle(
+        access_token=None,
+        refresh_token=None,
+        token_expires_at=None,
+        mcp_access_token=None,
+        mcp_refresh_token=None,
+        mcp_token_expires_at=None,
+    )
 
 
 async def fetch_notion_credentials(
