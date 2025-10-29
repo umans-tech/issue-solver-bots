@@ -197,7 +197,6 @@ def test_notion_mcp_proxy_forwards_requests(api_client, monkeypatch):
         workspace_name="Acme Workspace",
         bot_id="bot-id",
         process_id="process-proxy",
-        auth_mode="oauth",
     )
 
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
@@ -286,7 +285,6 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
         workspace_name="Acme Workspace",
         bot_id="bot-id",
         process_id="process-proxy",
-        auth_mode="oauth",
     )
 
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
@@ -328,7 +326,7 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
     assert "exchange failed" in response.json()["detail"]
 
 
-def test_notion_mcp_proxy_rejects_credentials_without_refresh_token(
+def test_notion_mcp_proxy_rejects_credentials_without_mcp_token(
     api_client, monkeypatch
 ):
     space_id = "space-manual"
@@ -346,7 +344,6 @@ def test_notion_mcp_proxy_rejects_credentials_without_refresh_token(
             workspace_name=None,
             bot_id=None,
             process_id="process-manual",
-            auth_mode="manual",
         )
 
     monkeypatch.setattr(
@@ -360,7 +357,7 @@ def test_notion_mcp_proxy_rejects_credentials_without_refresh_token(
     )
 
     assert response.status_code == 401
-    assert "requires an OAuth-connected integration" in response.json()["detail"]
+    assert "Notion MCP is not connected" in response.json()["detail"]
 
 
 def test_notion_oauth_start_and_callback(monkeypatch):

@@ -161,7 +161,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    auth_mode: Literal["manual", "oauth"] = "manual"
     mcp_access_token: str | None = None
     mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
@@ -199,7 +198,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_id=self.workspace_id,
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
-            auth_mode=self.auth_mode,
             mcp_access_token=_decrypt_token(self.mcp_access_token)
             if self.mcp_access_token
             else None,
@@ -224,7 +222,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
             workspace_id=event.workspace_id,
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
-            auth_mode=event.auth_mode,
             mcp_access_token=_encrypt_token(event.mcp_access_token)
             if event.mcp_access_token
             else None,
@@ -249,7 +246,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    auth_mode: Literal["manual", "oauth"] = "manual"
     new_mcp_access_token: str | None = None
     new_mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
@@ -289,7 +285,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_id=self.workspace_id,
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
-            auth_mode=self.auth_mode,
             new_mcp_access_token=_decrypt_token(self.new_mcp_access_token)
             if self.new_mcp_access_token
             else None,
@@ -314,7 +309,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_id=event.workspace_id,
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
-            auth_mode=event.auth_mode,
             new_mcp_access_token=_encrypt_token(event.new_mcp_access_token)
             if event.new_mcp_access_token
             else None,

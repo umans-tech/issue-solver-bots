@@ -60,7 +60,6 @@ class BriceDeNice:
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
-            auth_mode="oauth",
         )
 
     @classmethod
@@ -76,7 +75,6 @@ class BriceDeNice:
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
-            auth_mode="oauth",
         )
 
     @classmethod

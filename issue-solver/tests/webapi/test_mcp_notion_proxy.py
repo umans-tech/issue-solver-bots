@@ -74,7 +74,6 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         workspace_name="Acme Workspace",
         bot_id="bot-id",
         process_id="process-secret",
-        auth_mode="oauth",
     )
 
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")

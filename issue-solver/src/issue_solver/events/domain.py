@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Sequence, TypeVar
+from typing import Any, Sequence, TypeVar
 
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.env_setup.dev_environments_management import (
@@ -186,7 +186,6 @@ class NotionIntegrationConnected(DomainEvent):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    auth_mode: Literal["manual", "oauth"] = "manual"
     mcp_access_token: str | None = None
     mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
@@ -204,7 +203,6 @@ class NotionIntegrationTokenRotated(DomainEvent):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    auth_mode: Literal["manual", "oauth"] = "manual"
     new_mcp_access_token: str | None = None
     new_mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None

@@ -45,7 +45,6 @@ def sample_notion_connected_event():
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
-        auth_mode="oauth",
     )
 
 
@@ -62,7 +61,6 @@ def sample_notion_rotated_event():
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
-        auth_mode="oauth",
     )
 
 
@@ -295,7 +293,6 @@ def test_notion_integration_connected_record_encryption(
     assert restored.refresh_token == sample_notion_connected_event.refresh_token
     assert restored.workspace_id == sample_notion_connected_event.workspace_id
     assert restored.workspace_name == sample_notion_connected_event.workspace_name
-    assert restored.auth_mode == sample_notion_connected_event.auth_mode
 
     safe = record.safe_copy()
     assert safe.access_token.endswith(record.access_token[-4:])
@@ -321,7 +318,6 @@ def test_notion_integration_token_rotated_record_encryption(
         assert (
             restored.new_refresh_token == sample_notion_rotated_event.new_refresh_token
         )
-        assert restored.auth_mode == sample_notion_rotated_event.auth_mode
 
         serialized = serialize(sample_notion_rotated_event)
         assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
