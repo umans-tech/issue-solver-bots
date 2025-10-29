@@ -24,6 +24,7 @@ class NotionTokenBundle(TypedDict):
     mcp_access_token: str | None
     mcp_refresh_token: str | None
     mcp_token_expires_at: datetime | None
+    mcp_client_id: str | None
 
 
 @dataclass(kw_only=True)
@@ -34,9 +35,10 @@ class NotionCredentials:
     mcp_access_token: str | None = None
     mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
-    workspace_id: str | None
-    workspace_name: str | None
-    bot_id: str | None
+    mcp_client_id: str | None = None
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
     process_id: str
 
 
@@ -70,6 +72,7 @@ async def get_notion_credentials(
     mcp_access_token = token_bundle["mcp_access_token"]
     mcp_refresh_token = token_bundle["mcp_refresh_token"]
     mcp_token_expires_at = token_bundle["mcp_token_expires_at"]
+    mcp_client_id = token_bundle["mcp_client_id"]
 
     if not access_token:
         return None
@@ -142,6 +145,7 @@ async def get_notion_credentials(
         mcp_access_token=mcp_access_token,
         mcp_refresh_token=mcp_refresh_token,
         mcp_token_expires_at=mcp_token_expires_at,
+        mcp_client_id=mcp_client_id,
         workspace_id=workspace_id,
         workspace_name=workspace_name,
         bot_id=bot_id,
@@ -163,6 +167,7 @@ def get_most_recent_notion_token(
         mcp_access_token: str | None,
         mcp_refresh_token: str | None,
         mcp_token_expires_at: datetime | None,
+        mcp_client_id: str | None,
     ) -> NotionTokenBundle:
         return NotionTokenBundle(
             access_token=access_token,
@@ -171,6 +176,7 @@ def get_most_recent_notion_token(
             mcp_access_token=mcp_access_token,
             mcp_refresh_token=mcp_refresh_token,
             mcp_token_expires_at=mcp_token_expires_at,
+            mcp_client_id=mcp_client_id,
         )
 
     if rotated and connected:
@@ -182,6 +188,7 @@ def get_most_recent_notion_token(
                 mcp_access_token=rotated.new_mcp_access_token,
                 mcp_refresh_token=rotated.new_mcp_refresh_token,
                 mcp_token_expires_at=rotated.mcp_token_expires_at,
+                mcp_client_id=rotated.mcp_client_id,
             )
         return bundle(
             access_token=connected.access_token,
@@ -190,6 +197,7 @@ def get_most_recent_notion_token(
             mcp_access_token=connected.mcp_access_token,
             mcp_refresh_token=connected.mcp_refresh_token,
             mcp_token_expires_at=connected.mcp_token_expires_at,
+            mcp_client_id=connected.mcp_client_id,
         )
 
     if rotated:
@@ -200,6 +208,7 @@ def get_most_recent_notion_token(
             mcp_access_token=rotated.new_mcp_access_token,
             mcp_refresh_token=rotated.new_mcp_refresh_token,
             mcp_token_expires_at=rotated.mcp_token_expires_at,
+            mcp_client_id=rotated.mcp_client_id,
         )
 
     if connected:
@@ -210,6 +219,7 @@ def get_most_recent_notion_token(
             mcp_access_token=connected.mcp_access_token,
             mcp_refresh_token=connected.mcp_refresh_token,
             mcp_token_expires_at=connected.mcp_token_expires_at,
+            mcp_client_id=connected.mcp_client_id,
         )
 
     return bundle(
@@ -219,6 +229,7 @@ def get_most_recent_notion_token(
         mcp_access_token=None,
         mcp_refresh_token=None,
         mcp_token_expires_at=None,
+        mcp_client_id=None,
     )
 
 

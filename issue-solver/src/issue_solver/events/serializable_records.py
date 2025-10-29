@@ -164,6 +164,7 @@ class NotionIntegrationConnectedRecord(BaseModel):
     mcp_access_token: str | None = None
     mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
+    mcp_client_id: str | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
@@ -205,6 +206,7 @@ class NotionIntegrationConnectedRecord(BaseModel):
             if self.mcp_refresh_token
             else None,
             mcp_token_expires_at=self.mcp_token_expires_at,
+            mcp_client_id=self.mcp_client_id,
         )
 
     @classmethod
@@ -229,6 +231,7 @@ class NotionIntegrationConnectedRecord(BaseModel):
             if event.mcp_refresh_token
             else None,
             mcp_token_expires_at=event.mcp_token_expires_at,
+            mcp_client_id=event.mcp_client_id,
         )
 
 
@@ -249,6 +252,7 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     new_mcp_access_token: str | None = None
     new_mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
+    mcp_client_id: str | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_refresh = (
@@ -292,6 +296,7 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             if self.new_mcp_refresh_token
             else None,
             mcp_token_expires_at=self.mcp_token_expires_at,
+            mcp_client_id=self.mcp_client_id,
         )
 
     @classmethod
@@ -316,6 +321,7 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             if event.new_mcp_refresh_token
             else None,
             mcp_token_expires_at=event.mcp_token_expires_at,
+            mcp_client_id=event.mcp_client_id,
         )
 
 
