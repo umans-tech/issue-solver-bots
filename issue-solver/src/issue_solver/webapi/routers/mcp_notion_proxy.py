@@ -17,13 +17,12 @@ from issue_solver.webapi.routers.notion_integration import (
     clear_notion_mcp_credentials,
     ensure_fresh_notion_credentials,
     get_mcp_access_token,
-    get_notion_oauth_config,
 )
 
 NOTION_MCP_REMOTE_STREAM_ENDPOINT = "https://mcp.notion.com/sse"
 NOTION_MCP_REMOTE_ENDPOINT = "https://mcp.notion.com/mcp"
 NOTION_VERSION = "2022-06-28"
-MCP_RECONNECT_MESSAGE = "Notion MCP client credentials changed. Reconnect Notion MCP from the integrations page to continue."
+MCP_RECONNECT_MESSAGE = "Notion MCP credentials have expired. Reconnect the Notion MCP integration to continue."
 
 router = APIRouter()
 
@@ -96,41 +95,6 @@ async def proxy_notion_mcp(
 
         effective_user_id = user_id or "unknown-user-id"
 
-        try:
-            oauth_config = get_notion_oauth_config()
-        except RuntimeError as exc:  # pragma: no cover - configuration error
-            logger.error(
-                "Unable to load Notion MCP OAuth configuration for space %s: %s",
-                space_id,
-                exc,
-            )
-            raise HTTPException(
-                status_code=503,
-                detail="Notion MCP client configuration is unavailable.",
-            ) from exc
-
-        if (
-            notion_credentials.mcp_refresh_token
-            and notion_credentials.mcp_client_id
-            and oauth_config.mcp_client_id
-            and notion_credentials.mcp_client_id != oauth_config.mcp_client_id
-        ):
-            logger.warning(
-                "Detected Notion MCP client drift for space %s (stored=%s, configured=%s); clearing tokens.",
-                space_id,
-                notion_credentials.mcp_client_id,
-                oauth_config.mcp_client_id,
-            )
-            await clear_notion_mcp_credentials(
-                event_store=event_store,
-                credentials=notion_credentials,
-                space_id=space_id,
-                user_id=effective_user_id,
-                clock=clock,
-                logger=logger,
-            )
-            raise HTTPException(status_code=401, detail=MCP_RECONNECT_MESSAGE)
-
         logger.info(
             "Using Notion token for space %s (user=%s)",
             space_id,
@@ -143,11 +107,9 @@ async def proxy_notion_mcp(
                 logger=logger,
             )
         except HTTPException as exc:
-            if exc.status_code in (400, 401) and _detail_indicates_client_mismatch(
-                exc.detail
-            ):
+            if _detail_indicates_invalid_grant(exc.detail):
                 logger.warning(
-                    "Notion MCP token exchange reported client mismatch for space %s; clearing tokens.",
+                    "Notion MCP token exchange returned invalid_grant for space %s; clearing tokens.",
                     space_id,
                 )
                 await clear_notion_mcp_credentials(
@@ -274,10 +236,10 @@ async def _forward_to_notion(
     return response, response.headers.get("mcp-session-id")
 
 
-def _detail_indicates_client_mismatch(detail: Any) -> bool:
-    normalized = ""
+def _detail_indicates_invalid_grant(detail: Any) -> bool:
+    text = ""
     if isinstance(detail, dict):
-        normalized = " ".join(str(value) for value in detail.values()).lower()
+        text = " ".join(str(value) for value in detail.values())
     else:
-        normalized = str(detail).lower()
-    return "client" in normalized and "mismatch" in normalized
+        text = str(detail)
+    return "invalid_grant" in text.lower()

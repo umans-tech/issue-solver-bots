@@ -43,6 +43,7 @@
 | `406 Not Acceptable` from Notion MCP | Proxy only sent `Accept: text/event-stream` | Updated header to accept both JSON and event streams |
 | JSON-RPC validation errors (Zod) | Proxy wrapped Notion responses in `{status,data}` | Proxy now returns the raw HTTP response body and headers |
 | Silent fallback (`noMCPClient`) | Exceptions suppressed | Logged the actual error so reconnection prompts are explicit |
+| `invalid_grant` after reconnecting | Old MCP refresh tokens persisted after changing client credentials | Proxy now clears cached MCP tokens and returns a reconnect prompt when Notion reports `invalid_grant`. |
 
 ---
 

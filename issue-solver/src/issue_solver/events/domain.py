@@ -189,7 +189,6 @@ class NotionIntegrationConnected(DomainEvent):
     mcp_access_token: str | None = None
     mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
-    mcp_client_id: str | None = None
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -207,7 +206,6 @@ class NotionIntegrationTokenRotated(DomainEvent):
     new_mcp_access_token: str | None = None
     new_mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
-    mcp_client_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
