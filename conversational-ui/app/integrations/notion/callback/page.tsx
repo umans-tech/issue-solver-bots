@@ -25,9 +25,9 @@ export default function NotionCallbackPage() {
 
 function NotionCallbackContent() {
   const searchParams = useSearchParams();
-  const status = searchParams.get('status');
-  const error = searchParams.get('error');
-  const workspaceId = searchParams.get('workspaceId');
+  const status = searchParams?.get('status');
+  const error = searchParams?.get('error');
+  const workspaceId = searchParams?.get('workspaceId');
 
   const { title, description, Icon, iconClass } = useMemo(() => {
     if (status === 'success') {
