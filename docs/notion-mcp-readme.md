@@ -58,12 +58,11 @@
    NOTION_MCP_RESOURCE=https://mcp.notion.com
    CUDU_ENDPOINT=http://localhost:8000   # used by the Next.js MCP client
    ```
-   Restart both FastAPI and Next.js after any change.
+   Restart both FastAPI and Next.js after any change. Then run `just export-notion-mcp-credentials` once to generate the MCP client ID/secret and store them in your environment or secrets manager.
 
 2. **Reconnect Flow**
    - Always run through the Notion OAuth dialog and allow the automatic redirect to MCP.  
    - Confirm FastAPI logs show `POST https://mcp.notion.com/mcp "HTTP/1.1 200 OK"`.
-
 3. **UI Verification**
    - On the first assistant reply, ensure the Notion tools are listed.  
    - Server console should log both `[Notion MCP] tools discovered` and `[MCP] available tools`.
