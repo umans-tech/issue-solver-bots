@@ -380,31 +380,30 @@ async def start_notion_oauth_flow(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     normalized_return_path = _normalize_return_path(return_path)
-    state = secrets.token_urlsafe(32)
-
     state_payload = {
         "space_id": space_id,
         "user_id": user_id or "unknown-user-id",
         "return_path": normalized_return_path,
     }
-    redis_client.setex(
-        _state_cache_key(state),
-        config.state_ttl_seconds,
-        json.dumps(state_payload),
-    )
 
-    authorize_params: dict[str, Any] = {
+    base_params: dict[str, Any] = {
         "client_id": config.client_id,
         "response_type": "code",
         "owner": "user",
         "redirect_uri": config.redirect_uri,
-        "state": state,
     }
-
     if config.api_resource:
-        authorize_params["resource"] = config.api_resource
+        base_params["resource"] = config.api_resource
 
-    authorize_url = f"{NOTION_OAUTH_AUTHORIZE_URL}?{urlencode(authorize_params)}"
+    state, authorize_url = _initiate_oauth_flow(
+        authorize_endpoint=NOTION_OAUTH_AUTHORIZE_URL,
+        base_params=base_params,
+        redis_client=redis_client,
+        state_ttl_seconds=config.state_ttl_seconds,
+        state_cache_prefix=OAUTH_STATE_CACHE_PREFIX,
+        state_payload=state_payload,
+    )
+
     logger.info("Initiated Notion OAuth flow for space %s (user=%s)", space_id, user_id)
     return {"authorizeUrl": authorize_url, "state": state}
 
@@ -427,27 +426,12 @@ async def handle_notion_oauth_callback(
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    if not state:
-        raise HTTPException(status_code=400, detail="Missing OAuth state parameter.")
-
-    cached_state_raw = redis_client.get(_state_cache_key(state))
-    if cached_state_raw is None:
-        raise HTTPException(
-            status_code=400, detail="Unknown or expired Notion OAuth state."
-        )
-    redis_client.delete(_state_cache_key(state))
-
-    try:
-        cached_state_bytes = (
-            cached_state_raw
-            if isinstance(cached_state_raw, (bytes, bytearray))
-            else str(cached_state_raw).encode("utf-8")
-        )
-        state_payload = json.loads(cached_state_bytes.decode("utf-8"))
-    except Exception as exc:  # pragma: no cover - defensive
-        raise HTTPException(
-            status_code=400, detail="Corrupted OAuth state payload."
-        ) from exc
+    state_payload = _read_oauth_state(
+        redis_client=redis_client,
+        state_cache_prefix=OAUTH_STATE_CACHE_PREFIX,
+        state=state,
+        missing_detail="Missing OAuth state parameter.",
+    )
 
     space_id = state_payload.get("space_id")
     user_id = state_payload.get("user_id") or "unknown-user-id"
@@ -550,28 +534,27 @@ async def handle_notion_oauth_callback(
         },
     )
     if not view.has_mcp_token and config.mcp_client_id and config.mcp_client_secret:
-        mcp_state = secrets.token_urlsafe(32)
         mcp_state_payload = {
             "space_id": space_id,
             "user_id": user_id or "unknown-user-id",
             "return_path": return_path,
         }
-        redis_client.setex(
-            _mcp_state_cache_key(mcp_state),
-            config.state_ttl_seconds,
-            json.dumps(mcp_state_payload),
-        )
-
-        authorize_params: dict[str, Any] = {
+        mcp_base_params: dict[str, Any] = {
             "client_id": config.mcp_client_id,
             "response_type": "code",
             "redirect_uri": config.mcp_redirect_uri,
-            "state": mcp_state,
         }
         if config.mcp_resource:
-            authorize_params["resource"] = config.mcp_resource
+            mcp_base_params["resource"] = config.mcp_resource
 
-        authorize_url = f"{config.mcp_authorize_endpoint}?{urlencode(authorize_params)}"
+        mcp_state, authorize_url = _initiate_oauth_flow(
+            authorize_endpoint=config.mcp_authorize_endpoint,
+            base_params=mcp_base_params,
+            redis_client=redis_client,
+            state_ttl_seconds=config.state_ttl_seconds,
+            state_cache_prefix=MCP_OAUTH_STATE_CACHE_PREFIX,
+            state_payload=mcp_state_payload,
+        )
         logger.info(
             "Redirecting space %s to Notion MCP authorization (state=%s)",
             space_id,
@@ -624,28 +607,29 @@ async def start_notion_mcp_oauth_flow(
         )
 
     normalized_return_path = _normalize_return_path(return_path)
-    state = secrets.token_urlsafe(32)
     state_payload = {
         "space_id": space_id,
         "user_id": user_id or "unknown-user-id",
         "return_path": normalized_return_path,
     }
-    redis_client.setex(
-        _mcp_state_cache_key(state),
-        config.state_ttl_seconds,
-        json.dumps(state_payload),
-    )
 
-    authorize_params: dict[str, Any] = {
+    base_params: dict[str, Any] = {
         "client_id": config.mcp_client_id,
         "response_type": "code",
         "redirect_uri": config.mcp_redirect_uri,
-        "state": state,
     }
     if config.mcp_resource:
-        authorize_params["resource"] = config.mcp_resource
+        base_params["resource"] = config.mcp_resource
 
-    authorize_url = f"{config.mcp_authorize_endpoint}?{urlencode(authorize_params)}"
+    state, authorize_url = _initiate_oauth_flow(
+        authorize_endpoint=config.mcp_authorize_endpoint,
+        base_params=base_params,
+        redis_client=redis_client,
+        state_ttl_seconds=config.state_ttl_seconds,
+        state_cache_prefix=MCP_OAUTH_STATE_CACHE_PREFIX,
+        state_payload=state_payload,
+    )
+
     logger.info(
         "Initiated Notion MCP OAuth flow for space %s (user=%s)", space_id, user_id
     )
@@ -670,27 +654,12 @@ async def handle_notion_mcp_oauth_callback(
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    if not state:
-        raise HTTPException(status_code=400, detail="Missing OAuth state parameter.")
-
-    cached_state_raw = redis_client.get(_mcp_state_cache_key(state))
-    if cached_state_raw is None:
-        raise HTTPException(
-            status_code=400, detail="Unknown or expired Notion MCP OAuth state."
-        )
-    redis_client.delete(_mcp_state_cache_key(state))
-
-    try:
-        cached_state_bytes = (
-            cached_state_raw
-            if isinstance(cached_state_raw, (bytes, bytearray))
-            else str(cached_state_raw).encode("utf-8")
-        )
-        state_payload = json.loads(cached_state_bytes.decode("utf-8"))
-    except Exception as exc:  # pragma: no cover - defensive
-        raise HTTPException(
-            status_code=400, detail="Corrupted Notion MCP OAuth state payload."
-        ) from exc
+    state_payload = _read_oauth_state(
+        redis_client=redis_client,
+        state_cache_prefix=MCP_OAUTH_STATE_CACHE_PREFIX,
+        state=state,
+        missing_detail="Missing OAuth state parameter.",
+    )
 
     space_id = state_payload.get("space_id")
     user_id = state_payload.get("user_id") or "unknown-user-id"
@@ -825,12 +794,52 @@ def _normalize_return_path(return_path: str | None) -> str:
     return cleaned
 
 
-def _state_cache_key(state: str) -> str:
-    return f"{OAUTH_STATE_CACHE_PREFIX}{state}"
+def _initiate_oauth_flow(
+    *,
+    authorize_endpoint: str,
+    base_params: dict[str, Any],
+    redis_client: Redis,
+    state_ttl_seconds: int,
+    state_cache_prefix: str,
+    state_payload: dict[str, Any],
+) -> tuple[str, str]:
+    state = secrets.token_urlsafe(32)
+    redis_client.setex(
+        f"{state_cache_prefix}{state}", state_ttl_seconds, json.dumps(state_payload)
+    )
+    params = dict(base_params)
+    params["state"] = state
+    authorize_url = f"{authorize_endpoint}?{urlencode(params)}"
+    return state, authorize_url
 
 
-def _mcp_state_cache_key(state: str) -> str:
-    return f"{MCP_OAUTH_STATE_CACHE_PREFIX}{state}"
+def _read_oauth_state(
+    *,
+    redis_client: Redis,
+    state_cache_prefix: str,
+    state: str | None,
+    missing_detail: str,
+) -> dict[str, Any]:
+    if not state:
+        raise HTTPException(status_code=400, detail=missing_detail)
+
+    cache_key = f"{state_cache_prefix}{state}"
+    cached_state_raw = redis_client.get(cache_key)
+    if cached_state_raw is None:
+        raise HTTPException(status_code=400, detail="Unknown or expired OAuth state.")
+    redis_client.delete(cache_key)
+
+    try:
+        decoded = (
+            cached_state_raw.decode("utf-8")
+            if isinstance(cached_state_raw, (bytes, bytearray))
+            else str(cached_state_raw)
+        )
+        return json.loads(decoded)
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=400, detail="Corrupted OAuth state payload."
+        ) from exc
 
 
 def _load_oauth_settings() -> dict[str, Any]:
