@@ -42,8 +42,15 @@ NOTION_API_BASE_URL = "https://api.notion.com/v1"
 NOTION_API_RESOURCE = "https://api.notion.com"
 NOTION_MCP_VERSION = "2022-06-28"
 NOTION_MCP_RESOURCE = "https://mcp.notion.com"
-NOTION_MCP_AUTH_SERVER_METADATA_URL = (
-    "https://mcp.notion.com/.well-known/oauth-authorization-server"
+NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT = "https://mcp.notion.com/authorize"
+NOTION_MCP_TOKEN_ENDPOINT_DEFAULT = "https://mcp.notion.com/token"
+NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT = "https://mcp.notion.com/register"
+NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT = "client_secret_basic"
+NOTION_MCP_CLIENT_NAME_DEFAULT = "Issue Solver MCP"
+DEFAULT_LOCAL_API_ORIGIN = "http://localhost:8000"
+MCP_DEFAULT_REDIRECT_PATH = "/integrations/notion/mcp/oauth/callback"
+DEFAULT_MCP_OAUTH_REDIRECT_URI = (
+    f"{DEFAULT_LOCAL_API_ORIGIN}{MCP_DEFAULT_REDIRECT_PATH}"
 )
 
 router = APIRouter(prefix="/integrations/notion", tags=["notion-integrations"])
@@ -55,7 +62,6 @@ NOTION_OAUTH_TOKEN_URL = f"{NOTION_API_BASE_URL}/oauth/token"
 OAUTH_STATE_CACHE_PREFIX = "notion:oauth:state:"
 DEFAULT_RETURN_PATH = "/integrations/notion/callback"
 MCP_OAUTH_STATE_CACHE_PREFIX = "notion:mcp:oauth:state:"
-MCP_DEFAULT_REDIRECT_PATH = "/integrations/notion/mcp/oauth/callback"
 
 
 @dataclass(frozen=True)
@@ -79,7 +85,6 @@ class NotionOAuthConfig:
 
 
 _OAUTH_CONFIG: NotionOAuthConfig | None = None
-_MCP_AUTH_SERVER_METADATA: dict[str, Any] | None = None
 
 
 async def _validate_notion_token(access_token: str) -> dict:
@@ -828,53 +833,6 @@ def _mcp_state_cache_key(state: str) -> str:
     return f"{MCP_OAUTH_STATE_CACHE_PREFIX}{state}"
 
 
-def _derive_mcp_redirect_uri(redirect_uri: str) -> str:
-    parsed = urlparse(redirect_uri)
-    if not parsed.scheme or not parsed.netloc:
-        raise RuntimeError(
-            "NOTION_OAUTH_REDIRECT_URI must be an absolute URL to derive the MCP redirect URI."
-        )
-
-    parsed_parts = list(parsed)
-    parsed_parts[2] = MCP_DEFAULT_REDIRECT_PATH
-    parsed_parts[3] = ""
-    parsed_parts[4] = ""
-    return urlunparse(parsed_parts)
-
-
-def _get_mcp_auth_server_metadata() -> dict[str, Any]:
-    global _MCP_AUTH_SERVER_METADATA
-    if _MCP_AUTH_SERVER_METADATA is not None:
-        return _MCP_AUTH_SERVER_METADATA
-
-    try:
-        response = httpx.get(
-            NOTION_MCP_AUTH_SERVER_METADATA_URL,
-            timeout=10.0,
-            headers={"Accept": "application/json"},
-        )
-    except httpx.RequestError as exc:  # pragma: no cover - network failure
-        module_logger.warning("Unable to fetch Notion MCP OAuth metadata: %s", exc)
-        _MCP_AUTH_SERVER_METADATA = {}
-        return _MCP_AUTH_SERVER_METADATA
-
-    if not response.is_success:  # pragma: no cover - unexpected HTTP status
-        module_logger.warning(
-            "Notion MCP metadata endpoint returned %s: %s",
-            response.status_code,
-            response.text,
-        )
-        _MCP_AUTH_SERVER_METADATA = {}
-        return _MCP_AUTH_SERVER_METADATA
-
-    try:
-        _MCP_AUTH_SERVER_METADATA = response.json()
-    except ValueError as exc:  # pragma: no cover - invalid JSON
-        module_logger.warning("Invalid JSON from Notion MCP metadata endpoint: %s", exc)
-        _MCP_AUTH_SERVER_METADATA = {}
-    return _MCP_AUTH_SERVER_METADATA
-
-
 def _load_oauth_settings() -> dict[str, Any]:
     client_id = os.environ.get("NOTION_OAUTH_CLIENT_ID")
     client_secret = os.environ.get("NOTION_OAUTH_CLIENT_SECRET")
@@ -888,38 +846,28 @@ def _load_oauth_settings() -> dict[str, Any]:
             "NOTION_OAUTH_CLIENT_SECRET, and NOTION_OAUTH_REDIRECT_URI."
         )
 
-    mcp_metadata = _get_mcp_auth_server_metadata()
-    default_mcp_token_endpoint = mcp_metadata.get(
-        "token_endpoint", "https://mcp.notion.com/token"
-    )
-    default_mcp_authorize_endpoint = mcp_metadata.get(
-        "authorization_endpoint", "https://mcp.notion.com/authorize"
-    )
-    default_mcp_registration_endpoint = mcp_metadata.get("registration_endpoint")
-
     mcp_token_endpoint = os.environ.get(
-        "NOTION_MCP_TOKEN_ENDPOINT", default_mcp_token_endpoint
+        "NOTION_MCP_TOKEN_ENDPOINT", NOTION_MCP_TOKEN_ENDPOINT_DEFAULT
+    )
+    mcp_authorize_endpoint = os.environ.get(
+        "NOTION_MCP_AUTHORIZE_ENDPOINT", NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT
+    )
+    mcp_registration_endpoint = os.environ.get(
+        "NOTION_MCP_REGISTRATION_ENDPOINT", NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT
+    )
+    mcp_token_auth_method = os.environ.get(
+        "NOTION_MCP_TOKEN_AUTH_METHOD", NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT
     )
     mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
-    mcp_token_auth_method = os.environ.get(
-        "NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic"
+    mcp_client_name = os.environ.get(
+        "NOTION_MCP_CLIENT_NAME", NOTION_MCP_CLIENT_NAME_DEFAULT
     )
-    mcp_registration_endpoint = (
-        os.environ.get(
-            "NOTION_MCP_REGISTRATION_ENDPOINT", default_mcp_registration_endpoint or ""
-        )
-        or None
-    )
-    mcp_client_name = os.environ.get("NOTION_MCP_CLIENT_NAME", "Umans AI MCP")
-    mcp_authorize_endpoint = os.environ.get(
-        "NOTION_MCP_AUTHORIZE_ENDPOINT", default_mcp_authorize_endpoint
-    )
-    api_resource = os.environ.get("NOTION_API_RESOURCE", NOTION_API_RESOURCE)
-    mcp_resource = os.environ.get("NOTION_MCP_RESOURCE", NOTION_MCP_RESOURCE)
+    api_resource = NOTION_API_RESOURCE
+    mcp_resource = NOTION_MCP_RESOURCE
 
-    mcp_redirect_uri = os.environ.get("NOTION_MCP_OAUTH_REDIRECT_URI")
-    if not mcp_redirect_uri:
-        mcp_redirect_uri = _derive_mcp_redirect_uri(redirect_uri)
+    mcp_redirect_uri = os.environ.get(
+        "NOTION_MCP_OAUTH_REDIRECT_URI", DEFAULT_MCP_OAUTH_REDIRECT_URI
+    )
 
     return {
         "client_id": client_id,

@@ -4,40 +4,18 @@
 from __future__ import annotations
 
 import argparse
-import logging
 import os
+import sys
 from typing import Any
 
 import httpx
 
-module_logger = logging.getLogger(__name__)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Register a new MCP client even if credentials already exist in the environment.",
-    )
-    args = parser.parse_args()
-
-    existing_id = os.environ.get("NOTION_MCP_CLIENT_ID")
-    existing_secret = os.environ.get("NOTION_MCP_CLIENT_SECRET")
-    existing_token_auth_method = os.environ.get(
-        "NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic"
-    )
-
-    if existing_id and existing_secret and not args.force:
-        print(f"export NOTION_MCP_CLIENT_ID={existing_id}")
-        print(f"export NOTION_MCP_CLIENT_SECRET={existing_secret}")
-        print(f"export NOTION_MCP_TOKEN_AUTH_METHOD={existing_token_auth_method}")
-        return
-
-    client_id, client_secret, auth_method = register_mcp_client()
-    print(f"export NOTION_MCP_CLIENT_ID={client_id}")
-    print(f"export NOTION_MCP_CLIENT_SECRET={client_secret}")
-    print(f"export NOTION_MCP_TOKEN_AUTH_METHOD={auth_method}")
+NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT = "https://mcp.notion.com/register"
+NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT = "client_secret_basic"
+NOTION_MCP_CLIENT_NAME_DEFAULT = "Issue Solver MCP"
+DEFAULT_MCP_OAUTH_REDIRECT_URI = (
+    "http://localhost:8000/integrations/notion/mcp/oauth/callback"
+)
 
 
 def _register_mcp_client(
@@ -62,26 +40,19 @@ def _register_mcp_client(
             timeout=10.0,
             headers={"Content-Type": "application/json"},
         )
-    except httpx.RequestError as exc:  # pragma: no cover - network failure
-        module_logger.error("Failed to register Notion MCP client: %s", exc)
-        raise RuntimeError(
-            "Unable to register Notion MCP client with the authorization server."
-        ) from exc
+    except httpx.RequestError as exc:  # pragma: no cover - network error
+        raise RuntimeError(f"Unable to register Notion MCP client ({exc}).") from exc
 
     if response.status_code not in (200, 201):  # pragma: no cover - unexpected
-        module_logger.error(
-            "Notion MCP registration failed (%s): %s",
-            response.status_code,
-            response.text,
+        raise RuntimeError(
+            f"Notion MCP registration failed ({response.status_code}): {response.text}"
         )
-        raise RuntimeError("Notion MCP registration endpoint rejected the request.")
 
     try:
         body = response.json()
     except ValueError as exc:  # pragma: no cover - invalid JSON
-        module_logger.error("Invalid JSON from MCP registration endpoint: %s", exc)
         raise RuntimeError(
-            "Received invalid payload from Notion MCP registration."
+            f"Received invalid payload from Notion MCP registration: {exc}"
         ) from exc
 
     client_id = body.get("client_id")
@@ -89,42 +60,60 @@ def _register_mcp_client(
     auth_method = body.get("token_endpoint_auth_method") or default_auth_method
 
     if not isinstance(client_id, str) or not isinstance(client_secret, str):
-        module_logger.error("MCP registration returned unexpected payload: %s", body)
-        raise RuntimeError("Notion MCP registration did not return client credentials.")
+        raise RuntimeError("MCP registration did not return client credentials.")
 
-    module_logger.info("Registered Notion MCP client via %s", registration_endpoint)
     return client_id, client_secret, auth_method
 
 
-def register_mcp_client(*, persist: bool = False) -> tuple[str, str, str]:
-    registration_endpoint = "https://mcp.notion.com/register"
-    if not registration_endpoint:
-        raise RuntimeError(
-            "Notion MCP registration endpoint is not available. "
-            "Set NOTION_MCP_REGISTRATION_ENDPOINT or ensure the MCP metadata "
-            "exposes it before attempting registration."
-        )
-    mcp_client_name = os.environ.get("NOTION_MCP_CLIENT_NAME", "Umans AI MCP")
-    mcp_redirect_uri = os.environ.get("NOTION_MCP_OAUTH_REDIRECT_URI")
-    if not mcp_redirect_uri:
-        raise RuntimeError(
-            "Notion MCP OAuth redirect uri is not available. "
-            "Set NOTION_MCP_OAUTH_REDIRECT_URI or ensure the MCP "
-        )
-    client_id, client_secret, auth_method = _register_mcp_client(
-        registration_endpoint=registration_endpoint,
-        redirect_uri=mcp_redirect_uri,
-        client_name=mcp_client_name,
-        default_auth_method=os.environ.get(
-            "NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_basic"
-        ),
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Register a new MCP client even if credentials already exist in the environment.",
     )
-    if persist:
-        os.environ["NOTION_MCP_CLIENT_ID"] = client_id
-        os.environ["NOTION_MCP_CLIENT_SECRET"] = client_secret
-        os.environ["NOTION_MCP_TOKEN_AUTH_METHOD"] = auth_method
-    result = client_id, client_secret, auth_method
-    return result
+    args = parser.parse_args()
+
+    existing_id = os.environ.get("NOTION_MCP_CLIENT_ID")
+    existing_secret = os.environ.get("NOTION_MCP_CLIENT_SECRET")
+    existing_auth_method = os.environ.get(
+        "NOTION_MCP_TOKEN_AUTH_METHOD", NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT
+    )
+
+    if existing_id and existing_secret and not args.force:
+        print(f"export NOTION_MCP_CLIENT_ID={existing_id}")
+        print(f"export NOTION_MCP_CLIENT_SECRET={existing_secret}")
+        print(f"export NOTION_MCP_TOKEN_AUTH_METHOD={existing_auth_method}")
+        return
+
+    registration_endpoint = os.environ.get(
+        "NOTION_MCP_REGISTRATION_ENDPOINT", NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT
+    )
+    redirect_uri = os.environ.get(
+        "NOTION_MCP_OAUTH_REDIRECT_URI", DEFAULT_MCP_OAUTH_REDIRECT_URI
+    )
+
+    client_name = os.environ.get(
+        "NOTION_MCP_CLIENT_NAME", NOTION_MCP_CLIENT_NAME_DEFAULT
+    )
+    auth_method = os.environ.get(
+        "NOTION_MCP_TOKEN_AUTH_METHOD", NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT
+    )
+
+    try:
+        client_id, client_secret, auth_method = _register_mcp_client(
+            registration_endpoint=registration_endpoint,
+            redirect_uri=redirect_uri,
+            client_name=client_name,
+            default_auth_method=auth_method,
+        )
+    except RuntimeError as exc:
+        print(f"[export-notion-mcp-client] {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"export NOTION_MCP_CLIENT_ID={client_id}")
+    print(f"export NOTION_MCP_CLIENT_SECRET={client_secret}")
+    print(f"export NOTION_MCP_TOKEN_AUTH_METHOD={auth_method}")
 
 
 if __name__ == "__main__":

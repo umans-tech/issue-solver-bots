@@ -44,6 +44,7 @@
 | JSON-RPC validation errors (Zod) | Proxy wrapped Notion responses in `{status,data}` | Proxy now returns the raw HTTP response body and headers |
 | Silent fallback (`noMCPClient`) | Exceptions suppressed | Logged the actual error so reconnection prompts are explicit |
 | `invalid_grant` after reconnecting | Old MCP refresh tokens persisted after changing client credentials | Proxy now clears cached MCP tokens and returns a reconnect prompt when Notion reports `invalid_grant`. |
+| MCP client changing unexpectedly | Backend auto-registered a new MCP client on demand when env vars were missing | MCP credentials are now generated once with `just export-notion-mcp-credentials` and stored as deployment secrets. |
 
 ---
 
@@ -52,13 +53,15 @@
 1. **Environment Variables**
    ```bash
    NOTION_OAUTH_REDIRECT_URI=http://localhost:8000/integrations/notion/oauth/callback
-   NOTION_MCP_OAUTH_REDIRECT_URI=http://localhost:8000/integrations/notion/mcp/oauth/callback
-   NOTION_MCP_CLIENT_ID=…      # from MCP dynamic registration
+   # Optional: override if your API is served on a different host
+   # NOTION_MCP_OAUTH_REDIRECT_URI=https://api.example.com/integrations/notion/mcp/oauth/callback
+   NOTION_MCP_CLIENT_ID=…      # from `just export-notion-mcp-credentials`
    NOTION_MCP_CLIENT_SECRET=…
    NOTION_MCP_RESOURCE=https://mcp.notion.com
    CUDU_ENDPOINT=http://localhost:8000   # used by the Next.js MCP client
    ```
-   Restart both FastAPI and Next.js after any change. Then run `just export-notion-mcp-credentials` once to generate the MCP client ID/secret and store them in your environment or secrets manager.
+   If `NOTION_MCP_OAUTH_REDIRECT_URI` is not provided we fall back to `http://localhost:8000/integrations/notion/mcp/oauth/callback` for local development.
+   Restart both FastAPI and Next.js after any change. Then run `just export-notion-mcp-credentials` to print the MCP client ID/secret and add them to your secrets manager.
 
 2. **Reconnect Flow**
    - Always run through the Notion OAuth dialog and allow the automatic redirect to MCP.  
