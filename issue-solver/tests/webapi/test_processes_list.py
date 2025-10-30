@@ -213,53 +213,51 @@ def test_returns_notion_integration_process(
 
     monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
 
-    monkeypatch.setattr(
-        notion_integration,
-        "_OAUTH_CONFIG",
-        notion_integration.NotionOAuthConfig(
-            client_id="test-client-id",
-            client_secret="test-client-secret",
-            redirect_uri="https://example.com/notion/callback",
-            return_base_url=None,
-            state_ttl_seconds=600,
-            mcp_client_id="stub-mcp-client-id",
-            mcp_client_secret="stub-mcp-client-secret",
-            mcp_token_endpoint="https://mcp.notion.com/token",
-            mcp_scope=None,
-            mcp_token_auth_method="client_secret_post",
-            api_resource="https://api.notion.com",
-            mcp_resource="https://mcp.notion.com",
-            mcp_registration_endpoint="https://mcp.notion.com/register",
-            mcp_client_name="Issue Solver MCP (Test)",
-            mcp_authorize_endpoint="https://mcp.notion.com/authorize",
-            mcp_redirect_uri="https://example.com/notion/mcp/callback",
-        ),
-    )
+    notion_integration._get_oauth_config.cache_clear()
+    notion_integration._get_settings.cache_clear()
 
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "test-client-secret")
+    monkeypatch.setenv(
+        "NOTION_OAUTH_REDIRECT_URI",
+        "https://example.com/notion/callback",
+    )
+    monkeypatch.setenv("NOTION_OAUTH_STATE_TTL_SECONDS", "600")
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
     monkeypatch.setenv(
         "NOTION_MCP_OAUTH_REDIRECT_URI",
         "https://example.com/notion/mcp/callback",
     )
 
-    connect_response = api_client.post(
-        "/integrations/notion/",
-        json={"access_token": "notion-secret", "space_id": "brice-space-001"},
-        headers={"X-User-ID": "brice-user-001"},
-    )
-    assert connect_response.status_code == 201
+    try:
+        connect_response = api_client.post(
+            "/integrations/notion/",
+            json={"access_token": "notion-secret", "space_id": "brice-space-001"},
+            headers={"X-User-ID": "brice-user-001"},
+        )
+        assert connect_response.status_code == 201
 
-    response = api_client.get("/processes?space_id=brice-space-001")
-    assert response.status_code == 200
-    data = response.json()
-    notion_processes = [
-        p for p in data["processes"] if p["type"] == "notion_integration"
-    ]
-    assert len(notion_processes) == 1
-    assert notion_processes[0]["status"] == "connected"
+        response = api_client.get("/processes?space_id=brice-space-001")
+        assert response.status_code == 200
+        data = response.json()
+        notion_processes = [
+            p for p in data["processes"] if p["type"] == "notion_integration"
+        ]
+
+        assert len(notion_processes) == 1
+        notion_process = notion_processes[0]
+        assert notion_process["status"] == "connected"
+        events = notion_process["events"]
+        assert events, "expected at least one event for Notion integration process"
+        first_event = events[0]
+        assert first_event["type"] == "notion_integration_connected"
+        assert first_event["space_id"] == "brice-space-001"
+        assert first_event["workspace_id"] == "workspace-123"
+        assert first_event["workspace_name"] == "Acme Workspace"
+    finally:
+        notion_integration._get_oauth_config.cache_clear()
+        notion_integration._get_settings.cache_clear()
 
 
 def test_returns_processes_with_default_pagination(api_client, time_under_control):

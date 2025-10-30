@@ -56,38 +56,26 @@ def stub_notion_validation(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def stub_notion_oauth_config(monkeypatch):
-    original_config = notion_integration._OAUTH_CONFIG
-    config = notion_integration.NotionOAuthConfig(
-        client_id="test-client-id",
-        client_secret="test-client-secret",
-        redirect_uri="https://example.com/notion/callback",
-        return_base_url=None,
-        state_ttl_seconds=600,
-        mcp_client_id="stub-mcp-client-id",
-        mcp_client_secret="stub-mcp-client-secret",
-        mcp_token_endpoint="https://mcp.notion.com/token",
-        mcp_scope=None,
-        mcp_token_auth_method="client_secret_post",
-        api_resource="https://api.notion.com",
-        mcp_resource="https://mcp.notion.com",
-        mcp_registration_endpoint="https://mcp.notion.com/register",
-        mcp_client_name="Issue Solver MCP (Test)",
-        mcp_authorize_endpoint="https://mcp.notion.com/authorize",
-        mcp_redirect_uri="https://example.com/notion/mcp/callback",
-    )
+    notion_integration._get_oauth_config.cache_clear()
+    notion_integration._get_settings.cache_clear()
 
-    monkeypatch.setattr(notion_integration, "_OAUTH_CONFIG", config)
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "test-client-secret")
+    monkeypatch.setenv(
+        "NOTION_OAUTH_REDIRECT_URI",
+        "https://example.com/notion/callback",
+    )
+    monkeypatch.setenv("NOTION_OAUTH_STATE_TTL_SECONDS", "600")
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_AUTH_METHOD", "client_secret_post")
-    monkeypatch.setenv("NOTION_MCP_TOKEN_ENDPOINT", "https://mcp.notion.com/token")
     monkeypatch.setenv(
         "NOTION_MCP_OAUTH_REDIRECT_URI",
         "https://example.com/notion/mcp/callback",
     )
 
     yield
-    notion_integration._OAUTH_CONFIG = original_config
+    notion_integration._get_oauth_config.cache_clear()
+    notion_integration._get_settings.cache_clear()
 
 
 def test_connect_notion_integration_success(api_client):

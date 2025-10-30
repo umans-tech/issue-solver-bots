@@ -5,9 +5,10 @@ import os
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
+from functools import lru_cache
 from typing import Annotated, Any
-from urllib.parse import urlencode, urljoin, urlparse, parse_qsl, urlunparse
+from urllib.parse import urlencode, urljoin, urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -44,9 +45,7 @@ NOTION_MCP_VERSION = "2022-06-28"
 NOTION_MCP_RESOURCE = "https://mcp.notion.com"
 NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT = "https://mcp.notion.com/authorize"
 NOTION_MCP_TOKEN_ENDPOINT_DEFAULT = "https://mcp.notion.com/token"
-NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT = "https://mcp.notion.com/register"
 NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT = "client_secret_basic"
-NOTION_MCP_CLIENT_NAME_DEFAULT = "Issue Solver MCP"
 DEFAULT_LOCAL_API_ORIGIN = "http://localhost:8000"
 MCP_DEFAULT_REDIRECT_PATH = "/integrations/notion/mcp/oauth/callback"
 DEFAULT_MCP_OAUTH_REDIRECT_URI = (
@@ -71,20 +70,49 @@ class NotionOAuthConfig:
     redirect_uri: str
     return_base_url: str | None
     state_ttl_seconds: int
-    mcp_client_id: str | None
-    mcp_client_secret: str | None
-    mcp_token_endpoint: str
-    mcp_scope: str | None
-    mcp_token_auth_method: str
-    api_resource: str | None
-    mcp_resource: str | None
-    mcp_registration_endpoint: str | None
-    mcp_client_name: str | None
-    mcp_authorize_endpoint: str
+    mcp_client_id: str
+    mcp_client_secret: str
     mcp_redirect_uri: str
+    mcp_scope: str | None
 
 
-_OAUTH_CONFIG: NotionOAuthConfig | None = None
+def _require_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} is required but was not provided.")
+    return value
+
+
+@dataclass(frozen=True)
+class NotionSettings:
+    oauth_client_id: str
+    oauth_client_secret: str
+    oauth_redirect_uri: str
+    return_base_url: str | None
+    state_ttl_seconds: int
+    mcp_redirect_uri: str
+    mcp_scope: str | None
+
+    @classmethod
+    def from_env(cls) -> "NotionSettings":
+        return cls(
+            oauth_client_id=_require_env("NOTION_OAUTH_CLIENT_ID"),
+            oauth_client_secret=_require_env("NOTION_OAUTH_CLIENT_SECRET"),
+            oauth_redirect_uri=_require_env("NOTION_OAUTH_REDIRECT_URI"),
+            return_base_url=os.environ.get("NOTION_OAUTH_RETURN_BASE_URL"),
+            state_ttl_seconds=int(
+                os.environ.get("NOTION_OAUTH_STATE_TTL_SECONDS", "600")
+            ),
+            mcp_redirect_uri=os.environ.get(
+                "NOTION_MCP_OAUTH_REDIRECT_URI", DEFAULT_MCP_OAUTH_REDIRECT_URI
+            ),
+            mcp_scope=os.environ.get("NOTION_MCP_TOKEN_SCOPE"),
+        )
+
+
+@lru_cache(maxsize=1)
+def _get_settings() -> NotionSettings:
+    return NotionSettings.from_env()
 
 
 async def _validate_notion_token(access_token: str) -> dict:
@@ -391,9 +419,8 @@ async def start_notion_oauth_flow(
         "response_type": "code",
         "owner": "user",
         "redirect_uri": config.redirect_uri,
+        "resource": NOTION_API_RESOURCE,
     }
-    if config.api_resource:
-        base_params["resource"] = config.api_resource
 
     state, authorize_url = _initiate_oauth_flow(
         authorize_endpoint=NOTION_OAUTH_AUTHORIZE_URL,
@@ -491,16 +518,10 @@ async def handle_notion_oauth_callback(
     existing_mcp_refresh_token = (
         existing_credentials.mcp_refresh_token if existing_credentials else None
     )
-    existing_mcp_expires_in: int | None = None
-    now_ts = clock.now()
-    if (
-        existing_credentials
-        and existing_credentials.mcp_token_expires_at
-        and existing_credentials.mcp_token_expires_at > now_ts
-    ):
-        existing_mcp_expires_in = int(
-            (existing_credentials.mcp_token_expires_at - now_ts).total_seconds()
-        )
+    existing_mcp_expires_in = _seconds_left(
+        existing_credentials.mcp_token_expires_at if existing_credentials else None,
+        clock,
+    )
 
     view = await _upsert_notion_integration(
         access_token=access_token,
@@ -533,7 +554,7 @@ async def handle_notion_oauth_callback(
             "workspaceId": view.workspace_id or "",
         },
     )
-    if not view.has_mcp_token and config.mcp_client_id and config.mcp_client_secret:
+    if not view.has_mcp_token:
         mcp_state_payload = {
             "space_id": space_id,
             "user_id": user_id or "unknown-user-id",
@@ -543,12 +564,11 @@ async def handle_notion_oauth_callback(
             "client_id": config.mcp_client_id,
             "response_type": "code",
             "redirect_uri": config.mcp_redirect_uri,
+            "resource": NOTION_MCP_RESOURCE,
         }
-        if config.mcp_resource:
-            mcp_base_params["resource"] = config.mcp_resource
 
         mcp_state, authorize_url = _initiate_oauth_flow(
-            authorize_endpoint=config.mcp_authorize_endpoint,
+            authorize_endpoint=NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT,
             base_params=mcp_base_params,
             redis_client=redis_client,
             state_ttl_seconds=config.state_ttl_seconds,
@@ -617,12 +637,11 @@ async def start_notion_mcp_oauth_flow(
         "client_id": config.mcp_client_id,
         "response_type": "code",
         "redirect_uri": config.mcp_redirect_uri,
+        "resource": NOTION_MCP_RESOURCE,
     }
-    if config.mcp_resource:
-        base_params["resource"] = config.mcp_resource
 
     state, authorize_url = _initiate_oauth_flow(
-        authorize_endpoint=config.mcp_authorize_endpoint,
+        authorize_endpoint=NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT,
         base_params=base_params,
         redis_client=redis_client,
         state_ttl_seconds=config.state_ttl_seconds,
@@ -702,17 +721,16 @@ async def handle_notion_mcp_oauth_callback(
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": config.mcp_redirect_uri,
+        "resource": NOTION_MCP_RESOURCE,
     }
-    if config.mcp_resource:
-        payload["resource"] = config.mcp_resource
 
     try:
         token_response = await _request_oauth_token(
             payload=payload,
             config=config,
             logger=logger,
-            endpoint=config.mcp_token_endpoint,
-            auth_method=config.mcp_token_auth_method,
+            endpoint=NOTION_MCP_TOKEN_ENDPOINT_DEFAULT,
+            auth_method=NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT,
             client_id_override=config.mcp_client_id,
             client_secret_override=config.mcp_client_secret,
             form_encode=True,
@@ -842,106 +860,40 @@ def _read_oauth_state(
         ) from exc
 
 
-def _load_oauth_settings() -> dict[str, Any]:
-    client_id = os.environ.get("NOTION_OAUTH_CLIENT_ID")
-    client_secret = os.environ.get("NOTION_OAUTH_CLIENT_SECRET")
-    redirect_uri = os.environ.get("NOTION_OAUTH_REDIRECT_URI")
-    return_base_url = os.environ.get("NOTION_OAUTH_RETURN_BASE_URL")
-    state_ttl = int(os.environ.get("NOTION_OAUTH_STATE_TTL_SECONDS", "600"))
-
-    if not client_id or not client_secret or not redirect_uri:
-        raise RuntimeError(
-            "Notion OAuth is not configured. Set NOTION_OAUTH_CLIENT_ID, "
-            "NOTION_OAUTH_CLIENT_SECRET, and NOTION_OAUTH_REDIRECT_URI."
-        )
-
-    mcp_token_endpoint = os.environ.get(
-        "NOTION_MCP_TOKEN_ENDPOINT", NOTION_MCP_TOKEN_ENDPOINT_DEFAULT
-    )
-    mcp_authorize_endpoint = os.environ.get(
-        "NOTION_MCP_AUTHORIZE_ENDPOINT", NOTION_MCP_AUTHORIZE_ENDPOINT_DEFAULT
-    )
-    mcp_registration_endpoint = os.environ.get(
-        "NOTION_MCP_REGISTRATION_ENDPOINT", NOTION_MCP_REGISTRATION_ENDPOINT_DEFAULT
-    )
-    mcp_token_auth_method = os.environ.get(
-        "NOTION_MCP_TOKEN_AUTH_METHOD", NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT
-    )
-    mcp_scope = os.environ.get("NOTION_MCP_TOKEN_SCOPE")
-    mcp_client_name = os.environ.get(
-        "NOTION_MCP_CLIENT_NAME", NOTION_MCP_CLIENT_NAME_DEFAULT
-    )
-    api_resource = NOTION_API_RESOURCE
-    mcp_resource = NOTION_MCP_RESOURCE
-
-    mcp_redirect_uri = os.environ.get(
-        "NOTION_MCP_OAUTH_REDIRECT_URI", DEFAULT_MCP_OAUTH_REDIRECT_URI
-    )
-
-    return {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "redirect_uri": redirect_uri,
-        "return_base_url": return_base_url,
-        "state_ttl": state_ttl,
-        "mcp_token_endpoint": mcp_token_endpoint,
-        "mcp_scope": mcp_scope,
-        "mcp_token_auth_method": mcp_token_auth_method,
-        "mcp_registration_endpoint": mcp_registration_endpoint,
-        "mcp_client_name": mcp_client_name,
-        "mcp_authorize_endpoint": mcp_authorize_endpoint,
-        "api_resource": api_resource,
-        "mcp_resource": mcp_resource,
-        "mcp_redirect_uri": mcp_redirect_uri,
-    }
+def _seconds_left(timestamp: datetime | None, clock: Clock) -> int | None:
+    if not timestamp:
+        return None
+    remaining = int((timestamp - clock.now()).total_seconds())
+    return max(0, remaining)
 
 
+@lru_cache(maxsize=1)
 def _get_oauth_config() -> NotionOAuthConfig:
-    global _OAUTH_CONFIG
-    if _OAUTH_CONFIG is not None:
-        return _OAUTH_CONFIG
+    settings = _get_settings()
 
-    settings = _load_oauth_settings()
-
-    client_id = settings["client_id"]
-    client_secret = settings["client_secret"]
-    redirect_uri = settings["redirect_uri"]
-    return_base_url = settings["return_base_url"]
-    state_ttl = settings["state_ttl"]
-    mcp_client_id = os.environ.get("NOTION_MCP_CLIENT_ID")
-    mcp_client_secret = os.environ.get("NOTION_MCP_CLIENT_SECRET")
-    if not mcp_client_id or not mcp_client_secret:
-        raise RuntimeError(
-            "Notion MCP client credentials are not configured. "
-            "Run `just export-notion-mcp-credentials` to generate them and set "
-            "NOTION_MCP_CLIENT_ID / NOTION_MCP_CLIENT_SECRET in the environment."
-        )
-    if mcp_client_id == client_id or mcp_client_secret == client_secret:
+    mcp_client_id = _require_env("NOTION_MCP_CLIENT_ID")
+    mcp_client_secret = _require_env("NOTION_MCP_CLIENT_SECRET")
+    if (
+        mcp_client_id == settings.oauth_client_id
+        or mcp_client_secret == settings.oauth_client_secret
+    ):
         raise RuntimeError(
             "NOTION_MCP_CLIENT_ID and NOTION_MCP_CLIENT_SECRET must differ from the "
             "standard Notion OAuth credentials. Generate dedicated MCP credentials "
             "with `just export-notion-mcp-credentials`."
         )
 
-    _OAUTH_CONFIG = NotionOAuthConfig(
-        client_id=client_id,
-        client_secret=client_secret,
-        redirect_uri=redirect_uri,
-        return_base_url=return_base_url,
-        state_ttl_seconds=state_ttl,
+    return NotionOAuthConfig(
+        client_id=settings.oauth_client_id,
+        client_secret=settings.oauth_client_secret,
+        redirect_uri=settings.oauth_redirect_uri,
+        return_base_url=settings.return_base_url,
+        state_ttl_seconds=settings.state_ttl_seconds,
         mcp_client_id=mcp_client_id,
         mcp_client_secret=mcp_client_secret,
-        mcp_token_endpoint=settings["mcp_token_endpoint"],
-        mcp_scope=settings["mcp_scope"],
-        mcp_token_auth_method=settings["mcp_token_auth_method"],
-        api_resource=settings["api_resource"],
-        mcp_resource=settings["mcp_resource"],
-        mcp_registration_endpoint=settings["mcp_registration_endpoint"],
-        mcp_client_name=settings["mcp_client_name"],
-        mcp_authorize_endpoint=settings["mcp_authorize_endpoint"],
-        mcp_redirect_uri=settings["mcp_redirect_uri"],
+        mcp_redirect_uri=settings.mcp_redirect_uri,
+        mcp_scope=settings.mcp_scope,
     )
-    return _OAUTH_CONFIG
 
 
 def _build_return_url(
@@ -955,15 +907,12 @@ def _build_return_url(
         destination = urljoin(
             config.return_base_url.rstrip("/") + "/", destination.lstrip("/")
         )
-        parsed = urlparse(destination)
 
-    parsed_parts = list(parsed)
-    query_params = dict(parse_qsl(parsed_parts[4]))
-    for key, value in params.items():
-        if value is not None:
-            query_params[key] = value
-    parsed_parts[4] = urlencode(query_params)
-    return urlunparse(parsed_parts)
+    filtered_params = {k: v for k, v in params.items() if v is not None}
+    if filtered_params:
+        separator = "&" if "?" in destination else "?"
+        destination = f"{destination}{separator}{urlencode(filtered_params)}"
+    return destination
 
 
 async def _exchange_authorization_code(
@@ -976,9 +925,8 @@ async def _exchange_authorization_code(
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": config.redirect_uri,
+        "resource": NOTION_API_RESOURCE,
     }
-    if config.api_resource:
-        payload["resource"] = config.api_resource
     return await _request_oauth_token(payload=payload, config=config, logger=logger)
 
 
@@ -991,9 +939,8 @@ async def _refresh_access_token(
     payload = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
+        "resource": NOTION_API_RESOURCE,
     }
-    if config.api_resource:
-        payload["resource"] = config.api_resource
     return await _request_oauth_token(payload=payload, config=config, logger=logger)
 
 
@@ -1005,18 +952,7 @@ async def _exchange_for_mcp_token(
 ) -> dict[str, Any]:
     client_id = config.mcp_client_id
     client_secret = config.mcp_client_secret
-    auth_method = config.mcp_token_auth_method
-
-    if not client_id or not client_secret:
-        logger.error(
-            "Notion MCP client credentials are not configured. Set NOTION_MCP_CLIENT_ID and NOTION_MCP_CLIENT_SECRET."
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Notion MCP client credentials are missing. Configure NOTION_MCP_CLIENT_ID and NOTION_MCP_CLIENT_SECRET."
-            ),
-        )
+    auth_method = NOTION_MCP_TOKEN_AUTH_METHOD_DEFAULT
 
     if not credentials.mcp_refresh_token:
         logger.error(
@@ -1037,16 +973,18 @@ async def _exchange_for_mcp_token(
     }
     if config.mcp_scope:
         payload["scope"] = config.mcp_scope
-    if config.mcp_resource:
-        payload["resource"] = config.mcp_resource
+    payload["resource"] = NOTION_MCP_RESOURCE
 
-    logger.debug("Requesting Notion MCP token via %s", config.mcp_token_endpoint)
+    logger.debug(
+        "Requesting Notion MCP token via %s",
+        NOTION_MCP_TOKEN_ENDPOINT_DEFAULT,
+    )
 
     return await _request_oauth_token(
         payload=payload,
         config=config,
         logger=logger,
-        endpoint=config.mcp_token_endpoint,
+        endpoint=NOTION_MCP_TOKEN_ENDPOINT_DEFAULT,
         auth_method=auth_method,
         client_id_override=client_id,
         client_secret_override=client_secret,
@@ -1235,8 +1173,6 @@ async def ensure_fresh_notion_credentials(
             detail="Notion credentials expired. Reconnect Notion to continue.",
         ) from exc
 
-    mcp_expires_in: int | None = None
-
     try:
         token_response = await _refresh_access_token(
             config=config,
@@ -1253,20 +1189,13 @@ async def ensure_fresh_notion_credentials(
                 "Notion rejected stored refresh token for space %s; clearing cached refresh credentials.",
                 space_id,
             )
-            if (
-                credentials.mcp_token_expires_at
-                and credentials.mcp_token_expires_at > clock.now()
-            ):
-                mcp_expires_in = int(
-                    (credentials.mcp_token_expires_at - clock.now()).total_seconds()
-                )
             await _upsert_notion_integration(
                 access_token=credentials.access_token,
                 refresh_token=None,
                 expires_in=None,
                 mcp_access_token=credentials.mcp_access_token,
                 mcp_refresh_token=credentials.mcp_refresh_token,
-                mcp_expires_in=mcp_expires_in,
+                mcp_expires_in=_seconds_left(credentials.mcp_token_expires_at, clock),
                 space_id=space_id,
                 user_id=user_id,
                 workspace_id=credentials.workspace_id,
@@ -1301,12 +1230,7 @@ async def ensure_fresh_notion_credentials(
             detail="Notion returned an invalid refresh response.",
         )
 
-    now_ts = clock.now()
-    if credentials.mcp_token_expires_at and credentials.mcp_token_expires_at > now_ts:
-        mcp_expires_in = max(
-            0,
-            int((credentials.mcp_token_expires_at - now_ts).total_seconds()),
-        )
+    mcp_expires_in = _seconds_left(credentials.mcp_token_expires_at, clock)
 
     updated_view = await _upsert_notion_integration(
         access_token=new_access_token,
@@ -1352,7 +1276,7 @@ async def clear_notion_mcp_credentials(
 ) -> None:
     expires_in: int | None = None
     if credentials.token_expires_at and credentials.token_expires_at > clock.now():
-        expires_in = int((credentials.token_expires_at - clock.now()).total_seconds())
+        expires_in = _seconds_left(credentials.token_expires_at, clock)
     await _upsert_notion_integration(
         access_token=credentials.access_token,
         refresh_token=credentials.refresh_token,
