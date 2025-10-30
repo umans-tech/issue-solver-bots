@@ -1,29 +1,12 @@
-import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Sequence, TypedDict
 
 from issue_solver.events.domain import (
-    DomainEvent,
     NotionIntegrationConnected,
     NotionIntegrationTokenRotated,
     most_recent_event,
 )
 from issue_solver.events.event_store import EventStore
-
-
-logger = logging.getLogger("issue_solver.events.notion_integration")
-
-
-class NotionTokenBundle(TypedDict):
-    """Type definition for Notion token bundle."""
-
-    access_token: str | None
-    refresh_token: str | None
-    token_expires_at: datetime | None
-    mcp_access_token: str | None
-    mcp_refresh_token: str | None
-    mcp_token_expires_at: datetime | None
 
 
 @dataclass(kw_only=True)
@@ -62,75 +45,38 @@ async def get_notion_credentials(
         return None
 
     events = await event_store.get(notion_connected.process_id)
-    token_bundle = get_most_recent_notion_token(events)
+    latest_rotation = most_recent_event(events, NotionIntegrationTokenRotated)
 
-    access_token = token_bundle["access_token"]
-    refresh_token = token_bundle["refresh_token"]
-    token_expires_at = token_bundle["token_expires_at"]
-    mcp_access_token = token_bundle["mcp_access_token"]
-    mcp_refresh_token = token_bundle["mcp_refresh_token"]
-    mcp_token_expires_at = token_bundle["mcp_token_expires_at"]
+    use_rotation = (
+        latest_rotation is not None
+        and latest_rotation.occurred_at >= notion_connected.occurred_at
+    )
+
+    if use_rotation and latest_rotation:
+        access_token = latest_rotation.new_access_token
+        refresh_token = latest_rotation.new_refresh_token
+        token_expires_at = latest_rotation.token_expires_at
+        mcp_access_token = latest_rotation.new_mcp_access_token
+        mcp_refresh_token = latest_rotation.new_mcp_refresh_token
+        mcp_token_expires_at = latest_rotation.mcp_token_expires_at
+        workspace_id = latest_rotation.workspace_id or notion_connected.workspace_id
+        workspace_name = (
+            latest_rotation.workspace_name or notion_connected.workspace_name
+        )
+        bot_id = latest_rotation.bot_id or notion_connected.bot_id
+    else:
+        access_token = notion_connected.access_token
+        refresh_token = notion_connected.refresh_token
+        token_expires_at = notion_connected.token_expires_at
+        mcp_access_token = notion_connected.mcp_access_token
+        mcp_refresh_token = notion_connected.mcp_refresh_token
+        mcp_token_expires_at = notion_connected.mcp_token_expires_at
+        workspace_id = notion_connected.workspace_id
+        workspace_name = notion_connected.workspace_name
+        bot_id = notion_connected.bot_id
 
     if not access_token:
         return None
-
-    latest_rotation = most_recent_event(events, NotionIntegrationTokenRotated)
-
-    workspace_id = (
-        latest_rotation.workspace_id
-        if latest_rotation
-        else notion_connected.workspace_id
-    )
-    workspace_name = (
-        latest_rotation.workspace_name
-        if latest_rotation and latest_rotation.workspace_name
-        else notion_connected.workspace_name
-    )
-    bot_id = (
-        latest_rotation.bot_id
-        if latest_rotation and latest_rotation.bot_id
-        else notion_connected.bot_id
-    )
-
-    if not workspace_id:
-        # attempt to backfill workspace metadata by validating the token again
-        try:
-            from issue_solver.webapi.routers.notion_integration import (
-                _validate_notion_token,
-            )
-
-            payload = await _validate_notion_token(access_token)
-        except Exception:  # pragma: no cover - defensive fallback
-            payload = None
-
-        payload_dict: dict[str, Any] | None = (
-            payload if isinstance(payload, dict) else None
-        )
-
-        if payload_dict:
-            logger.debug("Fetched Notion user payload for backfill: %s", payload_dict)
-            raw_bot = payload_dict.get("bot")
-            bot_info = raw_bot if isinstance(raw_bot, dict) else {}
-            if bot_info:
-                logger.debug("Notion bot info: %s", bot_info)
-
-            raw_owner = payload_dict.get("owner")
-            owner_info = raw_owner if isinstance(raw_owner, dict) else {}
-            if owner_info:
-                logger.debug("Notion owner info: %s", owner_info)
-
-            workspace_id = (
-                bot_info.get("workspace_id")
-                or owner_info.get("workspace_id")
-                or payload_dict.get("workspace_id")
-                or workspace_id
-            )
-            workspace_name = (
-                bot_info.get("workspace_name")
-                or payload_dict.get("name")
-                or workspace_name
-            )
-            bot_id = payload_dict.get("id") or bot_info.get("id") or bot_id
 
     if not workspace_id and bot_id:
         workspace_id = bot_id
@@ -146,79 +92,6 @@ async def get_notion_credentials(
         workspace_name=workspace_name,
         bot_id=bot_id,
         process_id=notion_connected.process_id,
-    )
-
-
-def get_most_recent_notion_token(
-    domain_events: Sequence[DomainEvent],
-) -> NotionTokenBundle:
-    rotated = most_recent_event(domain_events, NotionIntegrationTokenRotated)
-    connected = most_recent_event(domain_events, NotionIntegrationConnected)
-
-    def bundle(
-        *,
-        access_token: str | None,
-        refresh_token: str | None,
-        token_expires_at: datetime | None,
-        mcp_access_token: str | None,
-        mcp_refresh_token: str | None,
-        mcp_token_expires_at: datetime | None,
-    ) -> NotionTokenBundle:
-        return NotionTokenBundle(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_expires_at=token_expires_at,
-            mcp_access_token=mcp_access_token,
-            mcp_refresh_token=mcp_refresh_token,
-            mcp_token_expires_at=mcp_token_expires_at,
-        )
-
-    if rotated and connected:
-        if rotated.occurred_at >= connected.occurred_at:
-            return bundle(
-                access_token=rotated.new_access_token,
-                refresh_token=rotated.new_refresh_token,
-                token_expires_at=rotated.token_expires_at,
-                mcp_access_token=rotated.new_mcp_access_token,
-                mcp_refresh_token=rotated.new_mcp_refresh_token,
-                mcp_token_expires_at=rotated.mcp_token_expires_at,
-            )
-        return bundle(
-            access_token=connected.access_token,
-            refresh_token=connected.refresh_token,
-            token_expires_at=connected.token_expires_at,
-            mcp_access_token=connected.mcp_access_token,
-            mcp_refresh_token=connected.mcp_refresh_token,
-            mcp_token_expires_at=connected.mcp_token_expires_at,
-        )
-
-    if rotated:
-        return bundle(
-            access_token=rotated.new_access_token,
-            refresh_token=rotated.new_refresh_token,
-            token_expires_at=rotated.token_expires_at,
-            mcp_access_token=rotated.new_mcp_access_token,
-            mcp_refresh_token=rotated.new_mcp_refresh_token,
-            mcp_token_expires_at=rotated.mcp_token_expires_at,
-        )
-
-    if connected:
-        return bundle(
-            access_token=connected.access_token,
-            refresh_token=connected.refresh_token,
-            token_expires_at=connected.token_expires_at,
-            mcp_access_token=connected.mcp_access_token,
-            mcp_refresh_token=connected.mcp_refresh_token,
-            mcp_token_expires_at=connected.mcp_token_expires_at,
-        )
-
-    return bundle(
-        access_token=None,
-        refresh_token=None,
-        token_expires_at=None,
-        mcp_access_token=None,
-        mcp_refresh_token=None,
-        mcp_token_expires_at=None,
     )
 
 

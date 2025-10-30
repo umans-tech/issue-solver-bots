@@ -213,8 +213,7 @@ def test_returns_notion_integration_process(
 
     monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
 
-    notion_integration._get_oauth_config.cache_clear()
-    notion_integration._get_settings.cache_clear()
+    notion_integration._get_config.cache_clear()
 
     monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "test-client-secret")
@@ -256,8 +255,7 @@ def test_returns_notion_integration_process(
         assert first_event["workspace_id"] == "workspace-123"
         assert first_event["workspace_name"] == "Acme Workspace"
     finally:
-        notion_integration._get_oauth_config.cache_clear()
-        notion_integration._get_settings.cache_clear()
+        notion_integration._get_config.cache_clear()
 
 
 def test_returns_processes_with_default_pagination(api_client, time_under_control):

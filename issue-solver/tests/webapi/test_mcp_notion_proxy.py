@@ -30,8 +30,7 @@ def stub_notion_validation(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def stub_oauth_config(monkeypatch):
-    notion_integration._get_oauth_config.cache_clear()
-    notion_integration._get_settings.cache_clear()
+    notion_integration._get_config.cache_clear()
 
     monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "test-client-secret")
@@ -47,8 +46,7 @@ def stub_oauth_config(monkeypatch):
         "https://example.com/notion/mcp/callback",
     )
     yield
-    notion_integration._get_oauth_config.cache_clear()
-    notion_integration._get_settings.cache_clear()
+    notion_integration._get_config.cache_clear()
 
 
 def test_mcp_notion_proxy_missing_space_id(api_client: TestClient):
