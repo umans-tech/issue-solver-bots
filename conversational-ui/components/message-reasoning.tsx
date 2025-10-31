@@ -13,6 +13,7 @@ import { DocumentPreview } from './document-preview';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool } from './github-mcp';
+import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool } from './notion-mcp';
 
 interface MessageReasoningProps {
   isLoading: boolean;
@@ -152,6 +153,8 @@ export function MessageReasoning({
                         <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpageAnimation url={args?.url} />
+                      ) : isNotionMCPTool(toolName) ? (
+                        <NotionMCPAnimation toolName={toolName} args={args} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPAnimation toolName={toolName} args={args} />
                       ) : null}
@@ -172,6 +175,10 @@ export function MessageReasoning({
                         issueDescription={issueDescription}
                         result={null}
                       />
+                    </div>
+                  ) : isNotionMCPTool(toolName) ? (
+                    <div key={toolCallId} className="my-2">
+                      <NotionMCPAnimation toolName={toolName} args={args} />
                     </div>
                   ) : isGitHubMCPTool(toolName) ? (
                     <div key={toolCallId} className="my-2">
@@ -227,6 +234,8 @@ export function MessageReasoning({
                         />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpage result={result} url={args?.url} />
+                      ) : isNotionMCPTool(toolName) ? (
+                        <NotionMCPResult toolName={toolName} result={result} args={args} />
                       ) : isGitHubMCPTool(toolName) ? (
                         <GitHubMCPResult toolName={toolName} result={result} args={args} />
                       ) : (

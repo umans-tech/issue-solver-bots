@@ -1,84 +1,62 @@
-# Notion MCP Integration – Working Path & Pitfalls
+# Notion MCP Integration – Current Flow
 
-## High-Level Flow
+> The classic Notion OAuth flow has been retired. The integration now relies **only** on Notion's Model Context Protocol (MCP) authorization.
 
-1. **Standard OAuth**  
-   - `/integrations/notion/oauth/start` → user approves via Notion’s classic dialog.  
-   - `/integrations/notion/oauth/callback` stores/rotates the Databases API token.  
-   - When MCP isn’t connected yet, the callback immediately redirects to the MCP flow.
+## End-to-End Flow
 
-2. **MCP OAuth**  
-   - `/integrations/notion/oauth/mcp/start` (triggered automatically post-OAuth or manually)  
-   - User sees the **same** Notion permission screen (Notion doesn’t brand MCP differently yet).  
-   - `/integrations/notion/mcp/oauth/callback` exchanges the MCP authorization code for a refresh token and stores it.
+1. **User starts the flow**
+   - Frontend calls `POST /api/notion/oauth/start` (Next.js route).  
+   - This proxies to FastAPI `GET /integrations/notion/oauth/mcp/start`, which builds the Notion authorization URL, stores a short-lived state in Redis, and returns it to the browser.
 
-3. **MCP Proxy**  
-   - Front-end sends JSON-RPC requests to `/mcp/notion/proxy` with space + user metadata.  
-   - FastAPI refreshes tokens if needed, exchanges for MCP access token, and forwards the payload to `https://mcp.notion.com/mcp`.  
-   - Response is streamed back untouched to the browser so the MCP client can parse JSON-RPC correctly.
+2. **User approves in Notion**
+   - Notion presents the MCP consent dialog.
+   - On success Notion redirects back to `GET /integrations/notion/mcp/oauth/callback`.
 
-4. **Agent Visibility**  
-   - UI exposes MCP tools once the client succeeds in discovering them.  
-   - Tools are surfaced in the opening assistant message and available in `experimental_activeTools`.  
-   - Integration dialog shows “Connected” when both Databases API + MCP refresh tokens exist.
+3. **Backend stores MCP credentials**
+   - FastAPI exchanges the authorization code for an MCP refresh token.
+   - The refresh token is encrypted and appended to the event stream (`NotionIntegrationConnected` / `NotionIntegrationTokenRotated`).
+   - No classic access token is stored; the integration is considered "connected" when an MCP refresh token exists.
 
----
+4. **Proxying tool calls**
+   - The UI sends JSON-RPC payloads to `POST /mcp/notion/proxy`.  
+   - The proxy loads the stored credentials, refreshes them if necessary, exchanges for an MCP access token, and forwards the request to `https://mcp.notion.com/mcp`.
+   - Responses are streamed back verbatim so the MCP client can decode them.
 
-## What Worked
+## Required Environment Variables
 
-- **Token lifecycle** (both Databases API and MCP) handled entirely by the FastAPI backend with refresh logic and event storage.  
-- **Proxy headers** fixed (`Accept: application/json, text/event-stream`) so Notion accepts requests.  
-- **UI environment**: once `CUDU_ENDPOINT` is set, MCP client creation succeeds.  
-- **Dynamic tool discovery**: server logs and agent prompt now list Notion MCP tools when available.  
-- **Automatic second redirect**: standard OAuth automatically cascades into MCP consent if needed.
+Add the following variables to FastAPI:
 
----
+```bash
+NOTION_MCP_CLIENT_ID=...
+NOTION_MCP_CLIENT_SECRET=...
+# Optional overrides
+# NOTION_MCP_OAUTH_REDIRECT_URI="https://api.example.com/integrations/notion/mcp/oauth/callback"
+# NOTION_MCP_RETURN_BASE_URL="https://app.example.com"
+# NOTION_MCP_TOKEN_AUTH_METHOD="client_secret_post"
+# NOTION_MCP_TOKEN_SCOPE="..."
+# NOTION_MCP_STATE_TTL_SECONDS=600
+```
 
-## What Didn’t Work (and the Fixes)
+Frontend (Next.js) still requires `CUDU_ENDPOINT` so the MCP client knows where to proxy requests.
 
-| Issue | Root Cause | Resolution |
+## Local Development Notes
+
+- Run FastAPI and Next.js locally, then set `NOTION_MCP_OAUTH_REDIRECT_URI=http://localhost:8000/integrations/notion/mcp/oauth/callback` and `NOTION_MCP_RETURN_BASE_URL=http://localhost:3000` to get end-to-end redirects working.
+- Generate client credentials once using `just export-notion-mcp-credentials` and reuse them.
+- When testing, you can clear credentials with `ensure_fresh_notion_credentials` or by removing the integration from the Notion UI.
+
+## UI Expectations
+
+- The integration dialog only references MCP. Once a refresh token is stored the status moves to **MCP connected**.
+- If the proxy returns `invalid_grant`, the backend clears the stored refresh token and the UI prompts the user to reconnect.
+
+## Troubleshooting
+
+| Symptom | Typical Cause | Fix |
 | --- | --- | --- |
-| `404` on MCP callback | Wrong path (`/integrations/notion/oauth/mcp/callback`) vs actual client redirect (`/integrations/notion/mcp/oauth/callback`) | Added handler for the correct path & ensured env uses the same URI |
-| MCP tools missing in UI | `CUDU_ENDPOINT` missing / MCP client creation failing silently | Added logging and surfaced the error; set `CUDU_ENDPOINT` in Next.js env |
-| `406 Not Acceptable` from Notion MCP | Proxy only sent `Accept: text/event-stream` | Updated header to accept both JSON and event streams |
-| JSON-RPC validation errors (Zod) | Proxy wrapped Notion responses in `{status,data}` | Proxy now returns the raw HTTP response body and headers |
-| Silent fallback (`noMCPClient`) | Exceptions suppressed | Logged the actual error so reconnection prompts are explicit |
-| `invalid_grant` after reconnecting | Old MCP refresh tokens persisted after changing client credentials | Proxy now clears cached MCP tokens and returns a reconnect prompt when Notion reports `invalid_grant`. |
-| MCP client changing unexpectedly | Backend auto-registered a new MCP client on demand when env vars were missing | MCP credentials are now generated once with `just export-notion-mcp-credentials` and stored as deployment secrets. |
+| `401 Missing Notion MCP tokens` | User never completed the MCP consent dialog | Re-run the connect flow |
+| `invalid_grant` in logs | Stored refresh token revoked in Notion | User must reconnect |
+| Chat tools missing | Frontend MCP client failed to initialise | Check `CUDU_ENDPOINT` and browser console |
+| Proxy returns `500` | Stale MCP access token and refresh failed | Clear credentials (`clear_notion_mcp_credentials`) and reconnect |
 
----
-
-## Implementation Checklist
-
-1. **Environment Variables**
-   ```bash
-   NOTION_OAUTH_REDIRECT_URI=http://localhost:8000/integrations/notion/oauth/callback
-   # Optional: override if your API is served on a different host
-   # NOTION_MCP_OAUTH_REDIRECT_URI=https://api.example.com/integrations/notion/mcp/oauth/callback
-   NOTION_MCP_CLIENT_ID=…      # from `just export-notion-mcp-credentials`
-   NOTION_MCP_CLIENT_SECRET=…
-   NOTION_MCP_RESOURCE=https://mcp.notion.com
-   CUDU_ENDPOINT=http://localhost:8000   # used by the Next.js MCP client
-   ```
-   If `NOTION_MCP_OAUTH_REDIRECT_URI` is not provided we fall back to `http://localhost:8000/integrations/notion/mcp/oauth/callback` for local development.
-   Restart both FastAPI and Next.js after any change. Then run `just export-notion-mcp-credentials` to print the MCP client ID/secret and add them to your secrets manager.
-
-2. **Reconnect Flow**
-   - Always run through the Notion OAuth dialog and allow the automatic redirect to MCP.  
-   - Confirm FastAPI logs show `POST https://mcp.notion.com/mcp "HTTP/1.1 200 OK"`.
-3. **UI Verification**
-   - On the first assistant reply, ensure the Notion tools are listed.  
-   - Server console should log both `[Notion MCP] tools discovered` and `[MCP] available tools`.
-
-4. **Tool Calls**
-   - When the agent uses a Notion tool, FastAPI should log `POST /mcp/notion/proxy ... 200`.
-
----
-
-## Follow-Up Focus Areas
-
-- **UI Messaging**: make it clearer in the dialog that MCP consent follows the standard Notion dialog even though the visual is identical.  
-- **Error Surfacing**: consider exposing the backend “Reconnect the integration” signal directly in the UI when MCP tokens expire.  
-- **Caching / Refresh**: monitor MCP token rotations to ensure the UI doesn’t hang on stale tool lists (the current logging helps detect this).
-
-With these changes in place, Notion MCP is fully operational: the backend refreshes both token sets, the proxy forwards JSON-RPC untouched, and the Conversational UI lists and uses Notion MCP tools alongside GitHub MCP.
+The integration is now fully MCP-centric: there are no classic OAuth tokens or endpoints to maintain.

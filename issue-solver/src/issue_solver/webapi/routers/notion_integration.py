@@ -88,10 +88,7 @@ def _get_mcp_settings() -> NotionMcpSettings:
         ),
         scope=os.environ.get("NOTION_MCP_TOKEN_SCOPE"),
         state_ttl_seconds=state_ttl,
-        return_base_url=(
-            os.environ.get("NOTION_MCP_RETURN_BASE_URL")
-            or os.environ.get("NOTION_OAUTH_RETURN_BASE_URL")
-        ),
+        return_base_url=os.environ.get("NOTION_MCP_RETURN_BASE_URL"),
     )
 
 

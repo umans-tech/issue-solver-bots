@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -56,12 +57,14 @@ export function NotionIntegrationDialog({
   onOpenChange,
 }: NotionIntegrationDialogProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   const spaceId = session?.user?.selectedSpace?.id ?? null;
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [integration, setIntegration] = useState<NotionIntegrationDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [didRefresh, setDidRefresh] = useState(false);
 
   const statusBadge = useMemo(() => {
     if (integration) {
@@ -99,6 +102,7 @@ export function NotionIntegrationDialog({
   useEffect(() => {
     if (!open) {
       setError(null);
+      setDidRefresh(false);
       return;
     }
 
@@ -134,6 +138,10 @@ export function NotionIntegrationDialog({
               details.has_mcp_token ?? details.hasMcpToken ?? details.hasMcp ?? false,
           });
           setError(null);
+          if (!didRefresh && details.hasMcpToken) {
+            setDidRefresh(true);
+            router.refresh();
+          }
         } else {
           setIntegration(null);
         }
@@ -144,7 +152,7 @@ export function NotionIntegrationDialog({
         setIntegration(null);
       })
       .finally(() => setIsLoading(false));
-  }, [open, spaceId]);
+  }, [open, spaceId, didRefresh, router]);
 
   const handleConnect = async () => {
     if (!spaceId) {
@@ -246,18 +254,18 @@ export function NotionIntegrationDialog({
           </p>
         </div>
 
-        <SheetFooter className="flex flex-col gap-3 sm:flex-col">
+        <SheetFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
           {error && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-between">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
             <Button
               type="button"
               variant="outline"
-              className="sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={() =>
                 window.open(
                   'https://developers.notion.com/docs/get-started-with-mcp',
@@ -273,7 +281,7 @@ export function NotionIntegrationDialog({
               type="button"
               onClick={handleConnect}
               disabled={isSubmitting || isLoading || !spaceId}
-              className="sm:w-auto"
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? 'Redirecting…' : actionLabel}
             </Button>

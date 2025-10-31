@@ -18,7 +18,7 @@ from issue_solver.webapi.routers.notion_integration import (
 )
 
 NOTION_MCP_REMOTE_ENDPOINT = "https://mcp.notion.com/mcp"
-NOTION_VERSION = "2022-06-28"
+NOTION_VERSION = "2025-09-03"
 MCP_RECONNECT_MESSAGE = "Notion MCP credentials have expired. Reconnect the Notion MCP integration to continue."
 
 router = APIRouter()

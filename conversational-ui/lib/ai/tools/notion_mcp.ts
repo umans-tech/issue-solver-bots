@@ -2,28 +2,61 @@ import { experimental_createMCPClient as createMCPClient } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 const NOTION_PROXY_PATH = '/mcp/notion/proxy';
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-export async function notionMCPClient(userContext?: { userId?: string; spaceId?: string }) {
+type UserContext = { userId?: string; spaceId?: string } | undefined;
+
+type MCPClient = Awaited<ReturnType<typeof createMCPClient>>;
+
+type MCPWrapper = {
+  client: MCPClient;
+  activeTools: () => string[];
+  loadTools: () => Promise<Record<string, unknown>>;
+  persistent?: boolean;
+  __error?: unknown;
+};
+
+type CachedEntry = MCPWrapper & { fetchedAt: number };
+
+const notionClientCache = new Map<string, CachedEntry>();
+
+const noMCPClient = (error: unknown): MCPWrapper => ({
+  client: {
+    tools: async () => ({} as any),
+    close: async () => {
+      /* noop */
+    },
+  } as unknown as MCPClient,
+  activeTools: () => [],
+  loadTools: async () => ({}),
+  __error: error,
+});
+
+export async function notionMCPClient(userContext?: UserContext): Promise<MCPWrapper> {
+  const cacheKey = userContext?.spaceId
+    ? `${userContext.spaceId}:${userContext?.userId ?? 'anonymous'}`
+    : null;
+
+  if (cacheKey) {
+    const cached = notionClientCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      return cached;
+    }
+  }
+
   try {
-    return await createProxyClient(userContext);
+    const wrapper = await createProxyClient(userContext);
+    if (cacheKey) {
+      notionClientCache.set(cacheKey, { ...wrapper, fetchedAt: Date.now() });
+    }
+    return wrapper;
   } catch (error) {
     console.error('[Notion MCP] failed to initialise client:', error);
     return noMCPClient(error);
   }
 }
 
-const noMCPClient = (error: unknown) => ({
-  client: {
-    tools: async () => ({}),
-    close: () => {
-      /* noop */
-    },
-  },
-  activeTools: () => [],
-  __error: error,
-});
-
-async function createProxyClient(userContext?: { userId?: string; spaceId?: string }) {
+async function createProxyClient(userContext?: UserContext): Promise<MCPWrapper> {
   const cuduEndpoint = process.env.CUDU_ENDPOINT;
   if (!cuduEndpoint) {
     throw new Error('CUDU_ENDPOINT not configured for Notion MCP integration');
@@ -59,14 +92,18 @@ async function createProxyClient(userContext?: { userId?: string; spaceId?: stri
   );
 
   const client = await createMCPClient({ transport });
-  const toolMap = await client.tools();
-  const toolNames = Object.keys(toolMap ?? {});
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[Notion MCP] tools discovered:', toolNames);
-  }
+  const fullToolMap = await client.tools();
+  const filteredEntries = Object.entries(fullToolMap ?? {})
+    .filter(([name]) => name.toLowerCase().includes('notion') || name.toLowerCase().startsWith('page_'))
+    .slice(0, 16);
+
+  const toolMap = Object.fromEntries(filteredEntries);
+  const toolNames = filteredEntries.map(([name]) => name);
 
   return {
     client,
     activeTools: () => toolNames,
+    loadTools: async () => toolMap,
+    persistent: true,
   };
 }
