@@ -59,115 +59,16 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const accessToken: string | undefined = body?.accessToken;
-    const spaceId: string | undefined =
-      body?.spaceId || session.user.selectedSpace?.id;
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Notion access token is required' },
-        { status: 400 },
-      );
-    }
-
-    if (!spaceId) {
-      return NextResponse.json(
-        { error: 'No active space selected' },
-        { status: 400 },
-      );
-    }
-
-    const response = await fetch(buildCuduUrl(NOTION_PATH), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': session.user.id,
-      },
-      cache: 'no-store',
-      body: JSON.stringify({
-        access_token: accessToken,
-        space_id: spaceId,
-      }),
-    });
-
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: payload?.detail || 'Failed to connect Notion' },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(payload, { status: 201 });
-  } catch (error: any) {
-    console.error('Failed to connect Notion:', error);
-    return NextResponse.json(
-      { error: 'Failed to connect Notion' },
-      { status: 500 },
-    );
-  }
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Direct Notion token connection is no longer supported.' },
+    { status: 410 },
+  );
 }
 
-export async function PUT(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const accessToken: string | undefined = body?.accessToken;
-    const spaceId: string | undefined =
-      body?.spaceId || session.user.selectedSpace?.id;
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Notion access token is required' },
-        { status: 400 },
-      );
-    }
-
-    if (!spaceId) {
-      return NextResponse.json(
-        { error: 'No active space selected' },
-        { status: 400 },
-      );
-    }
-
-    const response = await fetch(buildCuduUrl(`${NOTION_PATH}/${spaceId}/token`), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': session.user.id,
-      },
-      cache: 'no-store',
-      body: JSON.stringify({ access_token: accessToken }),
-    });
-
-    const payload = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: payload?.detail || 'Failed to rotate Notion token' },
-        { status: response.status },
-      );
-    }
-
-    return NextResponse.json(payload, { status: 200 });
-  } catch (error: any) {
-    console.error('Failed to rotate Notion token:', error);
-    return NextResponse.json(
-      { error: 'Failed to rotate Notion token' },
-      { status: 500 },
-    );
-  }
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Direct Notion token rotation is no longer supported.' },
+    { status: 410 },
+  );
 }

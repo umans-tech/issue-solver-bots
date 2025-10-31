@@ -180,7 +180,7 @@ class NotionIntegrationConnected(DomainEvent):
     space_id: str
     process_id: str
     occurred_at: datetime
-    access_token: str
+    access_token: str | None = None
     refresh_token: str | None = None
     token_expires_at: datetime | None = None
     workspace_id: str | None = None
@@ -197,7 +197,7 @@ class NotionIntegrationTokenRotated(DomainEvent):
     space_id: str
     process_id: str
     occurred_at: datetime
-    new_access_token: str
+    new_access_token: str | None = None
     new_refresh_token: str | None = None
     token_expires_at: datetime | None = None
     workspace_id: str | None = None

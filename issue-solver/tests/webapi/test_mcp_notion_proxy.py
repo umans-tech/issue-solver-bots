@@ -12,41 +12,17 @@ from issue_solver.events.notion_integration import NotionCredentials
 
 
 @pytest.fixture(autouse=True)
-def stub_notion_validation(monkeypatch):
-    async def fake_validate(_token: str) -> dict:
-        return {
-            "object": "user",
-            "id": "bot-id",
-            "bot": {
-                "workspace_id": "workspace-123",
-                "workspace_name": "Acme Workspace",
-            },
-        }
-
-    monkeypatch.setattr(notion_integration, "_validate_notion_token", fake_validate)
-    yield
-    monkeypatch.delattr(notion_integration, "_validate_notion_token")
-
-
-@pytest.fixture(autouse=True)
 def stub_oauth_config(monkeypatch):
-    notion_integration._get_config.cache_clear()
-
-    monkeypatch.setenv("NOTION_OAUTH_CLIENT_ID", "test-client-id")
-    monkeypatch.setenv("NOTION_OAUTH_CLIENT_SECRET", "test-client-secret")
-    monkeypatch.setenv(
-        "NOTION_OAUTH_REDIRECT_URI",
-        "https://example.com/notion/callback",
-    )
-    monkeypatch.setenv("NOTION_OAUTH_STATE_TTL_SECONDS", "600")
+    notion_integration._get_mcp_settings.cache_clear()
     monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
     monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
     monkeypatch.setenv(
         "NOTION_MCP_OAUTH_REDIRECT_URI",
         "https://example.com/notion/mcp/callback",
     )
+    monkeypatch.setenv("NOTION_MCP_RETURN_BASE_URL", "https://frontend.example.com")
     yield
-    notion_integration._get_config.cache_clear()
+    notion_integration._get_mcp_settings.cache_clear()
 
 
 def test_mcp_notion_proxy_missing_space_id(api_client: TestClient):

@@ -11,7 +11,7 @@ from issue_solver.events.event_store import EventStore
 
 @dataclass(kw_only=True)
 class NotionCredentials:
-    access_token: str
+    access_token: str | None
     refresh_token: str | None
     token_expires_at: datetime | None
     mcp_access_token: str | None = None
@@ -75,7 +75,7 @@ async def get_notion_credentials(
         workspace_name = notion_connected.workspace_name
         bot_id = notion_connected.bot_id
 
-    if not access_token:
+    if not access_token and not mcp_refresh_token:
         return None
 
     if not workspace_id and bot_id:

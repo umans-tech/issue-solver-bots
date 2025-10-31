@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { auth } from '@/app/(auth)/auth';
 
-const NOTION_OAUTH_START_PATH = '/integrations/notion/oauth/start';
+const NOTION_OAUTH_MCP_START_PATH = '/integrations/notion/oauth/mcp/start';
 
 function buildCuduUrl(path: string, search: Record<string, string>) {
   const cuduEndpoint = process.env.CUDU_ENDPOINT;
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const returnPath = body?.returnPath ?? '/integrations/notion/callback';
 
     const response = await fetch(
-      buildCuduUrl(NOTION_OAUTH_START_PATH, {
+      buildCuduUrl(NOTION_OAUTH_MCP_START_PATH, {
         space_id: spaceId,
         return_path: returnPath,
       }),
@@ -54,16 +54,16 @@ export async function POST(request: Request) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       return NextResponse.json(
-        { error: payload?.detail || 'Failed to start Notion OAuth flow' },
+        { error: payload?.detail || 'Failed to start Notion MCP authorization' },
         { status: response.status },
       );
     }
 
     return NextResponse.json(payload);
   } catch (error: any) {
-    console.error('Failed to start Notion OAuth flow:', error);
+    console.error('Failed to start Notion MCP authorization:', error);
     return NextResponse.json(
-      { error: 'Failed to start Notion OAuth flow' },
+      { error: 'Failed to start Notion MCP authorization' },
       { status: 500 },
     );
   }

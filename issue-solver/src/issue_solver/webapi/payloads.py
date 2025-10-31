@@ -51,7 +51,7 @@ class NotionIntegrationView(BaseSchema):
     workspace_name: str | None = None
     bot_id: str | None = None
     token_expires_at: datetime | None = None
-    has_valid_token: bool = True
+    has_valid_token: bool = False
     has_mcp_token: bool = False
 
 
