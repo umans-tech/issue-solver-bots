@@ -152,9 +152,6 @@ class CodeRepositoryConnectedRecord(BaseModel):
 class NotionIntegrationConnectedRecord(BaseModel):
     type: Literal["notion_integration_connected"] = "notion_integration_connected"
     occurred_at: datetime
-    access_token: str | None = None
-    refresh_token: str | None = None
-    token_expires_at: datetime | None = None
     user_id: str
     space_id: str
     process_id: str
@@ -166,20 +163,14 @@ class NotionIntegrationConnectedRecord(BaseModel):
     mcp_token_expires_at: datetime | None = None
 
     def safe_copy(self) -> Self:
-        obfuscated_access = obfuscate(self.access_token) if self.access_token else None
-        obfuscated_refresh = (
-            obfuscate(self.refresh_token) if self.refresh_token else None
-        )
         obfuscated_mcp_access = (
             obfuscate(self.mcp_access_token) if self.mcp_access_token else None
         )
         obfuscated_mcp_refresh = (
             obfuscate(self.mcp_refresh_token) if self.mcp_refresh_token else None
         )
-        return self.model_copy(
+        return self.model_copy(  # type: ignore[call-arg]
             update={
-                "access_token": obfuscated_access,
-                "refresh_token": obfuscated_refresh,
                 "mcp_access_token": obfuscated_mcp_access,
                 "mcp_refresh_token": obfuscated_mcp_refresh,
             }
@@ -188,13 +179,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
     def to_domain_event(self) -> NotionIntegrationConnected:
         return NotionIntegrationConnected(
             occurred_at=self.occurred_at,
-            access_token=_decrypt_token(self.access_token)
-            if self.access_token
-            else None,
-            refresh_token=_decrypt_token(self.refresh_token)
-            if self.refresh_token
-            else None,
-            token_expires_at=self.token_expires_at,
             user_id=self.user_id,
             space_id=self.space_id,
             process_id=self.process_id,
@@ -214,13 +198,6 @@ class NotionIntegrationConnectedRecord(BaseModel):
     def create_from(cls, event: NotionIntegrationConnected) -> Self:
         return cls(
             occurred_at=event.occurred_at,
-            access_token=_encrypt_token(event.access_token)
-            if event.access_token
-            else None,
-            refresh_token=_encrypt_token(event.refresh_token)
-            if event.refresh_token
-            else None,
-            token_expires_at=event.token_expires_at,
             user_id=event.user_id,
             space_id=event.space_id,
             process_id=event.process_id,
@@ -242,9 +219,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
         "notion_integration_token_rotated"
     )
     occurred_at: datetime
-    new_access_token: str | None = None
-    new_refresh_token: str | None = None
-    token_expires_at: datetime | None = None
     user_id: str
     space_id: str
     process_id: str
@@ -256,9 +230,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     mcp_token_expires_at: datetime | None = None
 
     def safe_copy(self) -> Self:
-        obfuscated_refresh = (
-            obfuscate(self.new_refresh_token) if self.new_refresh_token else None
-        )
         obfuscated_mcp_access = (
             obfuscate(self.new_mcp_access_token) if self.new_mcp_access_token else None
         )
@@ -267,12 +238,8 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             if self.new_mcp_refresh_token
             else None
         )
-        return self.model_copy(
+        return self.model_copy(  # type: ignore[call-arg]
             update={
-                "new_access_token": (
-                    obfuscate(self.new_access_token) if self.new_access_token else None
-                ),
-                "new_refresh_token": obfuscated_refresh,
                 "new_mcp_access_token": obfuscated_mcp_access,
                 "new_mcp_refresh_token": obfuscated_mcp_refresh,
             }
@@ -281,13 +248,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     def to_domain_event(self) -> NotionIntegrationTokenRotated:
         return NotionIntegrationTokenRotated(
             occurred_at=self.occurred_at,
-            new_access_token=_decrypt_token(self.new_access_token)
-            if self.new_access_token
-            else None,
-            new_refresh_token=_decrypt_token(self.new_refresh_token)
-            if self.new_refresh_token
-            else None,
-            token_expires_at=self.token_expires_at,
             user_id=self.user_id,
             space_id=self.space_id,
             process_id=self.process_id,
@@ -307,13 +267,6 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     def create_from(cls, event: NotionIntegrationTokenRotated) -> Self:
         return cls(
             occurred_at=event.occurred_at,
-            new_access_token=_encrypt_token(event.new_access_token)
-            if event.new_access_token
-            else None,
-            new_refresh_token=_encrypt_token(event.new_refresh_token)
-            if event.new_refresh_token
-            else None,
-            token_expires_at=event.token_expires_at,
             user_id=event.user_id,
             space_id=event.space_id,
             process_id=event.process_id,

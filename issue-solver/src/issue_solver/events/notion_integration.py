@@ -3,6 +3,7 @@ from datetime import datetime
 
 from issue_solver.events.domain import (
     NotionIntegrationConnected,
+    NotionIntegrationFailed,
     NotionIntegrationTokenRotated,
     most_recent_event,
 )
@@ -11,15 +12,12 @@ from issue_solver.events.event_store import EventStore
 
 @dataclass(kw_only=True)
 class NotionCredentials:
-    access_token: str | None
-    refresh_token: str | None
-    token_expires_at: datetime | None
-    mcp_access_token: str | None = None
-    mcp_refresh_token: str | None = None
-    mcp_token_expires_at: datetime | None = None
-    workspace_id: str | None = None
-    workspace_name: str | None = None
-    bot_id: str | None = None
+    mcp_access_token: str | None
+    mcp_refresh_token: str | None
+    mcp_token_expires_at: datetime | None
+    workspace_id: str | None
+    workspace_name: str | None
+    bot_id: str | None
     process_id: str
 
 
@@ -46,52 +44,55 @@ async def get_notion_credentials(
 
     events = await event_store.get(notion_connected.process_id)
     latest_rotation = most_recent_event(events, NotionIntegrationTokenRotated)
+    latest_failure = most_recent_event(events, NotionIntegrationFailed)
 
-    use_rotation = (
-        latest_rotation is not None
-        and latest_rotation.occurred_at >= notion_connected.occurred_at
+    credentials = _latest_mcp_credentials(
+        base_event=notion_connected,
+        rotation=latest_rotation,
+        failure=latest_failure,
     )
+    return credentials
 
-    if use_rotation and latest_rotation:
-        access_token = latest_rotation.new_access_token
-        refresh_token = latest_rotation.new_refresh_token
-        token_expires_at = latest_rotation.token_expires_at
-        mcp_access_token = latest_rotation.new_mcp_access_token
-        mcp_refresh_token = latest_rotation.new_mcp_refresh_token
-        mcp_token_expires_at = latest_rotation.mcp_token_expires_at
-        workspace_id = latest_rotation.workspace_id or notion_connected.workspace_id
-        workspace_name = (
-            latest_rotation.workspace_name or notion_connected.workspace_name
-        )
-        bot_id = latest_rotation.bot_id or notion_connected.bot_id
-    else:
-        access_token = notion_connected.access_token
-        refresh_token = notion_connected.refresh_token
-        token_expires_at = notion_connected.token_expires_at
-        mcp_access_token = notion_connected.mcp_access_token
-        mcp_refresh_token = notion_connected.mcp_refresh_token
-        mcp_token_expires_at = notion_connected.mcp_token_expires_at
-        workspace_id = notion_connected.workspace_id
-        workspace_name = notion_connected.workspace_name
-        bot_id = notion_connected.bot_id
 
-    if not access_token and not mcp_refresh_token:
+def _latest_mcp_credentials(
+    *,
+    base_event: NotionIntegrationConnected,
+    rotation: NotionIntegrationTokenRotated | None,
+    failure: NotionIntegrationFailed | None,
+) -> NotionCredentials | None:
+    current_time = base_event.occurred_at
+    access_token = base_event.mcp_access_token
+    refresh_token = base_event.mcp_refresh_token
+    expires_at = base_event.mcp_token_expires_at
+    workspace_id = base_event.workspace_id
+    workspace_name = base_event.workspace_name
+    bot_id = base_event.bot_id
+
+    if rotation and rotation.occurred_at >= current_time:
+        current_time = rotation.occurred_at
+        access_token = rotation.new_mcp_access_token
+        refresh_token = rotation.new_mcp_refresh_token
+        expires_at = rotation.mcp_token_expires_at
+        workspace_id = rotation.workspace_id or workspace_id
+        workspace_name = rotation.workspace_name or workspace_name
+        bot_id = rotation.bot_id or bot_id
+
+    if failure and failure.occurred_at >= current_time:
         return None
 
-    if not workspace_id and bot_id:
-        workspace_id = bot_id
+    if not refresh_token:
+        return None
+
+    resolved_workspace_id = workspace_id or bot_id
 
     return NotionCredentials(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_expires_at=token_expires_at,
-        mcp_access_token=mcp_access_token,
-        mcp_refresh_token=mcp_refresh_token,
-        mcp_token_expires_at=mcp_token_expires_at,
-        workspace_id=workspace_id,
+        mcp_access_token=access_token,
+        mcp_refresh_token=refresh_token,
+        mcp_token_expires_at=expires_at,
+        workspace_id=resolved_workspace_id,
         workspace_name=workspace_name,
         bot_id=bot_id,
-        process_id=notion_connected.process_id,
+        process_id=base_event.process_id,
     )
 
 

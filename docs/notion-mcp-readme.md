@@ -107,13 +107,16 @@ Frontend (Next.js) still requires `CUDU_ENDPOINT` so the MCP client knows where 
 | `401 Missing Notion MCP tokens` | User never completed the MCP consent dialog | Re-run the connect flow |
 | `invalid_grant` in logs | Stored refresh token revoked in Notion | User must reconnect |
 | Chat tools missing | Frontend MCP client failed to initialise | Check `CUDU_ENDPOINT` and browser console |
-| Proxy returns `500` | Stale MCP access token and refresh failed | Clear credentials (`clear_notion_mcp_credentials`) and reconnect |
+| Proxy returns `500` | Stale MCP access token and refresh failed | Retry after reconnecting Notion MCP from the integrations page |
 
 The integration is now fully MCP-centric: there are no classic OAuth tokens or endpoints to maintain.
 
 ## Curious Notes
 
 - The OAuth router sends Notion a `Notion-Version` header of `2022-06-28`, while the MCP proxy upgrades to `2025-09-03`. Confirm with the Notion MCP changelog that both values remain supported, or consider aligning them to avoid subtle API mismatches.
+- `StreamableHTTPClientTransport` keeps the proxy on `POST`; if a client retries with `GET /mcp/notion/proxy` (observed during long-running MCP calls) FastAPI returns `405 Method Not Allowed`. The log is harmless but worth watching if you swap transports.
+- `ensure_fresh_notion_credentials` refreshes MCP tokens ~60 seconds before expiry, writes the new access/refresh pair to the event stream, and returns the updated credentials so subsequent calls reuse them.
+- When Notion reports `invalid_grant`, the backend appends a `NotionIntegrationFailed` event and surfaces a reconnect prompt instead of mutating existing rotation events.
 
 ## External References
 

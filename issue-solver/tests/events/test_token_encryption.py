@@ -36,15 +36,15 @@ def sample_event():
 def sample_notion_connected_event():
     return NotionIntegrationConnected(
         occurred_at=datetime(2024, 5, 1, 9, 30, 0),
-        access_token="notion-secret-token",
-        refresh_token="notion-refresh-token",
-        token_expires_at=datetime(2024, 5, 2, 9, 30, 0),
         user_id="notion-user",
         space_id="notion-space",
         process_id="notion-process",
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
+        mcp_access_token="mcp-secret-token",
+        mcp_refresh_token="mcp-refresh-token",
+        mcp_token_expires_at=datetime(2024, 5, 2, 9, 30, 0),
     )
 
 
@@ -52,15 +52,15 @@ def sample_notion_connected_event():
 def sample_notion_rotated_event():
     return NotionIntegrationTokenRotated(
         occurred_at=datetime(2024, 5, 2, 8, 0, 0),
-        new_access_token="notion-new-token",
-        new_refresh_token="notion-new-refresh",
-        token_expires_at=datetime(2024, 5, 3, 8, 0, 0),
         user_id="notion-user",
         space_id="notion-space",
         process_id="notion-process",
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
+        new_mcp_access_token="mcp-rotated-token",
+        new_mcp_refresh_token="mcp-rotated-refresh",
+        mcp_token_expires_at=datetime(2024, 5, 3, 8, 0, 0),
     )
 
 
@@ -284,22 +284,29 @@ def test_notion_integration_connected_record_encryption(
         record = NotionIntegrationConnectedRecord.create_from(
             sample_notion_connected_event
         )
+        assert record.mcp_access_token != sample_notion_connected_event.mcp_access_token
+        assert (
+            record.mcp_refresh_token != sample_notion_connected_event.mcp_refresh_token
+        )
 
-    assert record.access_token != sample_notion_connected_event.access_token
-    assert record.refresh_token != sample_notion_connected_event.refresh_token
+        restored = record.to_domain_event()
+        assert (
+            restored.mcp_access_token == sample_notion_connected_event.mcp_access_token
+        )
+        assert (
+            restored.mcp_refresh_token
+            == sample_notion_connected_event.mcp_refresh_token
+        )
 
-    restored = record.to_domain_event()
-    assert restored.access_token == sample_notion_connected_event.access_token
-    assert restored.refresh_token == sample_notion_connected_event.refresh_token
     assert restored.workspace_id == sample_notion_connected_event.workspace_id
     assert restored.workspace_name == sample_notion_connected_event.workspace_name
 
     safe = record.safe_copy()
-    assert safe.access_token.endswith(record.access_token[-4:])
-    assert safe.access_token.count("*") >= len(record.access_token) - 4
-    assert safe.refresh_token
-    assert safe.refresh_token.endswith(record.refresh_token[-4:])
-    assert safe.refresh_token.count("*") >= len(record.refresh_token) - 4
+    assert safe.mcp_access_token.endswith(record.mcp_access_token[-4:])
+    assert "*" in safe.mcp_access_token
+    assert safe.mcp_refresh_token
+    assert safe.mcp_refresh_token.endswith(record.mcp_refresh_token[-4:])
+    assert "*" in safe.mcp_refresh_token
 
 
 def test_notion_integration_token_rotated_record_encryption(
@@ -309,22 +316,35 @@ def test_notion_integration_token_rotated_record_encryption(
         record = NotionIntegrationTokenRotatedRecord.create_from(
             sample_notion_rotated_event
         )
-
-        assert record.new_access_token != sample_notion_rotated_event.new_access_token
-        assert record.new_refresh_token != sample_notion_rotated_event.new_refresh_token
+        assert (
+            record.new_mcp_access_token
+            != sample_notion_rotated_event.new_mcp_access_token
+        )
+        assert (
+            record.new_mcp_refresh_token
+            != sample_notion_rotated_event.new_mcp_refresh_token
+        )
 
         restored = record.to_domain_event()
-        assert restored.new_access_token == sample_notion_rotated_event.new_access_token
         assert (
-            restored.new_refresh_token == sample_notion_rotated_event.new_refresh_token
+            restored.new_mcp_access_token
+            == sample_notion_rotated_event.new_mcp_access_token
+        )
+        assert (
+            restored.new_mcp_refresh_token
+            == sample_notion_rotated_event.new_mcp_refresh_token
         )
 
         serialized = serialize(sample_notion_rotated_event)
         assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
 
         safe_record = serialized.safe_copy()
-        assert safe_record.new_access_token.endswith(serialized.new_access_token[-4:])
-        assert "*" in safe_record.new_access_token
-        assert safe_record.new_refresh_token
-        assert safe_record.new_refresh_token.endswith(serialized.new_refresh_token[-4:])
-        assert "*" in safe_record.new_refresh_token
+        assert safe_record.new_mcp_access_token.endswith(
+            serialized.new_mcp_access_token[-4:]
+        )
+        assert "*" in safe_record.new_mcp_access_token
+        assert safe_record.new_mcp_refresh_token
+        assert safe_record.new_mcp_refresh_token.endswith(
+            serialized.new_mcp_refresh_token[-4:]
+        )
+        assert "*" in safe_record.new_mcp_refresh_token

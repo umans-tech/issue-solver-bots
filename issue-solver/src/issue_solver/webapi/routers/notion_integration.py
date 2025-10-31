@@ -6,7 +6,7 @@ import os
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Annotated, Any
 from urllib.parse import urlencode, urljoin, urlparse
@@ -19,6 +19,7 @@ from redis import Redis
 from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     NotionIntegrationConnected,
+    NotionIntegrationFailed,
     NotionIntegrationTokenRotated,
 )
 from issue_solver.events.event_store import EventStore
@@ -40,6 +41,7 @@ NOTION_MCP_RESOURCE = "https://mcp.notion.com"
 NOTION_VERSION = "2022-06-28"
 DEFAULT_RETURN_PATH = "/integrations/notion/callback"
 MCP_OAUTH_STATE_CACHE_PREFIX = "notion:mcp:oauth:state:"
+MCP_RECONNECT_MESSAGE = "Notion MCP credentials have expired. Reconnect the Notion MCP integration to continue."
 
 router = APIRouter(prefix="/integrations/notion", tags=["notion-integrations"])
 
@@ -99,102 +101,37 @@ def _seconds_left(timestamp: datetime | None, clock: Clock) -> int | None:
     return max(0, remaining)
 
 
-async def _upsert_notion_integration(
+def _build_integration_view(
     *,
     space_id: str,
-    user_id: str,
-    event_store: EventStore,
-    clock: Clock,
-    logger: Any,
-    mcp_access_token: str | None,
-    mcp_refresh_token: str | None,
-    mcp_expires_in: int | None,
-    workspace_id: str | None = None,
-    workspace_name: str | None = None,
-    bot_id: str | None = None,
-    access_token: str | None = None,
-    refresh_token: str | None = None,
-    token_expires_in: int | None = None,
+    base_event: NotionIntegrationConnected,
+    credentials: NotionCredentials | None,
 ) -> NotionIntegrationView:
-    integration = await get_notion_integration_event(event_store, space_id)
-    now = clock.now()
-
-    token_expires_at = (
-        now + timedelta(seconds=token_expires_in) if token_expires_in else None
+    workspace_id = (
+        credentials.workspace_id
+        if credentials and credentials.workspace_id
+        else base_event.workspace_id
     )
-    mcp_token_expires_at = (
-        now + timedelta(seconds=mcp_expires_in) if mcp_expires_in else None
+    workspace_name = (
+        credentials.workspace_name
+        if credentials and credentials.workspace_name
+        else base_event.workspace_name
     )
-
-    resolved_workspace_id = workspace_id
-    resolved_workspace_name = workspace_name
-    resolved_bot_id = bot_id
-
-    if integration:
-        resolved_workspace_id = resolved_workspace_id or integration.workspace_id
-        resolved_workspace_name = resolved_workspace_name or integration.workspace_name
-        resolved_bot_id = resolved_bot_id or integration.bot_id
-
-        rotation = NotionIntegrationTokenRotated(
-            occurred_at=now,
-            new_access_token=access_token,
-            new_refresh_token=refresh_token,
-            token_expires_at=token_expires_at,
-            user_id=user_id,
-            space_id=space_id,
-            process_id=integration.process_id,
-            workspace_id=resolved_workspace_id,
-            workspace_name=resolved_workspace_name,
-            bot_id=resolved_bot_id,
-            new_mcp_access_token=mcp_access_token,
-            new_mcp_refresh_token=mcp_refresh_token,
-            mcp_token_expires_at=mcp_token_expires_at,
-        )
-        await event_store.append(integration.process_id, rotation)
-        process_id = integration.process_id
-        connected_at = integration.occurred_at
-    else:
-        process_id = str(uuid.uuid4())
-        connected = NotionIntegrationConnected(
-            occurred_at=now,
-            user_id=user_id,
-            space_id=space_id,
-            process_id=process_id,
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_expires_at=token_expires_at,
-            workspace_id=resolved_workspace_id,
-            workspace_name=resolved_workspace_name,
-            bot_id=resolved_bot_id,
-            mcp_access_token=mcp_access_token,
-            mcp_refresh_token=mcp_refresh_token,
-            mcp_token_expires_at=mcp_token_expires_at,
-        )
-        await event_store.append(process_id, connected)
-        connected_at = now
-        logger.info(
-            "Notion MCP integration created for space %s (process=%s)",
-            space_id,
-            process_id,
-        )
-
-    credentials = await get_notion_credentials(event_store, space_id)
+    bot_id = (
+        credentials.bot_id if credentials and credentials.bot_id else base_event.bot_id
+    )
+    token_expires_at = None
+    has_valid_token = False
     has_mcp_token = bool(credentials and credentials.mcp_refresh_token)
-    has_valid_token = bool(credentials and credentials.access_token)
-
-    if credentials:
-        resolved_workspace_id = credentials.workspace_id or resolved_workspace_id
-        resolved_workspace_name = credentials.workspace_name or resolved_workspace_name
-        resolved_bot_id = credentials.bot_id or resolved_bot_id
-        token_expires_at = credentials.token_expires_at or token_expires_at
+    process_id = credentials.process_id if credentials else base_event.process_id
 
     return NotionIntegrationView(
         space_id=space_id,
-        process_id=credentials.process_id if credentials else process_id,
-        connected_at=connected_at,
-        workspace_id=resolved_workspace_id,
-        workspace_name=resolved_workspace_name,
-        bot_id=resolved_bot_id,
+        process_id=process_id,
+        connected_at=base_event.occurred_at,
+        workspace_id=workspace_id,
+        workspace_name=workspace_name,
+        bot_id=bot_id,
         token_expires_at=token_expires_at,
         has_valid_token=has_valid_token,
         has_mcp_token=has_mcp_token,
@@ -206,33 +143,18 @@ async def get_notion_integration(
     space_id: str,
     event_store: Annotated[EventStore, Depends(get_event_store)],
 ) -> NotionIntegrationView:
-    integration = await get_notion_integration_event(event_store, space_id)
-    if not integration:
+    base_event = await get_notion_integration_event(event_store, space_id)
+    if not base_event:
         raise HTTPException(
             status_code=404,
             detail=f"No Notion integration configured for space {space_id}",
         )
 
     credentials = await get_notion_credentials(event_store, space_id)
-    has_valid_token = bool(credentials and credentials.access_token)
-    has_mcp_token = bool(credentials and credentials.mcp_refresh_token)
-    workspace_id = credentials.workspace_id if credentials else integration.workspace_id
-    workspace_name = (
-        credentials.workspace_name if credentials else integration.workspace_name
-    )
-    bot_id = credentials.bot_id if credentials else integration.bot_id
-    token_expires_at = credentials.token_expires_at if credentials else None
-
-    return NotionIntegrationView(
+    return _build_integration_view(
         space_id=space_id,
-        process_id=integration.process_id,
-        connected_at=integration.occurred_at,
-        workspace_id=workspace_id,
-        workspace_name=workspace_name,
-        bot_id=bot_id,
-        token_expires_at=token_expires_at,
-        has_valid_token=has_valid_token,
-        has_mcp_token=has_mcp_token,
+        base_event=base_event,
+        credentials=credentials,
     )
 
 
@@ -300,11 +222,7 @@ async def handle_notion_mcp_oauth_callback(
     state: str | None = None,
     error: str | None = None,
 ):
-    try:
-        settings = _get_mcp_settings()
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-
+    settings = _load_mcp_settings()
     state_payload = _read_oauth_state(
         redis_client=redis_client,
         state_cache_prefix=MCP_OAUTH_STATE_CACHE_PREFIX,
@@ -317,86 +235,44 @@ async def handle_notion_mcp_oauth_callback(
     return_path = state_payload.get("return_path") or DEFAULT_RETURN_PATH
 
     if not space_id:
-        redirect_url = _build_return_url(
-            base_url=settings.return_base_url,
-            target=return_path,
-            params={"status": "error", "error": "missing_space"},
+        return _redirect_error(
+            settings=settings, return_path=return_path, error_code="missing_space"
         )
-        return RedirectResponse(url=redirect_url, status_code=303)
-
     if error:
-        redirect_url = _build_return_url(
-            base_url=settings.return_base_url,
-            target=return_path,
-            params={"status": "error", "error": error},
+        return _redirect_error(
+            settings=settings, return_path=return_path, error_code=error
         )
-        return RedirectResponse(url=redirect_url, status_code=303)
-
     if not code:
-        redirect_url = _build_return_url(
-            base_url=settings.return_base_url,
-            target=return_path,
-            params={"status": "error", "error": "missing_code"},
+        return _redirect_error(
+            settings=settings, return_path=return_path, error_code="missing_code"
         )
-        return RedirectResponse(url=redirect_url, status_code=303)
-
-    payload = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": settings.redirect_uri,
-        "resource": NOTION_MCP_RESOURCE,
-    }
-    if settings.scope:
-        payload["scope"] = settings.scope
 
     try:
-        token_response = await _request_oauth_token(
-            payload=payload,
+        token_response = await _exchange_authorization_code(
+            settings=settings,
+            code=code,
             logger=logger,
-            endpoint=settings.token_endpoint,
-            client_id=settings.client_id,
-            client_secret=settings.client_secret,
-            auth_method=settings.token_auth_method,
-            form_encode=True,
+        )
+        base_event = await _persist_mcp_tokens(
+            event_store=event_store,
+            clock=clock,
+            logger=logger,
+            space_id=space_id,
+            user_id=user_id,
+            token_response=token_response,
         )
     except HTTPException as exc:
-        redirect_url = _build_return_url(
-            base_url=settings.return_base_url,
-            target=return_path,
-            params={"status": "error", "error": str(exc.detail)},
+        return _redirect_error(
+            settings=settings,
+            return_path=return_path,
+            error_code=_error_code_from_exc(exc.detail),
         )
-        return RedirectResponse(url=redirect_url, status_code=303)
 
-    mcp_access_token = token_response.get("access_token")
-    mcp_refresh_token = token_response.get("refresh_token")
-    if not mcp_access_token or not mcp_refresh_token:
-        logger.error(
-            "Notion MCP token exchange response missing tokens: %s",
-            token_response,
-        )
-        redirect_url = _build_return_url(
-            base_url=settings.return_base_url,
-            target=return_path,
-            params={"status": "error", "error": "invalid_mcp_token_response"},
-        )
-        return RedirectResponse(url=redirect_url, status_code=303)
-
-    workspace_id = token_response.get("workspace_id")
-    workspace_name = token_response.get("workspace_name")
-    bot_id = token_response.get("bot_id")
-
-    view = await _upsert_notion_integration(
+    credentials = await get_notion_credentials(event_store, space_id)
+    view = _build_integration_view(
         space_id=space_id,
-        user_id=user_id,
-        event_store=event_store,
-        clock=clock,
-        logger=logger,
-        mcp_access_token=mcp_access_token,
-        mcp_refresh_token=mcp_refresh_token,
-        mcp_expires_in=token_response.get("expires_in"),
-        workspace_id=workspace_id,
-        workspace_name=workspace_name,
-        bot_id=bot_id,
+        base_event=base_event,
+        credentials=credentials,
     )
 
     redirect_url = _build_return_url(
@@ -413,37 +289,6 @@ async def handle_notion_mcp_oauth_callback(
     return RedirectResponse(url=redirect_url, status_code=303)
 
 
-async def clear_notion_mcp_credentials(
-    *,
-    event_store: EventStore,
-    credentials: NotionCredentials,
-    space_id: str,
-    user_id: str,
-    clock: Clock,
-    logger: Any,
-) -> None:
-    expires_in: int | None = None
-    if credentials.token_expires_at:
-        expires_in = _seconds_left(credentials.token_expires_at, clock)
-    await _upsert_notion_integration(
-        space_id=space_id,
-        user_id=user_id,
-        event_store=event_store,
-        clock=clock,
-        logger=logger,
-        mcp_access_token=None,
-        mcp_refresh_token=None,
-        mcp_expires_in=None,
-        access_token=credentials.access_token,
-        refresh_token=credentials.refresh_token,
-        token_expires_in=expires_in,
-        workspace_id=credentials.workspace_id,
-        workspace_name=credentials.workspace_name,
-        bot_id=credentials.bot_id,
-    )
-    logger.info("Cleared Notion MCP credentials for space %s", space_id)
-
-
 async def ensure_fresh_notion_credentials(
     *,
     event_store: EventStore,
@@ -453,33 +298,61 @@ async def ensure_fresh_notion_credentials(
     clock: Clock,
     logger: Any,
 ) -> NotionCredentials:
-    # Without classic OAuth we simply return the stored credentials.
-    return credentials
+    if not _has_refresh_token(credentials):
+        return credentials
 
+    if not _requires_refresh(credentials, clock):
+        return credentials
 
-async def get_mcp_access_token(
-    *,
-    credentials: NotionCredentials,
-    logger: Any,
-) -> str:
-    if not credentials.mcp_refresh_token:
-        logger.warning(
-            "Space %s is missing Notion MCP OAuth credentials.",
-            credentials.process_id,
+    settings = _load_mcp_settings()
+    logger.info(
+        "Refreshing Notion MCP access token for space %s (user=%s)", space_id, user_id
+    )
+
+    try:
+        token_response = await _refresh_mcp_token(
+            settings=settings,
+            credentials=credentials,
+            logger=logger,
         )
-        raise HTTPException(
-            status_code=401,
-            detail="Notion MCP is not connected for this space.",
-        )
+    except HTTPException as exc:
+        if _is_invalid_grant(exc):
+            await _record_refresh_failure(
+                event_store=event_store,
+                clock=clock,
+                user_id=user_id,
+                space_id=space_id,
+                credentials=credentials,
+                detail=str(exc.detail),
+            )
+            raise HTTPException(status_code=401, detail=MCP_RECONNECT_MESSAGE) from exc
+        raise
 
-    if (
-        credentials.mcp_access_token
-        and credentials.mcp_token_expires_at
-        and credentials.mcp_token_expires_at > datetime.now(UTC)
-    ):
-        return credentials.mcp_access_token
+    return await _persist_refreshed_credentials(
+        event_store=event_store,
+        clock=clock,
+        user_id=user_id,
+        space_id=space_id,
+        credentials=credentials,
+        token_response=token_response,
+        logger=logger,
+    )
 
-    settings = _get_mcp_settings()
+
+def _has_refresh_token(credentials: NotionCredentials) -> bool:
+    return bool(credentials.mcp_refresh_token)
+
+
+def _requires_refresh(credentials: NotionCredentials, clock: Clock) -> bool:
+    if not credentials.mcp_access_token:
+        return True
+    remaining = _seconds_left(credentials.mcp_token_expires_at, clock)
+    return remaining is None or remaining <= 60
+
+
+async def _refresh_mcp_token(
+    *, settings: NotionMcpSettings, credentials: NotionCredentials, logger: Any
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "grant_type": "refresh_token",
         "refresh_token": credentials.mcp_refresh_token,
@@ -488,12 +361,7 @@ async def get_mcp_access_token(
     if settings.scope:
         payload["scope"] = settings.scope
 
-    logger.debug(
-        "Requesting fresh Notion MCP access token via %s",
-        settings.token_endpoint,
-    )
-
-    token_response = await _request_oauth_token(
+    return await _request_oauth_token(
         payload=payload,
         logger=logger,
         endpoint=settings.token_endpoint,
@@ -503,17 +371,195 @@ async def get_mcp_access_token(
         form_encode=True,
     )
 
+
+def _is_invalid_grant(exc: HTTPException) -> bool:
+    detail = str(exc.detail)
+    return exc.status_code in {400, 401} and "invalid_grant" in detail.lower()
+
+
+async def _record_refresh_failure(
+    *,
+    event_store: EventStore,
+    clock: Clock,
+    user_id: str,
+    space_id: str,
+    credentials: NotionCredentials,
+    detail: str,
+) -> None:
+    failure = NotionIntegrationFailed(
+        occurred_at=clock.now(),
+        error_type="invalid_grant",
+        error_message=detail,
+        user_id=user_id,
+        space_id=space_id,
+        process_id=credentials.process_id,
+    )
+    await event_store.append(credentials.process_id, failure)
+
+
+async def _persist_refreshed_credentials(
+    *,
+    event_store: EventStore,
+    clock: Clock,
+    user_id: str,
+    space_id: str,
+    credentials: NotionCredentials,
+    token_response: dict[str, Any],
+    logger: Any,
+) -> NotionCredentials:
     access_token = token_response.get("access_token")
     if not isinstance(access_token, str) or not access_token.strip():
         logger.error(
-            "Notion MCP token exchange response missing access_token: %s",
-            token_response,
+            "Notion MCP refresh response missing access_token: %s", token_response
         )
         raise HTTPException(
             status_code=502,
-            detail="Notion MCP token exchange returned an invalid response.",
+            detail="Notion MCP token refresh returned an invalid response.",
         )
-    return access_token
+
+    new_refresh_token = (
+        token_response.get("refresh_token") or credentials.mcp_refresh_token
+    )
+    workspace_id = token_response.get("workspace_id") or credentials.workspace_id
+    workspace_name = token_response.get("workspace_name") or credentials.workspace_name
+    bot_id = token_response.get("bot_id") or credentials.bot_id
+    expires_at = _expires_at(clock, token_response.get("expires_in"))
+
+    rotation = NotionIntegrationTokenRotated(
+        occurred_at=clock.now(),
+        user_id=user_id,
+        space_id=space_id,
+        process_id=credentials.process_id,
+        workspace_id=workspace_id,
+        workspace_name=workspace_name,
+        bot_id=bot_id,
+        new_mcp_access_token=access_token,
+        new_mcp_refresh_token=new_refresh_token,
+        mcp_token_expires_at=expires_at,
+    )
+    await event_store.append(credentials.process_id, rotation)
+
+    logger.info("Refreshed Notion MCP access token for space %s", space_id)
+
+    return NotionCredentials(
+        mcp_access_token=access_token,
+        mcp_refresh_token=new_refresh_token,
+        mcp_token_expires_at=expires_at,
+        workspace_id=workspace_id,
+        workspace_name=workspace_name,
+        bot_id=bot_id,
+        process_id=credentials.process_id,
+    )
+
+
+def _load_mcp_settings() -> NotionMcpSettings:
+    try:
+        return _get_mcp_settings()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+def _redirect_error(
+    *, settings: NotionMcpSettings, return_path: str, error_code: str
+) -> RedirectResponse:
+    redirect_url = _build_return_url(
+        base_url=settings.return_base_url,
+        target=return_path,
+        params={"status": "error", "error": error_code},
+    )
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
+def _error_code_from_exc(detail: Any) -> str:
+    if isinstance(detail, dict):
+        return detail.get("error") or detail.get("error_description") or "unknown_error"
+    return str(detail)
+
+
+async def _exchange_authorization_code(
+    *, settings: NotionMcpSettings, code: str, logger: Any
+) -> dict[str, Any]:
+    payload = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": settings.redirect_uri,
+        "resource": NOTION_MCP_RESOURCE,
+    }
+    if settings.scope:
+        payload["scope"] = settings.scope
+
+    return await _request_oauth_token(
+        payload=payload,
+        logger=logger,
+        endpoint=settings.token_endpoint,
+        client_id=settings.client_id,
+        client_secret=settings.client_secret,
+        auth_method=settings.token_auth_method,
+        form_encode=True,
+    )
+
+
+async def _persist_mcp_tokens(
+    *,
+    event_store: EventStore,
+    clock: Clock,
+    logger: Any,
+    space_id: str,
+    user_id: str,
+    token_response: dict[str, Any],
+) -> NotionIntegrationConnected:
+    access_token = token_response.get("access_token")
+    refresh_token = token_response.get("refresh_token")
+    if not access_token or not refresh_token:
+        raise HTTPException(status_code=400, detail="invalid_mcp_token_response")
+
+    workspace_id = token_response.get("workspace_id")
+    workspace_name = token_response.get("workspace_name")
+    bot_id = token_response.get("bot_id")
+    expires_at = _expires_at(clock, token_response.get("expires_in"))
+
+    existing = await get_notion_integration_event(event_store, space_id)
+    if existing:
+        rotation = NotionIntegrationTokenRotated(
+            occurred_at=clock.now(),
+            user_id=user_id,
+            space_id=space_id,
+            process_id=existing.process_id,
+            workspace_id=workspace_id or existing.workspace_id,
+            workspace_name=workspace_name or existing.workspace_name,
+            bot_id=bot_id or existing.bot_id,
+            new_mcp_access_token=access_token,
+            new_mcp_refresh_token=refresh_token,
+            mcp_token_expires_at=expires_at,
+        )
+        await event_store.append(existing.process_id, rotation)
+        logger.info("Notion MCP tokens rotated for space %s", space_id)
+        return existing
+
+    process_id = str(uuid.uuid4())
+    connected = NotionIntegrationConnected(
+        occurred_at=clock.now(),
+        user_id=user_id,
+        space_id=space_id,
+        process_id=process_id,
+        workspace_id=workspace_id,
+        workspace_name=workspace_name,
+        bot_id=bot_id,
+        mcp_access_token=access_token,
+        mcp_refresh_token=refresh_token,
+        mcp_token_expires_at=expires_at,
+    )
+    await event_store.append(process_id, connected)
+    logger.info(
+        "Notion MCP integration created for space %s (process=%s)", space_id, process_id
+    )
+    return connected
+
+
+def _expires_at(clock: Clock, expires_in: Any) -> datetime | None:
+    if isinstance(expires_in, (int, float)) and expires_in > 0:
+        return clock.now() + timedelta(seconds=int(expires_in))
+    return None
 
 
 def _initiate_oauth_flow(

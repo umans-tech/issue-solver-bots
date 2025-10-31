@@ -12,14 +12,12 @@ from issue_solver.events.event_store import EventStore
 from issue_solver.events.notion_integration import get_notion_credentials
 from issue_solver.webapi.dependencies import get_clock, get_event_store, get_logger
 from issue_solver.webapi.routers.notion_integration import (
-    clear_notion_mcp_credentials,
+    MCP_RECONNECT_MESSAGE,
     ensure_fresh_notion_credentials,
-    get_mcp_access_token,
 )
 
 NOTION_MCP_REMOTE_ENDPOINT = "https://mcp.notion.com/mcp"
 NOTION_VERSION = "2025-09-03"
-MCP_RECONNECT_MESSAGE = "Notion MCP credentials have expired. Reconnect the Notion MCP integration to continue."
 
 router = APIRouter()
 
@@ -71,30 +69,12 @@ async def proxy_notion_mcp(
             effective_user_id,
         )
 
-        try:
-            mcp_access_token = await get_mcp_access_token(
-                credentials=notion_credentials,
-                logger=logger,
+        mcp_access_token = notion_credentials.mcp_access_token
+        if not mcp_access_token:
+            raise HTTPException(
+                status_code=401,
+                detail=MCP_RECONNECT_MESSAGE,
             )
-        except HTTPException as exc:
-            if _detail_indicates_invalid_grant(exc.detail):
-                logger.warning(
-                    "Notion MCP token exchange returned invalid_grant for space %s; clearing tokens.",
-                    space_id,
-                )
-                await clear_notion_mcp_credentials(
-                    event_store=event_store,
-                    credentials=notion_credentials,
-                    space_id=space_id,
-                    user_id=effective_user_id,
-                    clock=clock,
-                    logger=logger,
-                )
-                raise HTTPException(
-                    status_code=401,
-                    detail=MCP_RECONNECT_MESSAGE,
-                ) from exc
-            raise
 
         # Avoid forwarding proxy-specific metadata to Notion MCP API.
         notion_payload = dict(payload)

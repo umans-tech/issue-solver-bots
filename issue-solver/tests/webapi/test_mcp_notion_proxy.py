@@ -62,9 +62,6 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
     captured: dict[str, object | None] = {}
 
     credentials = NotionCredentials(
-        access_token="secret",
-        refresh_token="refresh-secret",
-        token_expires_at=datetime.now(UTC) + timedelta(hours=1),
         mcp_access_token=None,
         mcp_refresh_token="mcp-refresh-secret",
         mcp_token_expires_at=None,
@@ -82,7 +79,15 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         return credentials
 
     async def fake_ensure_fresh_credentials(**_kwargs):
-        return credentials
+        return NotionCredentials(
+            mcp_access_token="mcp-secret-token",
+            mcp_refresh_token=credentials.mcp_refresh_token,
+            mcp_token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            workspace_id=credentials.workspace_id,
+            workspace_name=credentials.workspace_name,
+            bot_id=credentials.bot_id,
+            process_id=credentials.process_id,
+        )
 
     async def fake_forward(
         endpoint: str,
@@ -114,15 +119,6 @@ def test_mcp_notion_proxy_forwards_request(api_client: TestClient, monkeypatch):
         fake_ensure_fresh_credentials,
     )
 
-    async def fake_get_mcp_token(*, credentials, logger):
-        assert credentials.access_token == "secret"
-        return "mcp-secret-token"
-
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "get_mcp_access_token",
-        fake_get_mcp_token,
-    )
     monkeypatch.setattr(mcp_notion_proxy, "_forward_to_notion", fake_forward)
 
     response = api_client.post(
@@ -148,9 +144,6 @@ def test_mcp_notion_proxy_handles_invalid_grant_error(
     space_id = "space-mismatch"
 
     credentials = NotionCredentials(
-        access_token="secret",
-        refresh_token="refresh-secret",
-        token_expires_at=datetime.now(UTC) + timedelta(hours=1),
         mcp_access_token=None,
         mcp_refresh_token="mcp-refresh-secret",
         mcp_token_expires_at=None,
@@ -164,22 +157,13 @@ def test_mcp_notion_proxy_handles_invalid_grant_error(
         assert requested_space_id == space_id
         return credentials
 
+    called: dict[str, bool] = {}
+
     async def fake_ensure_fresh_credentials(**_kwargs):
-        return credentials
-
-    async def fake_get_mcp_token(**_kwargs):
+        called["ensure"] = True
         raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "invalid_grant",
-                "error_description": "Client ID mismatch",
-            },
+            status_code=401, detail=mcp_notion_proxy.MCP_RECONNECT_MESSAGE
         )
-
-    cleared: dict[str, bool] = {}
-
-    async def fake_clear_credentials(**_kwargs):
-        cleared["called"] = True
 
     monkeypatch.setattr(
         mcp_notion_proxy, "get_notion_credentials", fake_get_credentials
@@ -189,16 +173,6 @@ def test_mcp_notion_proxy_handles_invalid_grant_error(
         "ensure_fresh_notion_credentials",
         fake_ensure_fresh_credentials,
     )
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "get_mcp_access_token",
-        fake_get_mcp_token,
-    )
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "clear_notion_mcp_credentials",
-        fake_clear_credentials,
-    )
 
     response = api_client.post(
         "/mcp/notion/proxy",
@@ -207,4 +181,4 @@ def test_mcp_notion_proxy_handles_invalid_grant_error(
 
     assert response.status_code == 401
     assert mcp_notion_proxy.MCP_RECONNECT_MESSAGE in response.json()["detail"]
-    assert cleared.get("called") is True
+    assert called.get("ensure") is True

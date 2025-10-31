@@ -164,9 +164,6 @@ def test_notion_mcp_proxy_forwards_request(api_client, monkeypatch):
     captured: dict[str, object | None] = {}
 
     credentials = NotionCredentials(
-        access_token=None,
-        refresh_token=None,
-        token_expires_at=None,
         mcp_access_token=None,
         mcp_refresh_token="mcp-refresh-secret",
         mcp_token_expires_at=None,
@@ -205,21 +202,20 @@ def test_notion_mcp_proxy_forwards_request(api_client, monkeypatch):
     )
 
     async def fake_ensure(**_kwargs):
-        return credentials
+        return NotionCredentials(
+            mcp_access_token="mcp-token",
+            mcp_refresh_token=credentials.mcp_refresh_token,
+            mcp_token_expires_at=datetime.now(UTC) + timedelta(hours=1),
+            workspace_id=credentials.workspace_id,
+            workspace_name=credentials.workspace_name,
+            bot_id=credentials.bot_id,
+            process_id=credentials.process_id,
+        )
 
     monkeypatch.setattr(
         mcp_notion_proxy,
         "ensure_fresh_notion_credentials",
         fake_ensure,
-    )
-
-    async def fake_get_token(*, credentials, logger):
-        return "mcp-token"
-
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "get_mcp_access_token",
-        fake_get_token,
     )
 
     monkeypatch.setattr(mcp_notion_proxy, "_forward_to_notion", fake_forward)
@@ -239,9 +235,6 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
     space_id = "space-mcp-fail"
 
     credentials = NotionCredentials(
-        access_token=None,
-        refresh_token=None,
-        token_expires_at=None,
         mcp_access_token=None,
         mcp_refresh_token="mcp-refresh-secret",
         mcp_token_expires_at=None,
@@ -256,9 +249,6 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
         return credentials
 
     async def fake_ensure(**_kwargs):
-        return credentials
-
-    async def fake_get_token(**_kwargs):
         raise HTTPException(status_code=503, detail="exchange failed")
 
     monkeypatch.setattr(
@@ -268,11 +258,6 @@ def test_notion_mcp_proxy_handles_mcp_exchange_failure(api_client, monkeypatch):
         mcp_notion_proxy,
         "ensure_fresh_notion_credentials",
         fake_ensure,
-    )
-    monkeypatch.setattr(
-        mcp_notion_proxy,
-        "get_mcp_access_token",
-        fake_get_token,
     )
 
     response = api_client.post(
@@ -293,9 +278,6 @@ def test_notion_mcp_proxy_rejects_credentials_without_mcp_token(
     async def fake_get_credentials(event_store, requested_space_id):
         assert requested_space_id == space_id
         return NotionCredentials(
-            access_token=None,
-            refresh_token=None,
-            token_expires_at=datetime.now(UTC) + timedelta(hours=1),
             mcp_access_token=None,
             mcp_refresh_token=None,
             mcp_token_expires_at=None,
@@ -316,4 +298,4 @@ def test_notion_mcp_proxy_rejects_credentials_without_mcp_token(
     )
 
     assert response.status_code == 401
-    assert "Notion MCP is not connected" in response.json()["detail"]
+    assert mcp_notion_proxy.MCP_RECONNECT_MESSAGE in response.json()["detail"]
