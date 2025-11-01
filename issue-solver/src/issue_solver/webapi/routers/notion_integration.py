@@ -358,6 +358,8 @@ async def _refresh_mcp_token(
         "refresh_token": credentials.mcp_refresh_token,
         "resource": NOTION_MCP_RESOURCE,
     }
+    if settings.redirect_uri:
+        payload["redirect_uri"] = settings.redirect_uri
     if settings.scope:
         payload["scope"] = settings.scope
 

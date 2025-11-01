@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug.wrappers import Response
 
 from issue_solver.events.domain import (
     NotionIntegrationConnected,
@@ -30,6 +31,41 @@ DEFAULT_MCP_ENV = {
     "NOTION_MCP_RETURN_BASE_URL": "https://frontend.issue-solver.dev",
     "NOTION_MCP_STATE_TTL_SECONDS": "600",
 }
+
+
+def require_redirect_refresh_handler(expected_redirect_uri: str):
+    def handler(request):
+        form_data = parse_qs(request.get_data(as_text=True))
+        redirect_values = form_data.get("redirect_uri", [])
+        if redirect_values != [expected_redirect_uri]:
+            failure_body = json.dumps(
+                {
+                    "error": "invalid_grant",
+                    "error_description": "Grant not found",
+                }
+            )
+            return Response(
+                response=failure_body,
+                status=400,
+                content_type="application/json",
+            )
+        success_body = json.dumps(
+            {
+                "access_token": "mcp-access-refreshed",
+                "refresh_token": "mcp-refresh-refreshed",
+                "expires_in": 3600,
+                "workspace_id": "workspace-refresh",
+                "workspace_name": "Workspace After Refresh",
+                "bot_id": "bot-refresh",
+            }
+        )
+        return Response(
+            response=success_body,
+            status=200,
+            content_type="application/json",
+        )
+
+    return handler
 
 
 @contextmanager
@@ -337,6 +373,92 @@ def test_notion_mcp_proxy_forwards_request_and_returns_remote_payload(
     assert response.status_code == 200
     assert response.json() == {"jsonrpc": "2.0", "result": {"status": "ok"}}
     assert response.headers["mcp-session-id"] == "session-out"
+
+
+def test_notion_mcp_proxy_refreshes_expired_token_when_redirect_uri_provided(
+    api_client,
+    time_under_control,
+    httpserver: HTTPServer,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Given
+    time_under_control.set_from_iso_format("2025-10-31T13:05:00")
+    space_id = "space-token-refresh"
+    process_id = "process-token-refresh"
+    event_store = api_client.app.state.event_store
+    connected_at = time_under_control.now() - timedelta(hours=1)
+    expired_at = time_under_control.now() - timedelta(minutes=1)
+
+    api_client.portal.call(
+        event_store.append,
+        process_id,
+        NotionIntegrationConnected(
+            occurred_at=connected_at,
+            user_id="user-refresh",
+            space_id=space_id,
+            process_id=process_id,
+            workspace_id="workspace-before-refresh",
+            workspace_name="Workspace Before Refresh",
+            bot_id="bot-before-refresh",
+            mcp_access_token="mcp-expired-token",
+            mcp_refresh_token="mcp-refresh-token",
+            mcp_token_expires_at=expired_at,
+        ),
+    )
+
+    token_endpoint = httpserver.url_for("/oauth/token")
+    remote_endpoint = httpserver.url_for("/mcp")
+
+    with configured_mcp_env(NOTION_MCP_TOKEN_ENDPOINT=token_endpoint):
+        expected_redirect = os.environ["NOTION_MCP_OAUTH_REDIRECT_URI"]
+        httpserver.expect_request(
+            "/oauth/token",
+            method="POST",
+        ).respond_with_handler(require_redirect_refresh_handler(expected_redirect))
+
+        httpserver.expect_request(
+            "/mcp",
+            method="POST",
+            json={"jsonrpc": "2.0", "method": "tools/list", "id": 1},
+            headers={
+                "Authorization": "Bearer mcp-access-refreshed",
+                "mcp-session-id": "session-in",
+            },
+        ).respond_with_json(
+            {"jsonrpc": "2.0", "result": {"status": "refreshed"}},
+            headers={"mcp-session-id": "session-out"},
+        )
+
+        monkeypatch.setattr(
+            mcp_notion_proxy,
+            "NOTION_MCP_REMOTE_ENDPOINT",
+            remote_endpoint,
+        )
+
+        # When
+        response = api_client.post(
+            "/mcp/notion/proxy",
+            json={
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "id": 1,
+                "meta": {"user_id": "user-refresh", "space_id": space_id},
+            },
+            headers={"mcp-session-id": "session-in"},
+        )
+
+    # Then
+    assert response.status_code == 200
+    assert response.json() == {"jsonrpc": "2.0", "result": {"status": "refreshed"}}
+    assert response.headers["mcp-session-id"] == "session-out"
+
+    events = api_client.portal.call(event_store.get, process_id)
+    rotation = next(
+        event for event in events if isinstance(event, NotionIntegrationTokenRotated)
+    )
+    assert rotation.new_mcp_access_token == "mcp-access-refreshed"
+    assert rotation.new_mcp_refresh_token == "mcp-refresh-refreshed"
+    assert rotation.workspace_name == "Workspace After Refresh"
 
 
 def test_notion_mcp_proxy_returns_401_when_refresh_fails_with_invalid_grant(
