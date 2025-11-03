@@ -33,8 +33,8 @@ class BriceDeNice:
             process_id=cls.first_repo_integration_process_id(),
             url="https://github.com/brice/nice-repo.git",
             access_token="ghp_brices_token_123456",
-            user_id="brice-user-001",
-            space_id="brice-space-001",
+            user_id=cls.user_id(),
+            space_id=cls.team_space_id(),
             knowledge_base_id="brice-kb-001",
             occurred_at=datetime.fromisoformat("2025-01-01T12:00:00Z"),
             token_permissions={
@@ -48,12 +48,16 @@ class BriceDeNice:
         )
 
     @classmethod
+    def team_space_id(cls) -> str:
+        return "brice-space-001"
+
+    @classmethod
     def connected_notion_workspace(cls) -> NotionIntegrationConnected:
         return NotionIntegrationConnected(
-            process_id="brice-notion-integration-process-001",
+            process_id=cls.notion_integration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-01T12:05:00Z"),
-            user_id="brice-user-001",
-            space_id="brice-space-001",
+            user_id=cls.user_id(),
+            space_id=cls.team_space_id(),
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
@@ -62,12 +66,20 @@ class BriceDeNice:
         )
 
     @classmethod
+    def user_id(cls) -> str:
+        return "brice-user-001"
+
+    @classmethod
+    def notion_integration_process_id(cls) -> str:
+        return "brice-notion-integration-process-001"
+
+    @classmethod
     def rotated_notion_token(cls) -> NotionIntegrationTokenRotated:
         return NotionIntegrationTokenRotated(
-            process_id="brice-notion-integration-process-001",
+            process_id=BriceDeNice.notion_integration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-03T08:30:00Z"),
-            user_id="brice-user-001",
-            space_id="brice-space-001",
+            user_id=BriceDeNice.user_id(),
+            space_id=BriceDeNice.team_space_id(),
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
@@ -97,7 +109,7 @@ class BriceDeNice:
         return EnvironmentConfigurationProvided(
             process_id=BriceDeNice.first_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:00:00Z"),
-            user_id="brice-user-001",
+            user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
             global_setup="""
             #!/bin/bash
@@ -137,7 +149,7 @@ class BriceDeNice:
         return EnvironmentConfigurationProvided(
             process_id=BriceDeNice.second_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:02:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             global_setup="""
             #!/bin/bash
@@ -172,7 +184,7 @@ class BriceDeNice:
         return RepositoryIndexationRequested(
             process_id="brice-indexation-process-001",
             occurred_at=datetime.fromisoformat("2025-01-01T12:00:15Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
         )
 
@@ -181,7 +193,7 @@ class BriceDeNice:
         return IssueResolutionRequested(
             process_id=cls.first_issue_resolution_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T09:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             issue=IssueInfo(
                 title="Fix login bug",
@@ -220,7 +232,7 @@ class BriceDeNice:
         return CodeRepositoryTokenRotated(
             process_id="brice-token-rotation-process-001",
             occurred_at=datetime.fromisoformat("2025-01-03T08:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             new_access_token="ghp_brices_new_token_789012",
             token_permissions={
@@ -242,7 +254,7 @@ class BriceDeNice:
         return IssueResolutionRequested(
             process_id=cls.second_issue_resolution_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-03T14:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             issue=IssueInfo(
                 title="Performance issue in data processing",

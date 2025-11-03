@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Self
 
 from issue_solver.events.domain import (
     NotionIntegrationConnected,
-    NotionIntegrationFailed,
     NotionIntegrationTokenRotated,
     most_recent_event,
 )
@@ -19,6 +19,25 @@ class NotionCredentials:
     workspace_name: str | None
     bot_id: str | None
     process_id: str
+
+    @classmethod
+    def create_from(
+        cls,
+        integration_event: NotionIntegrationConnected | NotionIntegrationTokenRotated,
+    ) -> Self:
+        return cls(
+            mcp_access_token=integration_event.mcp_access_token
+            if isinstance(integration_event, NotionIntegrationConnected)
+            else integration_event.new_mcp_access_token,
+            mcp_refresh_token=integration_event.mcp_refresh_token
+            if isinstance(integration_event, NotionIntegrationConnected)
+            else integration_event.new_mcp_refresh_token,
+            mcp_token_expires_at=integration_event.mcp_token_expires_at,
+            workspace_id=integration_event.workspace_id,
+            workspace_name=integration_event.workspace_name,
+            bot_id=integration_event.bot_id,
+            process_id=integration_event.process_id,
+        )
 
 
 async def get_notion_integration_event(
@@ -44,56 +63,9 @@ async def get_notion_credentials(
 
     events = await event_store.get(notion_connected.process_id)
     latest_rotation = most_recent_event(events, NotionIntegrationTokenRotated)
-    latest_failure = most_recent_event(events, NotionIntegrationFailed)
-
-    credentials = _latest_mcp_credentials(
-        base_event=notion_connected,
-        rotation=latest_rotation,
-        failure=latest_failure,
-    )
-    return credentials
-
-
-def _latest_mcp_credentials(
-    *,
-    base_event: NotionIntegrationConnected,
-    rotation: NotionIntegrationTokenRotated | None,
-    failure: NotionIntegrationFailed | None,
-) -> NotionCredentials | None:
-    current_time = base_event.occurred_at
-    access_token = base_event.mcp_access_token
-    refresh_token = base_event.mcp_refresh_token
-    expires_at = base_event.mcp_token_expires_at
-    workspace_id = base_event.workspace_id
-    workspace_name = base_event.workspace_name
-    bot_id = base_event.bot_id
-
-    if rotation and rotation.occurred_at >= current_time:
-        current_time = rotation.occurred_at
-        access_token = rotation.new_mcp_access_token
-        refresh_token = rotation.new_mcp_refresh_token
-        expires_at = rotation.mcp_token_expires_at
-        workspace_id = rotation.workspace_id or workspace_id
-        workspace_name = rotation.workspace_name or workspace_name
-        bot_id = rotation.bot_id or bot_id
-
-    if failure and failure.occurred_at >= current_time:
-        return None
-
-    if not refresh_token:
-        return None
-
-    resolved_workspace_id = workspace_id or bot_id
-
-    return NotionCredentials(
-        mcp_access_token=access_token,
-        mcp_refresh_token=refresh_token,
-        mcp_token_expires_at=expires_at,
-        workspace_id=resolved_workspace_id,
-        workspace_name=workspace_name,
-        bot_id=bot_id,
-        process_id=base_event.process_id,
-    )
+    if latest_rotation and latest_rotation.occurred_at > notion_connected.occurred_at:
+        return NotionCredentials.create_from(latest_rotation)
+    return NotionCredentials.create_from(notion_connected)
 
 
 async def fetch_notion_credentials(
