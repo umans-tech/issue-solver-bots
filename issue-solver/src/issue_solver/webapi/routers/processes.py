@@ -22,9 +22,9 @@ from issue_solver.events.domain import (
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
     IssueResolutionEnvironmentPrepared,
-    NotionIntegrationConnected,
-    NotionIntegrationTokenRotated,
-    NotionIntegrationFailed,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
+    NotionIntegrationAuthorizationFailed,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.serializable_records import (
@@ -68,7 +68,7 @@ class ProcessTimelineView(BaseModel):
             return "issue_resolution"
         if isinstance(first_event, EnvironmentConfigurationProvided):
             return "dev_environment_setup"
-        if isinstance(first_event, NotionIntegrationConnected):
+        if isinstance(first_event, NotionIntegrationAuthorized):
             return "notion_integration"
         return "code_repository_integration"
 
@@ -78,7 +78,7 @@ class ProcessTimelineView(BaseModel):
             event
             for event in events
             if not isinstance(event, CodeRepositoryTokenRotated)
-            and not isinstance(event, NotionIntegrationTokenRotated)
+            and not isinstance(event, NotionIntegrationTokenRefreshed)
         ]
 
         if not status_affecting_events:
@@ -87,7 +87,7 @@ class ProcessTimelineView(BaseModel):
         status_affecting_events.sort(key=lambda event: event.occurred_at)
         last_event = status_affecting_events[-1]
         match last_event:
-            case CodeRepositoryConnected() | NotionIntegrationConnected():
+            case CodeRepositoryConnected() | NotionIntegrationAuthorized():
                 status = "connected"
             case CodeRepositoryIndexed():
                 status = "indexed"
@@ -105,7 +105,7 @@ class ProcessTimelineView(BaseModel):
                 IssueResolutionFailed()
                 | CodeRepositoryIntegrationFailed()
                 | EnvironmentValidationFailed()
-                | NotionIntegrationFailed()
+                | NotionIntegrationAuthorizationFailed()
             ):
                 status = "failed"
             case EnvironmentConfigurationProvided():
@@ -168,7 +168,7 @@ async def _get_processes_by_criteria(
         processes.extend(await _convert_events_to_processes(event_store, repo_events))
 
         notion_events = await event_store.find(
-            criteria={"space_id": space_id}, event_type=NotionIntegrationConnected
+            criteria={"space_id": space_id}, event_type=NotionIntegrationAuthorized
         )
         processes.extend(await _convert_events_to_processes(event_store, notion_events))
 
@@ -215,7 +215,7 @@ async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
 
     # Get all Notion integration processes
     notion_events = await event_store.find(
-        criteria={}, event_type=NotionIntegrationConnected
+        criteria={}, event_type=NotionIntegrationAuthorized
     )
     all_processes.extend(await _convert_events_to_processes(event_store, notion_events))
 

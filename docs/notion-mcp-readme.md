@@ -14,7 +14,7 @@
 
 3. **Backend stores MCP credentials**
    - FastAPI exchanges the authorization code for an MCP refresh token.
-   - The refresh token is encrypted and appended to the event stream (`NotionIntegrationConnected` / `NotionIntegrationTokenRotated`).
+   - The refresh token is encrypted and appended to the event stream (`NotionIntegrationAuthorized` / `NotionIntegrationTokenRefreshed`).
    - No classic access token is stored; the integration is considered "connected" when an MCP refresh token exists.
 
 4. **Proxying tool calls**
@@ -48,9 +48,9 @@ sequenceDiagram
         API->>Notion: POST https://mcp.notion.com/token<br/>(authorization_code)
         Notion-->>API: 200 OK access_token, refresh_token,<br/>workspace metadata
         alt First-time connect
-            API->>ES: Append NotionIntegrationConnected
+            API->>ES: Append NotionIntegrationAuthorized
         else Refresh existing integration
-            API->>ES: Append NotionIntegrationTokenRotated
+            API->>ES: Append NotionIntegrationTokenRefreshed
         end
         API-->>Browser: 303 redirect /integrations/notion/callback<br/>?status=success
         Browser->>Frontend: GET /integrations/notion/callback<br/>(status=success, workspaceId)
@@ -116,7 +116,7 @@ The integration is now fully MCP-centric: there are no classic OAuth tokens or e
 - The OAuth router sends Notion a `Notion-Version` header of `2022-06-28`, while the MCP proxy upgrades to `2025-09-03`. Confirm with the Notion MCP changelog that both values remain supported, or consider aligning them to avoid subtle API mismatches.
 - `StreamableHTTPClientTransport` keeps the proxy on `POST`; if a client retries with `GET /mcp/notion/proxy` (observed during long-running MCP calls) FastAPI returns `405 Method Not Allowed`. The log is harmless but worth watching if you swap transports.
 - `ensure_fresh_notion_credentials` refreshes MCP tokens ~60 seconds before expiry, writes the new access/refresh pair to the event stream, and returns the updated credentials so subsequent calls reuse them.
-- When Notion reports `invalid_grant`, the backend appends a `NotionIntegrationFailed` event and surfaces a reconnect prompt instead of mutating existing rotation events.
+- When Notion reports `invalid_grant`, the backend appends a `NotionIntegrationAuthorizationFailed` event and surfaces a reconnect prompt instead of mutating existing rotation events.
 
 ## External References
 

@@ -18,9 +18,9 @@ from redis import Redis
 
 from issue_solver.clock import Clock
 from issue_solver.events.domain import (
-    NotionIntegrationConnected,
-    NotionIntegrationFailed,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationAuthorizationFailed,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.notion_integration import (
@@ -104,7 +104,7 @@ def _seconds_left(timestamp: datetime | None, clock: Clock) -> int | None:
 def _build_integration_view(
     *,
     space_id: str,
-    base_event: NotionIntegrationConnected,
+    base_event: NotionIntegrationAuthorized,
     credentials: NotionCredentials | None,
 ) -> NotionIntegrationView:
     workspace_id = (
@@ -388,7 +388,7 @@ async def _record_refresh_failure(
     credentials: NotionCredentials,
     detail: str,
 ) -> None:
-    failure = NotionIntegrationFailed(
+    failure = NotionIntegrationAuthorizationFailed(
         occurred_at=clock.now(),
         error_type="invalid_grant",
         error_message=detail,
@@ -427,7 +427,7 @@ async def _persist_refreshed_credentials(
     bot_id = token_response.get("bot_id") or credentials.bot_id
     expires_at = _expires_at(clock, token_response.get("expires_in"))
 
-    rotation = NotionIntegrationTokenRotated(
+    rotation = NotionIntegrationTokenRefreshed(
         occurred_at=clock.now(),
         user_id=user_id,
         space_id=space_id,
@@ -509,7 +509,7 @@ async def _persist_mcp_tokens(
     space_id: str,
     user_id: str,
     token_response: dict[str, Any],
-) -> NotionIntegrationConnected:
+) -> NotionIntegrationAuthorized:
     access_token = token_response.get("access_token")
     refresh_token = token_response.get("refresh_token")
     if not access_token or not refresh_token:
@@ -522,7 +522,7 @@ async def _persist_mcp_tokens(
 
     existing = await get_notion_integration_event(event_store, space_id)
     if existing:
-        rotation = NotionIntegrationTokenRotated(
+        rotation = NotionIntegrationTokenRefreshed(
             occurred_at=clock.now(),
             user_id=user_id,
             space_id=space_id,
@@ -539,7 +539,7 @@ async def _persist_mcp_tokens(
         return existing
 
     process_id = str(uuid.uuid4())
-    connected = NotionIntegrationConnected(
+    connected = NotionIntegrationAuthorized(
         occurred_at=clock.now(),
         user_id=user_id,
         space_id=space_id,

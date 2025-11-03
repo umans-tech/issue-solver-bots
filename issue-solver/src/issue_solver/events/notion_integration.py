@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Self
 
 from issue_solver.events.domain import (
-    NotionIntegrationConnected,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
     most_recent_event,
 )
 from issue_solver.events.event_store import EventStore
@@ -23,7 +23,8 @@ class NotionCredentials:
     @classmethod
     def create_from(
         cls,
-        integration_event: NotionIntegrationConnected | NotionIntegrationTokenRotated,
+        integration_event: NotionIntegrationAuthorized
+        | NotionIntegrationTokenRefreshed,
     ) -> Self:
         return cls(
             mcp_access_token=integration_event.mcp_access_token,
@@ -38,16 +39,16 @@ class NotionCredentials:
 
 async def get_notion_integration_event(
     event_store: EventStore, space_id: str
-) -> NotionIntegrationConnected | None:
-    events = await event_store.find({"space_id": space_id}, NotionIntegrationConnected)
-    return most_recent_event(events, NotionIntegrationConnected)
+) -> NotionIntegrationAuthorized | None:
+    events = await event_store.find({"space_id": space_id}, NotionIntegrationAuthorized)
+    return most_recent_event(events, NotionIntegrationAuthorized)
 
 
 async def get_integration_by_process(
     event_store: EventStore, process_id: str
-) -> NotionIntegrationConnected | None:
+) -> NotionIntegrationAuthorized | None:
     events = await event_store.get(process_id)
-    return most_recent_event(events, NotionIntegrationConnected)
+    return most_recent_event(events, NotionIntegrationAuthorized)
 
 
 async def get_notion_credentials(
@@ -58,7 +59,7 @@ async def get_notion_credentials(
         return None
 
     events = await event_store.get(notion_connected.process_id)
-    latest_rotation = most_recent_event(events, NotionIntegrationTokenRotated)
+    latest_rotation = most_recent_event(events, NotionIntegrationTokenRefreshed)
     if latest_rotation and latest_rotation.occurred_at > notion_connected.occurred_at:
         return NotionCredentials.create_from(latest_rotation)
     return NotionCredentials.create_from(notion_connected)

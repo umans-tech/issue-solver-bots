@@ -12,9 +12,9 @@ from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response
 
 from issue_solver.events.domain import (
-    NotionIntegrationConnected,
-    NotionIntegrationFailed,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationAuthorizationFailed,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.webapi.routers import mcp_notion_proxy, notion_integration
 from issue_solver.webapi.routers.notion_integration import (
@@ -106,7 +106,7 @@ def test_get_notion_integration_returns_latest_mcp_snapshot(api_client) -> None:
     connected_at = datetime(2025, 10, 30, 11, 0)
     rotation_at = connected_at + timedelta(minutes=7)
 
-    connected = NotionIntegrationConnected(
+    connected = NotionIntegrationAuthorized(
         occurred_at=connected_at,
         user_id="user-123",
         space_id=space_id,
@@ -119,7 +119,7 @@ def test_get_notion_integration_returns_latest_mcp_snapshot(api_client) -> None:
         mcp_token_expires_at=connected_at + timedelta(hours=1),
     )
 
-    rotation = NotionIntegrationTokenRotated(
+    rotation = NotionIntegrationTokenRefreshed(
         occurred_at=rotation_at,
         user_id="user-456",
         space_id=space_id,
@@ -250,7 +250,7 @@ def test_handle_notion_mcp_oauth_callback_creates_connected_integration(
     event_store = api_client.app.state.event_store
     events = api_client.portal.call(event_store.get, process_id)
     connected = next(
-        event for event in events if isinstance(event, NotionIntegrationConnected)
+        event for event in events if isinstance(event, NotionIntegrationAuthorized)
     )
     assert connected.mcp_access_token == "mcp-access-connected"
     assert connected.mcp_refresh_token == "mcp-refresh-connected"
@@ -323,7 +323,7 @@ def test_notion_mcp_proxy_forwards_request_and_returns_remote_payload(
     api_client.portal.call(
         event_store.append,
         process_id,
-        NotionIntegrationConnected(
+        NotionIntegrationAuthorized(
             occurred_at=time_under_control.now(),
             user_id="user-123",
             space_id=space_id,
@@ -392,7 +392,7 @@ def test_notion_mcp_proxy_refreshes_expired_token_when_redirect_uri_provided(
     api_client.portal.call(
         event_store.append,
         process_id,
-        NotionIntegrationConnected(
+        NotionIntegrationAuthorized(
             occurred_at=connected_at,
             user_id="user-refresh",
             space_id=space_id,
@@ -454,7 +454,7 @@ def test_notion_mcp_proxy_refreshes_expired_token_when_redirect_uri_provided(
 
     events = api_client.portal.call(event_store.get, process_id)
     rotation = next(
-        event for event in events if isinstance(event, NotionIntegrationTokenRotated)
+        event for event in events if isinstance(event, NotionIntegrationTokenRefreshed)
     )
     assert rotation.mcp_access_token == "mcp-access-refreshed"
     assert rotation.mcp_refresh_token == "mcp-refresh-refreshed"
@@ -475,7 +475,7 @@ def test_notion_mcp_proxy_returns_401_when_refresh_fails_with_invalid_grant(
     api_client.portal.call(
         event_store.append,
         process_id,
-        NotionIntegrationConnected(
+        NotionIntegrationAuthorized(
             occurred_at=time_under_control.now(),
             user_id="user-refresh",
             space_id=space_id,
@@ -513,6 +513,8 @@ def test_notion_mcp_proxy_returns_401_when_refresh_fails_with_invalid_grant(
 
     events = api_client.portal.call(event_store.get, process_id)
     failure = next(
-        event for event in events if isinstance(event, NotionIntegrationFailed)
+        event
+        for event in events
+        if isinstance(event, NotionIntegrationAuthorizationFailed)
     )
     assert failure.error_type == "invalid_grant"

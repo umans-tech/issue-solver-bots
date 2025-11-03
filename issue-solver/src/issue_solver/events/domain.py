@@ -175,7 +175,7 @@ class EnvironmentValidationFailed(DomainEvent):
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
-class NotionIntegrationConnected(DomainEvent):
+class NotionIntegrationAuthorized(DomainEvent):
     user_id: str
     space_id: str
     process_id: str
@@ -189,7 +189,7 @@ class NotionIntegrationConnected(DomainEvent):
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
-class NotionIntegrationTokenRotated(DomainEvent):
+class NotionIntegrationTokenRefreshed(DomainEvent):
     user_id: str
     space_id: str
     process_id: str
@@ -203,7 +203,7 @@ class NotionIntegrationTokenRotated(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
-class NotionIntegrationFailed(DomainEvent):
+class NotionIntegrationAuthorizationFailed(DomainEvent):
     error_type: str
     error_message: str
     user_id: str
@@ -230,9 +230,9 @@ AnyDomainEvent = (
     | IssueResolutionEnvironmentPrepared
     | EnvironmentConfigurationValidated
     | EnvironmentValidationFailed
-    | NotionIntegrationConnected
-    | NotionIntegrationTokenRotated
-    | NotionIntegrationFailed
+    | NotionIntegrationAuthorized
+    | NotionIntegrationTokenRefreshed
+    | NotionIntegrationAuthorizationFailed
 )
 
 

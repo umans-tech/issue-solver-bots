@@ -5,9 +5,9 @@ import pytest
 from fastapi import HTTPException
 
 from issue_solver.events.domain import (
-    NotionIntegrationConnected,
-    NotionIntegrationFailed,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationAuthorizationFailed,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.events.notion_integration import NotionCredentials
@@ -39,7 +39,7 @@ async def test_refresh_emits_rotation_event(monkeypatch):
     # Given
     event_store = InMemoryEventStore()
     clock = ControllableClock(datetime(2025, 10, 31, 15, 0, tzinfo=UTC))
-    base_event = NotionIntegrationConnected(
+    base_event = NotionIntegrationAuthorized(
         occurred_at=clock.now(),
         user_id="user",
         space_id="space",
@@ -87,7 +87,7 @@ async def test_refresh_emits_rotation_event(monkeypatch):
 
     # Then
     events = await event_store.get(base_event.process_id)
-    rotation = next(e for e in events if isinstance(e, NotionIntegrationTokenRotated))
+    rotation = next(e for e in events if isinstance(e, NotionIntegrationTokenRefreshed))
     assert rotation.mcp_access_token == "mcp-new"
     assert rotation.mcp_refresh_token == "mcp-refresh"
     assert refreshed.mcp_access_token == "mcp-new"
@@ -99,7 +99,7 @@ async def test_refresh_records_failure(monkeypatch):
     # Given
     event_store = InMemoryEventStore()
     clock = ControllableClock(datetime(2025, 10, 31, 15, 0, tzinfo=UTC))
-    base_event = NotionIntegrationConnected(
+    base_event = NotionIntegrationAuthorized(
         occurred_at=clock.now(),
         user_id="user",
         space_id="space",
@@ -141,5 +141,7 @@ async def test_refresh_records_failure(monkeypatch):
 
     assert exc.value.status_code == 401
     events = await event_store.get(base_event.process_id)
-    failure_event = next(e for e in events if isinstance(e, NotionIntegrationFailed))
+    failure_event = next(
+        e for e in events if isinstance(e, NotionIntegrationAuthorizationFailed)
+    )
     assert failure_event.error_type == "invalid_grant"

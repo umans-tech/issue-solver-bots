@@ -5,16 +5,16 @@ from unittest.mock import patch
 
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
-    NotionIntegrationConnected,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.events.serializable_records import (
     CodeRepositoryConnectedRecord,
     _encrypt_token,
     _decrypt_token,
     serialize,
-    NotionIntegrationConnectedRecord,
-    NotionIntegrationTokenRotatedRecord,
+    NotionIntegrationAuthorizedRecord,
+    NotionIntegrationTokenRefreshedRecord,
 )
 
 
@@ -34,7 +34,7 @@ def sample_event():
 
 @pytest.fixture
 def sample_notion_connected_event():
-    return NotionIntegrationConnected(
+    return NotionIntegrationAuthorized(
         occurred_at=datetime(2024, 5, 1, 9, 30, 0),
         user_id="notion-user",
         space_id="notion-space",
@@ -50,7 +50,7 @@ def sample_notion_connected_event():
 
 @pytest.fixture
 def sample_notion_rotated_event():
-    return NotionIntegrationTokenRotated(
+    return NotionIntegrationTokenRefreshed(
         occurred_at=datetime(2024, 5, 2, 8, 0, 0),
         user_id="notion-user",
         space_id="notion-space",
@@ -277,11 +277,11 @@ def test_token_rotated_event_with_permissions(encryption_key):
         assert serialized_record.token_permissions == permissions
 
 
-def test_notion_integration_connected_record_encryption(
+def test_notion_integration_authorized_record_encryption(
     sample_notion_connected_event, encryption_key
 ):
     with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
-        record = NotionIntegrationConnectedRecord.create_from(
+        record = NotionIntegrationAuthorizedRecord.create_from(
             sample_notion_connected_event
         )
         assert record.mcp_access_token != sample_notion_connected_event.mcp_access_token
@@ -309,11 +309,11 @@ def test_notion_integration_connected_record_encryption(
     assert "*" in safe.mcp_refresh_token
 
 
-def test_notion_integration_token_rotated_record_encryption(
+def test_notion_integration_token_refreshed_record_encryption(
     sample_notion_rotated_event, encryption_key
 ):
     with patch.dict(os.environ, {"TOKEN_ENCRYPTION_KEY": encryption_key}):
-        record = NotionIntegrationTokenRotatedRecord.create_from(
+        record = NotionIntegrationTokenRefreshedRecord.create_from(
             sample_notion_rotated_event
         )
         assert record.mcp_access_token != sample_notion_rotated_event.mcp_access_token
@@ -326,7 +326,7 @@ def test_notion_integration_token_rotated_record_encryption(
         )
 
         serialized = serialize(sample_notion_rotated_event)
-        assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
+        assert isinstance(serialized, NotionIntegrationTokenRefreshedRecord)
 
         safe_record = serialized.safe_copy()
         assert safe_record.mcp_access_token.endswith(serialized.mcp_access_token[-4:])

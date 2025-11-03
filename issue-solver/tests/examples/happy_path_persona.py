@@ -16,8 +16,8 @@ from issue_solver.events.domain import (
     AnyDomainEvent,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
-    NotionIntegrationConnected,
-    NotionIntegrationTokenRotated,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -52,8 +52,8 @@ class BriceDeNice:
         return "brice-space-001"
 
     @classmethod
-    def connected_notion_workspace(cls) -> NotionIntegrationConnected:
-        return NotionIntegrationConnected(
+    def connected_notion_workspace(cls) -> NotionIntegrationAuthorized:
+        return NotionIntegrationAuthorized(
             process_id=cls.notion_integration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-01T12:05:00Z"),
             user_id=cls.user_id(),
@@ -74,8 +74,8 @@ class BriceDeNice:
         return "brice-notion-integration-process-001"
 
     @classmethod
-    def rotated_notion_token(cls) -> NotionIntegrationTokenRotated:
-        return NotionIntegrationTokenRotated(
+    def rotated_notion_token(cls) -> NotionIntegrationTokenRefreshed:
+        return NotionIntegrationTokenRefreshed(
             process_id=BriceDeNice.notion_integration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-03T08:30:00Z"),
             user_id=BriceDeNice.user_id(),

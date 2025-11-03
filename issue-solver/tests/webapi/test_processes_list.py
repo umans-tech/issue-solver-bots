@@ -268,7 +268,7 @@ def test_returns_notion_integration_process(
     events = notion_process["events"]
     assert events, "expected at least one event for Notion integration process"
     first_event = events[0]
-    assert first_event["type"] == "notion_integration_connected"
+    assert first_event["type"] == "notion_integration_authorized"
     assert first_event["space_id"] == "brice-space-001"
     assert first_event["workspace_id"] == "workspace-123"
     assert first_event["workspace_name"] == "Acme Workspace"
