@@ -197,6 +197,26 @@ jobs:
           cd issue-solver
           uv sync --all-extras --dev
 
+      - name: Register preview Notion MCP client
+        if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        working-directory: issue-solver
+        env:
+          NOTION_MCP_OAUTH_REDIRECT_URI: https://api.pr-${{ github.event.pull_request.number }}.umans.ai/integrations/notion/mcp/oauth/callback
+          NOTION_MCP_CLIENT_NAME: Umans AI MCP PR-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          tmp_file=$(mktemp)
+          just export-notion-mcp-credentials > "$tmp_file"
+          # shellcheck disable=SC1090
+          source "$tmp_file"
+          rm "$tmp_file"
+          echo "::add-mask::$NOTION_MCP_CLIENT_ID"
+          echo "::add-mask::$NOTION_MCP_CLIENT_SECRET"
+          {
+            echo "TF_VAR_notion_mcp_client_id_preview=$NOTION_MCP_CLIENT_ID"
+            echo "TF_VAR_notion_mcp_client_secret_preview=$NOTION_MCP_CLIENT_SECRET"
+          } >> "$GITHUB_ENV"
+
       # Add authentication steps here if needed
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -260,8 +280,8 @@ jobs:
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
-          TF_VAR_notion_oauth_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_DEV }}
-          TF_VAR_notion_oauth_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_DEV }}
+          TF_VAR_notion_mcp_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_notion_mcp_client_id_prod || env.TF_VAR_notion_mcp_client_id_preview }}
+          TF_VAR_notion_mcp_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_notion_mcp_client_secret_prod || env.TF_VAR_notion_mcp_client_secret_preview }}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
@@ -312,8 +332,8 @@ jobs:
           TF_VAR_exa_api_key: ${{ secrets.TF_VAR_EXA_API_KEY }}
           TF_VAR_email_api_key: ${{ secrets.TF_VAR_EMAIL_API_KEY }}
           TF_VAR_token_encryption_key: ${{ secrets.TF_VAR_TOKEN_ENCRYPTION_KEY }}
-          TF_VAR_notion_oauth_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_ID_DEV }}
-          TF_VAR_notion_oauth_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_PROD || secrets.TF_VAR_NOTION_OAUTH_CLIENT_SECRET_DEV }}
+          TF_VAR_notion_mcp_client_id: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_notion_mcp_client_id_prod || env.TF_VAR_notion_mcp_client_id_preview || 'random_dummy_value'}}
+          TF_VAR_notion_mcp_client_secret: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.TF_VAR_notion_mcp_client_secret_prod || env.TF_VAR_notion_mcp_client_secret_preview || 'random_dummy_value'}}
           TF_VAR_webapi_image_tag: umans-platform-webapi-${{ github.sha }}
           TF_VAR_worker_image_tag: umans-platform-worker-${{ github.sha }}
           TF_VAR_conversational_ui_image_tag: umans-platform-conversational-ui-${{ github.sha }}
