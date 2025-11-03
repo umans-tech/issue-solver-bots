@@ -58,8 +58,8 @@ def sample_notion_rotated_event():
         workspace_id="workspace-abc",
         workspace_name="Acme Knowledge",
         bot_id="bot-123",
-        new_mcp_access_token="mcp-rotated-token",
-        new_mcp_refresh_token="mcp-rotated-refresh",
+        mcp_access_token="mcp-rotated-token",
+        mcp_refresh_token="mcp-rotated-refresh",
         mcp_token_expires_at=datetime(2024, 5, 3, 8, 0, 0),
     )
 
@@ -316,35 +316,21 @@ def test_notion_integration_token_rotated_record_encryption(
         record = NotionIntegrationTokenRotatedRecord.create_from(
             sample_notion_rotated_event
         )
-        assert (
-            record.new_mcp_access_token
-            != sample_notion_rotated_event.new_mcp_access_token
-        )
-        assert (
-            record.new_mcp_refresh_token
-            != sample_notion_rotated_event.new_mcp_refresh_token
-        )
+        assert record.mcp_access_token != sample_notion_rotated_event.mcp_access_token
+        assert record.mcp_refresh_token != sample_notion_rotated_event.mcp_refresh_token
 
         restored = record.to_domain_event()
+        assert restored.mcp_access_token == sample_notion_rotated_event.mcp_access_token
         assert (
-            restored.new_mcp_access_token
-            == sample_notion_rotated_event.new_mcp_access_token
-        )
-        assert (
-            restored.new_mcp_refresh_token
-            == sample_notion_rotated_event.new_mcp_refresh_token
+            restored.mcp_refresh_token == sample_notion_rotated_event.mcp_refresh_token
         )
 
         serialized = serialize(sample_notion_rotated_event)
         assert isinstance(serialized, NotionIntegrationTokenRotatedRecord)
 
         safe_record = serialized.safe_copy()
-        assert safe_record.new_mcp_access_token.endswith(
-            serialized.new_mcp_access_token[-4:]
-        )
-        assert "*" in safe_record.new_mcp_access_token
-        assert safe_record.new_mcp_refresh_token
-        assert safe_record.new_mcp_refresh_token.endswith(
-            serialized.new_mcp_refresh_token[-4:]
-        )
-        assert "*" in safe_record.new_mcp_refresh_token
+        assert safe_record.mcp_access_token.endswith(serialized.mcp_access_token[-4:])
+        assert "*" in safe_record.mcp_access_token
+        assert safe_record.mcp_refresh_token
+        assert safe_record.mcp_refresh_token.endswith(serialized.mcp_refresh_token[-4:])
+        assert "*" in safe_record.mcp_refresh_token

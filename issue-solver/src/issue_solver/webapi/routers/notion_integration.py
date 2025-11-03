@@ -435,8 +435,8 @@ async def _persist_refreshed_credentials(
         workspace_id=workspace_id,
         workspace_name=workspace_name,
         bot_id=bot_id,
-        new_mcp_access_token=access_token,
-        new_mcp_refresh_token=new_refresh_token,
+        mcp_access_token=access_token,
+        mcp_refresh_token=new_refresh_token,
         mcp_token_expires_at=expires_at,
     )
     await event_store.append(credentials.process_id, rotation)
@@ -530,8 +530,8 @@ async def _persist_mcp_tokens(
             workspace_id=workspace_id or existing.workspace_id,
             workspace_name=workspace_name or existing.workspace_name,
             bot_id=bot_id or existing.bot_id,
-            new_mcp_access_token=access_token,
-            new_mcp_refresh_token=refresh_token,
+            mcp_access_token=access_token,
+            mcp_refresh_token=refresh_token,
             mcp_token_expires_at=expires_at,
         )
         await event_store.append(existing.process_id, rotation)

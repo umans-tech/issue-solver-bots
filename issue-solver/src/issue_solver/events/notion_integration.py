@@ -26,12 +26,8 @@ class NotionCredentials:
         integration_event: NotionIntegrationConnected | NotionIntegrationTokenRotated,
     ) -> Self:
         return cls(
-            mcp_access_token=integration_event.mcp_access_token
-            if isinstance(integration_event, NotionIntegrationConnected)
-            else integration_event.new_mcp_access_token,
-            mcp_refresh_token=integration_event.mcp_refresh_token
-            if isinstance(integration_event, NotionIntegrationConnected)
-            else integration_event.new_mcp_refresh_token,
+            mcp_access_token=integration_event.mcp_access_token,
+            mcp_refresh_token=integration_event.mcp_refresh_token,
             mcp_token_expires_at=integration_event.mcp_token_expires_at,
             workspace_id=integration_event.workspace_id,
             workspace_name=integration_event.workspace_name,

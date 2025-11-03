@@ -127,8 +127,8 @@ def test_get_notion_integration_returns_latest_mcp_snapshot(api_client) -> None:
         workspace_id="workspace-latest",
         workspace_name="Northwind HQ",
         bot_id="bot-latest",
-        new_mcp_access_token="token-latest",
-        new_mcp_refresh_token="refresh-latest",
+        mcp_access_token="token-latest",
+        mcp_refresh_token="refresh-latest",
         mcp_token_expires_at=rotation_at + timedelta(hours=2),
     )
 
@@ -456,8 +456,8 @@ def test_notion_mcp_proxy_refreshes_expired_token_when_redirect_uri_provided(
     rotation = next(
         event for event in events if isinstance(event, NotionIntegrationTokenRotated)
     )
-    assert rotation.new_mcp_access_token == "mcp-access-refreshed"
-    assert rotation.new_mcp_refresh_token == "mcp-refresh-refreshed"
+    assert rotation.mcp_access_token == "mcp-access-refreshed"
+    assert rotation.mcp_refresh_token == "mcp-refresh-refreshed"
     assert rotation.workspace_name == "Workspace After Refresh"
 
 

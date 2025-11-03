@@ -88,8 +88,8 @@ async def test_refresh_emits_rotation_event(monkeypatch):
     # Then
     events = await event_store.get(base_event.process_id)
     rotation = next(e for e in events if isinstance(e, NotionIntegrationTokenRotated))
-    assert rotation.new_mcp_access_token == "mcp-new"
-    assert rotation.new_mcp_refresh_token == "mcp-refresh"
+    assert rotation.mcp_access_token == "mcp-new"
+    assert rotation.mcp_refresh_token == "mcp-refresh"
     assert refreshed.mcp_access_token == "mcp-new"
     assert refreshed.mcp_token_expires_at is not None
 

@@ -225,23 +225,21 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    new_mcp_access_token: str | None = None
-    new_mcp_refresh_token: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
 
     def safe_copy(self) -> Self:
         obfuscated_mcp_access = (
-            obfuscate(self.new_mcp_access_token) if self.new_mcp_access_token else None
+            obfuscate(self.mcp_access_token) if self.mcp_access_token else None
         )
         obfuscated_mcp_refresh = (
-            obfuscate(self.new_mcp_refresh_token)
-            if self.new_mcp_refresh_token
-            else None
+            obfuscate(self.mcp_refresh_token) if self.mcp_refresh_token else None
         )
         return self.model_copy(  # type: ignore[call-arg]
             update={
-                "new_mcp_access_token": obfuscated_mcp_access,
-                "new_mcp_refresh_token": obfuscated_mcp_refresh,
+                "mcp_access_token": obfuscated_mcp_access,
+                "mcp_refresh_token": obfuscated_mcp_refresh,
             }
         )
 
@@ -254,11 +252,11 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_id=self.workspace_id,
             workspace_name=self.workspace_name,
             bot_id=self.bot_id,
-            new_mcp_access_token=_decrypt_token(self.new_mcp_access_token)
-            if self.new_mcp_access_token
+            mcp_access_token=_decrypt_token(self.mcp_access_token)
+            if self.mcp_access_token
             else None,
-            new_mcp_refresh_token=_decrypt_token(self.new_mcp_refresh_token)
-            if self.new_mcp_refresh_token
+            mcp_refresh_token=_decrypt_token(self.mcp_refresh_token)
+            if self.mcp_refresh_token
             else None,
             mcp_token_expires_at=self.mcp_token_expires_at,
         )
@@ -273,11 +271,11 @@ class NotionIntegrationTokenRotatedRecord(BaseModel):
             workspace_id=event.workspace_id,
             workspace_name=event.workspace_name,
             bot_id=event.bot_id,
-            new_mcp_access_token=_encrypt_token(event.new_mcp_access_token)
-            if event.new_mcp_access_token
+            mcp_access_token=_encrypt_token(event.mcp_access_token)
+            if event.mcp_access_token
             else None,
-            new_mcp_refresh_token=_encrypt_token(event.new_mcp_refresh_token)
-            if event.new_mcp_refresh_token
+            mcp_refresh_token=_encrypt_token(event.mcp_refresh_token)
+            if event.mcp_refresh_token
             else None,
             mcp_token_expires_at=event.mcp_token_expires_at,
         )

@@ -197,8 +197,8 @@ class NotionIntegrationTokenRotated(DomainEvent):
     workspace_id: str | None = None
     workspace_name: str | None = None
     bot_id: str | None = None
-    new_mcp_access_token: str | None = None
-    new_mcp_refresh_token: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
     mcp_token_expires_at: datetime | None = None
 
 

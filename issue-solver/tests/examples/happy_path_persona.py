@@ -83,8 +83,8 @@ class BriceDeNice:
             workspace_id="brice-notion-workspace",
             workspace_name="Brice Knowledge Base",
             bot_id="notion-bot-001",
-            new_mcp_access_token="notion_brice_new_token_4321",
-            new_mcp_refresh_token="notion_brice_new_refresh_token_4321",
+            mcp_access_token="notion_brice_new_token_4321",
+            mcp_refresh_token="notion_brice_new_refresh_token_4321",
         )
 
     @classmethod
