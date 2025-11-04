@@ -107,6 +107,24 @@ variable "posthog_host" {
   default     = "https://eu.i.posthog.com"
 }
 
+variable "notion_mcp_client_id" {
+  description = "Client ID for the Notion MCP integration"
+  type        = string
+  sensitive   = true
+}
+
+variable "notion_mcp_client_secret" {
+  description = "Client secret for the Notion MCP integration"
+  type        = string
+  sensitive   = true
+}
+
+variable "notion_mcp_state_ttl_seconds" {
+  description = "TTL (in seconds) for MCP OAuth state stored in Redis"
+  type        = number
+  default     = 600
+}
+
 variable "stripe_secret_key" {
   description = "Stripe secret key for payment processing"
   type        = string

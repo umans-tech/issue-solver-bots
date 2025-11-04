@@ -690,8 +690,10 @@ export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
   <Sparkles size={size} />
 );
 
-export const CheckCircleFillIcon = ({ size = 16 }: { size?: number }) => {
-  return <IoCheckmarkCircle size={size} />;
+export const CheckCircleFillIcon = (
+  { size = 16, className }: { size?: number; className?: string }
+) => {
+  return <IoCheckmarkCircle size={size} className={className} />;
 };
 
 export const GlobeIcon = ({ size = 16 }: { size?: number }) => {

@@ -12,10 +12,12 @@ export async function codeRepositoryMCPClient(userContext?: { userId?: string; s
 const noMCPClient = (error: any) => ({
     client: {
         tools: async () => ({}),
-        close: () => {
+        close: async () => {
+            /* noop */
         }
     },
     activeTools: () => [],
+    loadTools: async () => ({}),
 })
 
 const createProxyMCPClient = async (userContext?: { userId?: string; spaceId?: string }) => {
@@ -91,5 +93,6 @@ const createProxyMCPClient = async (userContext?: { userId?: string; spaceId?: s
             "get_workflow_run_logs",
             "list_code_scanning_alerts"
         ],
+    loadTools: async () => (await mcpClient.tools()) as unknown as Record<string, unknown>,
     };
 }

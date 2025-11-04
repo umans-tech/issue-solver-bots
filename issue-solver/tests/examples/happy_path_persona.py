@@ -16,6 +16,8 @@ from issue_solver.events.domain import (
     AnyDomainEvent,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -31,8 +33,8 @@ class BriceDeNice:
             process_id=cls.first_repo_integration_process_id(),
             url="https://github.com/brice/nice-repo.git",
             access_token="ghp_brices_token_123456",
-            user_id="brice-user-001",
-            space_id="brice-space-001",
+            user_id=cls.user_id(),
+            space_id=cls.team_space_id(),
             knowledge_base_id="brice-kb-001",
             occurred_at=datetime.fromisoformat("2025-01-01T12:00:00Z"),
             token_permissions={
@@ -43,6 +45,46 @@ class BriceDeNice:
                 "missing_scopes": [],
                 "is_optimal": True,
             },
+        )
+
+    @classmethod
+    def team_space_id(cls) -> str:
+        return "brice-space-001"
+
+    @classmethod
+    def connected_notion_workspace(cls) -> NotionIntegrationAuthorized:
+        return NotionIntegrationAuthorized(
+            process_id=cls.notion_integration_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-01T12:05:00Z"),
+            user_id=cls.user_id(),
+            space_id=cls.team_space_id(),
+            workspace_id="brice-notion-workspace",
+            workspace_name="Brice Knowledge Base",
+            bot_id="notion-bot-001",
+            mcp_access_token="notion_brice_token_987654",
+            mcp_refresh_token="notion_brice_refresh_token_123",
+        )
+
+    @classmethod
+    def user_id(cls) -> str:
+        return "brice-user-001"
+
+    @classmethod
+    def notion_integration_process_id(cls) -> str:
+        return "brice-notion-integration-process-001"
+
+    @classmethod
+    def rotated_notion_token(cls) -> NotionIntegrationTokenRefreshed:
+        return NotionIntegrationTokenRefreshed(
+            process_id=BriceDeNice.notion_integration_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-03T08:30:00Z"),
+            user_id=BriceDeNice.user_id(),
+            space_id=BriceDeNice.team_space_id(),
+            workspace_id="brice-notion-workspace",
+            workspace_name="Brice Knowledge Base",
+            bot_id="notion-bot-001",
+            mcp_access_token="notion_brice_new_token_4321",
+            mcp_refresh_token="notion_brice_new_refresh_token_4321",
         )
 
     @classmethod
@@ -67,7 +109,7 @@ class BriceDeNice:
         return EnvironmentConfigurationProvided(
             process_id=BriceDeNice.first_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:00:00Z"),
-            user_id="brice-user-001",
+            user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
             global_setup="""
             #!/bin/bash
@@ -107,7 +149,7 @@ class BriceDeNice:
         return EnvironmentConfigurationProvided(
             process_id=BriceDeNice.second_env_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T08:02:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             global_setup="""
             #!/bin/bash
@@ -142,7 +184,7 @@ class BriceDeNice:
         return RepositoryIndexationRequested(
             process_id="brice-indexation-process-001",
             occurred_at=datetime.fromisoformat("2025-01-01T12:00:15Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
         )
 
@@ -151,7 +193,7 @@ class BriceDeNice:
         return IssueResolutionRequested(
             process_id=cls.first_issue_resolution_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-02T09:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             issue=IssueInfo(
                 title="Fix login bug",
@@ -190,7 +232,7 @@ class BriceDeNice:
         return CodeRepositoryTokenRotated(
             process_id="brice-token-rotation-process-001",
             occurred_at=datetime.fromisoformat("2025-01-03T08:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             new_access_token="ghp_brices_new_token_789012",
             token_permissions={
@@ -212,7 +254,7 @@ class BriceDeNice:
         return IssueResolutionRequested(
             process_id=cls.second_issue_resolution_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-03T14:00:00Z"),
-            user_id="brice-user-001",
+            user_id=BriceDeNice.user_id(),
             knowledge_base_id="brice-kb-001",
             issue=IssueInfo(
                 title="Performance issue in data processing",
@@ -251,6 +293,7 @@ class BriceDeNice:
             cls.got_his_first_repo_connected(),  # 12:00:00 - Repo connected
             cls.requested_repository_indexation(),  # 12:00:15 - Indexation requested
             cls.got_his_first_repo_indexed(),  # 12:00:30 - Repo indexed
+            cls.connected_notion_workspace(),  # 11:00:00 - Notion workspace connected
             # Day 2: Environment setup and first issue resolution
             cls.got_his_environment_configuration_provided(),  # 08:00:00 - Environment config provided
             cls.got_his_environment_configuration_validated(),  # 08:01:05 - Environment config validated
@@ -262,6 +305,7 @@ class BriceDeNice:
             cls.completed_issue_resolution(),  # 10:30:00 - Issue resolved with PR
             # Day 3: Token rotation and second issue (failed)
             cls.got_his_token_rotated(),  # 08:00:00 - Token rotated for security
+            cls.rotated_notion_token(),  # 07:30:00 - Notion token rotated
             cls.requested_second_issue_resolution(),  # 14:00:00 - Second issue requested
             cls.failed_second_issue_resolution(),  # 16:45:00 - Second issue failed
             # Day 4: Failed integration attempt

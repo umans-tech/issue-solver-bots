@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from issue_solver.webapi.main import app
+from issue_solver.webapi.routers import notion_integration
 
 client = TestClient(app)
 
@@ -193,6 +194,84 @@ def test_returns_processes_filtered_by_status(api_client, time_under_control):
     assert data["processes"][0]["status"] == "requested"
     assert data["processes"][0]["type"] == "issue_resolution"
     assert data["total"] == 1
+
+
+def test_returns_notion_integration_process(
+    api_client, time_under_control, monkeypatch
+):
+    time_under_control.set_from_iso_format("2025-01-05T08:00:00")
+
+    notion_integration._get_mcp_settings.cache_clear()
+    monkeypatch.setenv("NOTION_MCP_CLIENT_ID", "stub-mcp-client-id")
+    monkeypatch.setenv("NOTION_MCP_CLIENT_SECRET", "stub-mcp-client-secret")
+    monkeypatch.setenv(
+        "NOTION_MCP_OAUTH_REDIRECT_URI",
+        "https://example.com/notion/mcp/callback",
+    )
+    monkeypatch.setenv("NOTION_MCP_RETURN_BASE_URL", "https://frontend.example.com")
+
+    async def fake_request_oauth_token(
+        *,
+        payload,
+        logger,
+        endpoint,
+        client_id,
+        client_secret,
+        auth_method,
+        form_encode=False,
+    ):
+        grant_type = payload.get("grant_type")
+        if (
+            endpoint == "https://mcp.notion.com/token"
+            and grant_type == "authorization_code"
+        ):
+            return {
+                "access_token": "mcp-access-token",
+                "refresh_token": "mcp-refresh-token",
+                "expires_in": 3600,
+                "workspace_id": "workspace-123",
+                "workspace_name": "Acme Workspace",
+                "bot_id": "bot-abc",
+            }
+        raise AssertionError(f"Unexpected grant type: {grant_type}")
+
+    monkeypatch.setattr(
+        notion_integration,
+        "_request_oauth_token",
+        fake_request_oauth_token,
+    )
+
+    start_resp = api_client.get(
+        "/integrations/notion/oauth/mcp/start",
+        params={"space_id": "brice-space-001"},
+        headers={"X-User-ID": "brice-user-001"},
+    )
+    state = start_resp.json()["state"]
+
+    api_client.get(
+        "/integrations/notion/mcp/oauth/callback",
+        params={"code": "auth-code", "state": state},
+        headers={"X-User-ID": "brice-user-001"},
+        follow_redirects=False,
+    )
+
+    response = api_client.get("/processes?space_id=brice-space-001")
+    assert response.status_code == 200
+    data = response.json()
+    notion_processes = [
+        p for p in data["processes"] if p["type"] == "notion_integration"
+    ]
+
+    assert len(notion_processes) == 1
+    notion_process = notion_processes[0]
+    assert notion_process["status"] == "connected"
+    events = notion_process["events"]
+    assert events, "expected at least one event for Notion integration process"
+    first_event = events[0]
+    assert first_event["type"] == "notion_integration_authorized"
+    assert first_event["space_id"] == "brice-space-001"
+    assert first_event["workspace_id"] == "workspace-123"
+    assert first_event["workspace_name"] == "Acme Workspace"
 
 
 def test_returns_processes_with_default_pagination(api_client, time_under_control):

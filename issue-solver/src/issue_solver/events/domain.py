@@ -174,6 +174,48 @@ class EnvironmentValidationFailed(DomainEvent):
         return self.stderr
 
 
+@dataclass(kw_only=True, frozen=True, slots=True)
+class NotionIntegrationAuthorized(DomainEvent):
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class NotionIntegrationTokenRefreshed(DomainEvent):
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NotionIntegrationAuthorizationFailed(DomainEvent):
+    error_type: str
+    error_message: str
+    user_id: str
+    space_id: str
+    process_id: str
+    occurred_at: datetime
+
+    @property
+    def reason(self) -> str:
+        return self.error_type
+
+
 AnyDomainEvent = (
     CodeRepositoryConnected
     | CodeRepositoryTokenRotated
@@ -188,6 +230,9 @@ AnyDomainEvent = (
     | IssueResolutionEnvironmentPrepared
     | EnvironmentConfigurationValidated
     | EnvironmentValidationFailed
+    | NotionIntegrationAuthorized
+    | NotionIntegrationTokenRefreshed
+    | NotionIntegrationAuthorizationFailed
 )
 
 

@@ -25,6 +25,9 @@ from issue_solver.events.domain import (
     IssueResolutionEnvironmentPrepared,
     EnvironmentConfigurationValidated,
     EnvironmentValidationFailed,
+    NotionIntegrationAuthorized,
+    NotionIntegrationTokenRefreshed,
+    NotionIntegrationAuthorizationFailed,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -60,6 +63,12 @@ def get_record_type(event_type: Type[T]) -> str:
             return "environment_configuration_provided"
         case type() if event_type is IssueResolutionEnvironmentPrepared:
             return "issue_resolution_environment_prepared"
+        case type() if event_type is NotionIntegrationAuthorized:
+            return "notion_integration_authorized"
+        case type() if event_type is NotionIntegrationTokenRefreshed:
+            return "notion_integration_token_refreshed"
+        case type() if event_type is NotionIntegrationAuthorizationFailed:
+            return "notion_integration_authorization_failed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -137,6 +146,174 @@ class CodeRepositoryConnectedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             process_id=event.process_id,
             token_permissions=event.token_permissions,
+        )
+
+
+class NotionIntegrationAuthorizedRecord(BaseModel):
+    type: Literal["notion_integration_authorized"] = "notion_integration_authorized"
+    occurred_at: datetime
+    user_id: str
+    space_id: str
+    process_id: str
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
+
+    def safe_copy(self) -> Self:
+        obfuscated_mcp_access = (
+            obfuscate(self.mcp_access_token) if self.mcp_access_token else None
+        )
+        obfuscated_mcp_refresh = (
+            obfuscate(self.mcp_refresh_token) if self.mcp_refresh_token else None
+        )
+        return self.model_copy(  # type: ignore[call-arg]
+            update={
+                "mcp_access_token": obfuscated_mcp_access,
+                "mcp_refresh_token": obfuscated_mcp_refresh,
+            }
+        )
+
+    def to_domain_event(self) -> NotionIntegrationAuthorized:
+        return NotionIntegrationAuthorized(
+            occurred_at=self.occurred_at,
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+            workspace_id=self.workspace_id,
+            workspace_name=self.workspace_name,
+            bot_id=self.bot_id,
+            mcp_access_token=_decrypt_token(self.mcp_access_token)
+            if self.mcp_access_token
+            else None,
+            mcp_refresh_token=_decrypt_token(self.mcp_refresh_token)
+            if self.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=self.mcp_token_expires_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationAuthorized) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
+            workspace_id=event.workspace_id,
+            workspace_name=event.workspace_name,
+            bot_id=event.bot_id,
+            mcp_access_token=_encrypt_token(event.mcp_access_token)
+            if event.mcp_access_token
+            else None,
+            mcp_refresh_token=_encrypt_token(event.mcp_refresh_token)
+            if event.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=event.mcp_token_expires_at,
+        )
+
+
+class NotionIntegrationTokenRefreshedRecord(BaseModel):
+    type: Literal["notion_integration_token_refreshed"] = (
+        "notion_integration_token_refreshed"
+    )
+    occurred_at: datetime
+    user_id: str
+    space_id: str
+    process_id: str
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    bot_id: str | None = None
+    mcp_access_token: str | None = None
+    mcp_refresh_token: str | None = None
+    mcp_token_expires_at: datetime | None = None
+
+    def safe_copy(self) -> Self:
+        obfuscated_mcp_access = (
+            obfuscate(self.mcp_access_token) if self.mcp_access_token else None
+        )
+        obfuscated_mcp_refresh = (
+            obfuscate(self.mcp_refresh_token) if self.mcp_refresh_token else None
+        )
+        return self.model_copy(  # type: ignore[call-arg]
+            update={
+                "mcp_access_token": obfuscated_mcp_access,
+                "mcp_refresh_token": obfuscated_mcp_refresh,
+            }
+        )
+
+    def to_domain_event(self) -> NotionIntegrationTokenRefreshed:
+        return NotionIntegrationTokenRefreshed(
+            occurred_at=self.occurred_at,
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+            workspace_id=self.workspace_id,
+            workspace_name=self.workspace_name,
+            bot_id=self.bot_id,
+            mcp_access_token=_decrypt_token(self.mcp_access_token)
+            if self.mcp_access_token
+            else None,
+            mcp_refresh_token=_decrypt_token(self.mcp_refresh_token)
+            if self.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=self.mcp_token_expires_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationTokenRefreshed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
+            workspace_id=event.workspace_id,
+            workspace_name=event.workspace_name,
+            bot_id=event.bot_id,
+            mcp_access_token=_encrypt_token(event.mcp_access_token)
+            if event.mcp_access_token
+            else None,
+            mcp_refresh_token=_encrypt_token(event.mcp_refresh_token)
+            if event.mcp_refresh_token
+            else None,
+            mcp_token_expires_at=event.mcp_token_expires_at,
+        )
+
+
+class NotionIntegrationAuthorizationFailedRecord(BaseModel):
+    type: Literal["notion_integration_authorization_failed"] = (
+        "notion_integration_authorization_failed"
+    )
+    occurred_at: datetime
+    error_type: str
+    error_message: str
+    user_id: str
+    space_id: str
+    process_id: str
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> NotionIntegrationAuthorizationFailed:
+        return NotionIntegrationAuthorizationFailed(
+            occurred_at=self.occurred_at,
+            error_type=self.error_type,
+            error_message=self.error_message,
+            user_id=self.user_id,
+            space_id=self.space_id,
+            process_id=self.process_id,
+        )
+
+    @classmethod
+    def create_from(cls, event: NotionIntegrationAuthorizationFailed) -> Self:
+        return cls(
+            occurred_at=event.occurred_at,
+            error_type=event.error_type,
+            error_message=event.error_message,
+            user_id=event.user_id,
+            space_id=event.space_id,
+            process_id=event.process_id,
         )
 
 
@@ -559,6 +736,9 @@ ProcessTimelineEventRecords = (
     | IssueResolutionEnvironmentPreparedRecord
     | EnvironmentConfigurationValidatedRecord
     | EnvironmentValidationFailedRecord
+    | NotionIntegrationAuthorizedRecord
+    | NotionIntegrationTokenRefreshedRecord
+    | NotionIntegrationAuthorizationFailedRecord
 )
 
 
@@ -594,6 +774,12 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return EnvironmentConfigurationValidatedRecord.create_from(event)
         case EnvironmentValidationFailed():
             return EnvironmentValidationFailedRecord.create_from(event)
+        case NotionIntegrationAuthorized():
+            return NotionIntegrationAuthorizedRecord.create_from(event)
+        case NotionIntegrationTokenRefreshed():
+            return NotionIntegrationTokenRefreshedRecord.create_from(event)
+        case NotionIntegrationAuthorizationFailed():
+            return NotionIntegrationAuthorizationFailedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -650,6 +836,18 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "environment_validation_failed":
             return EnvironmentValidationFailedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_authorized":
+            return NotionIntegrationAuthorizedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_token_refreshed":
+            return NotionIntegrationTokenRefreshedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "notion_integration_authorization_failed":
+            return NotionIntegrationAuthorizationFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:
