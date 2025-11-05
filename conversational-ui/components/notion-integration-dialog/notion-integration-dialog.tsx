@@ -32,26 +32,6 @@ interface NotionIntegrationDetails {
   hasMcpToken: boolean;
 }
 
-function describeTokenState(details: NotionIntegrationDetails | null): string {
-  if (!details) {
-    return 'Not connected yet.';
-  }
-  if (!details.tokenExpiresAt) {
-    return details.hasMcpToken
-      ? 'MCP access is active. Tokens refresh automatically when the tools run.'
-      : 'Authorize Notion MCP to enable workspace tools.';
-  }
-  const expiryDate = new Date(details.tokenExpiresAt);
-  if (Number.isNaN(expiryDate.getTime())) {
-    return 'Unknown expiration';
-  }
-  const now = new Date();
-  if (expiryDate <= now) {
-    return `OAuth token expired ${expiryDate.toLocaleString()}`;
-  }
-  return `OAuth token refreshes ${expiryDate.toLocaleString()}`;
-}
-
 export function NotionIntegrationDialog({
   open,
   onOpenChange,
@@ -72,14 +52,14 @@ export function NotionIntegrationDialog({
         return (
           <Badge variant="outline" className="gap-1 text-xs">
             <CheckCircleFillIcon size={14} className="text-green-500" />
-            MCP connected
+            Connected
           </Badge>
         );
       }
       return (
         <Badge variant="secondary" className="gap-1 text-xs">
           <AlertCircle size={14} />
-          MCP authorization required
+          Authorization required
         </Badge>
       );
     }
@@ -176,7 +156,7 @@ export function NotionIntegrationDialog({
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result?.error || 'Failed to start Notion MCP authorization');
+        throw new Error(result?.error || 'Failed to start the Notion connection');
       }
       if (result?.authorizeUrl) {
         window.location.href = result.authorizeUrl;
@@ -184,8 +164,8 @@ export function NotionIntegrationDialog({
         throw new Error('Missing authorization URL from server.');
       }
     } catch (err: any) {
-      console.error('Failed to initiate Notion MCP authorization', err);
-      toast.error(err.message || 'Failed to start Notion MCP authorization');
+      console.error('Failed to initiate Notion authorization', err);
+      toast.error(err.message || 'Failed to start the Notion connection');
       setError(err.message);
     } finally {
       setIsSubmitting(false);
@@ -193,8 +173,8 @@ export function NotionIntegrationDialog({
   };
 
   const actionLabel = integration?.hasMcpToken
-    ? 'Reconnect Notion MCP'
-    : 'Connect Notion MCP';
+    ? 'Reconnect Notion'
+    : 'Connect Notion';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -202,8 +182,7 @@ export function NotionIntegrationDialog({
         <SheetHeader>
           <SheetTitle>Connect Notion</SheetTitle>
           <SheetDescription>
-            Authorize Notion once so the Model Context Protocol tools can search and use
-            your workspace when solving issues.
+            Bring your Notion workspace into this space so everyone can pull rich context into conversations, capture better tickets, and publish polished docs—without leaving Umans.
           </SheetDescription>
         </SheetHeader>
 
@@ -236,22 +215,16 @@ export function NotionIntegrationDialog({
             </div>
           )}
 
-          <div className="rounded-md border bg-muted/20 p-3">
-            <p className="text-sm font-medium">Connection status</p>
-            <p className="text-sm text-muted-foreground">
-              {describeTokenState(integration)}
-            </p>
+          <div className="space-y-2">
             {!integration?.hasMcpToken && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Select “{actionLabel}” to approve the Notion MCP consent screen.
+              <p className="text-xs text-muted-foreground">
+                Select “{actionLabel}” to approve the Notion consent screen.
               </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              By connecting, you let every teammate and Umans agent in this space search your Notion workspace for context, draft better tickets, and update pages when you ask.
+            </p>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            You will be redirected to Notion to approve MCP access. When the authorization
-            succeeds, refresh this dialog to see the latest status.
-          </p>
         </div>
 
         <SheetFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
@@ -262,21 +235,6 @@ export function NotionIntegrationDialog({
           )}
 
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() =>
-                window.open(
-                  'https://developers.notion.com/docs/get-started-with-mcp',
-                  '_blank',
-                  'noopener,noreferrer',
-                )
-              }
-            >
-              View Notion MCP guide
-            </Button>
-
             <Button
               type="button"
               onClick={handleConnect}
