@@ -132,6 +132,18 @@ generate-encryption-key:
 export-notion-mcp-credentials:
     @uv run python scripts/export_notion_mcp_client.py
 
+# 🔐 Complete the Notion MCP OAuth flow locally (prints code + saves tokens)
+notion-mcp-oauth-flow:
+    @uv run python scripts/notion_mcp_oauth_flow.py
+
+# 🔄 Refresh tokens using stored refresh token
+notion-mcp-oauth-refresh:
+    @uv run python scripts/notion_mcp_refresh.py
+
+# ✅ Test Notion MCP access token by running initialize + tools/list
+notion-mcp-test:
+    @.venv/bin/python scripts/notion_mcp_test_tool.py
+
 # 🗂️ Plan vector store cleanup (shows what would be deleted)
 plan-cleanup:
     @echo "Planning vector store cleanup..."

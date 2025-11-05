@@ -713,4 +713,5 @@ async def _request_oauth_token(
             detail="Failed to exchange tokens with Notion MCP OAuth service.",
         )
 
+    logger.info("Notion MCP OAuth token exchange successful with code: %s, and text: %s", response.status_code, response.text)
     return response.json()
