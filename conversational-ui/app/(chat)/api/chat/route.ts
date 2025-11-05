@@ -1,4 +1,13 @@
-import { smoothStream, streamText, UIMessage, stepCountIs, createUIMessageStream, convertToModelMessages, JsonToSseTransformStream, type UIMessagePart } from 'ai';
+import {
+    convertToModelMessages,
+    createUIMessageStream,
+    JsonToSseTransformStream,
+    smoothStream,
+    stepCountIs,
+    streamText,
+    UIMessage,
+    type UIMessagePart
+} from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
 import { myProvider } from '@/lib/ai/models';
@@ -8,8 +17,6 @@ import {
     deleteChatById,
     getChatById,
     getCurrentUserSpace,
-    getMessagesByChatId,
-    getStreamIdsByChatId,
     saveChat,
     saveMessages,
     updateChatTitleById
@@ -26,28 +33,17 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
-import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
-import { setController, deleteController } from '@/lib/stream/controller-registry';
+import { deleteController, setController } from '@/lib/stream/controller-registry';
 import { after } from 'next/server';
-import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
 import { notionMCPClient } from '@/lib/ai/tools/notion_mcp';
 import { ChatMessage } from '@/lib/types';
 import { checkChatEntitlements } from '@/lib/ai/entitlements';
 
-type MCPWrapper = {
-  client: { close?: () => void | Promise<void> };
-  activeTools: () => string[];
-  loadTools: () => Promise<Record<string, unknown>>;
-  persistent?: boolean;
-  __error?: unknown;
-};
-
 export const maxDuration = 60;
 const maxSteps = 40;
 const maxRetries = 10;
-
 
 
 let globalStreamContext: ResumableStreamContext | null = null;
@@ -188,48 +184,17 @@ export async function POST(request: Request) {
     } : undefined;
     
     // Initialize fresh MCP client with user context for this request
-    const repoMcpWrapper = (await codeRepositoryMCPClient(userContext)) as MCPWrapper;
-    const notionMcpWrapper = (await notionMCPClient(userContext)) as MCPWrapper;
-    const mcpWrappers: MCPWrapper[] = [repoMcpWrapper, notionMcpWrapper];
-    const toolMaps = await Promise.all(
-      mcpWrappers.map(async (wrapper) => {
-        try {
-          return await wrapper.loadTools();
-        } catch (error) {
-          console.warn('[MCP] failed to load tools for wrapper', error);
-          return {};
-        }
-      }),
-    );
-    const mcpTools = Object.assign({}, ...toolMaps);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        '[MCP] available tools:',
-        Object.entries(mcpTools).map(([name, tool]) => ({
-          name,
-          description: (tool as any)?.description,
-        })),
-      );
-    }
-    const mcpActiveTools = Array.from(
-      new Set([
-        ...mcpWrappers.flatMap((wrapper) => wrapper.activeTools()),
-        ...Object.keys(mcpTools),
-      ]),
-    );
-    const cleanupClients = () => {
-      for (const wrapper of mcpWrappers) {
-        const { client } = wrapper;
-        if ('persistent' in wrapper && wrapper.persistent) continue;
-        if (typeof (client as any)?.close === 'function') {
-          try {
-            (client as any).close();
-          } catch (error) {
-            console.warn('Failed to close MCP client', error);
-          }
-        }
-      }
+    const githubClientWrapper = await codeRepositoryMCPClient(userContext);
+    const notionClientWrapper = await notionMCPClient(userContext);
+
+    const mcpTools = {
+        ...await githubClientWrapper.client.tools(),
+        ...await notionClientWrapper.client.tools(),
     };
+    const activeTools = [
+        ...githubClientWrapper.activeTools(),
+        ...notionClientWrapper.activeTools(),
+    ];
 
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
@@ -240,29 +205,8 @@ export async function POST(request: Request) {
             setController(streamId, abortController);
 
             const result = streamText({
-            model: myProvider.languageModel(selectedChatModel),
-            system: (() => {
-              const base = systemPrompt({ selectedChatModel });
-              if (!Object.keys(mcpTools).length) {
-                return base;
-              }
-              const notionToolEntries = Object.entries(mcpTools).filter(([name]) =>
-                name.toLowerCase().includes('notion') || name.toLowerCase().startsWith('page_')
-              );
-              if (!notionToolEntries.length) {
-                return base;
-              }
-              const toolList = notionToolEntries
-                .slice(0, 10)
-                .map(([name, tool]) => {
-                  const desc = (tool as any)?.description?.trim();
-                  return `- **\`${name}\`**${desc ? ` – ${desc}` : ''}`;
-                })
-                .join('\n');
-              const remaining = notionToolEntries.length - 10;
-              const extraLine = remaining > 0 ? `\n- … ${remaining} more Notion tools available` : '';
-              return `${base}\n\n## Notion MCP tools available\n${toolList}${extraLine}\nUse these tools for workspace content, pages, databases, or search in Notion.`;
-            })(),
+                model: myProvider.languageModel(selectedChatModel),
+                system: systemPrompt({ selectedChatModel }),
                 messages: convertToModelMessages(messages),
                 stopWhen: stepCountIs(maxSteps),
                 maxRetries: maxRetries,
@@ -285,7 +229,7 @@ export async function POST(request: Request) {
                     'remoteCodingAgent',
                     'fetchWebpage',
                     // @ts-ignore
-                    ...mcpActiveTools,
+                    ...activeTools
                 ],
                 experimental_transform: smoothStream({ chunking: 'word' }),
                 tools: {
@@ -397,13 +341,11 @@ export async function POST(request: Request) {
             console.error('Failed to save chat');
           } finally {
             deleteController(streamId);
-            cleanupClients();
           }
       },
         onError: (error) => {
             console.error('Error during streaming:', error);
             deleteController(streamId);
-            cleanupClients();
             return 'Oops, an error occured!';
         },
     });
