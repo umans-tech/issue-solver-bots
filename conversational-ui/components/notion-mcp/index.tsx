@@ -260,6 +260,111 @@ export const NotionMCPAnimation = ({
   );
 };
 
+export const extractNotionSources = (
+  result: any,
+  args?: Record<string, unknown>,
+) => {
+  const seen = new Set<string>();
+  const sources: Array<{
+    sourceType: 'url';
+    id: string;
+    url: string;
+    title: string;
+    providerMetadata?: any;
+  }> = [];
+
+  const makeId = () =>
+    typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `notion-${Math.random().toString(36).slice(2)}`;
+
+  const addSource = (url?: string, title?: string) => {
+    if (!url || !url.startsWith('http') || seen.has(url)) return;
+    seen.add(url);
+    sources.push({
+      sourceType: 'url',
+      id: makeId(),
+      url,
+      title: title?.trim().length ? title : url,
+      providerMetadata: { notion: {} },
+    });
+  };
+
+  const collect = (value: unknown, depth = 0) => {
+    if (!value || depth > 5) return;
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      const matches = trimmed.match(/https?:\/\/[^\s"'<>]+/g) ?? [];
+      matches.forEach((match) => {
+        if (match.includes('notion.so/')) {
+          addSource(match.split('#')[0]);
+        }
+      });
+
+      if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      ) {
+        try {
+          collect(JSON.parse(trimmed), depth + 1);
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => collect(entry, depth + 1));
+      return;
+    }
+
+    if (typeof value === 'object') {
+      const resourceUri = (value as any)?.resource?.uri;
+      if (typeof resourceUri === 'string' && resourceUri.includes('notion.so/')) {
+        addSource(resourceUri.split('#')[0], (value as any)?.resource?.title);
+      }
+
+      const directUrl =
+        (value as any)?.url ||
+        (value as any)?.href ||
+        (value as any)?.public_url ||
+        (value as any)?.uri;
+      if (typeof directUrl === 'string' && directUrl.includes('notion.so/')) {
+        const normalized = directUrl.split('#')[0];
+        const title =
+          (value as any)?.title ||
+          (value as any)?.plainText ||
+          (value as any)?.name ||
+          (value as any)?.text ||
+          (value as any)?.id;
+        addSource(normalized, title);
+      }
+
+      Object.values(value as Record<string, unknown>).forEach((entry) => collect(entry, depth + 1));
+    }
+  };
+
+  collect(result);
+  collect(args);
+
+  if (result && result.content && Array.isArray(result.content)) {
+    for (const entry of result.content) {
+      if (entry?.type === 'resource' && entry?.resource?.uri) {
+        const url = entry.resource.uri.split('#')[0];
+        const title = entry.resource.title || entry.resource.name;
+        addSource(url, title);
+      }
+      if (entry?.type === 'text' && typeof entry.text === 'string') {
+        collect(entry.text, 1);
+      }
+    }
+  }
+
+  return sources.slice(0, 5);
+};
+
 export const NotionMCPResult = ({
   toolName,
   result,

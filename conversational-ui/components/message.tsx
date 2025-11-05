@@ -30,12 +30,12 @@ import { CodeIcon } from './icons';
 import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
 import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
 import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
-import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool } from './notion-mcp';
+import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool, extractNotionSources } from './notion-mcp';
 import { chatModels } from '@/lib/ai/models';
 import { TodoDisplay } from './todo-display';
 import { ChatMessage, ChatTools } from '@/lib/types';
 import { useDataStream } from '@/components/data-stream-provider';
-import { ToolUIPart } from 'ai';
+import { ToolUIPart, getToolName } from 'ai';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -96,33 +96,79 @@ const PurePreviewMessage = ({
       }
     };
 
+    const addSource = (url?: string | null, title?: string, metadata?: any, idHint?: string) => {
+      if (!url) return;
+      const key = normalize(url);
+      if (seen.has(key)) return;
+      seen.add(key);
+      collected.push({
+        id: idHint ?? key,
+        url,
+        title,
+        sourceType: 'url',
+        providerMetadata: metadata,
+      });
+    };
+
     for (const part of message.parts) {
       if (part.type === 'source-url') {
-        const url = part.url;
-        const key = normalize(url ?? part.sourceId);
-        if (!seen.has(key)) {
-          seen.add(key);
-          collected.push({
-            id: part.sourceId,
-            url: url,
-            title: part.title,
-            sourceType: 'url',
-            providerMetadata: (part as any).providerMetadata,
-          });
-        }
+        addSource(part.url, part.title, (part as any).providerMetadata, part.sourceId);
       } else if (part.type === 'source-document') {
         const url = (part as any).filename || `document:${part.sourceId}`;
-        const key = normalize(url);
-        if (!seen.has(key)) {
-          seen.add(key);
-          collected.push({
-            id: part.sourceId,
-            url,
-            title: part.title,
-            sourceType: 'url',
-            providerMetadata: (part as any).providerMetadata,
-          });
+        addSource(url, part.title, (part as any).providerMetadata, part.sourceId);
+      }
+    }
+
+    const processToolSources = (
+      toolNameRaw: unknown,
+      toolOutput: unknown,
+      toolInput: unknown,
+    ) => {
+      if (typeof toolNameRaw !== 'string') return;
+
+      if (isGitHubMCPTool(toolNameRaw)) {
+        const githubSources = extractGitHubSources(toolNameRaw, toolOutput, toolInput);
+        githubSources.forEach(({ url: githubUrl, title: githubTitle, id: githubId, ...rest }) => {
+          if (!githubUrl) return;
+          const metadata = (rest as { providerMetadata?: any })?.providerMetadata;
+          addSource(githubUrl, githubTitle, metadata, githubId);
+        });
+      }
+
+      if (isNotionMCPTool(toolNameRaw)) {
+        const notionSources = extractNotionSources(
+          toolOutput,
+          (toolInput as Record<string, unknown> | undefined) ?? undefined,
+        );
+        notionSources.forEach(({ url: notionUrl, title: notionTitle, id: notionId, providerMetadata }) => {
+          if (!notionUrl) return;
+          addSource(notionUrl, notionTitle, providerMetadata ?? { notion: {} }, notionId);
+        });
+      }
+    };
+
+    const finishedDynamicStates = new Set(['output-available', 'result', 'finished']);
+
+    for (const part of message.parts) {
+      if (part.type === 'dynamic-tool') {
+        const toolName = (part as any)?.toolName;
+        const state = (part as any)?.state;
+        if (!toolName || !state) continue;
+
+        const output = (part as any)?.output;
+        const input = (part as any)?.input ?? (part as any)?.args;
+        if (finishedDynamicStates.has(String(state))) {
+          processToolSources(toolName, output, input);
         }
+        continue;
+      }
+
+      if (part.type.startsWith('tool-')) {
+        const toolPart = part as ToolUIPart<ChatTools>;
+        if (toolPart.state !== 'output-available') continue;
+
+        const toolName = String(getToolName(toolPart));
+        processToolSources(toolName, toolPart.output, toolPart.input);
       }
     }
 
