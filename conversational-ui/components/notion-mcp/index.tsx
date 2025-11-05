@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { SiNotion } from 'react-icons/si';
 import { ChevronDown } from 'lucide-react';
+import { SourceFavicon } from '@/components/source-favicon';
 
 type NotionSummaryItem = {
   primary: string;
@@ -252,9 +253,11 @@ export const NotionMCPAnimation = ({
       transition={{ duration: 0.2 }}
       className="flex items-center gap-2 text-sm text-muted-foreground"
     >
-      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black text-white">
-        <SiNotion className="h-4 w-4" />
-      </span>
+      <SourceFavicon
+        url="https://www.notion.so"
+        className="h-6 w-6 rounded-md"
+        fallbackIcon={<SiNotion className="h-4 w-4" />}
+      />
       <span className="truncate max-w-[320px] animate-pulse">{text}</span>
     </motion.div>
   );
@@ -382,9 +385,11 @@ export const NotionMCPResult = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="inline-flex max-w-full items-center gap-2 text-sm text-muted-foreground">
-        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black text-white">
-          <SiNotion className="h-4 w-4" />
-        </span>
+        <SourceFavicon
+          url="https://www.notion.so"
+          className="h-6 w-6 rounded-md"
+          fallbackIcon={<SiNotion className="h-4 w-4" />}
+        />
         <span
           className="flex cursor-pointer items-center gap-1 select-none hover:text-foreground"
           onClick={() => setExpanded((prev) => !prev)}
