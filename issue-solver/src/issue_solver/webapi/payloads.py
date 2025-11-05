@@ -34,15 +34,6 @@ class RotateTokenRequest(BaseSchema):
     access_token: str
 
 
-class ConnectNotionIntegrationRequest(BaseSchema):
-    access_token: str
-    space_id: str
-
-
-class RotateNotionIntegrationRequest(BaseSchema):
-    access_token: str
-
-
 class NotionIntegrationView(BaseSchema):
     space_id: str
     process_id: str
@@ -51,7 +42,6 @@ class NotionIntegrationView(BaseSchema):
     workspace_name: str | None = None
     bot_id: str | None = None
     token_expires_at: datetime | None = None
-    has_valid_token: bool = False
     has_mcp_token: bool = False
 
 

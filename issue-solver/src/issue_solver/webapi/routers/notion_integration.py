@@ -121,7 +121,6 @@ def _build_integration_view(
         credentials.bot_id if credentials and credentials.bot_id else base_event.bot_id
     )
     token_expires_at = None
-    has_valid_token = False
     has_mcp_token = bool(credentials and credentials.mcp_refresh_token)
     process_id = credentials.process_id if credentials else base_event.process_id
 
@@ -133,7 +132,6 @@ def _build_integration_view(
         workspace_name=workspace_name,
         bot_id=bot_id,
         token_expires_at=token_expires_at,
-        has_valid_token=has_valid_token,
         has_mcp_token=has_mcp_token,
     )
 

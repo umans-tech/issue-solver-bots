@@ -148,7 +148,6 @@ def test_get_notion_integration_returns_latest_mcp_snapshot(api_client) -> None:
     assert body["botId"] == "bot-latest"
     assert body["connectedAt"] == connected_at.isoformat()
     assert body["hasMcpToken"] is True
-    assert body["hasValidToken"] is False
 
 
 def test_start_notion_mcp_oauth_flow_persists_state(api_client, redis_client) -> None:
