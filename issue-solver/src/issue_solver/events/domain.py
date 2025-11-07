@@ -202,6 +202,15 @@ class NotionIntegrationTokenRefreshed(DomainEvent):
     mcp_token_expires_at: datetime | None = None
 
 
+@dataclass(kw_only=True, frozen=True, slots=True)
+class DocumentationPromptsDefined(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    docs_prompts: dict[str, str]
+    process_id: str
+    occurred_at: datetime
+
+
 @dataclass(frozen=True, slots=True)
 class NotionIntegrationAuthorizationFailed(DomainEvent):
     error_type: str
@@ -233,6 +242,7 @@ AnyDomainEvent = (
     | NotionIntegrationAuthorized
     | NotionIntegrationTokenRefreshed
     | NotionIntegrationAuthorizationFailed
+    | DocumentationPromptsDefined
 )
 
 

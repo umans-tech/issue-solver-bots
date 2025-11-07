@@ -1,20 +1,30 @@
 from pathlib import Path
 
-from issue_solver.agents.docs_prompts import suggested_docs_prompts
+from issue_solver.agents.issue_resolving_agent import DocumentingAgent
 from issue_solver.events.code_repo_integration import fetch_repo_credentials
-from issue_solver.events.domain import CodeRepositoryIndexed
-from issue_solver.worker.documenting.knowledge_repository import KnowledgeBase
+from issue_solver.events.domain import (
+    CodeRepositoryIndexed,
+    DocumentationPromptsDefined,
+)
+from issue_solver.events.event_store import EventStore
+from issue_solver.worker.documenting.knowledge_repository import (
+    KnowledgeBase,
+    KnowledgeRepository,
+)
 from issue_solver.worker.dependencies import Dependencies
 
 
 async def generate_docs(
     message: CodeRepositoryIndexed, dependencies: Dependencies
 ) -> None:
-    if not dependencies.docs_agent:
+    docs_agent = dependencies.docs_agent
+    if not docs_agent:
         raise RuntimeError("Docs agent is not configured")
+    event_store = dependencies.event_store
+    knowledge_base_id = message.knowledge_base_id
     repo_credentials = await fetch_repo_credentials(
-        event_store=dependencies.event_store,
-        knowledge_base_id=message.knowledge_base_id,
+        event_store=event_store,
+        knowledge_base_id=knowledge_base_id,
     )
     process_id = dependencies.id_generator.new()
     dependencies.git_client.clone_repository(
@@ -22,14 +32,45 @@ async def generate_docs(
         access_token=repo_credentials.access_token,
         to_path=Path(f"/tmp/repo/{process_id}"),
     )
-    generated_docs_path = Path(f"/tmp/repo/{process_id}").joinpath(
-        message.knowledge_base_id
+    docs_prompts = await get_prompts_for_doc_to_generate(event_store, knowledge_base_id)
+    knowledge_repo = dependencies.knowledge_repository
+    code_version = message.commit_sha
+    if docs_prompts:
+        await generate_and_load_docs(
+            docs_agent,
+            knowledge_repo,
+            process_id,
+            knowledge_base_id,
+            code_version,
+            docs_prompts,
+        )
+
+
+async def get_prompts_for_doc_to_generate(
+    event_store: EventStore, knowledge_base_id: str
+) -> dict[str, str] | None:
+    documentation_prompts = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id},
+        DocumentationPromptsDefined,
     )
-    await dependencies.docs_agent.generate_documentation(
+
+    return documentation_prompts[0].docs_prompts if documentation_prompts else None
+
+
+async def generate_and_load_docs(
+    docs_agent: DocumentingAgent,
+    knowledge_repo: KnowledgeRepository,
+    process_id: str,
+    knowledge_base_id: str,
+    code_version: str,
+    docs_prompts: dict[str, str],
+) -> None:
+    generated_docs_path = Path(f"/tmp/repo/{process_id}").joinpath(knowledge_base_id)
+    await docs_agent.generate_documentation(
         repo_path=Path(f"/tmp/repo/{process_id}"),
-        knowledge_base_id=message.knowledge_base_id,
+        knowledge_base_id=knowledge_base_id,
         output_path=generated_docs_path,
-        docs_prompts=suggested_docs_prompts(),
+        docs_prompts=docs_prompts,
         process_id=process_id,
     )
 
@@ -38,8 +79,8 @@ async def generate_docs(
             relative_path = doc_file.relative_to(generated_docs_path)
             with doc_file.open("r") as f:
                 content = f.read()
-            dependencies.knowledge_repository.add(
-                KnowledgeBase(message.knowledge_base_id, message.commit_sha),
+            knowledge_repo.add(
+                KnowledgeBase(knowledge_base_id, code_version),
                 str(relative_path),
                 content,
             )

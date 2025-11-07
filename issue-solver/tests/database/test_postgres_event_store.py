@@ -41,6 +41,22 @@ async def test_should_persist_events_of_each_type(
     assert retrieved_events == [event]
 
 
+@pytest.mark.parametrize(
+    "event_type,event",
+    examples_of_all_events(),
+)
+@pytest.mark.asyncio
+async def test_should_find_events_of_each_type(
+    event_type: str, event: AnyDomainEvent, event_store: EventStore
+):
+    # When
+    await event_store.append(event.process_id, event)
+
+    # Then
+    retrieved_events = await event_store.find(criteria={}, event_type=type(event))
+    assert retrieved_events == [event]
+
+
 @pytest.mark.asyncio
 async def test_find_should_return_events_with_matching_criteria(
     event_store: EventStore,
