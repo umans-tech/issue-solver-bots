@@ -311,6 +311,46 @@ class BriceDeNice:
         )
 
     @classmethod
+    def defined_additional_prompts_for_documentation(cls) -> dict[str, str]:
+        return {
+            "api_documentation": (
+                "Generate detailed API documentation for all endpoints, including request/response examples and error codes."
+            ),
+            "setup_guide": (
+                "Create a comprehensive setup guide for new developers, covering environment setup, dependencies, and common workflows."
+            ),
+        }
+
+    @classmethod
+    def has_defined_additional_documentation_prompts(
+        cls,
+    ) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            process_id="brice-doc-configuration-process-002",
+            occurred_at=datetime.fromisoformat("2025-01-04T12:15:00Z"),
+            user_id=cls.user_id(),
+            knowledge_base_id="brice-kb-001",
+            docs_prompts=cls.defined_additional_prompts_for_documentation(),
+        )
+
+    @classmethod
+    def has_changed_documentation_prompts(cls) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            process_id="brice-doc-configuration-process-003",
+            occurred_at=datetime.fromisoformat("2025-01-05T09:20:00Z"),
+            user_id=cls.user_id(),
+            knowledge_base_id="brice-kb-001",
+            docs_prompts={
+                "domain_events_glossary": (
+                    "Update the glossary of domain events to include recent additions and provide clearer usage examples."
+                ),
+                "adrs": (
+                    "Revise existing Architecture Decision Records (ADRs) to reflect changes in architectural choices and their implications."
+                ),
+            },
+        )
+
+    @classmethod
     def all_events(cls) -> list[AnyDomainEvent]:
         """
         Returns all domain events in chronological order, representing a complete

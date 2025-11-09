@@ -140,6 +140,114 @@ async def test_process_docs_generation_should_not_generate_any_docs_when_no_prom
     assert knowledge_repo.list_entries(kb_key) == []
 
 
+@pytest.mark.asyncio
+async def test_process_docs_generation_should_generate_docs_when_multiple_prompts_defined(
+    event_store,
+    time_under_control: ControllableClock,
+    knowledge_repo: KnowledgeRepository,
+):
+    # Given
+    git_helper = Mock(spec=GitHelper)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    docs_agent = AsyncMock(spec=DocumentingAgent)
+    process_id = "a1processid"
+    id_generator = Mock()
+    id_generator.new.return_value = process_id
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(),
+        repo_connected,
+    )
+
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+        BriceDeNice.has_defined_additional_documentation_prompts(),
+    )
+
+    # When
+    await process_event_message(
+        BriceDeNice.got_his_first_repo_indexed(),
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            id_generator=id_generator,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    temp_repo_directory = f"/tmp/repo/{process_id}"
+    kb_id = repo_connected.knowledge_base_id
+    docs_agent.generate_documentation.assert_called_once_with(
+        repo_path=Path(temp_repo_directory),
+        knowledge_base_id=kb_id,
+        output_path=Path(temp_repo_directory).joinpath(kb_id),
+        docs_prompts=BriceDeNice.defined_prompts_for_documentation()
+        | BriceDeNice.defined_additional_prompts_for_documentation(),
+        process_id=process_id,
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_docs_generation_should_generate_docs_when_defined_prompts_are_changed(
+    event_store,
+    time_under_control: ControllableClock,
+    knowledge_repo: KnowledgeRepository,
+):
+    # Given
+    git_helper = Mock(spec=GitHelper)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    docs_agent = AsyncMock(spec=DocumentingAgent)
+    process_id = "a1processid"
+    id_generator = Mock()
+    id_generator.new.return_value = process_id
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(),
+        repo_connected,
+    )
+
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+        BriceDeNice.has_defined_additional_documentation_prompts(),
+        BriceDeNice.has_changed_documentation_prompts(),
+    )
+
+    # When
+    await process_event_message(
+        BriceDeNice.got_his_first_repo_indexed(),
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            id_generator=id_generator,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    temp_repo_directory = f"/tmp/repo/{process_id}"
+    kb_id = repo_connected.knowledge_base_id
+    expected_docs_prompts = (
+        BriceDeNice.has_changed_documentation_prompts().docs_prompts
+        | BriceDeNice.defined_additional_prompts_for_documentation()
+    )
+    docs_agent.generate_documentation.assert_called_once_with(
+        repo_path=Path(temp_repo_directory),
+        knowledge_base_id=kb_id,
+        output_path=Path(temp_repo_directory).joinpath(kb_id),
+        docs_prompts=expected_docs_prompts,
+        process_id=process_id,
+    )
+
+
 def init_docs_directory(temp_documentation_directory: Path, *subdirs: str):
     if temp_documentation_directory.exists():
         shutil.rmtree(temp_documentation_directory)
