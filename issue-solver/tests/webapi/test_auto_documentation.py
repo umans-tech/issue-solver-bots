@@ -87,3 +87,112 @@ def test_configure_auto_documentation_should_return_404_when_repository_missing(
     # Then
     assert response.status_code == 404
     assert "No repository found" in response.json()["detail"]
+
+
+def test_get_auto_documentation_should_return_latest_prompts(
+    api_client,
+    time_under_control,
+    sqs_client,
+    sqs_queue,
+):
+    time_under_control.set_from_iso_format("2025-11-02T08:00:00")
+    user_id = "prompts@example.com"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert connect_repo_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    payload = {
+        "docsPrompts": {
+            "overview": "Create a concise overview for leadership updates.",
+            "adr": "Capture architecture trade-offs and choices.",
+        }
+    }
+    post_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json=payload,
+        headers={"X-User-ID": user_id},
+    )
+    assert post_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+
+    get_response = api_client.get(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        headers={"X-User-ID": user_id},
+    )
+    assert get_response.status_code == 200
+    data = get_response.json()
+    assert data["knowledge_base_id"] == knowledge_base_id
+    assert data["docs_prompts"] == payload["docsPrompts"]
+    assert data["updated_at"] is not None
+    assert data["last_process_id"] is not None
+
+
+def test_auto_documentation_prompt_can_be_removed(
+    api_client,
+    time_under_control,
+    sqs_client,
+    sqs_queue,
+):
+    time_under_control.set_from_iso_format("2025-11-03T08:00:00")
+    user_id = "prompts@example.com"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert connect_repo_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    post_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={
+            "docsPrompts": {
+                "glossary": "Document the glossary",
+                "setup": "Create a setup guide",
+            }
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert post_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+
+    removal_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={
+            "docsPrompts": {
+                "glossary": "",
+                "setup": "Update the setup guide with troubleshooting tips",
+            }
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert removal_response.status_code == 201
+    removal_event = receive_event_message(sqs_client, sqs_queue)
+    parsed = json.loads(removal_event["Messages"][0]["Body"])
+    published_event = deserialize(parsed["type"], removal_event["Messages"][0]["Body"])
+    assert published_event.docs_prompts["glossary"] == ""
+
+    get_response = api_client.get(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        headers={"X-User-ID": user_id},
+    )
+    data = get_response.json()
+    assert "glossary" not in data["docs_prompts"]
+    assert (
+        data["docs_prompts"]["setup"]
+        == "Update the setup guide with troubleshooting tips"
+    )

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { DocPromptsPanel } from '@/components/doc-prompts-panel';
 
 type DocFileEntry = {
   path: string;
@@ -788,7 +789,11 @@ export default function DocsPage() {
               </CardHeader>
             </Card>
           ) : (
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)] lg:items-start">
+            <>
+              <div className="mb-4 lg:hidden">
+                <DocPromptsPanel knowledgeBaseId={kbId} />
+              </div>
+              <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,260px)] lg:items-start">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
                 <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 pt-4 space-y-4">
                   {showLoadingShell ? (
@@ -856,39 +861,45 @@ export default function DocsPage() {
               </main>
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
-                <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
-                  {showLoadingShell || isContentLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-3 w-24" />
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-3 w-28" />
-                      <Skeleton className="h-3 w-16" />
-                    </div>
-                  ) : toc.length > 0 ? (
-                    toc.map((item) => {
-                      const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
-                      return (
-                        <div key={item.id} className={indent}>
-                          <button
-                            type="button"
-                            onClick={() => handleTocNavigate(item.id)}
-                            className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-                          >
-                            <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
-                            <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
-                              {item.text}
-                            </span>
-                          </button>
+                <div className="space-y-5">
+                  <DocPromptsPanel knowledgeBaseId={kbId} />
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
+                    <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
+                      {showLoadingShell || isContentLoading ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-3 w-24" />
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-3 w-28" />
+                          <Skeleton className="h-3 w-16" />
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
-                  )}
+                      ) : toc.length > 0 ? (
+                        toc.map((item) => {
+                          const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
+                          return (
+                            <div key={item.id} className={indent}>
+                              <button
+                                type="button"
+                                onClick={() => handleTocNavigate(item.id)}
+                                className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+                              >
+                                <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
+                                <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
+                                  {item.text}
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </aside>
             </div>
+            </>
           )}
         </div>
       </div>

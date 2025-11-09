@@ -53,10 +53,15 @@ async def get_prompts_for_doc_to_generate(
         {"knowledge_base_id": knowledge_base_id},
         DocumentationPromptsDefined,
     )
-    documentation_prompts = {}
+    documentation_prompts: dict[str, str] = {}
     for event in doc_prompts_defined_events:
         documentation_prompts.update(event.docs_prompts)
-    return documentation_prompts
+
+    return {
+        key: value
+        for key, value in documentation_prompts.items()
+        if isinstance(value, str) and value.strip()
+    }
 
 
 async def generate_and_load_docs(

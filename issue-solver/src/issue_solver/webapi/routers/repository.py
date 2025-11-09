@@ -282,19 +282,11 @@ async def configure_auto_documentation(
         knowledge_base_id,
     )
 
-    repository_connections = await event_store.find(
-        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    await _ensure_repository_connection_or_404(
+        knowledge_base_id=knowledge_base_id,
+        event_store=event_store,
+        logger=logger,
     )
-
-    if not repository_connections:
-        logger.error(
-            "No repository found while configuring auto documentation for knowledge base ID: %s",
-            knowledge_base_id,
-        )
-        raise HTTPException(
-            status_code=404,
-            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
-        )
 
     process_id = str(uuid.uuid4())
     event = DocumentationPromptsDefined(
@@ -316,6 +308,60 @@ async def configure_auto_documentation(
         "process_id": process_id,
         "knowledge_base_id": knowledge_base_id,
         "docs_prompts": auto_doc_config.docs_prompts,
+    }
+
+
+@router.get(
+    "/{knowledge_base_id}/auto-documentation",
+    status_code=200,
+)
+async def get_auto_documentation(
+    knowledge_base_id: str,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.get_auto_documentation"
+            )
+        ),
+    ],
+):
+    """Retrieve the latest auto-documentation prompt configuration for a repository."""
+
+    repository_connection = await _ensure_repository_connection_or_404(
+        knowledge_base_id=knowledge_base_id,
+        event_store=event_store,
+        logger=logger,
+    )
+    logger.info(
+        "Fetching automatic documentation prompts for knowledge base ID: %s",
+        knowledge_base_id,
+    )
+
+    doc_events = await event_store.find(
+        {"knowledge_base_id": repository_connection.knowledge_base_id},
+        DocumentationPromptsDefined,
+    )
+
+    merged_prompts: dict[str, str] = {}
+    latest_event: DocumentationPromptsDefined | None = None
+    for event in doc_events:
+        merged_prompts.update(event.docs_prompts)
+        if not latest_event or event.occurred_at > latest_event.occurred_at:
+            latest_event = event
+
+    filtered_prompts = {
+        key: value
+        for key, value in merged_prompts.items()
+        if isinstance(value, str) and value.strip()
+    }
+
+    return {
+        "knowledge_base_id": knowledge_base_id,
+        "docs_prompts": filtered_prompts,
+        "updated_at": latest_event.occurred_at.isoformat() if latest_event else None,
+        "last_process_id": latest_event.process_id if latest_event else None,
     }
 
 
@@ -355,6 +401,28 @@ async def get_latest_environment(
         "global": latest.global_setup,
         "project": latest.project_setup,
     }
+
+
+async def _ensure_repository_connection_or_404(
+    *,
+    knowledge_base_id: str,
+    event_store: EventStore,
+    logger: logging.Logger | logging.LoggerAdapter,
+) -> CodeRepositoryConnected:
+    repository_connections = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+
+    if not repository_connections:
+        logger.error(
+            "No repository found with knowledge base ID: %s",
+            knowledge_base_id,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
+        )
+    return repository_connections[0]
 
 
 def _validate_repository_access(connect_repository_request, logger, validation_service):

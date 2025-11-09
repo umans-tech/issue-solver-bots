@@ -1,4 +1,5 @@
 import shutil
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
@@ -8,7 +9,9 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     DocumentingAgent,
 )
+from issue_solver.events.domain import DocumentationPromptsDefined
 from issue_solver.git_operations.git_helper import GitHelper
+from issue_solver.worker.documenting.auto import get_prompts_for_doc_to_generate
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
     KnowledgeBase,
@@ -254,3 +257,24 @@ def init_docs_directory(temp_documentation_directory: Path, *subdirs: str):
     temp_documentation_directory.mkdir(parents=True, exist_ok=True)
     for subdir in subdirs:
         temp_documentation_directory.joinpath(subdir).mkdir(parents=True, exist_ok=True)
+
+
+@pytest.mark.asyncio
+async def test_get_prompts_for_doc_to_generate_should_ignore_blank_entries(event_store):
+    knowledge_base_id = "brice-kb-001"
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+    )
+    removal_event = DocumentationPromptsDefined(
+        knowledge_base_id=knowledge_base_id,
+        user_id="doc-bot",
+        docs_prompts={"domain_events_glossary": ""},
+        process_id="doc-removal-process",
+        occurred_at=datetime.fromisoformat("2025-02-01T10:00:00"),
+    )
+    await event_store.append(removal_event.process_id, removal_event)
+
+    prompts = await get_prompts_for_doc_to_generate(event_store, knowledge_base_id)
+
+    assert "domain_events_glossary" not in prompts
