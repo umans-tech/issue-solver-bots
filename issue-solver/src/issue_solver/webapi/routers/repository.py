@@ -7,6 +7,7 @@ from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
+    DocumentationPromptsDefined,
     RepositoryIndexationRequested,
     EnvironmentConfigurationProvided,
 )
@@ -26,6 +27,7 @@ from issue_solver.webapi.payloads import (
     ConnectRepositoryRequest,
     RotateTokenRequest,
     EnvironmentConfiguration,
+    AutoDocumentationConfigRequest,
 )
 from openai import OpenAI
 
@@ -251,6 +253,69 @@ async def create_environment(
     return {
         "environment_id": environment_id,
         "process_id": event.process_id,
+    }
+
+
+@router.post(
+    "/{knowledge_base_id}/auto-documentation",
+    status_code=201,
+)
+async def configure_auto_documentation(
+    knowledge_base_id: str,
+    auto_doc_config: AutoDocumentationConfigRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    clock: Annotated[Clock, Depends(get_clock)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.configure_auto_documentation"
+            )
+        ),
+    ],
+):
+    """Define prompts that enable automatic documentation generation."""
+
+    logger.info(
+        "Configuring automatic documentation for knowledge base ID: %s",
+        knowledge_base_id,
+    )
+
+    repository_connections = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryConnected
+    )
+
+    if not repository_connections:
+        logger.error(
+            "No repository found while configuring auto documentation for knowledge base ID: %s",
+            knowledge_base_id,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=f"No repository found with knowledge base ID: {knowledge_base_id}",
+        )
+
+    process_id = str(uuid.uuid4())
+    event = DocumentationPromptsDefined(
+        knowledge_base_id=knowledge_base_id,
+        user_id=user_id,
+        docs_prompts=auto_doc_config.docs_prompts,
+        process_id=process_id,
+        occurred_at=clock.now(),
+    )
+    await event_store.append(process_id, event)
+
+    logger.info(
+        "Automatic documentation configured for knowledge base ID: %s with process ID: %s",
+        knowledge_base_id,
+        process_id,
+    )
+
+    return {
+        "process_id": process_id,
+        "knowledge_base_id": knowledge_base_id,
+        "docs_prompts": auto_doc_config.docs_prompts,
     }
 
 

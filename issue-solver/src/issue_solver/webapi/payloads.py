@@ -81,3 +81,10 @@ class EnvironmentConfiguration(BaseSchema):
 class AgentMessageNotification(BaseSchema):
     process_id: str
     agent_message: AgentMessage
+
+
+class AutoDocumentationConfigRequest(BaseSchema):
+    docs_prompts: dict[str, str] = Field(
+        description="Mapping between documentation identifiers and the prompts used to generate them",
+        min_length=1,
+    )
