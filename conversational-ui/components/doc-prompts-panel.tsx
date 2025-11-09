@@ -317,10 +317,8 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     <section className={cn('rounded-2xl border bg-card/60 p-4 shadow-sm', className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Auto-doc recipes</p>
-          <p className="text-xs text-muted-foreground">
-            Shape the documentation that gets generated on each sync.
-          </p>
+          <p className="text-sm font-semibold text-foreground">Auto documentation</p>
+          <p className="text-xs text-muted-foreground">Tell the agent what to write each sync.</p>
           {updatedLabel && (
             <p className="text-[11px] text-muted-foreground/80 mt-1">Updated {updatedLabel}</p>
           )}
@@ -333,7 +331,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
           disabled={!knowledgeBaseId || isSaving}
         >
           <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Add doc idea
+          Add doc to generate
         </Button>
       </div>
       <div className="mt-4 space-y-4">

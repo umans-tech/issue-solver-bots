@@ -777,17 +777,20 @@ export default function DocsPage() {
           {!kbId ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
           ) : showEmptyState ? (
-            <Card className="mx-auto max-w-xl border-dashed border-muted">
-              <CardHeader className="flex flex-col items-center gap-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <CardTitle className="text-lg">No docs yet</CardTitle>
-                <CardDescription className="max-w-md">
-                  Once documentation is synced to this knowledge base, you will see the versions and files here.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,260px)] lg:items-start">
+              <Card className="border-dashed border-muted">
+                <CardHeader className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="text-lg">No docs yet</CardTitle>
+                  <CardDescription className="max-w-md">
+                    Configure prompts now so the next sync knows which docs to write.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <DocPromptsPanel knowledgeBaseId={kbId} className="self-start" />
+            </div>
           ) : (
             <>
               <div className="mb-4 lg:hidden">
