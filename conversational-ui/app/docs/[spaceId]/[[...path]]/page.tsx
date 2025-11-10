@@ -13,7 +13,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { DocPromptsPanel } from '@/components/doc-prompts-panel';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 
 type DocFileEntry = {
@@ -1038,7 +1038,10 @@ export default function DocsPage() {
       )}
       <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-          <DocPromptsPanel knowledgeBaseId={kbId} variant="flat" className="py-6" />
+          <SheetHeader>
+            <SheetTitle className="sr-only">Auto documentation</SheetTitle>
+          </SheetHeader>
+          <DocPromptsPanel knowledgeBaseId={kbId} className="py-6" />
         </SheetContent>
       </Sheet>
       {/* flash highlight styling and auto-clear */}

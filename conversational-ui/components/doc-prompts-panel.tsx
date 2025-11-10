@@ -1,34 +1,42 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNow } from 'date-fns';
-import { Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DocPromptsResponse {
   knowledge_base_id: string;
   docs_prompts: Record<string, string>;
   updated_at?: string | null;
   last_process_id?: string | null;
+  suggestions?: Record<string, { title: string; prompt: string }>;
 }
 
 interface DocPromptsPanelProps {
   knowledgeBaseId?: string | null;
   className?: string;
-  variant?: 'card' | 'flat';
 }
 
-interface EditorState {
-  mode: 'create' | 'edit';
-  key?: string;
-  name: string;
-  instructions: string;
+interface DraftEntry {
+  slug: string;
+  title: string;
+  prompt: string;
+  isEditing?: boolean;
 }
 
 const fetcher = async (url: string): Promise<DocPromptsResponse> => {
@@ -37,11 +45,10 @@ const fetcher = async (url: string): Promise<DocPromptsResponse> => {
     const body = await res.json().catch(() => ({}));
     throw new Error(body?.detail || body?.error || 'Failed to load prompts');
   }
-  const data: DocPromptsResponse = await res.json();
-  return data;
+  return res.json();
 };
 
-const slugifyName = (value: string) =>
+const slugify = (value: string) =>
   value
     .toLowerCase()
     .trim()
@@ -50,299 +57,266 @@ const slugifyName = (value: string) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '') || 'doc';
 
-const humanizeSlug = (slug: string) =>
+const humanize = (slug: string) =>
   slug
     .split(/[-_]/g)
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
 
-const diffPrompts = (
-  previous: Record<string, string>,
-  next: Record<string, string>,
-): Record<string, string> => {
-  const payload: Record<string, string> = {};
-  for (const [key, value] of Object.entries(next)) {
-    if (previous[key] !== value) {
-      payload[key] = value;
-    }
-  }
-  for (const key of Object.keys(previous)) {
-    if (!(key in next)) {
-      payload[key] = '';
-    }
-  }
-  return payload;
-};
-
-export function DocPromptsPanel({ knowledgeBaseId, className, variant = 'card' }: DocPromptsPanelProps) {
+export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelProps) {
   const { data, error, isLoading, mutate } = useSWR<DocPromptsResponse>(
     knowledgeBaseId ? `/api/docs/prompts?knowledgeBaseId=${encodeURIComponent(knowledgeBaseId)}` : null,
     fetcher,
   );
 
-  const prompts = data?.docs_prompts ?? {};
-  const [editor, setEditor] = useState<EditorState | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const savedEntries = useMemo<DraftEntry[]>(() => {
+    const saved = data?.docs_prompts ?? {};
+    return Object.entries(saved).map(([slug, prompt]) => ({ slug, title: humanize(slug), prompt }));
+  }, [data?.docs_prompts]);
+
+  const savedKey = useMemo(() => JSON.stringify(savedEntries), [savedEntries]);
+  const [drafts, setDrafts] = useState<DraftEntry[]>(savedEntries);
   const [isSaving, setIsSaving] = useState(false);
+  const suggestions = data?.suggestions ?? {};
 
-  const entries = useMemo(() => Object.entries(prompts).sort(([a], [b]) => a.localeCompare(b)), [prompts]);
-  const updatedLabel = data?.updated_at ? formatDistanceToNow(new Date(data.updated_at), { addSuffix: true }) : null;
+  useEffect(() => {
+    setDrafts(savedEntries);
+  }, [savedKey, savedEntries]);
 
-  const ensureUniqueSlug = useCallback(
-    (baseName: string, currentKey?: string) => {
-      let slug = slugifyName(baseName);
-      if (currentKey && slug === currentKey) {
-        return slug;
-      }
-      let suffix = 2;
-      while (prompts[slug] !== undefined && slug !== currentKey) {
-        slug = `${slugifyName(baseName)}-${suffix}`;
-        suffix += 1;
-      }
-      return slug;
-    },
-    [prompts],
-  );
+  const updatedLabel = data?.updated_at
+    ? formatDistanceToNow(new Date(data.updated_at), { addSuffix: true })
+    : null;
 
-  const resetEditor = useCallback(() => {
-    setEditor(null);
-    setFormError(null);
-  }, []);
+  const hasChanges = savedKey !== JSON.stringify(drafts);
 
-  const persistChanges = useCallback(
-    async (nextPrompts: Record<string, string>) => {
-      if (!knowledgeBaseId) return;
-      const payload = diffPrompts(prompts, nextPrompts);
-      if (Object.keys(payload).length === 0) {
-        resetEditor();
-        return;
-      }
+  const toggleEditor = (slug: string, open: boolean) => {
+    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, isEditing: open } : entry)));
+  };
 
-      setIsSaving(true);
-      setFormError(null);
-      try {
-        const response = await fetch('/api/docs/prompts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ knowledgeBaseId, docsPrompts: payload }),
-        });
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(body?.detail || body?.error || 'Unable to save prompts');
-        }
-        resetEditor();
-        await mutate();
-      } catch (persistError) {
-        setFormError(persistError instanceof Error ? persistError.message : 'Unable to save prompts');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [knowledgeBaseId, mutate, prompts, resetEditor],
-  );
+  const handleAdd = () => {
+    setDrafts((prev) => [
+      ...prev,
+      {
+        slug: slugify('new-doc-' + Date.now()),
+        title: 'New Doc',
+        prompt: '',
+        isEditing: true,
+      },
+    ]);
+  };
 
-  const handleSave = useCallback(async () => {
-    if (!editor) return;
-    const name = editor.name.trim();
-    const instructions = editor.instructions.trim();
-    if (!name || !instructions) {
-      setFormError('Give the doc a name and describe what should be generated.');
-      return;
-    }
-    const slug = ensureUniqueSlug(name, editor.key);
-    const nextPrompts = { ...prompts };
-    if (editor.mode === 'edit' && editor.key && editor.key !== slug) {
-      delete nextPrompts[editor.key];
-    }
-    nextPrompts[slug] = instructions;
-    await persistChanges(nextPrompts);
-  }, [editor, ensureUniqueSlug, persistChanges, prompts]);
+  const handleDelete = (slug: string) => {
+    setDrafts((prev) => prev.filter((entry) => entry.slug !== slug));
+  };
 
-  const handleDelete = useCallback(
-    async (key: string) => {
-      if (!knowledgeBaseId) return;
-      const confirmed = window.confirm('Stop generating this doc?');
-      if (!confirmed) return;
-      const nextPrompts = { ...prompts };
-      delete nextPrompts[key];
-      await persistChanges(nextPrompts);
-    },
-    [knowledgeBaseId, persistChanges, prompts],
-  );
+  const handlePromptChange = (slug: string, prompt: string) => {
+    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, prompt } : entry)));
+  };
 
-  const startCreate = useCallback(() => {
-    if (!knowledgeBaseId) return;
-    setEditor({ mode: 'create', name: '', instructions: '' });
-    setFormError(null);
-  }, [knowledgeBaseId]);
-
-  const startEdit = useCallback(
-    (key: string, value: string) => {
-      setEditor({ mode: 'edit', key, name: humanizeSlug(key), instructions: value });
-      setFormError(null);
-    },
-    [],
-  );
-
-  const renderEditor = () => {
-    if (!editor) return null;
-    return (
-      <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">Doc name</label>
-          <Input
-            value={editor.name}
-            onChange={(event) => setEditor((prev) => prev && ({ ...prev, name: event.target.value }))}
-            placeholder="e.g. Incident runbook"
-            className="mt-1"
-            autoFocus
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">What should this doc include?</label>
-          <Textarea
-            value={editor.instructions}
-            onChange={(event) => setEditor((prev) => prev && ({ ...prev, instructions: event.target.value }))}
-            placeholder="Mention the audience, key sections, and any files to reference."
-            className="mt-1"
-            rows={4}
-          />
-          <p className="mt-1 text-[11px] text-muted-foreground/80">
-            We’ll turn the name into a file-safe identifier automatically.
-          </p>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={resetEditor} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving
-              </>
-            ) : editor.mode === 'edit' ? (
-              'Update doc'
-            ) : (
-              'Save doc'
-            )}
-          </Button>
-        </div>
-      </div>
+  const handleTitleChange = (slug: string, title: string) => {
+    const normalized = slugify(title);
+    setDrafts((prev) =>
+      prev.map((entry) => (entry.slug === slug ? { ...entry, title, slug: normalized } : entry)),
     );
   };
 
-  const renderBody = () => {
-    if (!knowledgeBaseId) {
-      return (
-        <div className="rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground">
-          Connect a repository to unlock automated documentation. Prompts live alongside each space so teammates can tweak them.
-        </div>
-      );
-    }
-    if (isLoading) {
-      return (
-        <div className="space-y-3">
-          {[0, 1, 2].map((key) => (
-            <Skeleton key={key} className="h-14 w-full" />
-          ))}
-        </div>
-      );
-    }
-    if (error) {
-      return (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 h-4 w-4" />
-          <span>{error.message || 'Unable to load prompts'}</span>
-        </div>
-      );
-    }
-    if (entries.length === 0 && !editor) {
-      return (
-        <div className="rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground">
-          No recipes yet. Add one to tell the agent which docs matter most. They run the next time your repo is indexed.
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-3">
-        {entries.map(([key, value]) => (
-          <div key={key} className="rounded-lg border px-3 py-2">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">{humanizeSlug(key)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{value}</p>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => startEdit(key, value)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  <span className="sr-only">Edit prompt</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => handleDelete(key)}
-                  disabled={isSaving}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="sr-only">Remove prompt</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {renderEditor()}
-        {formError && (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-            <AlertCircle className="mt-0.5 h-4 w-4" />
-            <span>{formError}</span>
-          </div>
-        )}
-      </div>
-    );
+  const insertSuggestion = (slug: string, prompt: string, title: string) => {
+    setDrafts((prev) => [
+      ...prev,
+      {
+        slug,
+        title,
+        prompt,
+        isEditing: true,
+      },
+    ]);
   };
 
-  const containerClass =
-    variant === 'flat'
-      ? 'space-y-4'
-      : 'rounded-2xl border bg-card/60 p-4 shadow-sm';
+  const handleSave = async () => {
+    if (!knowledgeBaseId || !hasChanges) return;
+    const payload: Record<string, string> = {};
+    drafts.forEach((entry) => {
+      payload[entry.slug] = entry.prompt.trim();
+    });
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/docs/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knowledgeBaseId, docsPrompts: payload }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.detail || body?.error || 'Unable to save prompts');
+      }
+      toast.success('Docs saved. They will be generated on the next sync.');
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Unable to save prompts');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!knowledgeBaseId) {
+    return (
+      <div className={cn('rounded-2xl border bg-card/60 p-4 shadow-sm text-sm text-muted-foreground', className)}>
+        Connect a repository to configure automatic documentation.
+      </div>
+    );
+  }
 
   return (
-    <section className={cn(containerClass, className)}>
+    <section className={cn('space-y-4', className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Auto documentation</p>
           <p className="text-xs text-muted-foreground">Tell the agent what to write each sync.</p>
-          {updatedLabel && (
-            <p className="text-[11px] text-muted-foreground/80 mt-1">Updated {updatedLabel}</p>
-          )}
+          {updatedLabel && <p className="text-[11px] text-muted-foreground/80 mt-1">Updated {updatedLabel}</p>}
         </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={handleAdd}>
+            + Add doc
+          </Button>
+          <SuggestionDropdown suggestions={suggestions} onInsert={insertSuggestion} />
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((key) => (
+            <Skeleton key={key} className="h-16 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error.message || 'Unable to load prompts'}
+        </div>
+      ) : drafts.length === 0 ? (
+        <div className="rounded-md border border-dashed px-3 py-6 text-sm text-muted-foreground text-center">
+          No docs selected. Use the suggestion menu or add your own instructions.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {drafts.map((entry) => (
+            <div key={entry.slug} className="rounded-lg border px-3 py-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{entry.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{entry.slug}</p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => toggleEditor(entry.slug, !(entry.isEditing ?? false))}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="sr-only">Edit prompt</span>
+                  </Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(entry.slug)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Remove prompt</span>
+                  </Button>
+                </div>
+              </div>
+              {entry.isEditing ? (
+                <div className="mt-3 space-y-3">
+                  <Input
+                    value={entry.title}
+                    onChange={(event) => handleTitleChange(entry.slug, event.target.value)}
+                    placeholder="Doc title"
+                  />
+                  <Textarea
+                    value={entry.prompt}
+                    onChange={(event) => handlePromptChange(entry.slug, event.target.value)}
+                    placeholder="Describe what this doc should contain"
+                    rows={4}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleEditor(entry.slug, false)}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{entry.prompt}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
+        <span className="mr-auto text-xs text-muted-foreground">
+          {hasChanges ? 'Unsaved changes' : 'All changes saved'}
+        </span>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="sm"
-          onClick={startCreate}
-          disabled={!knowledgeBaseId || isSaving}
+          disabled={!hasChanges || isSaving}
+          onClick={() => setDrafts(savedEntries)}
         >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Add doc to generate
+          Reset
+        </Button>
+        <Button type="button" size="sm" disabled={!hasChanges || isSaving} onClick={handleSave}>
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving
+            </>
+          ) : (
+            'Save docs'
+          )}
         </Button>
       </div>
-      <div className="mt-4 space-y-4">
-        {renderBody()}
-      </div>
     </section>
+  );
+}
+
+function SuggestionDropdown({
+  suggestions,
+  onInsert,
+}: {
+  suggestions: Record<string, { title: string; prompt: string }>;
+  onInsert: (slug: string, prompt: string, title: string) => void;
+}) {
+  const entries = Object.entries(suggestions);
+  if (entries.length === 0) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" size="sm" variant="outline" className="font-normal">
+          Suggestion
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
+        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
+          Pick a prompt
+        </DropdownMenuLabel>
+        {entries.map(([slug, meta]) => (
+          <DropdownMenuItem
+            key={slug}
+            className="flex flex-col items-start gap-1 whitespace-normal"
+            onSelect={() => onInsert(slug, meta.prompt, meta.title)}
+          >
+            <span className="text-sm font-medium text-foreground">{meta.title}</span>
+            <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
+              {meta.prompt}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
