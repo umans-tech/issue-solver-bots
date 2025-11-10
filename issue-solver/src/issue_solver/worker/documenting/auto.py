@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from issue_solver.agents.issue_resolving_agent import DocumentingAgent
@@ -15,35 +16,48 @@ from issue_solver.worker.dependencies import Dependencies
 
 
 async def generate_docs(
-    message: CodeRepositoryIndexed, dependencies: Dependencies
+    event: CodeRepositoryIndexed, dependencies: Dependencies
 ) -> None:
     docs_agent = dependencies.docs_agent
     if not docs_agent:
         raise RuntimeError("Docs agent is not configured")
-    event_store = dependencies.event_store
-    knowledge_base_id = message.knowledge_base_id
     repo_credentials = await fetch_repo_credentials(
-        event_store=event_store,
-        knowledge_base_id=knowledge_base_id,
+        event_store=dependencies.event_store,
+        knowledge_base_id=event.knowledge_base_id,
     )
+    code_version = event.commit_sha
     process_id = dependencies.id_generator.new()
+    repo_path = await prepare_repo_path(process_id)
     dependencies.git_client.clone_repository(
         url=repo_credentials.url,
         access_token=repo_credentials.access_token,
-        to_path=Path(f"/tmp/repo/{process_id}"),
+        to_path=repo_path,
     )
-    docs_prompts = await get_prompts_for_doc_to_generate(event_store, knowledge_base_id)
-    knowledge_repo = dependencies.knowledge_repository
-    code_version = message.commit_sha
+    load_existing_markdown_documents(
+        repo_path=repo_path,
+        knowledge_repo=dependencies.knowledge_repository,
+        knowledge_base_id=event.knowledge_base_id,
+        code_version=code_version,
+    )
+    docs_prompts = await get_prompts_for_doc_to_generate(
+        dependencies.event_store, event.knowledge_base_id
+    )
     if docs_prompts:
         await generate_and_load_docs(
             docs_agent,
-            knowledge_repo,
+            dependencies.knowledge_repository,
             process_id,
-            knowledge_base_id,
+            event.knowledge_base_id,
             code_version,
             docs_prompts,
         )
+
+
+async def prepare_repo_path(process_id: str) -> Path:
+    repo_path = Path(f"/tmp/repo/{process_id}")
+    if repo_path.exists():
+        shutil.rmtree(repo_path)
+    return repo_path
 
 
 async def get_prompts_for_doc_to_generate(
@@ -91,3 +105,25 @@ async def generate_and_load_docs(
                 str(relative_path),
                 content,
             )
+
+
+def load_existing_markdown_documents(
+    *,
+    repo_path: Path,
+    knowledge_repo: KnowledgeRepository,
+    knowledge_base_id: str,
+    code_version: str,
+) -> None:
+    if not repo_path.exists():
+        return
+
+    kb_key = KnowledgeBase(knowledge_base_id, code_version)
+    for doc_file in repo_path.rglob("*.md"):
+        if not doc_file.is_file():
+            continue
+        try:
+            content = doc_file.read_text()
+        except OSError:
+            continue
+        relative_path = doc_file.relative_to(repo_path)
+        knowledge_repo.add(kb_key, str(relative_path), content)

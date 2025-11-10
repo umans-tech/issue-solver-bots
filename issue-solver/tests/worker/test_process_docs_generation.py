@@ -45,6 +45,11 @@ async def test_process_docs_generation_should_work(
     kb_id = repo_connected.knowledge_base_id
     temp_documentation_directory = Path(temp_repo_directory).joinpath(kb_id)
     init_docs_directory(temp_documentation_directory, "adrs")
+    git_helper.clone_repository.side_effect = (
+        lambda url, access_token, to_path: init_docs_directory(
+            Path(to_path).joinpath(kb_id), "adrs"
+        )
+    )
     docs_agent.generate_documentation.side_effect = (
         lambda repo_path, knowledge_base_id, output_path, docs_prompts, process_id: (
             temp_documentation_directory.joinpath(
@@ -257,6 +262,70 @@ def init_docs_directory(temp_documentation_directory: Path, *subdirs: str):
     temp_documentation_directory.mkdir(parents=True, exist_ok=True)
     for subdir in subdirs:
         temp_documentation_directory.joinpath(subdir).mkdir(parents=True, exist_ok=True)
+
+
+def seed_repository_markdown(target: Path) -> None:
+    target.mkdir(parents=True, exist_ok=True)
+    target.joinpath("README.md").write_text("# Repository Readme\n")
+    docs_dir = target.joinpath("docs")
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    docs_dir.joinpath("runbook.md").write_text("# Runbook\nSteps...\n")
+    target.joinpath("docs", "notes.txt").write_text("not markdown")
+    target.joinpath("LICENSE").write_text("MIT")
+
+
+@pytest.mark.asyncio
+async def test_process_docs_generation_should_load_existing_repo_markdown(
+    event_store,
+    time_under_control: ControllableClock,
+    knowledge_repo: KnowledgeRepository,
+):
+    # Given
+    git_helper = Mock(spec=GitHelper)
+    docs_agent = AsyncMock(spec=DocumentingAgent)
+    docs_agent.generate_documentation.return_value = None
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    process_id = "seeded-process"
+    id_generator = Mock()
+    id_generator.new.return_value = process_id
+
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(),
+        repo_connected,
+    )
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+    )
+
+    git_helper.clone_repository.side_effect = (
+        lambda url, access_token, to_path: seed_repository_markdown(Path(to_path))
+    )
+
+    # When
+    await process_event_message(
+        BriceDeNice.got_his_first_repo_indexed(),
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            id_generator=id_generator,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    kb_key = KnowledgeBase(
+        id=repo_connected.knowledge_base_id,
+        version=BriceDeNice.got_his_first_repo_indexed().commit_sha,
+    )
+
+    assert knowledge_repo.contains(kb_key, "README.md")
+    assert knowledge_repo.contains(kb_key, "docs/runbook.md")
+    assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
 
 
 @pytest.mark.asyncio
