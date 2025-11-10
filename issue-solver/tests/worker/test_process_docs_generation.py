@@ -99,9 +99,11 @@ async def test_process_docs_generation_should_work(
     )
     kb_key = KnowledgeBase(id=kb_id, version=repo_indexed.commit_sha)
     assert knowledge_repo.contains(kb_key, "domain_events_glossary.md")
+    assert knowledge_repo.get_origin(kb_key, "domain_events_glossary.md") == "auto"
     assert knowledge_repo.contains(kb_key, "adrs/adr001.md"), (
         f"expected adrs/adr001.md in {knowledge_repo.list_entries(kb_key)}"
     )
+    assert knowledge_repo.get_origin(kb_key, "adrs/adr001.md") == "auto"
     assert not knowledge_repo.contains(kb_key, "undesirable_doc_not_md.html")
 
 
@@ -324,7 +326,9 @@ async def test_process_docs_generation_should_load_existing_repo_markdown(
     )
 
     assert knowledge_repo.contains(kb_key, "README.md")
+    assert knowledge_repo.get_origin(kb_key, "README.md") == "repo"
     assert knowledge_repo.contains(kb_key, "docs/runbook.md")
+    assert knowledge_repo.get_origin(kb_key, "docs/runbook.md") == "repo"
     assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
 
 

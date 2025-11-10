@@ -104,6 +104,7 @@ async def generate_and_load_docs(
                 KnowledgeBase(knowledge_base_id, code_version),
                 str(relative_path),
                 content,
+                origin="auto",
             )
 
 
@@ -126,4 +127,4 @@ def load_existing_markdown_documents(
         except OSError:
             continue
         relative_path = doc_file.relative_to(repo_path)
-        knowledge_repo.add(kb_key, str(relative_path), content)
+        knowledge_repo.add(kb_key, str(relative_path), content, origin="repo")

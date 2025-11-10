@@ -26,19 +26,37 @@ class InMemoryKnowledgeRepository(KnowledgeRepository):
     def __init__(self):
         self._documents = {}
 
-    def add(self, base: KnowledgeBase, document_name: str, content: str) -> None:
+    def add(
+        self,
+        base: KnowledgeBase,
+        document_name: str,
+        content: str,
+        origin: str | None = None,
+    ) -> None:
         if base not in self._documents:
             self._documents[base] = {}
-        self._documents[base][document_name] = content
+        self._documents[base][document_name] = {
+            "content": content,
+            "origin": origin or "unknown",
+        }
 
     def contains(self, base: KnowledgeBase, document_name: str) -> bool:
         return document_name in self._documents.get(base, {})
 
     def get_content(self, base: KnowledgeBase, document_name: str) -> str:
-        return self._documents.get(base, {}).get(document_name, "")
+        entry = self._documents.get(base, {}).get(document_name)
+        if not entry:
+            return ""
+        return entry["content"]
 
     def list_entries(self, base: KnowledgeBase) -> list[str]:
         return list(self._documents.get(base, {}).keys())
+
+    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+        entry = self._documents.get(base, {}).get(document_name)
+        if not entry:
+            return None
+        return entry.get("origin")
 
 
 @pytest.fixture
