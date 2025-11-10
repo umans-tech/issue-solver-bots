@@ -21,6 +21,7 @@ interface DocPromptsResponse {
 interface DocPromptsPanelProps {
   knowledgeBaseId?: string | null;
   className?: string;
+  variant?: 'card' | 'flat';
 }
 
 interface EditorState {
@@ -74,7 +75,7 @@ const diffPrompts = (
   return payload;
 };
 
-export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelProps) {
+export function DocPromptsPanel({ knowledgeBaseId, className, variant = 'card' }: DocPromptsPanelProps) {
   const { data, error, isLoading, mutate } = useSWR<DocPromptsResponse>(
     knowledgeBaseId ? `/api/docs/prompts?knowledgeBaseId=${encodeURIComponent(knowledgeBaseId)}` : null,
     fetcher,
@@ -313,8 +314,13 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     );
   };
 
+  const containerClass =
+    variant === 'flat'
+      ? 'space-y-4'
+      : 'rounded-2xl border bg-card/60 p-4 shadow-sm';
+
   return (
-    <section className={cn('rounded-2xl border bg-card/60 p-4 shadow-sm', className)}>
+    <section className={cn(containerClass, className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Auto documentation</p>

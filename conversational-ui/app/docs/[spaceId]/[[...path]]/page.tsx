@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import { ChevronDown, FileText } from 'lucide-react';
+import {ChevronDown, FileText, Settings, Sparkles} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { DocPromptsPanel } from '@/components/doc-prompts-panel';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 
 type DocFileEntry = {
   path: string;
@@ -63,6 +65,8 @@ export default function DocsPage() {
   const lastCommitRef = useRef<string | undefined>(commitSha);
   const contentCacheRef = useRef<Map<string, string>>(new Map());
   const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
+  const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
+  const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
   const versionParam = searchParams?.get('v')?.trim() ?? null;
@@ -743,6 +747,16 @@ export default function DocsPage() {
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <SharedHeader rightExtra={
         <div className="hidden md:flex items-center gap-3">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" onClick={openAutoDocSettings} disabled={!kbId}>
+                        <Settings className="h-4 w-4"/>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    Auto documentation settings
+                </TooltipContent>
+            </Tooltip>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Version</span>
             {versionSelector}
@@ -770,6 +784,17 @@ export default function DocsPage() {
             <SearchIcon size={16} />
             <span className="sr-only">Search docs</span>
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="md:hidden"
+            onClick={openAutoDocSettings}
+            disabled={!kbId}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="sr-only">Auto documentation</span>
+          </Button>
         </div>
       </SharedHeader>
       <div className="flex-1 overflow-auto">
@@ -787,16 +812,14 @@ export default function DocsPage() {
                   <CardDescription className="max-w-md">
                     Configure prompts now so the next sync knows which docs to write.
                   </CardDescription>
+                  <Button type="button" className="mt-2" onClick={openAutoDocSettings}>
+                    Generate docs
+                  </Button>
                 </CardHeader>
               </Card>
-              <DocPromptsPanel knowledgeBaseId={kbId} className="self-start" />
             </div>
           ) : (
-            <>
-              <div className="mb-4 lg:hidden">
-                <DocPromptsPanel knowledgeBaseId={kbId} />
-              </div>
-              <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,260px)] lg:items-start">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,220px)] lg:items-start">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
                 <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 pt-4 space-y-4">
                   {showLoadingShell ? (
@@ -864,45 +887,39 @@ export default function DocsPage() {
               </main>
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
-                <div className="space-y-5">
-                  <DocPromptsPanel knowledgeBaseId={kbId} />
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
-                    <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
-                      {showLoadingShell || isContentLoading ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-3 w-24" />
-                          <Skeleton className="h-3 w-20" />
-                          <Skeleton className="h-3 w-28" />
-                          <Skeleton className="h-3 w-16" />
-                        </div>
-                      ) : toc.length > 0 ? (
-                        toc.map((item) => {
-                          const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
-                          return (
-                            <div key={item.id} className={indent}>
-                              <button
-                                type="button"
-                                onClick={() => handleTocNavigate(item.id)}
-                                className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-                              >
-                                <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
-                                <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
-                                  {item.text}
-                                </span>
-                              </button>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
-                      )}
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
+                <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
+                  {showLoadingShell || isContentLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-16" />
                     </div>
-                  </div>
+                  ) : toc.length > 0 ? (
+                    toc.map((item) => {
+                      const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
+                      return (
+                        <div key={item.id} className={indent}>
+                          <button
+                            type="button"
+                            onClick={() => handleTocNavigate(item.id)}
+                            className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+                          >
+                            <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
+                            <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
+                              {item.text}
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
+                  )}
                 </div>
               </aside>
             </div>
-            </>
           )}
         </div>
       </div>
@@ -1004,6 +1021,11 @@ export default function DocsPage() {
           </div>
         </div>
       )}
+      <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <DocPromptsPanel knowledgeBaseId={kbId} variant="flat" className="py-6" />
+        </SheetContent>
+      </Sheet>
       {/* flash highlight styling and auto-clear */}
       <style>
         {`
