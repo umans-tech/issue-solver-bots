@@ -48,7 +48,7 @@ async def generate_docs(
 
 async def get_prompts_for_doc_to_generate(
     event_store: EventStore, knowledge_base_id: str
-) -> dict[str, str] | None:
+) -> dict[str, str]:
     doc_prompts_defined_events = await event_store.find(
         {"knowledge_base_id": knowledge_base_id},
         DocumentationPromptsDefined,

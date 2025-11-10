@@ -27,7 +27,7 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorizationFailed,
     DocumentationPromptsDefined,
 )
-from issue_solver.events.event_store import InMemoryEventStore
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
@@ -124,7 +124,7 @@ class ProcessTimelineView(BaseModel):
 
 @router.get("/")
 async def list_processes(
-    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
     space_id: str | None = Query(None, description="Filter by space ID"),
     knowledge_base_id: str | None = Query(
         None, description="Filter by knowledge base ID"
@@ -161,7 +161,7 @@ async def list_processes(
 
 
 async def _get_processes_by_criteria(
-    event_store: InMemoryEventStore, space_id: str | None, knowledge_base_id: str | None
+    event_store: EventStore, space_id: str | None, knowledge_base_id: str | None
 ) -> list[dict]:
     """Get processes based on space_id or knowledge_base_id criteria."""
     processes = []
@@ -215,7 +215,7 @@ def _apply_filters(
     return filtered
 
 
-async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
+async def _get_all_processes(event_store: EventStore) -> list[dict]:
     """Get all processes from all event types."""
     all_processes = []
 
@@ -248,7 +248,7 @@ async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
 
 
 async def _convert_events_to_processes(
-    event_store: InMemoryEventStore, events: list
+    event_store: EventStore, events: list
 ) -> list[dict]:
     """Convert domain events to process timeline views."""
     processes = []
@@ -260,7 +260,7 @@ async def _convert_events_to_processes(
 
 
 async def _get_auto_documentation_processes(
-    event_store: InMemoryEventStore, knowledge_base_ids: set[str]
+    event_store: EventStore, knowledge_base_ids: set[str]
 ) -> list[dict]:
     if not knowledge_base_ids:
         return []
@@ -278,7 +278,7 @@ async def _get_auto_documentation_processes(
 @router.get("/{process_id}")
 async def get_process(
     process_id: str,
-    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger,
         Depends(
