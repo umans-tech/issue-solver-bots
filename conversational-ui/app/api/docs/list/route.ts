@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { auth } from '@/app/(auth)/auth';
+
+async function streamToString(stream: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: any[] = [];
+    stream.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
+    stream.on('error', (err: any) => reject(err));
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+  });
+}
 
 export async function GET(request: Request) {
   try {
@@ -42,11 +51,23 @@ export async function GET(request: Request) {
     files.sort((a, b) => a.localeCompare(b));
     const indexFirst = files.includes('index.md') ? ['index.md', ...files.filter(f => f !== 'index.md')] : files;
 
-    return NextResponse.json({ files: indexFirst });
+    let origins: Record<string, string> = {};
+    try {
+      const originKey = `${prefix}__origins__.json`;
+      const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: originKey }));
+      const manifestBody = await streamToString(manifestRes.Body);
+      const parsed = JSON.parse(manifestBody);
+      if (parsed && typeof parsed === 'object') {
+        origins = parsed;
+      }
+    } catch (manifestError) {
+      // No manifest yet; ignore
+    }
+
+    return NextResponse.json({ files: indexFirst, origins });
   } catch (error) {
     console.error('List docs error', error);
     return NextResponse.json({ error: 'Failed to list docs' }, { status: 500 });
   }
 }
-
 

@@ -19,6 +19,12 @@ import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 type DocFileEntry = {
   path: string;
   title: string;
+  origin?: string;
+};
+
+type DocListEntry = {
+  path: string;
+  origin?: string;
 };
 
 type DocFolderNode = {
@@ -44,7 +50,7 @@ export default function DocsPage() {
   const [commitSha, setCommitSha] = useState<string | undefined>(currentCommit);
   const [versions, setVersions] = useState<string[]>([]);
   const [, setIndexMd] = useState<string>('');
-  const [fileList, setFileList] = useState<string[]>([]);
+  const [fileList, setFileList] = useState<DocListEntry[]>([]);
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
@@ -212,14 +218,15 @@ export default function DocsPage() {
       return child;
     };
 
-    for (const path of fileList) {
+    for (const entry of fileList) {
+      const { path, origin } = entry;
       const parts = path.split('/').filter(Boolean);
       if (parts.length === 0) continue;
       let cursor = root;
       parts.forEach((segment, index) => {
         const isFile = index === parts.length - 1;
         if (isFile) {
-          cursor.files.push({ path, title: titleMap[path] || segment });
+          cursor.files.push({ path, title: titleMap[path] || segment, origin });
           return;
         }
         cursor = ensureChild(cursor, segment);
@@ -302,8 +309,9 @@ export default function DocsPage() {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
+        const originsMap: Record<string, string> = j.origins && typeof j.origins === 'object' ? j.origins : {};
         if (!cancelled) {
-          setFileList(files);
+          setFileList(files.map((path: string) => ({ path, origin: originsMap[path] })));
         }
         // lazily resolve titles for index entries
         const entries = await Promise.all(files.map(async (f: string) => {
@@ -383,8 +391,8 @@ export default function DocsPage() {
       return;
     }
     if (fileList.length > 0) {
-      prefetchDoc(fileList[0]);
-      navigateToPath(fileList[0], { replace: true });
+      prefetchDoc(fileList[0].path);
+      navigateToPath(fileList[0].path, { replace: true });
     }
   }, [fileList, pathParam, navigateToPath, prefetchDoc]);
 
@@ -682,11 +690,11 @@ export default function DocsPage() {
       snippet: r.snippet || r.path,
       occurrence: r.occurrence,
     }))
-    : fileList.slice(0, 10).map((path) => ({
+    : fileList.slice(0, 10).map(({ path, origin }) => ({
       key: path,
       path,
       title: titleMap[path] || path,
-      snippet: path,
+      snippet: origin === 'auto' ? 'Auto documentation' : path,
       occurrence: undefined,
     }));
 
@@ -714,7 +722,14 @@ export default function DocsPage() {
       onMouseEnter={() => prefetchDoc(entry.path)}
       onFocus={() => prefetchDoc(entry.path)}
     >
-      <span className="text-sm leading-snug">{entry.title}</span>
+      <span className="text-sm leading-snug flex items-center gap-2">
+        {entry.title}
+        {entry.origin === 'auto' && (
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-[1px] text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Auto
+          </span>
+        )}
+      </span>
       <span className="text-[11px] text-muted-foreground/70 leading-tight">{entry.path}</span>
     </button>
   );
@@ -745,24 +760,24 @@ export default function DocsPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <SharedHeader rightExtra={
-        <div className="hidden md:flex items-center gap-3">
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" onClick={openAutoDocSettings} disabled={!kbId}>
-                        <Settings className="h-4 w-4"/>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    Auto documentation settings
-                </TooltipContent>
-            </Tooltip>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Version</span>
-            {versionSelector}
-          </div>
-        </div>
-      }>
+        <SharedHeader rightExtra={
+            <div className="hidden md:flex items-center gap-3">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" onClick={openAutoDocSettings} disabled={!kbId}>
+                            <Settings className="h-4 w-4"/>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        Auto documentation settings
+                    </TooltipContent>
+                </Tooltip>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Version</span>
+                    {versionSelector}
+                </div>
+            </div>
+        }>
         <div className="flex flex-1 items-center gap-3 px-2 md:px-4">
           <span className="text-lg lg:text-xl font-semibold text-foreground truncate">Docs</span>
           <button
