@@ -29,10 +29,7 @@ from issue_solver.webapi.payloads import (
     EnvironmentConfiguration,
     AutoDocumentationConfigRequest,
 )
-from issue_solver.events.auto_documentation import (
-    auto_documentation_process_id,
-    load_auto_documentation_setup,
-)
+from issue_solver.events.auto_documentation import load_auto_documentation_setup
 from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -292,7 +289,11 @@ async def configure_auto_documentation(
         logger=logger,
     )
 
-    process_id = auto_documentation_process_id(knowledge_base_id)
+    auto_doc_setup = await load_auto_documentation_setup(
+        event_store=event_store, knowledge_base_id=knowledge_base_id
+    )
+
+    process_id = auto_doc_setup.last_process_id or str(uuid.uuid4())
     event = DocumentationPromptsDefined(
         knowledge_base_id=knowledge_base_id,
         user_id=user_id,
@@ -302,20 +303,18 @@ async def configure_auto_documentation(
     )
     await event_store.append(process_id, event)
 
+    updated_setup = auto_doc_setup.apply(event)
+
     logger.info(
         "Automatic documentation configured for knowledge base ID: %s with process ID: %s",
         knowledge_base_id,
         process_id,
     )
 
-    auto_doc_setup = await load_auto_documentation_setup(
-        event_store=event_store, knowledge_base_id=knowledge_base_id
-    )
-
     return {
         "process_id": process_id,
         "knowledge_base_id": knowledge_base_id,
-        "docs_prompts": auto_doc_setup.docs_prompts,
+        "docs_prompts": updated_setup.docs_prompts,
     }
 
 

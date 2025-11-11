@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
+from typing import Sequence
 
 from issue_solver.events.domain import DocumentationPromptsDefined
 from issue_solver.events.event_store import EventStore
-
-
-AUTO_DOC_PROCESS_PREFIX = "auto-documentation:"
-
-
-def auto_documentation_process_id(knowledge_base_id: str) -> str:
-    """Return a stable process identifier for a knowledge base."""
-
-    return f"{AUTO_DOC_PROCESS_PREFIX}{knowledge_base_id}"
 
 
 @dataclass(slots=True)
@@ -22,6 +14,44 @@ class AutoDocumentationSetup:
     docs_prompts: dict[str, str]
     updated_at: datetime | None
     last_process_id: str | None
+
+    @classmethod
+    def start(cls, knowledge_base_id: str) -> "AutoDocumentationSetup":
+        return cls(
+            knowledge_base_id=knowledge_base_id,
+            docs_prompts={},
+            updated_at=None,
+            last_process_id=None,
+        )
+
+    @classmethod
+    def from_events(
+        cls,
+        knowledge_base_id: str,
+        events: Sequence[DocumentationPromptsDefined],
+    ) -> "AutoDocumentationSetup":
+        setup = cls.start(knowledge_base_id)
+        if not events:
+            return setup
+
+        events_sorted = sorted(events, key=lambda event: event.occurred_at)
+        for event in events_sorted:
+            setup = setup.apply(event)
+        return setup
+
+    def apply(self, event: DocumentationPromptsDefined) -> "AutoDocumentationSetup":
+        updated_prompts = self.docs_prompts | event.docs_prompts
+        filtered_prompts = {
+            key: value
+            for key, value in updated_prompts.items()
+            if isinstance(value, str) and value.strip()
+        }
+        return replace(
+            self,
+            docs_prompts=filtered_prompts,
+            updated_at=event.occurred_at,
+            last_process_id=event.process_id,
+        )
 
 
 async def load_auto_documentation_setup(
@@ -32,24 +62,4 @@ async def load_auto_documentation_setup(
     doc_events = await event_store.find(
         {"knowledge_base_id": knowledge_base_id}, DocumentationPromptsDefined
     )
-    doc_events.sort(key=lambda event: event.occurred_at)
-
-    merged_prompts: dict[str, str] = {}
-    latest_event: DocumentationPromptsDefined | None = None
-
-    for event in doc_events:
-        merged_prompts.update(event.docs_prompts)
-        latest_event = event
-
-    filtered_prompts = {
-        key: value
-        for key, value in merged_prompts.items()
-        if isinstance(value, str) and value.strip()
-    }
-
-    return AutoDocumentationSetup(
-        knowledge_base_id=knowledge_base_id,
-        docs_prompts=filtered_prompts,
-        updated_at=latest_event.occurred_at if latest_event else None,
-        last_process_id=latest_event.process_id if latest_event else None,
-    )
+    return AutoDocumentationSetup.from_events(knowledge_base_id, doc_events)
