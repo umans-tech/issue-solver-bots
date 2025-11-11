@@ -235,6 +235,59 @@ def test_returns_auto_documentation_process(api_client, time_under_control):
     assert process["status"] == "configured"
 
 
+def test_auto_documentation_process_list_deduplicates_events(
+    api_client, time_under_control
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-11-01T12:00:00")
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/test/repo",
+            "access_token": "test-access-token",
+            "user_id": "test-user-id",
+            "space_id": "test-space-id",
+        },
+        headers={"X-User-ID": "test-user-id"},
+    )
+    assert connect_repo_response.status_code == 201
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={
+            "docsPrompts": {
+                "overview": "Generate an overview document",
+            }
+        },
+        headers={"X-User-ID": "test-user-id"},
+    )
+    api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={
+            "docsPrompts": {
+                "overview": "Refresh the overview",
+            }
+        },
+        headers={"X-User-ID": "test-user-id"},
+    )
+    api_client.request(
+        "DELETE",
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={"promptIds": ["overview"]},
+        headers={"X-User-ID": "test-user-id"},
+    )
+
+    # When
+    response = api_client.get("/processes?process_type=auto_documentation")
+
+    # Then
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["processes"]) == 1
+    assert data["processes"][0]["status"] == "removed"
+
+
 def test_returns_notion_integration_process(
     api_client, time_under_control, monkeypatch
 ):

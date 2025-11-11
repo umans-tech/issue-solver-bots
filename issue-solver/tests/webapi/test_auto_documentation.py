@@ -228,21 +228,31 @@ def test_auto_documentation_prompt_can_be_removed(
     assert post_response.status_code == 201
     receive_event_message(sqs_client, sqs_queue)
 
-    removal_response = api_client.post(
+    update_response = api_client.post(
         f"/repositories/{knowledge_base_id}/auto-documentation",
         json={
             "docsPrompts": {
-                "glossary": "",
                 "setup": "Update the setup guide with troubleshooting tips",
             }
         },
         headers={"X-User-ID": user_id},
     )
-    assert removal_response.status_code == 201
+    assert update_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+
+    removal_response = api_client.request(
+        "DELETE",
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={"promptIds": ["glossary"]},
+        headers={"X-User-ID": user_id},
+    )
+    assert removal_response.status_code == 200
+    assert removal_response.json()["deleted_prompt_ids"] == ["glossary"]
     removal_event = receive_event_message(sqs_client, sqs_queue)
     parsed = json.loads(removal_event["Messages"][0]["Body"])
     published_event = deserialize(parsed["type"], removal_event["Messages"][0]["Body"])
-    assert published_event.docs_prompts["glossary"] == ""
+    assert published_event.prompt_ids == ["glossary"]
+    assert parsed["type"] == "documentation_prompts_removed"
 
     get_response = api_client.get(
         f"/repositories/{knowledge_base_id}/auto-documentation",

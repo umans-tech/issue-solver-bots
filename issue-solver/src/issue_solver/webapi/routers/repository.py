@@ -8,6 +8,7 @@ from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
     DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
     RepositoryIndexationRequested,
     EnvironmentConfigurationProvided,
 )
@@ -28,6 +29,7 @@ from issue_solver.webapi.payloads import (
     RotateTokenRequest,
     EnvironmentConfiguration,
     AutoDocumentationConfigRequest,
+    AutoDocumentationDeleteRequest,
 )
 from issue_solver.events.auto_documentation import load_auto_documentation_setup
 from openai import OpenAI
@@ -314,6 +316,63 @@ async def configure_auto_documentation(
     return {
         "process_id": process_id,
         "knowledge_base_id": knowledge_base_id,
+        "docs_prompts": updated_setup.docs_prompts,
+    }
+
+
+@router.delete(
+    "/{knowledge_base_id}/auto-documentation",
+    status_code=200,
+)
+async def remove_auto_documentation_prompts(
+    knowledge_base_id: str,
+    delete_request: AutoDocumentationDeleteRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    clock: Annotated[Clock, Depends(get_clock)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.remove_auto_documentation"
+            )
+        ),
+    ],
+):
+    """Remove documentation prompts for a repository."""
+
+    logger.info(
+        "Removing %d auto documentation prompts for knowledge base ID: %s",
+        len(delete_request.prompt_ids),
+        knowledge_base_id,
+    )
+
+    await _ensure_repository_connection_or_404(
+        knowledge_base_id=knowledge_base_id,
+        event_store=event_store,
+        logger=logger,
+    )
+
+    auto_doc_setup = await load_auto_documentation_setup(
+        event_store=event_store, knowledge_base_id=knowledge_base_id
+    )
+    process_id = auto_doc_setup.last_process_id or str(uuid.uuid4())
+
+    event = DocumentationPromptsRemoved(
+        knowledge_base_id=knowledge_base_id,
+        user_id=user_id,
+        prompt_ids=delete_request.prompt_ids,
+        process_id=process_id,
+        occurred_at=clock.now(),
+    )
+    await event_store.append(process_id, event)
+
+    updated_setup = auto_doc_setup.apply(event)
+
+    return {
+        "process_id": process_id,
+        "knowledge_base_id": knowledge_base_id,
+        "deleted_prompt_ids": delete_request.prompt_ids,
         "docs_prompts": updated_setup.docs_prompts,
     }
 
