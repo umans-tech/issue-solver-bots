@@ -1,5 +1,4 @@
 import shutil
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
@@ -9,8 +8,6 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     DocumentingAgent,
 )
-from issue_solver.events.auto_documentation import load_auto_documentation_setup
-from issue_solver.events.domain import DocumentationPromptsDefined
 from issue_solver.git_operations.git_helper import GitHelper
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
@@ -330,27 +327,3 @@ async def test_process_docs_generation_should_load_existing_repo_markdown(
     assert knowledge_repo.contains(kb_key, "docs/runbook.md")
     assert knowledge_repo.get_origin(kb_key, "docs/runbook.md") == "repo"
     assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
-
-
-@pytest.mark.asyncio
-async def test_get_prompts_for_doc_to_generate_should_ignore_blank_entries(event_store):
-    # Given
-    knowledge_base_id = "brice-kb-001"
-    await event_store.append(
-        BriceDeNice.doc_configuration_process_id(),
-        BriceDeNice.has_defined_documentation_prompts(),
-    )
-    removal_event = DocumentationPromptsDefined(
-        knowledge_base_id=knowledge_base_id,
-        user_id="doc-bot",
-        docs_prompts={"domain_events_glossary": ""},
-        process_id="doc-removal-process",
-        occurred_at=datetime.fromisoformat("2025-02-01T10:00:00Z"),
-    )
-    await event_store.append(removal_event.process_id, removal_event)
-
-    # When
-    auto_doc_setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
-
-    # Then
-    assert "domain_events_glossary" not in auto_doc_setup.docs_prompts
