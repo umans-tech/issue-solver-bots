@@ -133,6 +133,22 @@ def test_auto_documentation_setup_prevents_removal_of_unknown_prompts():
     assert exc_info.value.prompt_ids == ["missing"]
 
 
+def test_auto_documentation_setup_cannot_apply_removal_before_any_definition():
+    # Given
+    setup = AutoDocumentationSetup.start("kb-remove-first")
+    removal_event = DocumentationPromptsRemoved(
+        knowledge_base_id="kb-remove-first",
+        user_id="doc-bot",
+        prompt_ids=["overview"],
+        process_id="process-remove",
+        occurred_at=datetime.fromisoformat("2025-05-02T09:00:00+00:00"),
+    )
+
+    # When / Then
+    with pytest.raises(CannotRemoveAutoDocumentationWithoutPrompts):
+        setup.apply(removal_event)
+
+
 @pytest.mark.asyncio
 async def test_load_auto_documentation_setup_tracks_latest_metadata(event_store):
     # Given

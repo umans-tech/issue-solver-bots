@@ -66,6 +66,7 @@ class AutoDocumentationSetup:
     def apply(self, event: AutoDocumentationEvent) -> "AutoDocumentationSetup":
         match event:
             case DocumentationPromptsRemoved(prompt_ids=prompt_ids):
+                self.ensure_prompt_ids_can_be_removed(prompt_ids)
                 removed = set(prompt_ids)
                 next_prompts = {
                     key: value

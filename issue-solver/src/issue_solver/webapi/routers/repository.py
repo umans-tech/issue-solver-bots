@@ -361,15 +361,7 @@ async def remove_auto_documentation_prompts(
         event_store=event_store, knowledge_base_id=knowledge_base_id
     )
 
-    try:
-        auto_doc_setup.ensure_prompt_ids_can_be_removed(delete_request.prompt_ids)
-    except CannotRemoveAutoDocumentationWithoutPrompts as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except CannotRemoveUnknownAutoDocumentationPrompts as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
     process_id = auto_doc_setup.last_process_id or str(uuid.uuid4())
-
     event = DocumentationPromptsRemoved(
         knowledge_base_id=knowledge_base_id,
         user_id=user_id,
@@ -377,9 +369,15 @@ async def remove_auto_documentation_prompts(
         process_id=process_id,
         occurred_at=clock.now(),
     )
-    await event_store.append(process_id, event)
 
-    updated_setup = auto_doc_setup.apply(event)
+    try:
+        updated_setup = auto_doc_setup.apply(event)
+    except CannotRemoveAutoDocumentationWithoutPrompts as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except CannotRemoveUnknownAutoDocumentationPrompts as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    await event_store.append(process_id, event)
 
     return {
         "process_id": process_id,
