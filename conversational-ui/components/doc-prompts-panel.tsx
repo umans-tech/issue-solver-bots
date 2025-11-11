@@ -33,6 +33,7 @@ interface DocPromptsPanelProps {
 }
 
 interface DraftEntry {
+  id: string;
   slug: string;
   title: string;
   prompt: string;
@@ -71,7 +72,12 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
 
   const savedEntries = useMemo<DraftEntry[]>(() => {
     const saved = data?.docs_prompts ?? {};
-    return Object.entries(saved).map(([slug, prompt]) => ({ slug, title: humanize(slug), prompt }));
+    return Object.entries(saved).map(([slug, prompt]) => ({
+      id: slug,
+      slug,
+      title: humanize(slug),
+      prompt,
+    }));
   }, [data?.docs_prompts]);
 
   const savedKey = useMemo(() => JSON.stringify(savedEntries), [savedEntries]);
@@ -89,14 +95,16 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
 
   const hasChanges = savedKey !== JSON.stringify(drafts);
 
-  const toggleEditor = (slug: string, open: boolean) => {
-    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, isEditing: open } : entry)));
+  const toggleEditor = (id: string, open: boolean) => {
+    setDrafts((prev) => prev.map((entry) => (entry.id === id ? { ...entry, isEditing: open } : entry)));
   };
 
   const addCustomDoc = () => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setDrafts((prev) => [
       ...prev,
       {
+        id,
         slug: slugify('new-doc-' + Date.now()),
         title: 'New Doc',
         prompt: '',
@@ -108,23 +116,31 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
   const insertSuggestion = (slug: string, prompt: string, title: string) => {
     setDrafts((prev) => [
       ...prev,
-      { slug, title, prompt, isEditing: true },
+      {
+        id: `${Date.now()}-${slug}`,
+        slug,
+        title,
+        prompt,
+        isEditing: true,
+      },
     ]);
   };
 
-  const handleDelete = (slug: string) => {
-    setDrafts((prev) => prev.filter((entry) => entry.slug !== slug));
+  const handleDelete = (id: string) => {
+    setDrafts((prev) => prev.filter((entry) => entry.id !== id));
   };
 
-  const handleTitleChange = (slug: string, title: string) => {
+  const handleTitleChange = (id: string, title: string) => {
     const normalized = slugify(title);
     setDrafts((prev) =>
-      prev.map((entry) => (entry.slug === slug ? { ...entry, title, slug: normalized } : entry)),
+      prev.map((entry) =>
+        entry.id === id ? { ...entry, title, slug: normalized || entry.slug } : entry,
+      ),
     );
   };
 
-  const handlePromptChange = (slug: string, prompt: string) => {
-    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, prompt } : entry)));
+  const handlePromptChange = (id: string, prompt: string) => {
+    setDrafts((prev) => prev.map((entry) => (entry.id === id ? { ...entry, prompt } : entry)));
   };
 
   const handleSave = async () => {
@@ -192,7 +208,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
       ) : (
         <div className="space-y-2">
           {drafts.map((entry) => (
-            <div key={entry.slug} className="rounded-lg border px-3 py-2">
+            <div key={entry.id} className="rounded-lg border px-3 py-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium text-foreground">{entry.title}</p>
@@ -204,12 +220,12 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7"
-                    onClick={() => toggleEditor(entry.slug, !(entry.isEditing ?? false))}
+                    onClick={() => toggleEditor(entry.id, !(entry.isEditing ?? false))}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     <span className="sr-only">Edit prompt</span>
                   </Button>
-                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(entry.slug)}>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleDelete(entry.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                     <span className="sr-only">Remove prompt</span>
                   </Button>
@@ -219,17 +235,17 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
                 <div className="mt-3 space-y-3">
                   <Input
                     value={entry.title}
-                    onChange={(event) => handleTitleChange(entry.slug, event.target.value)}
+                    onChange={(event) => handleTitleChange(entry.id, event.target.value)}
                     placeholder="Doc title"
                   />
                   <Textarea
                     value={entry.prompt}
-                    onChange={(event) => handlePromptChange(entry.slug, event.target.value)}
+                    onChange={(event) => handlePromptChange(entry.id, event.target.value)}
                     placeholder="Describe what this doc should contain"
                     rows={4}
                   />
                   <div className="flex justify-end">
-                    <Button type="button" size="sm" variant="outline" onClick={() => toggleEditor(entry.slug, false)}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => toggleEditor(entry.id, false)}>
                       Done
                     </Button>
                   </div>
