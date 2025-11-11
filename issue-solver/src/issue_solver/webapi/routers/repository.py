@@ -31,7 +31,11 @@ from issue_solver.webapi.payloads import (
     AutoDocumentationConfigRequest,
     AutoDocumentationDeleteRequest,
 )
-from issue_solver.events.auto_documentation import load_auto_documentation_setup
+from issue_solver.events.auto_documentation import (
+    load_auto_documentation_setup,
+    CannotRemoveAutoDocumentationWithoutPrompts,
+    CannotRemoveUnknownAutoDocumentationPrompts,
+)
 from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -356,6 +360,14 @@ async def remove_auto_documentation_prompts(
     auto_doc_setup = await load_auto_documentation_setup(
         event_store=event_store, knowledge_base_id=knowledge_base_id
     )
+
+    try:
+        auto_doc_setup.ensure_prompt_ids_can_be_removed(delete_request.prompt_ids)
+    except CannotRemoveAutoDocumentationWithoutPrompts as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except CannotRemoveUnknownAutoDocumentationPrompts as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     process_id = auto_doc_setup.last_process_id or str(uuid.uuid4())
 
     event = DocumentationPromptsRemoved(

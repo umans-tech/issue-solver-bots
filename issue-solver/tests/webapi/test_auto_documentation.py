@@ -264,3 +264,86 @@ def test_auto_documentation_prompt_can_be_removed(
         data["docs_prompts"]["setup"]
         == "Update the setup guide with troubleshooting tips"
     )
+
+
+def test_delete_auto_documentation_prompts_should_fail_when_none_defined(
+    api_client,
+    time_under_control,
+    sqs_client,
+    sqs_queue,
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-11-04T09:00:00")
+    user_id = "doc-bot@example.com"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert connect_repo_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    # When
+    response = api_client.request(
+        "DELETE",
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={"promptIds": ["overview"]},
+        headers={"X-User-ID": user_id},
+    )
+
+    # Then
+    assert response.status_code == 404
+    assert knowledge_base_id in response.json()["detail"]
+    assert "Cannot remove auto-documentation prompts" in response.json()["detail"]
+
+
+def test_delete_auto_documentation_prompts_should_fail_when_prompt_unknown(
+    api_client,
+    time_under_control,
+    sqs_client,
+    sqs_queue,
+):
+    # Given
+    time_under_control.set_from_iso_format("2025-11-04T10:00:00")
+    user_id = "doc-bot@example.com"
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert connect_repo_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    post_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={
+            "docsPrompts": {
+                "overview": "Write overview",
+            }
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert post_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+
+    # When
+    response = api_client.request(
+        "DELETE",
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json={"promptIds": ["unknown"]},
+        headers={"X-User-ID": user_id},
+    )
+
+    # Then
+    assert response.status_code == 404
+    assert "unknown" in response.json()["detail"]

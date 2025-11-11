@@ -4,6 +4,8 @@ import pytest
 
 from issue_solver.events.auto_documentation import (
     AutoDocumentationSetup,
+    CannotRemoveAutoDocumentationWithoutPrompts,
+    CannotRemoveUnknownAutoDocumentationPrompts,
     load_auto_documentation_setup,
 )
 from issue_solver.events.domain import (
@@ -102,6 +104,33 @@ def test_auto_documentation_setup_from_events_handles_empty_sequence():
 
     # Then
     assert setup == AutoDocumentationSetup.start(knowledge_base_id)
+
+
+def test_auto_documentation_setup_prevents_removal_when_no_prompts_exist():
+    # Given
+    setup = AutoDocumentationSetup.start("kb-ensure")
+
+    # When / Then
+    with pytest.raises(CannotRemoveAutoDocumentationWithoutPrompts):
+        setup.ensure_prompt_ids_can_be_removed(["overview"])
+
+
+def test_auto_documentation_setup_prevents_removal_of_unknown_prompts():
+    # Given
+    setup = AutoDocumentationSetup.start("kb-ensure").apply(
+        DocumentationPromptsDefined(
+            knowledge_base_id="kb-ensure",
+            user_id="doc-bot",
+            docs_prompts={"overview": "Write overview"},
+            process_id="process",
+            occurred_at=datetime.fromisoformat("2025-05-01T10:00:00+00:00"),
+        )
+    )
+
+    # When / Then
+    with pytest.raises(CannotRemoveUnknownAutoDocumentationPrompts) as exc_info:
+        setup.ensure_prompt_ids_can_be_removed(["missing"])
+    assert exc_info.value.prompt_ids == ["missing"]
 
 
 @pytest.mark.asyncio

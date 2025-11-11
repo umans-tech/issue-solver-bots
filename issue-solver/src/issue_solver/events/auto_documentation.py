@@ -14,6 +14,27 @@ from issue_solver.events.event_store import EventStore
 AutoDocumentationEvent = DocumentationPromptsDefined | DocumentationPromptsRemoved
 
 
+class AutoDocumentationError(Exception):
+    """Base error for auto-documentation aggregates."""
+
+
+class CannotRemoveAutoDocumentationWithoutPrompts(AutoDocumentationError):
+    def __init__(self, knowledge_base_id: str):
+        self.knowledge_base_id = knowledge_base_id
+        super().__init__(
+            f"Cannot remove auto-documentation prompts because none exist for knowledge base {knowledge_base_id}."
+        )
+
+
+class CannotRemoveUnknownAutoDocumentationPrompts(AutoDocumentationError):
+    def __init__(self, prompt_ids: Sequence[str]):
+        self.prompt_ids = list(prompt_ids)
+        formatted = ", ".join(self.prompt_ids)
+        super().__init__(
+            f"Cannot remove unknown auto-documentation prompts: {formatted}"
+        )
+
+
 @dataclass(slots=True)
 class AutoDocumentationSetup:
     knowledge_base_id: str
@@ -66,6 +87,13 @@ class AutoDocumentationSetup:
             updated_at=event.occurred_at,
             last_process_id=event.process_id,
         )
+
+    def ensure_prompt_ids_can_be_removed(self, prompt_ids: Sequence[str]) -> None:
+        if not self.docs_prompts:
+            raise CannotRemoveAutoDocumentationWithoutPrompts(self.knowledge_base_id)
+        missing = [pid for pid in prompt_ids if pid not in self.docs_prompts]
+        if missing:
+            raise CannotRemoveUnknownAutoDocumentationPrompts(missing)
 
 
 async def load_auto_documentation_setup(
