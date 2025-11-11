@@ -80,6 +80,17 @@ def test_auto_documentation_setup_apply_returns_new_state():
     assert updated.updated_at == second_event.occurred_at
 
 
+def test_auto_documentation_setup_from_events_handles_empty_sequence():
+    # Given
+    knowledge_base_id = "kb-empty"
+
+    # When
+    setup = AutoDocumentationSetup.from_events(knowledge_base_id, [])
+
+    # Then
+    assert setup == AutoDocumentationSetup.start(knowledge_base_id)
+
+
 @pytest.mark.asyncio
 async def test_load_auto_documentation_setup_tracks_latest_metadata(event_store):
     # Given

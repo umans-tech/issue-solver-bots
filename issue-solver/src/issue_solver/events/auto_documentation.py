@@ -30,11 +30,8 @@ class AutoDocumentationSetup:
         knowledge_base_id: str,
         events: Sequence[DocumentationPromptsDefined],
     ) -> "AutoDocumentationSetup":
-        setup = cls.start(knowledge_base_id)
-        if not events:
-            return setup
-
         events_sorted = sorted(events, key=lambda event: event.occurred_at)
+        setup = cls.start(knowledge_base_id)
         for event in events_sorted:
             setup = setup.apply(event)
         return setup
