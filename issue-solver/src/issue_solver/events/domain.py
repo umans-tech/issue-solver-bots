@@ -211,6 +211,15 @@ class DocumentationPromptsDefined(DomainEvent):
     occurred_at: datetime
 
 
+@dataclass(kw_only=True, frozen=True, slots=True)
+class DocumentationPromptsRemoved(DomainEvent):
+    knowledge_base_id: str
+    user_id: str
+    prompt_ids: list[str]
+    process_id: str
+    occurred_at: datetime
+
+
 @dataclass(frozen=True, slots=True)
 class NotionIntegrationAuthorizationFailed(DomainEvent):
     error_type: str
@@ -243,6 +252,7 @@ AnyDomainEvent = (
     | NotionIntegrationTokenRefreshed
     | NotionIntegrationAuthorizationFailed
     | DocumentationPromptsDefined
+    | DocumentationPromptsRemoved
 )
 
 

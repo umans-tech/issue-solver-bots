@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Sequence
+from typing import Sequence, assert_never
 
-from issue_solver.events.domain import DocumentationPromptsDefined
+from issue_solver.events.domain import (
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
+)
 from issue_solver.events.event_store import EventStore
+
+
+AutoDocumentationEvent = DocumentationPromptsDefined | DocumentationPromptsRemoved
 
 
 @dataclass(slots=True)
@@ -28,7 +34,7 @@ class AutoDocumentationSetup:
     def from_events(
         cls,
         knowledge_base_id: str,
-        events: Sequence[DocumentationPromptsDefined],
+        events: Sequence[AutoDocumentationEvent],
     ) -> "AutoDocumentationSetup":
         events_sorted = sorted(events, key=lambda event: event.occurred_at)
         setup = cls.start(knowledge_base_id)
@@ -36,16 +42,27 @@ class AutoDocumentationSetup:
             setup = setup.apply(event)
         return setup
 
-    def apply(self, event: DocumentationPromptsDefined) -> "AutoDocumentationSetup":
-        updated_prompts = self.docs_prompts | event.docs_prompts
-        filtered_prompts = {
-            key: value
-            for key, value in updated_prompts.items()
-            if isinstance(value, str) and value.strip()
-        }
+    def apply(self, event: AutoDocumentationEvent) -> "AutoDocumentationSetup":
+        match event:
+            case DocumentationPromptsRemoved(prompt_ids=prompt_ids):
+                removed = set(prompt_ids)
+                next_prompts = {
+                    key: value
+                    for key, value in self.docs_prompts.items()
+                    if key not in removed
+                }
+            case DocumentationPromptsDefined(docs_prompts=new_prompts):
+                merged = self.docs_prompts | new_prompts
+                next_prompts = {
+                    key: value
+                    for key, value in merged.items()
+                    if isinstance(value, str) and value.strip()
+                }
+            case _:
+                assert_never(event)
         return replace(
             self,
-            docs_prompts=filtered_prompts,
+            docs_prompts=next_prompts,
             updated_at=event.occurred_at,
             last_process_id=event.process_id,
         )
@@ -56,7 +73,12 @@ async def load_auto_documentation_setup(
 ) -> AutoDocumentationSetup:
     """Merge prompt definitions for a knowledge base and expose metadata."""
 
-    doc_events = await event_store.find(
+    defined_events = await event_store.find(
         {"knowledge_base_id": knowledge_base_id}, DocumentationPromptsDefined
     )
-    return AutoDocumentationSetup.from_events(knowledge_base_id, doc_events)
+    removal_events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, DocumentationPromptsRemoved
+    )
+    return AutoDocumentationSetup.from_events(
+        knowledge_base_id, [*defined_events, *removal_events]
+    )

@@ -6,7 +6,10 @@ from issue_solver.events.auto_documentation import (
     AutoDocumentationSetup,
     load_auto_documentation_setup,
 )
-from issue_solver.events.domain import DocumentationPromptsDefined
+from issue_solver.events.domain import (
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
+)
 from issue_solver.events.event_store import InMemoryEventStore
 
 
@@ -65,10 +68,18 @@ def test_auto_documentation_setup_apply_returns_new_state():
         process_id="process-update",
         occurred_at=datetime.fromisoformat("2025-02-01T10:30:00+00:00"),
     )
+    removal_event = DocumentationPromptsRemoved(
+        knowledge_base_id=knowledge_base_id,
+        user_id="doc-bot",
+        prompt_ids=["overview"],
+        process_id="process-remove",
+        occurred_at=datetime.fromisoformat("2025-02-01T11:00:00+00:00"),
+    )
 
     # When
     intermediate = setup.apply(first_event)
     updated = intermediate.apply(second_event)
+    after_removal = updated.apply(removal_event)
 
     # Then
     assert intermediate.docs_prompts == {"overview": "Initial"}
@@ -78,6 +89,8 @@ def test_auto_documentation_setup_apply_returns_new_state():
     }
     assert updated.last_process_id == "process-update"
     assert updated.updated_at == second_event.occurred_at
+    assert after_removal.docs_prompts == {"adr": "Capture ADR"}
+    assert after_removal.last_process_id == "process-remove"
 
 
 def test_auto_documentation_setup_from_events_handles_empty_sequence():
@@ -109,13 +122,21 @@ async def test_load_auto_documentation_setup_tracks_latest_metadata(event_store)
         process_id="process-update",
         occurred_at=datetime.fromisoformat("2025-01-01T10:30:00+00:00"),
     )
+    removal_event = DocumentationPromptsRemoved(
+        knowledge_base_id=knowledge_base_id,
+        user_id="doc-bot",
+        prompt_ids=["overview"],
+        process_id="process-remove",
+        occurred_at=datetime.fromisoformat("2025-01-01T11:00:00+00:00"),
+    )
     await event_store.append(first_event.process_id, first_event)
     await event_store.append(second_event.process_id, second_event)
+    await event_store.append(removal_event.process_id, removal_event)
 
     # When
     setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
 
     # Then
-    assert setup.docs_prompts == {"overview": "Refined"}
-    assert setup.updated_at == second_event.occurred_at
-    assert setup.last_process_id == second_event.process_id
+    assert setup.docs_prompts == {}
+    assert setup.updated_at == removal_event.occurred_at
+    assert setup.last_process_id == removal_event.process_id
