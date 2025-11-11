@@ -26,10 +26,10 @@
   - Kent Beck, *Test-Driven Development: By Example* ([Addison-Wesley](https://www.informit.com/store/test-driven-development-by-example-9780321146533)).
   - Dan North, “Introducing BDD,” 2006 ([dannorth.net](https://dannorth.net/introducing-bdd/)).
 
-### Guideline: Use Aggregates as the Source of Truth
-- **Purpose:** Encapsulate invariants and state transitions in one place.
-- **Explanation:** Aggregates (e.g., `AutoDocumentationSetup`) rehydrate themselves from events and enforce rules in `apply()`. External layers don’t manipulate raw state; they hand commands/events to the aggregate and react to the outcome. This prevents defensive checks from leaking into controllers or workers.
-- **Example:** `AutoDocumentationSetup.apply()` raises `CannotRemoveAutoDocumentationWithoutPrompts` if a removal event arrives before any definition, so no caller needs to pre-check for prompt existence.
+### Guideline: Aggregates Guard Their Own Invariants
+- **Purpose:** Keep business rules in one place and avoid scattered defensive code.
+- **Explanation:** Aggregates (e.g., `AutoDocumentationSetup`) rebuild state from events and expose methods like `apply()` that either succeed or raise a domain exception. Controllers/workers never mutate state directly or re-check invariants; they delegate to the aggregate and translate the result. This makes it impossible to bypass rules accidentally.
+- **Example:** `AutoDocumentationSetup.apply()` raises `CannotRemoveAutoDocumentationWithoutPrompts` if a removal event arrives before any definition, so routers simply catch the exception and return 404 instead of duplicating the “do prompts exist?” check.
 - **References:**
   - Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software* ([Addison-Wesley](https://www.informit.com/store/domain-driven-design-tackling-complexity-in-the-heart-of-9780321125217)).
   - Vaughn Vernon, *Implementing Domain-Driven Design* ([Addison-Wesley](https://www.informit.com/store/implementing-domain-driven-design-9780321834577)).
