@@ -136,6 +136,64 @@ def test_get_auto_documentation_should_return_latest_prompts(
     assert data["last_process_id"] is not None
 
 
+def test_auto_documentation_configuration_maintains_continuous_process(
+    api_client,
+    time_under_control,
+    sqs_client,
+    sqs_queue,
+):
+    time_under_control.set_from_iso_format("2025-11-02T10:30:00")
+    user_id = "doc-bot@example.com"
+
+    # Given
+    connect_repo_response = api_client.post(
+        "/repositories/",
+        json={
+            "url": "https://github.com/acme/awesome-repo",
+            "access_token": "s3cr37-access-token",
+            "space_id": "acme-space-01",
+        },
+        headers={"X-User-ID": user_id},
+    )
+    assert connect_repo_response.status_code == 201
+    receive_event_message(sqs_client, sqs_queue)
+    knowledge_base_id = connect_repo_response.json()["knowledge_base_id"]
+
+    first_payload = {
+        "docsPrompts": {
+            "overview": "Generate an overview document",
+        }
+    }
+    second_payload = {
+        "docsPrompts": {
+            "overview": "Refresh the overview with metrics",
+            "adr": "Capture recent architectural trade-offs",
+        }
+    }
+
+    first_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json=first_payload,
+        headers={"X-User-ID": user_id},
+    )
+    assert first_response.status_code == 201
+    first_process_id = first_response.json()["process_id"]
+    receive_event_message(sqs_client, sqs_queue)
+
+    # When
+    second_response = api_client.post(
+        f"/repositories/{knowledge_base_id}/auto-documentation",
+        json=second_payload,
+        headers={"X-User-ID": user_id},
+    )
+    assert second_response.status_code == 201
+    second_process_id = second_response.json()["process_id"]
+
+    # Then
+    assert second_process_id == first_process_id
+    assert second_response.json()["docs_prompts"] == second_payload["docsPrompts"]
+
+
 def test_auto_documentation_prompt_can_be_removed(
     api_client,
     time_under_control,

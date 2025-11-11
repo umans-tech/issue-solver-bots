@@ -344,7 +344,7 @@ async def test_get_prompts_for_doc_to_generate_should_ignore_blank_entries(event
         user_id="doc-bot",
         docs_prompts={"domain_events_glossary": ""},
         process_id="doc-removal-process",
-        occurred_at=datetime.fromisoformat("2025-02-01T10:00:00"),
+        occurred_at=datetime.fromisoformat("2025-02-01T10:00:00Z"),
     )
     await event_store.append(removal_event.process_id, removal_event)
 

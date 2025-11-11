@@ -29,6 +29,10 @@ from issue_solver.webapi.payloads import (
     EnvironmentConfiguration,
     AutoDocumentationConfigRequest,
 )
+from issue_solver.events.auto_documentation import (
+    auto_documentation_process_id,
+    load_auto_documentation_state,
+)
 from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -288,7 +292,7 @@ async def configure_auto_documentation(
         logger=logger,
     )
 
-    process_id = str(uuid.uuid4())
+    process_id = auto_documentation_process_id(knowledge_base_id)
     event = DocumentationPromptsDefined(
         knowledge_base_id=knowledge_base_id,
         user_id=user_id,
@@ -304,10 +308,14 @@ async def configure_auto_documentation(
         process_id,
     )
 
+    state = await load_auto_documentation_state(
+        event_store=event_store, knowledge_base_id=knowledge_base_id
+    )
+
     return {
         "process_id": process_id,
         "knowledge_base_id": knowledge_base_id,
-        "docs_prompts": auto_doc_config.docs_prompts,
+        "docs_prompts": state.docs_prompts,
     }
 
 
@@ -339,29 +347,16 @@ async def get_auto_documentation(
         knowledge_base_id,
     )
 
-    doc_events = await event_store.find(
-        {"knowledge_base_id": repository_connection.knowledge_base_id},
-        DocumentationPromptsDefined,
+    state = await load_auto_documentation_state(
+        event_store=event_store,
+        knowledge_base_id=repository_connection.knowledge_base_id,
     )
-
-    merged_prompts: dict[str, str] = {}
-    latest_event: DocumentationPromptsDefined | None = None
-    for event in doc_events:
-        merged_prompts.update(event.docs_prompts)
-        if not latest_event or event.occurred_at > latest_event.occurred_at:
-            latest_event = event
-
-    filtered_prompts = {
-        key: value
-        for key, value in merged_prompts.items()
-        if isinstance(value, str) and value.strip()
-    }
 
     return {
         "knowledge_base_id": knowledge_base_id,
-        "docs_prompts": filtered_prompts,
-        "updated_at": latest_event.occurred_at.isoformat() if latest_event else None,
-        "last_process_id": latest_event.process_id if latest_event else None,
+        "docs_prompts": state.docs_prompts,
+        "updated_at": state.updated_at.isoformat() if state.updated_at else None,
+        "last_process_id": state.last_process_id,
     }
 
 

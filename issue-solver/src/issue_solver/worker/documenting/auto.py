@@ -5,7 +5,6 @@ from issue_solver.agents.issue_resolving_agent import DocumentingAgent
 from issue_solver.events.code_repo_integration import fetch_repo_credentials
 from issue_solver.events.domain import (
     CodeRepositoryIndexed,
-    DocumentationPromptsDefined,
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.worker.documenting.knowledge_repository import (
@@ -13,6 +12,7 @@ from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
 )
 from issue_solver.worker.dependencies import Dependencies
+from issue_solver.events.auto_documentation import load_auto_documentation_state
 
 
 async def generate_docs(
@@ -63,19 +63,8 @@ async def prepare_repo_path(process_id: str) -> Path:
 async def get_prompts_for_doc_to_generate(
     event_store: EventStore, knowledge_base_id: str
 ) -> dict[str, str]:
-    doc_prompts_defined_events = await event_store.find(
-        {"knowledge_base_id": knowledge_base_id},
-        DocumentationPromptsDefined,
-    )
-    documentation_prompts: dict[str, str] = {}
-    for event in doc_prompts_defined_events:
-        documentation_prompts.update(event.docs_prompts)
-
-    return {
-        key: value
-        for key, value in documentation_prompts.items()
-        if isinstance(value, str) and value.strip()
-    }
+    state = await load_auto_documentation_state(event_store, knowledge_base_id)
+    return state.docs_prompts
 
 
 async def generate_and_load_docs(
