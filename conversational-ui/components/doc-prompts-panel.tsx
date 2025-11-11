@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNow } from 'date-fns';
-import { Loader2, Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,7 +63,6 @@ const humanize = (slug: string) =>
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ');
-
 export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelProps) {
   const { data, error, isLoading, mutate } = useSWR<DocPromptsResponse>(
     knowledgeBaseId ? `/api/docs/prompts?knowledgeBaseId=${encodeURIComponent(knowledgeBaseId)}` : null,
@@ -94,7 +93,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, isEditing: open } : entry)));
   };
 
-  const handleAdd = () => {
+  const addCustomDoc = () => {
     setDrafts((prev) => [
       ...prev,
       {
@@ -106,12 +105,15 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     ]);
   };
 
-  const handleDelete = (slug: string) => {
-    setDrafts((prev) => prev.filter((entry) => entry.slug !== slug));
+  const insertSuggestion = (slug: string, prompt: string, title: string) => {
+    setDrafts((prev) => [
+      ...prev,
+      { slug, title, prompt, isEditing: true },
+    ]);
   };
 
-  const handlePromptChange = (slug: string, prompt: string) => {
-    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, prompt } : entry)));
+  const handleDelete = (slug: string) => {
+    setDrafts((prev) => prev.filter((entry) => entry.slug !== slug));
   };
 
   const handleTitleChange = (slug: string, title: string) => {
@@ -121,16 +123,8 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     );
   };
 
-  const insertSuggestion = (slug: string, prompt: string, title: string) => {
-    setDrafts((prev) => [
-      ...prev,
-      {
-        slug,
-        title,
-        prompt,
-        isEditing: true,
-      },
-    ]);
+  const handlePromptChange = (slug: string, prompt: string) => {
+    setDrafts((prev) => prev.map((entry) => (entry.slug === slug ? { ...entry, prompt } : entry)));
   };
 
   const handleSave = async () => {
@@ -175,14 +169,12 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
           <p className="text-xs text-muted-foreground">Tell the agent what to write each sync.</p>
           {updatedLabel && <p className="text-[11px] text-muted-foreground/80 mt-1">Updated {updatedLabel}</p>}
         </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={handleAdd}>
-            + Add doc
-          </Button>
-          <SuggestionDropdown suggestions={suggestions} onInsert={insertSuggestion} />
-        </div>
+        <AddDocButton
+          suggestions={suggestions}
+          onAdd={addCustomDoc}
+          onInsertSuggestion={insertSuggestion}
+        />
       </div>
-
       {isLoading ? (
         <div className="space-y-2">
           {[0, 1, 2].map((key) => (
@@ -195,7 +187,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
         </div>
       ) : drafts.length === 0 ? (
         <div className="rounded-md border border-dashed px-3 py-6 text-sm text-muted-foreground text-center">
-          No docs selected. Use the suggestion menu or add your own instructions.
+          No docs selected. Use the arrow to pick a suggestion or add your own instructions.
         </div>
       ) : (
         <div className="space-y-2">
@@ -237,12 +229,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
                     rows={4}
                   />
                   <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => toggleEditor(entry.slug, false)}
-                    >
+                    <Button type="button" size="sm" variant="outline" onClick={() => toggleEditor(entry.slug, false)}>
                       Done
                     </Button>
                   </div>
@@ -259,13 +246,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
         <span className="mr-auto text-xs text-muted-foreground">
           {hasChanges ? 'Unsaved changes' : 'All changes saved'}
         </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={!hasChanges || isSaving}
-          onClick={() => setDrafts(savedEntries)}
-        >
+        <Button type="button" variant="ghost" size="sm" disabled={!hasChanges || isSaving} onClick={() => setDrafts(savedEntries)}>
           Reset
         </Button>
         <Button type="button" size="sm" disabled={!hasChanges || isSaving} onClick={handleSave}>
@@ -282,41 +263,54 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     </section>
   );
 }
-
-function SuggestionDropdown({
+function AddDocButton({
+  onAdd,
   suggestions,
-  onInsert,
+  onInsertSuggestion,
 }: {
+  onAdd: () => void;
   suggestions: Record<string, { title: string; prompt: string }>;
-  onInsert: (slug: string, prompt: string, title: string) => void;
+  onInsertSuggestion: (slug: string, prompt: string, title: string) => void;
 }) {
   const entries = Object.entries(suggestions);
-  if (entries.length === 0) return null;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" size="sm" variant="outline" className="font-normal">
-          Suggestion
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
-        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
-          Pick a prompt
-        </DropdownMenuLabel>
-        {entries.map(([slug, meta]) => (
-          <DropdownMenuItem
-            key={slug}
-            className="flex flex-col items-start gap-1 whitespace-normal"
-            onSelect={() => onInsert(slug, meta.prompt, meta.title)}
-          >
-            <span className="text-sm font-medium text-foreground">{meta.title}</span>
-            <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
-              {meta.prompt}
-            </span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="inline-flex rounded-md shadow-sm border border-input bg-background">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onAdd}
+        className="rounded-r-none border-r border-border"
+      >
+        + Add doc
+      </Button>
+      {entries.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="rounded-l-none px-2">
+              <ChevronDown className="h-3.5 w-3.5" />
+              <span className="sr-only">Insert suggested prompt</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
+            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wide">
+              Pick a prompt
+            </DropdownMenuLabel>
+            {entries.map(([slug, meta]) => (
+              <DropdownMenuItem
+                key={slug}
+                className="flex flex-col items-start gap-1 whitespace-normal"
+                onSelect={() => onInsertSuggestion(slug, meta.prompt, meta.title)}
+              >
+                <span className="text-sm font-medium text-foreground">{meta.title}</span>
+                <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                  {meta.prompt}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   );
 }
