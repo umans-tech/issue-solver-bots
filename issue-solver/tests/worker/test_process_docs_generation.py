@@ -9,9 +9,9 @@ from issue_solver.agents.issue_resolving_agent import (
     IssueResolvingAgent,
     DocumentingAgent,
 )
+from issue_solver.events.auto_documentation import load_auto_documentation_setup
 from issue_solver.events.domain import DocumentationPromptsDefined
 from issue_solver.git_operations.git_helper import GitHelper
-from issue_solver.worker.documenting.auto import get_prompts_for_doc_to_generate
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
     KnowledgeBase,
@@ -334,6 +334,7 @@ async def test_process_docs_generation_should_load_existing_repo_markdown(
 
 @pytest.mark.asyncio
 async def test_get_prompts_for_doc_to_generate_should_ignore_blank_entries(event_store):
+    # Given
     knowledge_base_id = "brice-kb-001"
     await event_store.append(
         BriceDeNice.doc_configuration_process_id(),
@@ -348,6 +349,8 @@ async def test_get_prompts_for_doc_to_generate_should_ignore_blank_entries(event
     )
     await event_store.append(removal_event.process_id, removal_event)
 
-    prompts = await get_prompts_for_doc_to_generate(event_store, knowledge_base_id)
+    # When
+    auto_doc_setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
 
-    assert "domain_events_glossary" not in prompts
+    # Then
+    assert "domain_events_glossary" not in auto_doc_setup.docs_prompts

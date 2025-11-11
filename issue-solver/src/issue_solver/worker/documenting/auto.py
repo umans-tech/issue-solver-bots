@@ -6,13 +6,12 @@ from issue_solver.events.code_repo_integration import fetch_repo_credentials
 from issue_solver.events.domain import (
     CodeRepositoryIndexed,
 )
-from issue_solver.events.event_store import EventStore
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeBase,
     KnowledgeRepository,
 )
 from issue_solver.worker.dependencies import Dependencies
-from issue_solver.events.auto_documentation import load_auto_documentation_state
+from issue_solver.events.auto_documentation import load_auto_documentation_setup
 
 
 async def generate_docs(
@@ -39,17 +38,17 @@ async def generate_docs(
         knowledge_base_id=event.knowledge_base_id,
         code_version=code_version,
     )
-    docs_prompts = await get_prompts_for_doc_to_generate(
+    auto_doc_setup = await load_auto_documentation_setup(
         dependencies.event_store, event.knowledge_base_id
     )
-    if docs_prompts:
+    if auto_doc_setup.docs_prompts:
         await generate_and_load_docs(
             docs_agent,
             dependencies.knowledge_repository,
             process_id,
             event.knowledge_base_id,
             code_version,
-            docs_prompts,
+            auto_doc_setup.docs_prompts,
         )
 
 
@@ -58,13 +57,6 @@ async def prepare_repo_path(process_id: str) -> Path:
     if repo_path.exists():
         shutil.rmtree(repo_path)
     return repo_path
-
-
-async def get_prompts_for_doc_to_generate(
-    event_store: EventStore, knowledge_base_id: str
-) -> dict[str, str]:
-    state = await load_auto_documentation_state(event_store, knowledge_base_id)
-    return state.docs_prompts
 
 
 async def generate_and_load_docs(

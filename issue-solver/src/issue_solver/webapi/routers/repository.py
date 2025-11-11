@@ -31,7 +31,7 @@ from issue_solver.webapi.payloads import (
 )
 from issue_solver.events.auto_documentation import (
     auto_documentation_process_id,
-    load_auto_documentation_state,
+    load_auto_documentation_setup,
 )
 from openai import OpenAI
 
@@ -308,14 +308,14 @@ async def configure_auto_documentation(
         process_id,
     )
 
-    state = await load_auto_documentation_state(
+    auto_doc_setup = await load_auto_documentation_setup(
         event_store=event_store, knowledge_base_id=knowledge_base_id
     )
 
     return {
         "process_id": process_id,
         "knowledge_base_id": knowledge_base_id,
-        "docs_prompts": state.docs_prompts,
+        "docs_prompts": auto_doc_setup.docs_prompts,
     }
 
 
@@ -347,16 +347,18 @@ async def get_auto_documentation(
         knowledge_base_id,
     )
 
-    state = await load_auto_documentation_state(
+    auto_doc_setup = await load_auto_documentation_setup(
         event_store=event_store,
         knowledge_base_id=repository_connection.knowledge_base_id,
     )
 
     return {
         "knowledge_base_id": knowledge_base_id,
-        "docs_prompts": state.docs_prompts,
-        "updated_at": state.updated_at.isoformat() if state.updated_at else None,
-        "last_process_id": state.last_process_id,
+        "docs_prompts": auto_doc_setup.docs_prompts,
+        "updated_at": auto_doc_setup.updated_at.isoformat()
+        if auto_doc_setup.updated_at
+        else None,
+        "last_process_id": auto_doc_setup.last_process_id,
     }
 
 

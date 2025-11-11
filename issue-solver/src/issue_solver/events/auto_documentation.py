@@ -17,16 +17,16 @@ def auto_documentation_process_id(knowledge_base_id: str) -> str:
 
 
 @dataclass(slots=True)
-class AutoDocumentationState:
+class AutoDocumentationSetup:
     knowledge_base_id: str
     docs_prompts: dict[str, str]
     updated_at: datetime | None
     last_process_id: str | None
 
 
-async def load_auto_documentation_state(
+async def load_auto_documentation_setup(
     event_store: EventStore, knowledge_base_id: str
-) -> AutoDocumentationState:
+) -> AutoDocumentationSetup:
     """Merge prompt definitions for a knowledge base and expose metadata."""
 
     doc_events = await event_store.find(
@@ -47,7 +47,7 @@ async def load_auto_documentation_state(
         if isinstance(value, str) and value.strip()
     }
 
-    return AutoDocumentationState(
+    return AutoDocumentationSetup(
         knowledge_base_id=knowledge_base_id,
         docs_prompts=filtered_prompts,
         updated_at=latest_event.occurred_at if latest_event else None,
