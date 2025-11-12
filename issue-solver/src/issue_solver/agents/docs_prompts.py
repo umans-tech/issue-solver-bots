@@ -63,4 +63,12 @@ def suggested_docs_prompts() -> dict[str, str]:
 		- Capture constraints or trade-offs mentioned in ADRs/docs (performance, scalability, security).
 		Prefer C4-style storytelling: include a Mermaid diagram using flowchart syntax to mimic C4 levels (system/context/container) since native C4 is poorly supported.
 		""",
+        "glossary.md": """
+		Create a project-wide glossary aimed at newcomers.
+		- Use plain language definitions for domain terms, acronyms, and important file/service names.
+		- Reference the exact files or code paths where each term is defined or used.
+		- Highlight relationships (e.g., "X depends on Y") when the code shows coupling.
+		- Call out whether the term is internal-only or visible to customers.
+		Keep entries short (2-3 sentences) and sorted alphabetically so they can be skimmed quickly.
+		""",
     }
