@@ -64,24 +64,7 @@ class AutoDocumentationSetup:
         return setup
 
     def apply(self, event: AutoDocumentationEvent) -> "AutoDocumentationSetup":
-        match event:
-            case DocumentationPromptsRemoved(prompt_ids=prompt_ids):
-                self.ensure_prompt_ids_can_be_removed(prompt_ids)
-                removed = set(prompt_ids)
-                next_prompts = {
-                    key: value
-                    for key, value in self.docs_prompts.items()
-                    if key not in removed
-                }
-            case DocumentationPromptsDefined(docs_prompts=new_prompts):
-                merged = self.docs_prompts | new_prompts
-                next_prompts = {
-                    key: value
-                    for key, value in merged.items()
-                    if isinstance(value, str) and value.strip()
-                }
-            case _:
-                assert_never(event)
+        next_prompts = self._next_prompts_after(event)
         return replace(
             self,
             docs_prompts=next_prompts,
@@ -95,6 +78,30 @@ class AutoDocumentationSetup:
         missing = [pid for pid in prompt_ids if pid not in self.docs_prompts]
         if missing:
             raise CannotRemoveUnknownAutoDocumentationPrompts(missing)
+
+    def _next_prompts_after(self, event: AutoDocumentationEvent) -> dict[str, str]:
+        match event:
+            case DocumentationPromptsRemoved(prompt_ids=prompt_ids):
+                return self._without(prompt_ids)
+            case DocumentationPromptsDefined(docs_prompts=new_prompts):
+                return self._merged_with(new_prompts)
+            case _:
+                assert_never(event)
+
+    def _without(self, prompt_ids: Sequence[str]) -> dict[str, str]:
+        self.ensure_prompt_ids_can_be_removed(prompt_ids)
+        removed = set(prompt_ids)
+        return {
+            key: value for key, value in self.docs_prompts.items() if key not in removed
+        }
+
+    def _merged_with(self, new_prompts: dict[str, str]) -> dict[str, str]:
+        merged = self.docs_prompts | new_prompts
+        return {
+            key: value
+            for key, value in merged.items()
+            if isinstance(value, str) and value.strip()
+        }
 
 
 async def load_auto_documentation_setup(
