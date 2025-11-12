@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import { ChevronDown, FileText } from 'lucide-react';
+import {ChevronDown, FileText, Settings, Sparkles} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,10 +12,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { DocPromptsPanel } from '@/components/doc-prompts-panel';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
 
 type DocFileEntry = {
   path: string;
   title: string;
+  origin?: string;
+};
+
+type DocListEntry = {
+  path: string;
+  origin?: string;
 };
 
 type DocFolderNode = {
@@ -41,7 +50,7 @@ export default function DocsPage() {
   const [commitSha, setCommitSha] = useState<string | undefined>(currentCommit);
   const [versions, setVersions] = useState<string[]>([]);
   const [, setIndexMd] = useState<string>('');
-  const [fileList, setFileList] = useState<string[]>([]);
+  const [fileList, setFileList] = useState<DocListEntry[]>([]);
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
@@ -62,6 +71,8 @@ export default function DocsPage() {
   const lastCommitRef = useRef<string | undefined>(commitSha);
   const contentCacheRef = useRef<Map<string, string>>(new Map());
   const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
+  const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
+  const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
   const versionParam = searchParams?.get('v')?.trim() ?? null;
@@ -207,14 +218,15 @@ export default function DocsPage() {
       return child;
     };
 
-    for (const path of fileList) {
+    for (const entry of fileList) {
+      const { path, origin } = entry;
       const parts = path.split('/').filter(Boolean);
       if (parts.length === 0) continue;
       let cursor = root;
       parts.forEach((segment, index) => {
         const isFile = index === parts.length - 1;
         if (isFile) {
-          cursor.files.push({ path, title: titleMap[path] || segment });
+          cursor.files.push({ path, title: titleMap[path] || segment, origin });
           return;
         }
         cursor = ensureChild(cursor, segment);
@@ -297,8 +309,9 @@ export default function DocsPage() {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
+        const originsMap: Record<string, string> = j.origins && typeof j.origins === 'object' ? j.origins : {};
         if (!cancelled) {
-          setFileList(files);
+          setFileList(files.map((path: string) => ({ path, origin: originsMap[path] })));
         }
         // lazily resolve titles for index entries
         const entries = await Promise.all(files.map(async (f: string) => {
@@ -378,8 +391,8 @@ export default function DocsPage() {
       return;
     }
     if (fileList.length > 0) {
-      prefetchDoc(fileList[0]);
-      navigateToPath(fileList[0], { replace: true });
+      prefetchDoc(fileList[0].path);
+      navigateToPath(fileList[0].path, { replace: true });
     }
   }, [fileList, pathParam, navigateToPath, prefetchDoc]);
 
@@ -677,11 +690,11 @@ export default function DocsPage() {
       snippet: r.snippet || r.path,
       occurrence: r.occurrence,
     }))
-    : fileList.slice(0, 10).map((path) => ({
+    : fileList.slice(0, 10).map(({ path, origin }) => ({
       key: path,
       path,
       title: titleMap[path] || path,
-      snippet: path,
+      snippet: origin === 'auto' ? 'Auto documentation' : path,
       occurrence: undefined,
     }));
 
@@ -709,7 +722,14 @@ export default function DocsPage() {
       onMouseEnter={() => prefetchDoc(entry.path)}
       onFocus={() => prefetchDoc(entry.path)}
     >
-      <span className="text-sm leading-snug">{entry.title}</span>
+      <span className="text-sm leading-snug flex items-center gap-2">
+        {entry.title}
+        {entry.origin === 'auto' && (
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-[1px] text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Auto
+          </span>
+        )}
+      </span>
       <span className="text-[11px] text-muted-foreground/70 leading-tight">{entry.path}</span>
     </button>
   );
@@ -740,14 +760,24 @@ export default function DocsPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <SharedHeader rightExtra={
-        <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Version</span>
-            {versionSelector}
-          </div>
-        </div>
-      }>
+        <SharedHeader rightExtra={
+            <div className="hidden md:flex items-center gap-3">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" onClick={openAutoDocSettings} disabled={!kbId}>
+                            <Settings className="h-4 w-4"/>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        Auto documentation settings
+                    </TooltipContent>
+                </Tooltip>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Version</span>
+                    {versionSelector}
+                </div>
+            </div>
+        }>
         <div className="flex flex-1 items-center gap-3 px-2 md:px-4">
           <span className="text-lg lg:text-xl font-semibold text-foreground truncate">Docs</span>
           <button
@@ -769,6 +799,17 @@ export default function DocsPage() {
             <SearchIcon size={16} />
             <span className="sr-only">Search docs</span>
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="md:hidden"
+            onClick={openAutoDocSettings}
+            disabled={!kbId}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="sr-only">Auto documentation</span>
+          </Button>
         </div>
       </SharedHeader>
       <div className="flex-1 overflow-auto">
@@ -776,19 +817,24 @@ export default function DocsPage() {
           {!kbId ? (
             <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
           ) : showEmptyState ? (
-            <Card className="mx-auto max-w-xl border-dashed border-muted">
-              <CardHeader className="flex flex-col items-center gap-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <CardTitle className="text-lg">No docs yet</CardTitle>
-                <CardDescription className="max-w-md">
-                  Once documentation is synced to this knowledge base, you will see the versions and files here.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,260px)] lg:items-start">
+              <Card className="border-dashed border-muted">
+                <CardHeader className="flex flex-col items-center gap-2 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="text-lg">No docs yet</CardTitle>
+                  <CardDescription className="max-w-md">
+                    Configure prompts now so the next sync knows which docs to write.
+                  </CardDescription>
+                  <Button type="button" className="mt-2" onClick={openAutoDocSettings}>
+                    Generate docs
+                  </Button>
+                </CardHeader>
+              </Card>
+            </div>
           ) : (
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,240px)] lg:items-start">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,220px)] lg:items-start">
               <aside className="lg:sticky lg:top-24 h-fit text-sm">
                 <div className="docs-index max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 pt-4 space-y-4">
                   {showLoadingShell ? (
@@ -990,6 +1036,14 @@ export default function DocsPage() {
           </div>
         </div>
       )}
+      <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="sr-only">Auto documentation</SheetTitle>
+          </SheetHeader>
+          <DocPromptsPanel knowledgeBaseId={kbId} className="py-6" />
+        </SheetContent>
+      </Sheet>
       {/* flash highlight styling and auto-clear */}
       <style>
         {`

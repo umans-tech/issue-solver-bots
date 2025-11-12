@@ -15,7 +15,10 @@ async def test_s3_knowledge_repo_should_add_and_check_document_existence(
 
     # When
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1"
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="auto",
     )
 
     # Then
@@ -40,7 +43,10 @@ async def test_s3_knowledge_repo_should_add_each_doc_to_its_knowledge_base(
 
     # When
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1"
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="repo",
     )
 
     # Then
@@ -69,10 +75,16 @@ async def test_s3_knowledge_repo_should_list_documents(
     # Given
     knowledge_base_key = KnowledgeBase("kb1", "sha1")
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1"
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="auto",
     )
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc2.md", content="# Doc 2"
+        base=knowledge_base_key,
+        document_name="doc2.md",
+        content="# Doc 2",
+        origin="repo",
     )
 
     # When
@@ -89,12 +101,18 @@ async def test_s3_knowledge_repo_should_overwrite_document_with_same_name(
     # Given
     knowledge_base_key = KnowledgeBase("kb1", "sha1")
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1"
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="auto",
     )
 
     # When
     knowledge_repository.add(
-        base=knowledge_base_key, document_name="doc1.md", content="# Doc 1 - Updated"
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1 - Updated",
+        origin="repo",
     )
 
     # Then
@@ -102,3 +120,81 @@ async def test_s3_knowledge_repo_should_overwrite_document_with_same_name(
         base=knowledge_base_key, document_name="doc1.md"
     )
     assert retrieved_content == "# Doc 1 - Updated"
+
+
+@pytest.mark.asyncio
+async def test_s3_knowledge_repo_should_store_doc_origin(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb-origin", "sha1")
+
+    # When
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="auto",
+    )
+
+    # Then
+    assert (
+        knowledge_repository.get_origin(
+            base=knowledge_base_key, document_name="doc1.md"
+        )
+        == "auto"
+    )
+
+
+@pytest.mark.asyncio
+async def test_s3_knowledge_repo_should_update_origin_on_overwrite(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb-origin", "sha1")
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin="auto",
+    )
+
+    # When
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1b",
+        origin="repo",
+    )
+
+    # Then
+    assert (
+        knowledge_repository.get_origin(
+            base=knowledge_base_key, document_name="doc1.md"
+        )
+        == "repo"
+    )
+
+
+@pytest.mark.asyncio
+async def test_s3_knowledge_repo_should_return_none_when_origin_missing(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb-origin", "sha2")
+
+    # When
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        origin=None,
+    )
+
+    # Then
+    assert (
+        knowledge_repository.get_origin(
+            base=knowledge_base_key, document_name="doc1.md"
+        )
+        is None
+    )

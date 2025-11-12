@@ -18,6 +18,7 @@ from issue_solver.events.domain import (
     EnvironmentValidationFailed,
     NotionIntegrationAuthorized,
     NotionIntegrationTokenRefreshed,
+    DocumentationPromptsDefined,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -283,6 +284,73 @@ class BriceDeNice:
         )
 
     @classmethod
+    def defined_prompts_for_documentation(cls) -> dict[str, str]:
+        return {
+            "domain_events_glossary": (
+                "Generate a comprehensive glossary of all domain events used in the codebase, "
+                "including their purpose and usage examples."
+            ),
+            "adrs": (
+                "Create Architecture Decision Records (ADRs) for significant architectural choices made in the project, "
+                "detailing the context, decision, and consequences of each choice."
+            ),
+        }
+
+    @classmethod
+    def doc_configuration_process_id(cls) -> str:
+        return "brice-doc-configuration-process-001"
+
+    @classmethod
+    def has_defined_documentation_prompts(cls) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            process_id=cls.doc_configuration_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-01T12:10:00Z"),
+            user_id=cls.user_id(),
+            knowledge_base_id="brice-kb-001",
+            docs_prompts=cls.defined_prompts_for_documentation(),
+        )
+
+    @classmethod
+    def defined_additional_prompts_for_documentation(cls) -> dict[str, str]:
+        return {
+            "api_documentation": (
+                "Generate detailed API documentation for all endpoints, including request/response examples and error codes."
+            ),
+            "setup_guide": (
+                "Create a comprehensive setup guide for new developers, covering environment setup, dependencies, and common workflows."
+            ),
+        }
+
+    @classmethod
+    def has_defined_additional_documentation_prompts(
+        cls,
+    ) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            process_id="brice-doc-configuration-process-002",
+            occurred_at=datetime.fromisoformat("2025-01-04T12:15:00Z"),
+            user_id=cls.user_id(),
+            knowledge_base_id="brice-kb-001",
+            docs_prompts=cls.defined_additional_prompts_for_documentation(),
+        )
+
+    @classmethod
+    def has_changed_documentation_prompts(cls) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            process_id="brice-doc-configuration-process-003",
+            occurred_at=datetime.fromisoformat("2025-01-05T09:20:00Z"),
+            user_id=cls.user_id(),
+            knowledge_base_id="brice-kb-001",
+            docs_prompts={
+                "domain_events_glossary": (
+                    "Update the glossary of domain events to include recent additions and provide clearer usage examples."
+                ),
+                "adrs": (
+                    "Revise existing Architecture Decision Records (ADRs) to reflect changes in architectural choices and their implications."
+                ),
+            },
+        )
+
+    @classmethod
     def all_events(cls) -> list[AnyDomainEvent]:
         """
         Returns all domain events in chronological order, representing a complete
@@ -310,6 +378,7 @@ class BriceDeNice:
             cls.failed_second_issue_resolution(),  # 16:45:00 - Second issue failed
             # Day 4: Failed integration attempt
             cls.failed_second_repo_integration(),  # 11:30:00 - Failed repo integration
+            cls.has_defined_documentation_prompts(),
         ]
 
 

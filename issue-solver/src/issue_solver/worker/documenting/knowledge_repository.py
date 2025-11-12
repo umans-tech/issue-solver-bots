@@ -14,7 +14,13 @@ class KnowledgeRepository(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def add(self, base: KnowledgeBase, document_name: str, content: str) -> None:
+    def add(
+        self,
+        base: KnowledgeBase,
+        document_name: str,
+        content: str,
+        origin: str | None = None,
+    ) -> None:
         pass
 
     @abstractmethod
@@ -23,4 +29,8 @@ class KnowledgeRepository(ABC):
 
     @abstractmethod
     def get_content(self, base: KnowledgeBase, document_name: str) -> str:
+        pass
+
+    @abstractmethod
+    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
         pass

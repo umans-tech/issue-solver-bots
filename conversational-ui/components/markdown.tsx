@@ -126,9 +126,16 @@ const components: Partial<Components> = {
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
+  const defaultOrigin =
+    typeof window === 'undefined' ? undefined : window.location.origin;
   return (
     <div className="w-full overflow-hidden">
-      <Streamdown remarkPlugins={remarkPlugins} components={components}>
+      <Streamdown
+        defaultOrigin={defaultOrigin}
+        allowedLinkPrefixes={['*']}
+        remarkPlugins={remarkPlugins}
+        components={components}
+      >
         {children}
       </Streamdown>
     </div>

@@ -10,6 +10,8 @@ from issue_solver.events.domain import (
     IssueResolutionCompleted,
     IssueResolutionFailed,
     CodeRepositoryIntegrationFailed,
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
 )
 from issue_solver.webapi.routers.processes import ProcessTimelineView
 from tests.examples.happy_path_persona import BriceDeNice
@@ -243,6 +245,57 @@ def test_status_should_be_failed_when_the_latest_event_is_issue_resolution_faile
     # Then
     assert process_timeline_view.type == "issue_resolution"
     assert process_timeline_view.status == "failed"
+
+
+def test_auto_documentation_process_should_report_configured_status():
+    # Given
+    history = [
+        DocumentationPromptsDefined(
+            knowledge_base_id="kb-123",
+            user_id="doc-bot@example.com",
+            docs_prompts={"glossary": "Document the glossary"},
+            process_id="doc-process-123",
+            occurred_at=datetime.fromisoformat("2025-11-02T10:00:00"),
+        )
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-process-123", events=history
+    )
+
+    # Then
+    assert process_timeline_view.type == "auto_documentation"
+    assert process_timeline_view.status == "configured"
+
+
+def test_auto_documentation_process_should_report_removed_status():
+    # Given
+    history = [
+        DocumentationPromptsDefined(
+            knowledge_base_id="kb-123",
+            user_id="doc-bot@example.com",
+            docs_prompts={"glossary": "Document the glossary"},
+            process_id="doc-process-123",
+            occurred_at=datetime.fromisoformat("2025-11-02T10:00:00"),
+        ),
+        DocumentationPromptsRemoved(
+            knowledge_base_id="kb-123",
+            user_id="doc-bot@example.com",
+            prompt_ids=["glossary"],
+            process_id="doc-process-123",
+            occurred_at=datetime.fromisoformat("2025-11-02T11:00:00"),
+        ),
+    ]
+
+    # When
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-process-123", events=history
+    )
+
+    # Then
+    assert process_timeline_view.type == "auto_documentation"
+    assert process_timeline_view.status == "removed"
 
 
 def test_status_should_remain_connected_after_token_rotation():

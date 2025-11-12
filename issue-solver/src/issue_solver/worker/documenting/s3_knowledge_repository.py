@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from botocore.client import BaseClient
 
 from issue_solver.worker.documenting.knowledge_repository import (
@@ -6,8 +9,12 @@ from issue_solver.worker.documenting.knowledge_repository import (
 )
 
 
+def to_key(base: KnowledgeBase) -> str:
+    return f"base/{base.id}/docs/{base.version}/"
+
+
 def compute_key(base: KnowledgeBase, document_name: str) -> str:
-    return f"base/{base.id}/docs/{base.version}/{document_name}"
+    return Path(to_key(base)).joinpath(document_name).as_posix()
 
 
 class S3KnowledgeRepository(KnowledgeRepository):
@@ -24,10 +31,20 @@ class S3KnowledgeRepository(KnowledgeRepository):
         except self.s3_client.exceptions.ClientError:
             return False
 
-    def add(self, base: KnowledgeBase, document_name: str, content: str) -> None:
+    def add(
+        self,
+        base: KnowledgeBase,
+        document_name: str,
+        content: str,
+        origin: str | None = None,
+    ) -> None:
         self.s3_client.put_object(
-            Bucket=self.bucket_name, Key=compute_key(base, document_name), Body=content
+            Bucket=self.bucket_name,
+            Key=compute_key(base, document_name),
+            Body=content,
         )
+        if origin:
+            self._update_manifest(base, document_name, origin)
 
     def get_content(self, base: KnowledgeBase, document_name: str) -> str:
         response = self.s3_client.get_object(
@@ -36,7 +53,7 @@ class S3KnowledgeRepository(KnowledgeRepository):
         return response["Body"].read().decode("utf-8")
 
     def list_entries(self, base: KnowledgeBase) -> list[str]:
-        prefix = f"base/{base.id}/docs/{base.version}/"
+        prefix = to_key(base)
         paginator = self.s3_client.get_paginator("list_objects_v2")
         page_iterator = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
 
@@ -44,7 +61,41 @@ class S3KnowledgeRepository(KnowledgeRepository):
         for page in page_iterator:
             for obj in page.get("Contents", []):
                 key = obj["Key"]
-                document_name = key[len(prefix) :]
+                document_name = key[len(str(prefix)) :]
+                if document_name == "__origins__.json":
+                    continue
                 document_names.append(document_name)
 
         return document_names
+
+    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+        manifest = self._load_manifest(base)
+        return manifest.get(document_name)
+
+    @classmethod
+    def _manifest_key(cls, base: KnowledgeBase) -> str:
+        return Path(to_key(base)).joinpath("__origins__.json").as_posix()
+
+    def _load_manifest(self, base: KnowledgeBase) -> dict[str, str]:
+        try:
+            response = self.s3_client.get_object(
+                Bucket=self.bucket_name, Key=self._manifest_key(base)
+            )
+        except self.s3_client.exceptions.ClientError:
+            return {}
+        body = response["Body"].read().decode("utf-8")
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError:
+            return {}
+
+    def _update_manifest(
+        self, base: KnowledgeBase, document_name: str, origin: str
+    ) -> None:
+        manifest = self._load_manifest(base)
+        manifest[document_name] = origin
+        self.s3_client.put_object(
+            Bucket=self.bucket_name,
+            Key=self._manifest_key(base),
+            Body=json.dumps(manifest),
+        )

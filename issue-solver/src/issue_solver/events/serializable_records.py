@@ -28,6 +28,8 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorized,
     NotionIntegrationTokenRefreshed,
     NotionIntegrationAuthorizationFailed,
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -61,6 +63,10 @@ def get_record_type(event_type: Type[T]) -> str:
             return "issue_resolution_failed"
         case type() if event_type is EnvironmentConfigurationProvided:
             return "environment_configuration_provided"
+        case type() if event_type is EnvironmentConfigurationValidated:
+            return "environment_configuration_validated"
+        case type() if event_type is EnvironmentValidationFailed:
+            return "environment_validation_failed"
         case type() if event_type is IssueResolutionEnvironmentPrepared:
             return "issue_resolution_environment_prepared"
         case type() if event_type is NotionIntegrationAuthorized:
@@ -69,6 +75,10 @@ def get_record_type(event_type: Type[T]) -> str:
             return "notion_integration_token_refreshed"
         case type() if event_type is NotionIntegrationAuthorizationFailed:
             return "notion_integration_authorization_failed"
+        case type() if event_type is DocumentationPromptsDefined:
+            return "documentation_prompts_defined"
+        case type() if event_type is DocumentationPromptsRemoved:
+            return "documentation_prompts_removed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -722,6 +732,68 @@ class EnvironmentValidationFailedRecord(BaseModel):
         )
 
 
+class DocumentationPromptsDefinedRecord(BaseModel):
+    type: Literal["documentation_prompts_defined"] = "documentation_prompts_defined"
+    knowledge_base_id: str
+    user_id: str
+    docs_prompts: dict[str, str]
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationPromptsDefined:
+        return DocumentationPromptsDefined(
+            knowledge_base_id=self.knowledge_base_id,
+            user_id=self.user_id,
+            docs_prompts=self.docs_prompts,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationPromptsDefined) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            user_id=event.user_id,
+            docs_prompts=event.docs_prompts,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
+class DocumentationPromptsRemovedRecord(BaseModel):
+    type: Literal["documentation_prompts_removed"] = "documentation_prompts_removed"
+    knowledge_base_id: str
+    user_id: str
+    prompt_ids: set[str]
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationPromptsRemoved:
+        return DocumentationPromptsRemoved(
+            knowledge_base_id=self.knowledge_base_id,
+            user_id=self.user_id,
+            prompt_ids=self.prompt_ids,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationPromptsRemoved) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            user_id=event.user_id,
+            prompt_ids=event.prompt_ids,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -739,6 +811,8 @@ ProcessTimelineEventRecords = (
     | NotionIntegrationAuthorizedRecord
     | NotionIntegrationTokenRefreshedRecord
     | NotionIntegrationAuthorizationFailedRecord
+    | DocumentationPromptsDefinedRecord
+    | DocumentationPromptsRemovedRecord
 )
 
 
@@ -780,6 +854,10 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return NotionIntegrationTokenRefreshedRecord.create_from(event)
         case NotionIntegrationAuthorizationFailed():
             return NotionIntegrationAuthorizationFailedRecord.create_from(event)
+        case DocumentationPromptsDefined():
+            return DocumentationPromptsDefinedRecord.create_from(event)
+        case DocumentationPromptsRemoved():
+            return DocumentationPromptsRemovedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -848,6 +926,14 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "notion_integration_authorization_failed":
             return NotionIntegrationAuthorizationFailedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_prompts_defined":
+            return DocumentationPromptsDefinedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_prompts_removed":
+            return DocumentationPromptsRemovedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

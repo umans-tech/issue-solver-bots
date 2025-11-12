@@ -25,8 +25,11 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorized,
     NotionIntegrationTokenRefreshed,
     NotionIntegrationAuthorizationFailed,
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
 )
-from issue_solver.events.event_store import InMemoryEventStore
+from issue_solver.events.auto_documentation import AutoDocumentationSetup
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
@@ -70,6 +73,10 @@ class ProcessTimelineView(BaseModel):
             return "dev_environment_setup"
         if isinstance(first_event, NotionIntegrationAuthorized):
             return "notion_integration"
+        if isinstance(
+            first_event, (DocumentationPromptsDefined, DocumentationPromptsRemoved)
+        ):
+            return "auto_documentation"
         return "code_repository_integration"
 
     @classmethod
@@ -112,6 +119,12 @@ class ProcessTimelineView(BaseModel):
                 status = "configuring"
             case EnvironmentConfigurationValidated():
                 status = "ready"
+            case DocumentationPromptsDefined():
+                status = "configured"
+            case DocumentationPromptsRemoved():
+                status = (
+                    "configured" if _auto_doc_prompts_remaining(events) else "removed"
+                )
             case _:
                 status = "unknown"
         return status
@@ -119,7 +132,7 @@ class ProcessTimelineView(BaseModel):
 
 @router.get("/")
 async def list_processes(
-    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
     space_id: str | None = Query(None, description="Filter by space ID"),
     knowledge_base_id: str | None = Query(
         None, description="Filter by knowledge base ID"
@@ -156,7 +169,7 @@ async def list_processes(
 
 
 async def _get_processes_by_criteria(
-    event_store: InMemoryEventStore, space_id: str | None, knowledge_base_id: str | None
+    event_store: EventStore, space_id: str | None, knowledge_base_id: str | None
 ) -> list[dict]:
     """Get processes based on space_id or knowledge_base_id criteria."""
     processes = []
@@ -172,6 +185,9 @@ async def _get_processes_by_criteria(
         )
         processes.extend(await _convert_events_to_processes(event_store, notion_events))
 
+        kb_ids = {event.knowledge_base_id for event in repo_events}
+        processes.extend(await _get_auto_documentation_processes(event_store, kb_ids))
+
     if knowledge_base_id:
         repo_events = await event_store.find(
             criteria={"knowledge_base_id": knowledge_base_id},
@@ -184,6 +200,10 @@ async def _get_processes_by_criteria(
             event_type=IssueResolutionRequested,
         )
         processes.extend(await _convert_events_to_processes(event_store, issue_events))
+
+        processes.extend(
+            await _get_auto_documentation_processes(event_store, {knowledge_base_id})
+        )
 
     return processes
 
@@ -203,7 +223,7 @@ def _apply_filters(
     return filtered
 
 
-async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
+async def _get_all_processes(event_store: EventStore) -> list[dict]:
     """Get all processes from all event types."""
     all_processes = []
 
@@ -225,25 +245,78 @@ async def _get_all_processes(event_store: InMemoryEventStore) -> list[dict]:
     )
     all_processes.extend(await _convert_events_to_processes(event_store, issue_events))
 
+    auto_doc_defined = await event_store.find(
+        criteria={}, event_type=DocumentationPromptsDefined
+    )
+    auto_doc_removed = await event_store.find(
+        criteria={}, event_type=DocumentationPromptsRemoved
+    )
+    all_processes.extend(
+        await _convert_events_to_processes(
+            event_store, [*auto_doc_defined, *auto_doc_removed]
+        )
+    )
+
     return all_processes
 
 
 async def _convert_events_to_processes(
-    event_store: InMemoryEventStore, events: list
+    event_store: EventStore, events: list
 ) -> list[dict]:
     """Convert domain events to process timeline views."""
     processes = []
+    seen_processes: set[str] = set()
     for event in events:
+        if event.process_id in seen_processes:
+            continue
         process_events = await event_store.get(event.process_id)
+        if not process_events:
+            continue
         process_view = ProcessTimelineView.create_from(event.process_id, process_events)
         processes.append(process_view.model_dump())
+        seen_processes.add(event.process_id)
     return processes
+
+
+def _auto_doc_prompts_remaining(events: list[AnyDomainEvent]) -> bool:
+    doc_events = [
+        event
+        for event in events
+        if isinstance(event, (DocumentationPromptsDefined, DocumentationPromptsRemoved))
+    ]
+    if not doc_events:
+        return False
+    knowledge_base_id = doc_events[0].knowledge_base_id
+    setup = AutoDocumentationSetup.from_events(knowledge_base_id, doc_events)
+    return bool(setup.docs_prompts)
+
+
+async def _get_auto_documentation_processes(
+    event_store: EventStore, knowledge_base_ids: set[str]
+) -> list[dict]:
+    if not knowledge_base_ids:
+        return []
+    auto_doc_events: list[AnyDomainEvent] = []
+    for kb_id in knowledge_base_ids:
+        auto_doc_events.extend(
+            await event_store.find(
+                criteria={"knowledge_base_id": kb_id},
+                event_type=DocumentationPromptsDefined,
+            )
+        )
+        auto_doc_events.extend(
+            await event_store.find(
+                criteria={"knowledge_base_id": kb_id},
+                event_type=DocumentationPromptsRemoved,
+            )
+        )
+    return await _convert_events_to_processes(event_store, auto_doc_events)
 
 
 @router.get("/{process_id}")
 async def get_process(
     process_id: str,
-    event_store: Annotated[InMemoryEventStore, Depends(get_event_store)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
     logger: Annotated[
         logging.Logger,
         Depends(
