@@ -215,7 +215,7 @@ class DocumentationPromptsDefined(DomainEvent):
 class DocumentationPromptsRemoved(DomainEvent):
     knowledge_base_id: str
     user_id: str
-    prompt_ids: list[str]
+    prompt_ids: set[str]
     process_id: str
     occurred_at: datetime
 

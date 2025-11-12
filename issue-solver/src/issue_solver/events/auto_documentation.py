@@ -72,7 +72,7 @@ class AutoDocumentationSetup:
             last_process_id=event.process_id,
         )
 
-    def ensure_prompt_ids_can_be_removed(self, prompt_ids: Sequence[str]) -> None:
+    def ensure_prompt_ids_can_be_removed(self, prompt_ids: set[str]) -> None:
         if not self.docs_prompts:
             raise CannotRemoveAutoDocumentationWithoutPrompts(self.knowledge_base_id)
         missing = [pid for pid in prompt_ids if pid not in self.docs_prompts]
@@ -88,20 +88,16 @@ class AutoDocumentationSetup:
             case _:
                 assert_never(event)
 
-    def _without(self, prompt_ids: Sequence[str]) -> dict[str, str]:
+    def _without(self, prompt_ids: set[str]) -> dict[str, str]:
         self.ensure_prompt_ids_can_be_removed(prompt_ids)
-        removed = set(prompt_ids)
-        return {
-            key: value for key, value in self.docs_prompts.items() if key not in removed
-        }
+        next_prompts = self.docs_prompts.copy()
+        for prompt_id in prompt_ids:
+            next_prompts.pop(prompt_id)
+        return next_prompts
 
     def _merged_with(self, new_prompts: dict[str, str]) -> dict[str, str]:
         merged = self.docs_prompts | new_prompts
-        return {
-            key: value
-            for key, value in merged.items()
-            if isinstance(value, str) and value.strip()
-        }
+        return {key: value for key, value in merged.items() if value.strip()}
 
 
 async def load_auto_documentation_setup(

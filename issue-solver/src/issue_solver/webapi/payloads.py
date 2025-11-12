@@ -91,7 +91,7 @@ class AutoDocumentationConfigRequest(BaseSchema):
 
 
 class AutoDocumentationDeleteRequest(BaseSchema):
-    prompt_ids: list[str] = Field(
+    prompt_ids: set[str] = Field(
         description="Identifiers of documentation prompts to delete",
         min_length=1,
         validation_alias=AliasChoices("promptIds"),

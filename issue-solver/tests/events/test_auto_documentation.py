@@ -73,7 +73,7 @@ def test_auto_documentation_setup_apply_returns_new_state():
     removal_event = DocumentationPromptsRemoved(
         knowledge_base_id=knowledge_base_id,
         user_id="doc-bot",
-        prompt_ids=["overview"],
+        prompt_ids={"overview"},
         process_id="process-remove",
         occurred_at=datetime.fromisoformat("2025-02-01T11:00:00+00:00"),
     )
@@ -112,7 +112,7 @@ def test_auto_documentation_setup_prevents_removal_when_no_prompts_exist():
 
     # When / Then
     with pytest.raises(CannotRemoveAutoDocumentationWithoutPrompts):
-        setup.ensure_prompt_ids_can_be_removed(["overview"])
+        setup.ensure_prompt_ids_can_be_removed({"overview"})
 
 
 def test_auto_documentation_setup_prevents_removal_of_unknown_prompts():
@@ -139,7 +139,7 @@ def test_auto_documentation_setup_cannot_apply_removal_before_any_definition():
     removal_event = DocumentationPromptsRemoved(
         knowledge_base_id="kb-remove-first",
         user_id="doc-bot",
-        prompt_ids=["overview"],
+        prompt_ids={"overview"},
         process_id="process-remove",
         occurred_at=datetime.fromisoformat("2025-05-02T09:00:00+00:00"),
     )
@@ -170,7 +170,7 @@ async def test_load_auto_documentation_setup_tracks_latest_metadata(event_store)
     removal_event = DocumentationPromptsRemoved(
         knowledge_base_id=knowledge_base_id,
         user_id="doc-bot",
-        prompt_ids=["overview"],
+        prompt_ids={"overview"},
         process_id="process-remove",
         occurred_at=datetime.fromisoformat("2025-01-01T11:00:00+00:00"),
     )

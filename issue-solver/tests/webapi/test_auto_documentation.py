@@ -243,7 +243,7 @@ def test_auto_documentation_prompt_can_be_removed(
     removal_response = api_client.request(
         "DELETE",
         f"/repositories/{knowledge_base_id}/auto-documentation",
-        json={"promptIds": ["glossary"]},
+        json={"promptIds": ["glossary", "glossary"]},
         headers={"X-User-ID": user_id},
     )
     assert removal_response.status_code == 200
@@ -251,7 +251,7 @@ def test_auto_documentation_prompt_can_be_removed(
     removal_event = receive_event_message(sqs_client, sqs_queue)
     parsed = json.loads(removal_event["Messages"][0]["Body"])
     published_event = deserialize(parsed["type"], removal_event["Messages"][0]["Body"])
-    assert published_event.prompt_ids == ["glossary"]
+    assert published_event.prompt_ids == {"glossary"}
     assert parsed["type"] == "documentation_prompts_removed"
 
     get_response = api_client.get(

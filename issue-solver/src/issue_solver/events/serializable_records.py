@@ -767,7 +767,7 @@ class DocumentationPromptsRemovedRecord(BaseModel):
     type: Literal["documentation_prompts_removed"] = "documentation_prompts_removed"
     knowledge_base_id: str
     user_id: str
-    prompt_ids: list[str]
+    prompt_ids: set[str]
     process_id: str
     occurred_at: datetime
 
