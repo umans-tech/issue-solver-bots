@@ -86,10 +86,14 @@ sequenceDiagram
 
 ### Available GitHub MCP Tools (Key Subset for Testing)
 Based on official documentation:
-- **Issues**: `get_issue`, `list_issues`, `search_issues`, `create_issue`
+- **Issues**: ~~`get_issue`, `list_issues`, `search_issues`, `create_issue`~~
 - **Repositories**: `get_file_contents`, `search_code`, `list_branches`
 - **Pull Requests**: `get_pull_request`, `list_pull_requests`
 - **Users**: `get_me` (for auth validation)
+
+**Addendum – November 13, 2025**
+
+GitHub’s MCP server v0.6.0 (Oct 29, 2025) consolidated the issue tools listed above. The Conversation UI now calls `issue_read` (with `method` values like `get` or `get_comments`), `issue_write` (`create` or `update`), and `sub_issue_write` for sub-issues. Keep this in mind when revisiting this spike or wiring new flows.
 
 ### Technical Implementation Approach
 

@@ -72,8 +72,19 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
         }
         break;
         
-      case 'get_issue':
-        if (data && data.html_url && data.title) {
+      case 'issue_read':
+        if (Array.isArray(data)) {
+          data.forEach((item: any) => {
+            if (item?.html_url) {
+              sources.push({
+                sourceType: 'url',
+                id: crypto.randomUUID(),
+                url: item.html_url,
+                title: item.title ? `Issue: ${item.title}` : 'Issue comment'
+              });
+            }
+          });
+        } else if (data && data.html_url && data.title) {
           sources.push({
             sourceType: 'url',
             id: crypto.randomUUID(),
@@ -82,6 +93,19 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
           });
         }
         break;
+
+      case 'issue_write': {
+        const issueData = prepareIssueDataFromIssueWrite(args ?? {}, result);
+        if (issueData?.html_url && issueData.title) {
+          sources.push({
+            sourceType: 'url',
+            id: crypto.randomUUID(),
+            url: issueData.html_url,
+            title: `Issue: ${issueData.title}`
+          });
+        }
+        break;
+      }
         
       case 'get_pull_request':
         if (data && data.html_url && data.title) {
@@ -207,39 +231,65 @@ function extractIssueNumberFromUrl(url: string): number | null {
   }
 }
 
-// Helper: prepare minimal issue data object for GitHubIssueDetail from create_issue input/output
-function prepareIssueDataFromCreateIssue(
-  input: { owner?: string; repo?: string; title?: string; body?: string; labels?: string[], state?: string },
+// Helper: normalize issue payloads returned from the issue_write tool so we can reuse the detail UI
+function prepareIssueDataFromIssueWrite(
+  input: {
+    owner?: string;
+    repo?: string;
+    title?: string;
+    body?: string;
+    labels?: string[];
+    state?: string;
+    issue_number?: number;
+    number?: number;
+    method?: string;
+  },
   output: any,
 ) {
-  // Extract URL from various possible output shapes
-  let url = '';
-  try {
-    if (typeof output === 'string') {
-      // Might be a JSON string
-      const parsed = JSON.parse(output);
-      url = typeof parsed?.url === 'string' ? parsed.url : '';
-    } else if (output && typeof output === 'object') {
-      if (typeof (output as any).url === 'string') {
-        url = (output as any).url;
-      } else if (typeof (output as any).text === 'string') {
-        const parsed = JSON.parse((output as any).text);
-        url = typeof parsed?.url === 'string' ? parsed.url : '';
-      }
+  const tryParseJSON = (value: unknown) => {
+    if (typeof value !== 'string') {
+      return null;
     }
-  } catch {
-    // ignore parse errors and fall back to empty url
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  };
+
+  let normalized = null as any;
+
+  if (typeof output === 'string') {
+    normalized = tryParseJSON(output);
+  } else if (output && typeof output === 'object') {
+    if (Array.isArray((output as any).content)) {
+      const firstTextChunk = (output as any).content.find((chunk: any) => typeof chunk?.text === 'string');
+      normalized = firstTextChunk ? tryParseJSON(firstTextChunk.text) : output;
+    } else if (typeof (output as any).text === 'string') {
+      normalized = tryParseJSON((output as any).text) ?? output;
+    } else {
+      normalized = output;
+    }
   }
 
-  const number = extractIssueNumberFromUrl(url) ?? 0;
+  const url =
+    typeof normalized?.html_url === 'string'
+      ? normalized.html_url
+      : typeof normalized?.url === 'string'
+        ? normalized.url
+        : '';
+
+  const numberFromOutput = typeof normalized?.number === 'number' ? normalized.number : undefined;
+  const numberFromInput = typeof input?.issue_number === 'number' ? input.issue_number : input?.number;
+  const number = numberFromOutput ?? numberFromInput ?? extractIssueNumberFromUrl(url) ?? 0;
 
   return {
     html_url: url,
-    title: input?.title ?? 'Untitled issue',
+    title: normalized?.title ?? input?.title ?? 'Untitled issue',
     number,
-    state: input?.state ?? 'open',
-    body: input?.body ?? '',
-    comments: 0,
+    state: normalized?.state ?? input?.state ?? 'open',
+    body: normalized?.body ?? input?.body ?? '',
+    comments: typeof normalized?.comments === 'number' ? normalized.comments : 0,
   };
 }
 
@@ -260,12 +310,13 @@ const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) =>
   switch (toolName) {
     case 'list_issues':
       return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
-    case 'get_issue':
+    case 'issue_read':
+      if ((args?.method ?? 'get').toLowerCase() === 'get_comments') {
+        return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      }
       return <GitHubIssueDetail issue={result} />;
-    case 'create_issue':
-      return <GitHubIssueDetail issue={prepareIssueDataFromCreateIssue(args ?? {}, result)} />;
-    case 'update_issue':
-      return <GitHubIssueDetail issue={prepareIssueDataFromCreateIssue(args ?? {}, result)} />;
+    case 'issue_write':
+      return <GitHubIssueDetail issue={prepareIssueDataFromIssueWrite(args ?? {}, result)} />;
     case 'search_issues':
       return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
     default:
@@ -516,7 +567,7 @@ const GitHubIssueDetail = ({ issue }: { issue: any }) => {
   let issueData = issue;
   
   if (!issueData || typeof issueData !== 'object') {
-    return <GitHubGenericResult toolName="get_issue" result={issue} />;
+    return <GitHubGenericResult toolName="issue_read" result={issue} />;
   }
 
   return (

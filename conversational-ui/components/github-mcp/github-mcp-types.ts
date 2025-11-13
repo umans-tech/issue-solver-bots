@@ -3,10 +3,10 @@ export const GITHUB_MCP_TOOL_CATEGORIES = {
   // Users (2 tools)
   users: ['get_me', 'search_users'],
   
-  // Issues (8 tools)  
+  // Issues (7 tools)  
   issues: [
-    'get_issue', 'get_issue_comments', 'create_issue', 'add_issue_comment',
-    'list_issues', 'update_issue', 'search_issues', 'assign_copilot_to_issue'
+    'issue_read', 'issue_write', 'add_issue_comment',
+    'list_issues', 'search_issues', 'assign_copilot_to_issue', 'sub_issue_write'
   ],
   
   // Pull Requests (17 tools)

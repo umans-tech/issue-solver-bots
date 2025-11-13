@@ -56,10 +56,20 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
       // Issues  
       case 'list_issues':
         return `Loading issues from ${args?.owner}/${args?.repo}...`;
-      case 'get_issue':
-        return `Fetching issue #${args?.issue_number}...`;
-      case 'create_issue':
+      case 'issue_read': {
+        const method = (args?.method ?? 'get').toLowerCase();
+        if (method === 'get_comments') {
+          return `Fetching comments for issue #${args?.issue_number ?? args?.number}...`;
+        }
+        return `Fetching issue #${args?.issue_number ?? args?.number}...`;
+      }
+      case 'issue_write': {
+        const method = (args?.method ?? 'create').toLowerCase();
+        if (method === 'update') {
+          return `Updating issue #${args?.issue_number ?? args?.number}...`;
+        }
         return 'Creating new issue...';
+      }
       case 'search_issues':
         return `Searching issues: "${args?.query}"...`;
       
