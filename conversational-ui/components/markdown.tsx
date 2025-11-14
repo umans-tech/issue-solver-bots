@@ -126,8 +126,9 @@ const components: Partial<Components> = {
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
-  const defaultOrigin =
-    typeof window === 'undefined' ? undefined : window.location.origin;
+  const defaultOrigin = typeof window === 'undefined'
+    ? undefined
+    : `${window.location.origin}${window.location.pathname}${window.location.search}`;
   return (
     <div className="w-full overflow-hidden">
       <Streamdown

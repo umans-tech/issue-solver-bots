@@ -434,6 +434,23 @@ export default function DocsPage() {
 
       setToc(headings);
 
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+          const attemptNavigate = (retries = 40) => {
+            const target = document.getElementById(hash);
+            if (target) {
+              handleTocNavigate(hash);
+              return;
+            }
+            if (retries > 0) {
+              window.setTimeout(() => attemptNavigate(retries - 1), 50);
+            }
+          };
+          attemptNavigate();
+        }
+      }
+
       const pendingHighlight = highlightTermRef.current;
       if (pendingHighlight?.term.trim()) {
         highlightTermRef.current = null;
@@ -489,31 +506,6 @@ export default function DocsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [navigateToPath, prefetchDoc, setResults]);
 
-  useEffect(() => {
-    const container = contentRef.current;
-    if (!container) return;
-
-    const handleClick = (event: MouseEvent) => {
-      if (event.defaultPrevented) return;
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-
-      const anchor = target.closest('a');
-      if (!anchor) return;
-
-      const href = anchor.getAttribute('href');
-      if (!href) return;
-      if (href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:')) return;
-
-      event.preventDefault();
-      handleMarkdownLink(href);
-    };
-
-    container.addEventListener('click', handleClick);
-    return () => container.removeEventListener('click', handleClick);
-  }, [handleMarkdownLink]);
 
   const doSearch = async () => {
     if (!kbId || !commitSha || !q.trim()) return;
@@ -630,7 +622,7 @@ export default function DocsPage() {
       .replace(/-+/g, '-');
   };
 
-  const handleTocNavigate = (id: string) => {
+  const handleTocNavigate = useCallback((id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
 
@@ -646,7 +638,64 @@ export default function DocsPage() {
       const versionToken = shortCommit ? `?v=${encodeURIComponent(shortCommit)}` : '';
       window.history.replaceState(null, '', `${docPath}${versionToken}#${id}`);
     }
-  };
+  }, [activePath, encodePath, shortCommit, spaceId]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const handleClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      const anchor = target.closest('a');
+      if (!anchor) return;
+
+      const container = contentRef.current;
+      if (!container || !container.contains(anchor)) return;
+
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+
+      const anchorElement = anchor as HTMLAnchorElement;
+      const anchorHash = anchorElement.hash || (href.startsWith('#') ? href : null);
+      if (
+        anchorHash &&
+        typeof window !== 'undefined' &&
+        (!anchorElement.origin || anchorElement.origin === window.location.origin)
+      ) {
+        const targetId = (() => {
+          const raw = anchorHash.replace(/^#/, '');
+          try {
+            return decodeURIComponent(raw);
+          } catch {
+            return raw;
+          }
+        })();
+
+        if (targetId) {
+          const targetElement = document.getElementById(targetId);
+          if (targetElement && contentRef.current?.contains(targetElement)) {
+            event.preventDefault();
+            handleTocNavigate(targetId);
+            return;
+          }
+        }
+      }
+
+      if (href.startsWith('http') || href.startsWith('mailto:')) return;
+      if (href.startsWith('#')) return;
+
+      event.preventDefault();
+      handleMarkdownLink(href);
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [handleMarkdownLink, handleTocNavigate]);
+
 
   const versionSelector = showVersionSelector ? (
     <div className="flex items-center gap-1.5">
