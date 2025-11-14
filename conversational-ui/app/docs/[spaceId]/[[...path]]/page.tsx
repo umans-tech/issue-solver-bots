@@ -403,35 +403,71 @@ export default function DocsPage() {
       return;
     }
 
-    const headingElements = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
-    const slugCounts = new Map<string, number>();
-    const headings = headingElements.map((el) => {
-      const text = el.textContent?.trim() ?? '';
-      if (!text) return null;
+    let rafId: number | null = null;
+    let observer: MutationObserver | null = null;
 
-      const base = slugify(text);
-      if (!base) return null;
+    const buildTocFromDom = () => {
+      const headingElements = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+      if (headingElements.length === 0) {
+        return false;
+      }
+      const slugCounts = new Map<string, number>();
+      const headings = headingElements.map((el) => {
+        const text = el.textContent?.trim() ?? '';
+        if (!text) return null;
 
-      const existing = slugCounts.get(base) ?? 0;
-      slugCounts.set(base, existing + 1);
-      const id = existing === 0 ? base : `${base}-${existing + 1}`;
-      el.id = id;
-      el.tabIndex = -1;
+        const base = slugify(text);
+        if (!base) return null;
 
-      return {
-        id,
-        text,
-        level: Number(el.tagName.replace('H', '')),
-      };
-    }).filter((item): item is { id: string; text: string; level: number } => !!item);
+        const existing = slugCounts.get(base) ?? 0;
+        slugCounts.set(base, existing + 1);
+        const id = existing === 0 ? base : `${base}-${existing + 1}`;
+        el.id = id;
+        el.tabIndex = -1;
 
-    setToc(headings);
+        return {
+          id,
+          text,
+          level: Number(el.tagName.replace('H', '')),
+        };
+      }).filter((item): item is { id: string; text: string; level: number } => !!item);
 
-    const pendingHighlight = highlightTermRef.current;
-    if (pendingHighlight?.term.trim()) {
-      highlightTermRef.current = null;
-      highlightInContent(pendingHighlight);
+      setToc(headings);
+
+      const pendingHighlight = highlightTermRef.current;
+      if (pendingHighlight?.term.trim()) {
+        highlightTermRef.current = null;
+        highlightInContent(pendingHighlight);
+      }
+      return true;
+    };
+
+    const initialBuilt = buildTocFromDom();
+
+    if (!initialBuilt && typeof MutationObserver !== 'undefined') {
+      observer = new MutationObserver(() => {
+        if (rafId) {
+          window.cancelAnimationFrame(rafId);
+        }
+        rafId = window.requestAnimationFrame(() => {
+          if (buildTocFromDom() && observer) {
+            observer.disconnect();
+            observer = null;
+          }
+        });
+      });
+
+      observer.observe(container, { childList: true, subtree: true });
     }
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, [content, highlightInContent]);
 
   useEffect(() => {
