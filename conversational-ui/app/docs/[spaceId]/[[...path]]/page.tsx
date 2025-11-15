@@ -43,7 +43,9 @@ export default function DocsPage() {
   const searchParams = useSearchParams();
   const rawSpaceId = typeof params?.spaceId === 'string' ? params.spaceId : '';
   const spaceId = rawSpaceId ? decodeURIComponent(rawSpaceId) : '';
-  const kbId = spaceId || session?.user?.selectedSpace?.knowledgeBaseId;
+  const sessionSpaceKbId = session?.user?.selectedSpace?.knowledgeBaseId || null;
+  const initialKbId = spaceId || sessionSpaceKbId || null;
+  const [kbId, setKbId] = useState<string | null>(initialKbId);
   // commit sha is not currently typed on selectedSpace; leave undefined and rely on versions API
   const currentCommit = undefined as string | undefined;
 
@@ -123,6 +125,24 @@ export default function DocsPage() {
       }
     });
   }, [contentRef]);
+
+  useEffect(() => {
+    setKbId(spaceId || sessionSpaceKbId || null);
+  }, [spaceId, sessionSpaceKbId]);
+
+  useEffect(() => {
+    setCommitSha(currentCommit);
+    setVersions([]);
+    setFileList([]);
+    setTitleMap({});
+    setActivePathState(pathParam ?? null);
+    setContent('');
+    setContentStatus('idle');
+    setResults([]);
+    setToc([]);
+    contentCacheRef.current.clear();
+    pendingFetchesRef.current.clear();
+  }, [kbId, pathParam, currentCommit]);
 
   useEffect(() => {
     setActivePathState(pathParam ?? null);
