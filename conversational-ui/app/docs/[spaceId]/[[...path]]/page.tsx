@@ -43,6 +43,7 @@ export default function DocsPage() {
   const searchParams = useSearchParams();
   const rawSpaceId = typeof params?.spaceId === 'string' ? params.spaceId : '';
   const spaceId = rawSpaceId ? decodeURIComponent(rawSpaceId) : '';
+  const sessionSpaceKbId = session?.user?.selectedSpace?.knowledgeBaseId || '';
   const kbId = spaceId || session?.user?.selectedSpace?.knowledgeBaseId;
   // commit sha is not currently typed on selectedSpace; leave undefined and rely on versions API
   const currentCommit = undefined as string | undefined;
@@ -127,6 +128,13 @@ export default function DocsPage() {
   useEffect(() => {
     setActivePathState(pathParam ?? null);
   }, [pathParam]);
+
+  useEffect(() => {
+    if (!sessionSpaceKbId) return;
+    if (spaceId === sessionSpaceKbId) return;
+    const destination = `/docs/${encodeURIComponent(sessionSpaceKbId)}`;
+    router.replace(destination, { scroll: false });
+  }, [router, spaceId, sessionSpaceKbId]);
 
   const encodePath = useCallback((value: string) => value.split('/').map(segment => encodeURIComponent(segment)).join('/'), []);
 
@@ -695,6 +703,26 @@ export default function DocsPage() {
     document.addEventListener('click', handleClick, true);
     return () => document.removeEventListener('click', handleClick, true);
   }, [handleMarkdownLink, handleTocNavigate]);
+
+  const previousKbIdRef = useRef<string | null | undefined>(kbId);
+  useEffect(() => {
+    if (!kbId || previousKbIdRef.current === kbId) {
+      previousKbIdRef.current = kbId;
+      return;
+    }
+    previousKbIdRef.current = kbId;
+    setCommitSha(currentCommit);
+    setVersions([]);
+    setFileList([]);
+    setTitleMap({});
+    setActivePathState(null);
+    setContent('');
+    setContentStatus('idle');
+    setResults([]);
+    setToc([]);
+    contentCacheRef.current.clear();
+    pendingFetchesRef.current.clear();
+  }, [kbId, currentCommit]);
 
 
   const versionSelector = showVersionSelector ? (
