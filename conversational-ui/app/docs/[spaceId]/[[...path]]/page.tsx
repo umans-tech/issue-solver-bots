@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, FileText, Settings, Sparkles} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -80,6 +80,12 @@ export default function DocsPage() {
   const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
   const getCacheKey = useCallback((commit: string | undefined, pathValue: string | null) => (commit && pathValue ? `${commit}:${pathValue}` : null), []);
   const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
+  const downloadFileName = useMemo(() => {
+    if (!activePath) return 'document.md';
+    const segments = activePath.split('/').filter((segment) => segment.length > 0);
+    const lastSegment = segments[segments.length - 1] ?? 'document';
+    return /\.md$/i.test(lastSegment) ? lastSegment : `${lastSegment}.md`;
+  }, [activePath]);
   const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
     const normalized = term.trim();
     if (!normalized) return;
@@ -514,6 +520,56 @@ export default function DocsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [navigateToPath, prefetchDoc, setResults]);
 
+  const handleCopyMarkdown = useCallback(async () => {
+    if (!content) return;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content);
+        return;
+      }
+    } catch {
+      // Fallback to legacy copy path below.
+    }
+
+    if (typeof document === 'undefined') return;
+
+    // Legacy execCommand fallback avoids the deprecated type by redefining the surface locally.
+    type LegacyDocument = Document & {
+      execCommand?: (commandId: string, showUI?: boolean, value?: string) => boolean;
+    };
+
+    const textarea = document.createElement('textarea');
+    textarea.value = content;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      (document as LegacyDocument).execCommand?.('copy');
+    } catch {
+      // Ignore failures; there is no further fallback.
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }, [content]);
+
+  const handleDownloadMarkdown = useCallback(() => {
+    if (!content) return;
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = downloadFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [content, downloadFileName]);
+
 
   const doSearch = async () => {
     if (!kbId || !commitSha || !q.trim()) return;
@@ -794,6 +850,7 @@ export default function DocsPage() {
   const hasSearchQuery = trimmedQuery.length >= 3;
   const showContent = contentStatus === 'ready' || (contentStatus === 'loading' && !!content);
   const showInlineLoader = contentStatus === 'loading' && !!content;
+  const showContentActions = showContent && !!content;
 
   const displayedItems = hasSearchQuery
     ? results.map((r) => ({
@@ -989,9 +1046,49 @@ export default function DocsPage() {
                       </div>
                     ) : showContent ? (
                       <div className="relative">
-                        {showInlineLoader && (
-                          <div className="absolute right-2 top-2 rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
-                            Loading latest…
+                        {(showInlineLoader || showContentActions) && (
+                          <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-2">
+                            {showInlineLoader && (
+                              <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                                Loading latest…
+                              </div>
+                            )}
+                            {showContentActions && (
+                              <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground"
+                                      onClick={handleCopyMarkdown}
+                                      aria-label="Copy markdown"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                      <span className="sr-only">Copy markdown</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground"
+                                      onClick={handleDownloadMarkdown}
+                                      aria-label="Download markdown"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                      <span className="sr-only">Download markdown</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">Download markdown</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="max-w-none prose prose-neutral dark:prose-invert">
