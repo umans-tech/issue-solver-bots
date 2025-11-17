@@ -38,6 +38,12 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
     'chat-model-large': ({ size = 16, className } = {}) => (
       <MagicWandIcon width={size} height={size} className={className} />
     ),
+    'chat-model-small-codex': ({ size = 16, className } = {}) => (
+      <RadixCodeIcon width={size} height={size} className={className} />
+    ),
+    'chat-model-large-codex': ({ size = 16, className } = {}) => (
+      <RadixCodeIcon width={size} height={size} className={className} />
+    ),
     'coding-model': ({ size = 16, className } = {}) => (
       <RadixCodeIcon width={size} height={size} className={className} />
     ),

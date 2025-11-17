@@ -16,8 +16,10 @@ const anthropicBeta = createAnthropic({
 export const myProvider = customProvider({
     languageModels: {
         'chat-model-small': openaiProvider.responses('gpt-5-mini'),
-        'chat-model-large': openaiProvider.responses('gpt-5'),
-        'coding-model-light': anthropicBeta('claude-3-5-sonnet-latest'),
+        'chat-model-small-codex': openaiProvider.responses('gpt-5.1-codex-mini'),
+        'chat-model-large': openaiProvider.responses('gpt-5.1'),
+        'chat-model-large-codex': openaiProvider.responses('gpt-5.1-codex'),
+        'coding-model-light': anthropicBeta('claude-haiku-4-5-20251001'),
         'coding-model': anthropicBeta('claude-sonnet-4-20250514'),
         'coding-model-large': anthropicBeta('claude-sonnet-4-5-20250929'),
         'coding-model-super': anthropicBeta('claude-opus-4-20250514'),
@@ -47,18 +49,32 @@ export const chatModels: Array<ChatModel> = [
         providerDisplayName: 'GPT-5 mini',
     },
     {
+        id: 'chat-model-small-codex',
+        name: 'Quick Code Analysis',
+        description: 'Fast analysis for quick insights and lightweight coding tasks',
+        provider: 'openai',
+        providerDisplayName: 'GPT-5.1 codex mini',
+    },
+    {
         id: 'chat-model-large',
         name: 'Analysis',
         description: 'Deep analysis for complex, multi-step business problems',
         provider: 'openai',
-        providerDisplayName: 'GPT-5',
+        providerDisplayName: 'GPT-5.1',
+    },
+    {
+        id: 'chat-model-large-codex',
+        name: 'Coding',
+        description: 'Deep analysis for complex, multi-step coding problems',
+        provider: 'openai',
+        providerDisplayName: 'GPT-5.1 codex',
     },
     {
         id: 'coding-model',
         name: 'Engineering Light',
         description: 'Quick engineering tasks and code assistance',
         provider: 'anthropic',
-        providerDisplayName: 'Sonnet 4',
+        providerDisplayName: 'Haiku 4.5',
     },
     {
         id: 'coding-model-large',
