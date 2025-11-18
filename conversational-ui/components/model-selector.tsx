@@ -41,7 +41,7 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
     'chat-model-large-codex': ({ size = 16, className } = {}) => (
       <RadixCodeIcon width={size} height={size} className={className} />
     ),
-    'coding-model': ({ size = 16, className } = {}) => (
+    'coding-model-light': ({ size = 16, className } = {}) => (
       <RadixCodeIcon width={size} height={size} className={className} />
     ),
     'coding-model-large': ({ size = 16, className } = {}) => (
@@ -58,7 +58,7 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
     'chat-model-large': ({ size = 16, className } = {}) => (
       <SiOpenai size={size} className={className} />
     ),
-    'coding-model': ({ size = 16, className } = {}) => (
+    'coding-model-light': ({ size = 16, className } = {}) => (
       <SiAnthropic size={size} className={className} />
     ),
     'coding-model-large': ({ size = 16, className } = {}) => (
