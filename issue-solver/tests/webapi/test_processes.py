@@ -16,6 +16,7 @@ from issue_solver.events.domain import (
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
+from issue_solver.issues.issue import IssueInfo
 from issue_solver.webapi.routers import processes as processes_router
 from issue_solver.webapi.routers.processes import ProcessTimelineView
 from tests.examples.happy_path_persona import BriceDeNice
@@ -162,10 +163,10 @@ def test_status_should_be_started_when_the_latest_event_is_issue_resolution_in_p
     history = [
         IssueResolutionRequested(
             knowledge_base_id="knowledge-base-id",
-            issue={
-                "description": "test-issue-description",
-                "title": "test-issue-title",
-            },
+            issue=IssueInfo(
+                description="test-issue-description",
+                title="test-issue-title",
+            ),
             process_id="test-process-id",
             occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
         ),
@@ -189,10 +190,10 @@ def test_status_should_be_completed_when_the_latest_event_is_issue_resolution_co
     history = [
         IssueResolutionRequested(
             knowledge_base_id="knowledge-base-id",
-            issue={
-                "description": "test-issue-description",
-                "title": "test-issue-title",
-            },
+            issue=IssueInfo(
+                description="test-issue-description",
+                title="test-issue-title",
+            ),
             process_id="test-process-id",
             occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
         ),
@@ -223,10 +224,10 @@ def test_status_should_be_failed_when_the_latest_event_is_issue_resolution_faile
     history = [
         IssueResolutionRequested(
             knowledge_base_id="knowledge-base-id",
-            issue={
-                "description": "test-issue-description",
-                "title": "test-issue-title",
-            },
+            issue=IssueInfo(
+                description="test-issue-description",
+                title="test-issue-title",
+            ),
             process_id="test-process-id",
             occurred_at=datetime.fromisoformat("2025-01-01T00:00:00"),
         ),
@@ -286,7 +287,7 @@ def test_auto_documentation_process_should_report_removed_status():
         DocumentationPromptsRemoved(
             knowledge_base_id="kb-123",
             user_id="doc-bot@example.com",
-            prompt_ids=["glossary"],
+            prompt_ids={"glossary"},
             process_id="doc-process-123",
             occurred_at=datetime.fromisoformat("2025-11-02T11:00:00"),
         ),
