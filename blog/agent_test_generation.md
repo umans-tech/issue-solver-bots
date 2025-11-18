@@ -12,10 +12,11 @@
 
 # Examples
 - fixture not used, hard coding stuff
-- intruducing  complex concepts that were never present in the codebase
+- introducing  complex concepts that were never present in the codebase
 
 # Ideas
 
+- migrate tests and tests uncovered codebase part
 - context rot skills can help with it
 - verify what the agent does
 - reward hacking
