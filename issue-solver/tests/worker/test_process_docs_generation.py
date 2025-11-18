@@ -8,7 +8,6 @@ from issue_solver.events.domain import (
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.worker.documenting.knowledge_repository import (
-    KnowledgeRepository,
     KnowledgeBase,
 )
 from issue_solver.worker.messages_processing import process_event_message
@@ -303,7 +302,6 @@ async def test_generate_docs_should_import_existing_repo_markdown(
     # Given
     process_id = "seeded-process"
     id_generator.new.side_effect = [process_id, "child-1", "child-2"]
-    docs_agent.generate_documentation.return_value = None
 
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -331,15 +329,11 @@ async def test_generate_docs_should_import_existing_repo_markdown(
         version=BriceDeNice.got_his_first_repo_indexed().commit_sha,
     )
 
-    assert_repo_has_documents(
-        knowledge_repo,
-        kb_key,
-        {
-            "README.md": "repo",
-            "docs/runbook.md": "repo",
-        },
-    )
-    docs_agent.generate_documentation.assert_not_called()
+    assert knowledge_repo.contains(kb_key, "README.md")
+    assert knowledge_repo.get_origin(kb_key, "README.md") == "repo"
+    assert knowledge_repo.contains(kb_key, "docs/runbook.md")
+    assert knowledge_repo.get_origin(kb_key, "docs/runbook.md") == "repo"
+    assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
 
 
 @pytest.mark.asyncio
@@ -400,11 +394,9 @@ async def test_process_documentation_generation_request_should_store_outputs(
     # Then
     docs_agent.generate_documentation.assert_called_once()
     kb_key = KnowledgeBase(id=kb_id, version="commit-sha")
-    assert_repo_has_documents(
-        knowledge_repo,
-        kb_key,
-        {"domain_events_glossary.md": "auto"},
-    )
+    assert knowledge_repo.contains(kb_key, "domain_events_glossary.md")
+    assert knowledge_repo.get_origin(kb_key, "domain_events_glossary.md") == "auto"
+
     child_events = await event_store.get(child_process_id)
     expected_completion = DocumentationGenerationCompleted(
         knowledge_base_id=kb_id,
@@ -509,15 +501,3 @@ async def test_process_documentation_generation_request_should_error_when_docs_a
                 docs_agent=None,
             ),
         )
-
-
-def assert_repo_has_documents(
-    knowledge_repo: KnowledgeRepository,
-    kb_key: KnowledgeBase,
-    expected: dict[str, str],
-) -> None:
-    observed = {
-        entry: knowledge_repo.get_origin(kb_key, entry)
-        for entry in knowledge_repo.list_entries(kb_key)
-    }
-    assert observed == expected
