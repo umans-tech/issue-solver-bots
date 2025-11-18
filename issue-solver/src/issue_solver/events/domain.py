@@ -221,6 +221,39 @@ class DocumentationPromptsRemoved(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class DocumentationGenerationRequested(DomainEvent):
+    knowledge_base_id: str
+    prompt_id: str
+    prompt_description: str
+    code_version: str
+    parent_process_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentationGenerationCompleted(DomainEvent):
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    parent_process_id: str
+    generated_documents: list[str]
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentationGenerationFailed(DomainEvent):
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    parent_process_id: str
+    error_message: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class NotionIntegrationAuthorizationFailed(DomainEvent):
     error_type: str
     error_message: str
@@ -253,6 +286,9 @@ AnyDomainEvent = (
     | NotionIntegrationAuthorizationFailed
     | DocumentationPromptsDefined
     | DocumentationPromptsRemoved
+    | DocumentationGenerationRequested
+    | DocumentationGenerationCompleted
+    | DocumentationGenerationFailed
 )
 
 

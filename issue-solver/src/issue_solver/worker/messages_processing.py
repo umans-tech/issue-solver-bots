@@ -5,8 +5,12 @@ from issue_solver.events.domain import (
     RepositoryIndexationRequested,
     IssueResolutionRequested,
     EnvironmentConfigurationProvided,
+    DocumentationGenerationRequested,
 )
-from issue_solver.worker.documenting.auto import generate_docs
+from issue_solver.worker.documenting.auto import (
+    generate_docs,
+    process_documentation_generation_request,
+)
 from issue_solver.worker.indexing.delta import index_new_changes_codebase
 from issue_solver.worker.indexing.full import index_codebase
 from issue_solver.worker.logging_config import logger
@@ -32,6 +36,10 @@ async def process_event_message(
                 await configure_environment(message, dependencies)
             case IssueResolutionRequested():
                 await resolve_issue(message, dependencies)
+            case DocumentationGenerationRequested():
+                await process_documentation_generation_request(
+                    message, dependencies
+                )
     except Exception as e:
         logger.error(f"Error processing repository message: {str(e)}")
         raise
