@@ -4,7 +4,7 @@ import React, { startTransition, useMemo, useOptimistic, useState, useEffect } f
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { MagicWandIcon, CodeIcon as RadixCodeIcon } from '@radix-ui/react-icons';
-import { SiOpenai, SiAnthropic } from 'react-icons/si';
+import { SiOpenai, SiAnthropic, SiGoogle } from 'react-icons/si';
 import { useLocalStorage } from 'usehooks-ts';
 
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
@@ -47,6 +47,9 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
     'coding-model-large': ({ size = 16, className } = {}) => (
       <RadixCodeIcon width={size} height={size} className={className} />
     ),
+    'chat-model-gemini': ({ size = 16, className } = {}) => (
+      <MagicWandIcon width={size} height={size} className={className} />
+    ),
   };
   if (radixMap[modelId]) return radixMap[modelId];
 
@@ -60,6 +63,9 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
     ),
     'coding-model-large': ({ size = 16, className } = {}) => (
       <SiAnthropic size={size} className={className} />
+    ),
+    'chat-model-gemini': ({ size = 16, className } = {}) => (
+      <SiGoogle size={size} className={className} />
     ),
   };
   if (reactIconsMap[modelId]) return reactIconsMap[modelId];
