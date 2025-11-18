@@ -28,6 +28,7 @@ from issue_solver.events.domain import (
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -87,6 +88,7 @@ class ProcessTimelineView(BaseSchema):
             first_event,
             (
                 DocumentationGenerationRequested,
+                DocumentationGenerationStarted,
                 DocumentationGenerationCompleted,
                 DocumentationGenerationFailed,
             ),
@@ -142,6 +144,8 @@ class ProcessTimelineView(BaseSchema):
                 )
             case DocumentationGenerationRequested():
                 status = "requested"
+            case DocumentationGenerationStarted():
+                status = "in_progress"
             case DocumentationGenerationCompleted():
                 status = "completed"
             case DocumentationGenerationFailed():
@@ -157,6 +161,7 @@ class ProcessTimelineView(BaseSchema):
                 event,
                 (
                     DocumentationGenerationRequested,
+                    DocumentationGenerationStarted,
                     DocumentationGenerationCompleted,
                     DocumentationGenerationFailed,
                 ),

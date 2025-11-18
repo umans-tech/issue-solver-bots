@@ -31,6 +31,7 @@ from issue_solver.events.domain import (
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -84,6 +85,8 @@ def get_record_type(event_type: Type[T]) -> str:
             return "documentation_prompts_removed"
         case type() if event_type is DocumentationGenerationRequested:
             return "documentation_generation_requested"
+        case type() if event_type is DocumentationGenerationStarted:
+            return "documentation_generation_started"
         case type() if event_type is DocumentationGenerationCompleted:
             return "documentation_generation_completed"
         case type() if event_type is DocumentationGenerationFailed:
@@ -842,6 +845,42 @@ class DocumentationGenerationRequestedRecord(BaseModel):
         )
 
 
+class DocumentationGenerationStartedRecord(BaseModel):
+    type: Literal["documentation_generation_started"] = (
+        "documentation_generation_started"
+    )
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    parent_process_id: str
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationGenerationStarted:
+        return DocumentationGenerationStarted(
+            knowledge_base_id=self.knowledge_base_id,
+            prompt_id=self.prompt_id,
+            code_version=self.code_version,
+            parent_process_id=self.parent_process_id,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationGenerationStarted) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            code_version=event.code_version,
+            parent_process_id=event.parent_process_id,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
 class DocumentationGenerationCompletedRecord(BaseModel):
     type: Literal["documentation_generation_completed"] = (
         "documentation_generation_completed"
@@ -938,6 +977,7 @@ ProcessTimelineEventRecords = (
     | DocumentationPromptsDefinedRecord
     | DocumentationPromptsRemovedRecord
     | DocumentationGenerationRequestedRecord
+    | DocumentationGenerationStartedRecord
     | DocumentationGenerationCompletedRecord
     | DocumentationGenerationFailedRecord
 )
@@ -987,6 +1027,8 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return DocumentationPromptsRemovedRecord.create_from(event)
         case DocumentationGenerationRequested():
             return DocumentationGenerationRequestedRecord.create_from(event)
+        case DocumentationGenerationStarted():
+            return DocumentationGenerationStartedRecord.create_from(event)
         case DocumentationGenerationCompleted():
             return DocumentationGenerationCompletedRecord.create_from(event)
         case DocumentationGenerationFailed():
@@ -1071,6 +1113,10 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "documentation_generation_requested":
             return DocumentationGenerationRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_generation_started":
+            return DocumentationGenerationStartedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case "documentation_generation_completed":

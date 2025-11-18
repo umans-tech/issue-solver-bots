@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from issue_solver.events.domain import (
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -398,6 +399,14 @@ async def test_process_documentation_generation_request_should_store_outputs(
     assert knowledge_repo.get_origin(kb_key, "domain_events_glossary.md") == "auto"
 
     child_events = await event_store.get(child_process_id)
+    expected_started = DocumentationGenerationStarted(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        code_version="commit-sha",
+        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        process_id=child_process_id,
+        occurred_at=child_events[1].occurred_at,
+    )
     expected_completion = DocumentationGenerationCompleted(
         knowledge_base_id=kb_id,
         prompt_id="domain_events_glossary",
@@ -407,7 +416,7 @@ async def test_process_documentation_generation_request_should_store_outputs(
         process_id=child_process_id,
         occurred_at=request_event.occurred_at,
     )
-    assert child_events == [request_event, expected_completion]
+    assert child_events == [request_event, expected_started, expected_completion]
 
 
 @pytest.mark.asyncio
@@ -452,6 +461,14 @@ async def test_process_documentation_generation_request_should_record_failure(
 
     # Then
     child_events = await event_store.get("doc-child-failure")
+    expected_started = DocumentationGenerationStarted(
+        knowledge_base_id=repo_connected.knowledge_base_id,
+        prompt_id="overview",
+        code_version="commit-sha",
+        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        process_id="doc-child-failure",
+        occurred_at=child_events[1].occurred_at,
+    )
     expected_failure = DocumentationGenerationFailed(
         knowledge_base_id=repo_connected.knowledge_base_id,
         prompt_id="overview",
@@ -461,7 +478,7 @@ async def test_process_documentation_generation_request_should_record_failure(
         process_id="doc-child-failure",
         occurred_at=request_event.occurred_at,
     )
-    assert child_events == [request_event, expected_failure]
+    assert child_events == [request_event, expected_started, expected_failure]
 
 
 @pytest.mark.asyncio

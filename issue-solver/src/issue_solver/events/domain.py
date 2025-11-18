@@ -232,6 +232,16 @@ class DocumentationGenerationRequested(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class DocumentationGenerationStarted(DomainEvent):
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    parent_process_id: str
+    process_id: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class DocumentationGenerationCompleted(DomainEvent):
     knowledge_base_id: str
     prompt_id: str
@@ -287,6 +297,7 @@ AnyDomainEvent = (
     | DocumentationPromptsDefined
     | DocumentationPromptsRemoved
     | DocumentationGenerationRequested
+    | DocumentationGenerationStarted
     | DocumentationGenerationCompleted
     | DocumentationGenerationFailed
 )

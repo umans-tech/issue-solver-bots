@@ -20,6 +20,7 @@ from issue_solver.events.domain import (
     NotionIntegrationTokenRefreshed,
     DocumentationPromptsDefined,
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -372,6 +373,17 @@ class BriceDeNice:
         )
 
     @classmethod
+    def started_documentation_generation(cls) -> DocumentationGenerationStarted:
+        return DocumentationGenerationStarted(
+            knowledge_base_id="brice-kb-001",
+            prompt_id="domain_events_glossary",
+            code_version=cls.got_his_first_repo_indexed().commit_sha,
+            parent_process_id=cls.has_changed_documentation_prompts().process_id,
+            process_id=cls.doc_generation_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-06T08:05:30Z"),
+        )
+
+    @classmethod
     def generated_documentation_completed(cls) -> DocumentationGenerationCompleted:
         return DocumentationGenerationCompleted(
             knowledge_base_id="brice-kb-001",
@@ -427,6 +439,7 @@ class BriceDeNice:
             cls.has_defined_additional_documentation_prompts(),
             cls.has_changed_documentation_prompts(),
             cls.requested_documentation_generation(),
+            cls.started_documentation_generation(),
             cls.generated_documentation_completed(),
             cls.generated_documentation_failed(),
         ]

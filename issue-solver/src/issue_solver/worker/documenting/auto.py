@@ -6,6 +6,7 @@ from issue_solver.events.code_repo_integration import fetch_repo_credentials
 from issue_solver.events.domain import (
     CodeRepositoryIndexed,
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -81,6 +82,18 @@ async def process_documentation_generation_request(
         url=repo_credentials.url,
         access_token=repo_credentials.access_token,
         to_path=repo_path,
+    )
+
+    await dependencies.event_store.append(
+        event.process_id,
+        DocumentationGenerationStarted(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            code_version=event.code_version,
+            parent_process_id=event.parent_process_id,
+            process_id=event.process_id,
+            occurred_at=dependencies.clock.now(),
+        ),
     )
 
     try:

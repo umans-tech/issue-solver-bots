@@ -13,6 +13,7 @@ from issue_solver.events.domain import (
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
     DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
@@ -326,6 +327,37 @@ def test_doc_generation_process_should_report_requested_status():
     assert process_timeline_view.parent_process_id == parent_process_id
 
 
+def test_doc_generation_process_should_report_in_progress_status():
+    parent_process_id = "doc-parent-001"
+    history = [
+        DocumentationGenerationRequested(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            prompt_description="Generate overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
+        ),
+        DocumentationGenerationStarted(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:30"),
+        ),
+    ]
+
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-run-001", events=history
+    )
+
+    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.status == "in_progress"
+    assert process_timeline_view.parent_process_id == parent_process_id
+
+
 def test_doc_generation_process_should_report_completed_status():
     parent_process_id = "doc-parent-001"
     history = [
@@ -337,6 +369,14 @@ def test_doc_generation_process_should_report_completed_status():
             parent_process_id=parent_process_id,
             process_id="doc-run-001",
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
+        ),
+        DocumentationGenerationStarted(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:30"),
         ),
         DocumentationGenerationCompleted(
             knowledge_base_id="kb-123",
