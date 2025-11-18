@@ -13,6 +13,7 @@ from issue_solver.events.domain import (
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
+from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import GitHelper
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
@@ -26,17 +27,17 @@ from tests.examples.happy_path_persona import BriceDeNice
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_request_each_prompt_individually(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
     initial_process_id = "a1processid"
     child_ids = ["child-1", "child-2", "child-3", "child-4"]
-    id_generator = Mock()
     id_generator.new.side_effect = [initial_process_id, *child_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -64,15 +65,7 @@ async def test_generate_docs_should_request_each_prompt_individually(
     # When
     await process_event_message(
         repo_indexed,
-        dependencies=Dependencies(
-            event_store,
-            git_helper,
-            coding_agent,
-            knowledge_repo,
-            time_under_control,
-            id_generator=id_generator,
-            docs_agent=docs_agent,
-        ),
+        dependencies=worker_dependencies,
     )
 
     # Then
@@ -89,22 +82,19 @@ async def test_generate_docs_should_request_each_prompt_individually(
         BriceDeNice.defined_prompts_for_documentation()
         | BriceDeNice.defined_additional_prompts_for_documentation()
     )
-    parent_process_id = (
-        BriceDeNice.has_defined_additional_documentation_prompts().process_id
-    )
     expected_requests: list[DocumentationGenerationRequested] = []
     for child_id, (prompt_id, prompt_description) in zip(
         child_ids, expected_prompts.items(), strict=True
     ):
         expected_requests.append(
-            doc_generation_request(
-                kb_id,
-                child_id,
-                prompt_id,
-                prompt_description,
-                parent_process_id,
-                repo_indexed.commit_sha,
-                run_started_at,
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=prompt_description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=BriceDeNice.doc_configuration_process_id(),
+                process_id=child_id,
+                occurred_at=run_started_at,
             )
         )
     assert requests == expected_requests
@@ -243,15 +233,16 @@ async def test_generate_docs_should_request_using_latest_prompts(
     parent_process_id = BriceDeNice.doc_configuration_process_id()
     expected_requests: list[DocumentationGenerationRequested] = []
     for child_id, prompt_id in zip(child_ids, base_prompts.keys(), strict=True):
+        description = base_prompts[prompt_id]
         expected_requests.append(
-            doc_generation_request(
-                kb_id,
-                child_id,
-                prompt_id,
-                base_prompts[prompt_id],
-                parent_process_id,
-                repo_indexed.commit_sha,
-                run_started_at,
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=parent_process_id,
+                process_id=child_id,
+                occurred_at=run_started_at,
             )
         )
     assert requests == expected_requests
@@ -314,14 +305,14 @@ async def test_generate_docs_should_request_changed_prompts(
         child_ids, updated_prompts.items(), strict=True
     ):
         expected_requests.append(
-            doc_generation_request(
-                kb_id,
-                child_id,
-                prompt_id,
-                prompt_description,
-                parent_process_id,
-                repo_indexed.commit_sha,
-                run_started_at,
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=prompt_description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=parent_process_id,
+                process_id=child_id,
+                occurred_at=run_started_at,
             )
         )
     assert requests == expected_requests
@@ -572,26 +563,6 @@ async def test_process_documentation_generation_request_should_error_when_docs_a
                 docs_agent=None,
             ),
         )
-
-
-def doc_generation_request(
-    knowledge_base_id: str,
-    process_id: str,
-    prompt_id: str,
-    prompt_description: str,
-    parent_process_id: str,
-    code_version: str,
-    occurred_at,
-) -> DocumentationGenerationRequested:
-    return DocumentationGenerationRequested(
-        knowledge_base_id=knowledge_base_id,
-        prompt_id=prompt_id,
-        prompt_description=prompt_description,
-        code_version=code_version,
-        parent_process_id=parent_process_id,
-        process_id=process_id,
-        occurred_at=occurred_at,
-    )
 
 
 def assert_repo_has_documents(

@@ -329,7 +329,7 @@ class BriceDeNice:
         cls,
     ) -> DocumentationPromptsDefined:
         return DocumentationPromptsDefined(
-            process_id="brice-doc-configuration-process-002",
+            process_id=cls.doc_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-04T12:15:00Z"),
             user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
@@ -339,7 +339,7 @@ class BriceDeNice:
     @classmethod
     def has_changed_documentation_prompts(cls) -> DocumentationPromptsDefined:
         return DocumentationPromptsDefined(
-            process_id="brice-doc-configuration-process-003",
+            process_id=cls.doc_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-05T09:20:00Z"),
             user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
