@@ -13,7 +13,6 @@ from issue_solver.events.domain import (
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
-from issue_solver.events.auto_documentation import load_auto_documentation_setup
 from issue_solver.git_operations.git_helper import GitHelper
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
@@ -55,6 +54,7 @@ async def test_generate_docs_should_enqueue_events_for_each_prompt(
         )
     )
     repo_indexed = BriceDeNice.got_his_first_repo_indexed()
+    run_started_at = time_under_control.now()
     await event_store.append(
         BriceDeNice.doc_configuration_process_id(),
         BriceDeNice.has_defined_documentation_prompts(),
@@ -89,14 +89,24 @@ async def test_generate_docs_should_enqueue_events_for_each_prompt(
         BriceDeNice.defined_prompts_for_documentation()
         | BriceDeNice.defined_additional_prompts_for_documentation()
     )
-    assert len(requests) == len(expected_prompts)
-    assert {req.prompt_id for req in requests} == set(expected_prompts.keys())
-    auto_doc_setup = await load_auto_documentation_setup(event_store, kb_id)
-    assert auto_doc_setup.last_process_id is not None
-    for req in requests:
-        assert req.prompt_description == expected_prompts[req.prompt_id]
-        assert req.parent_process_id == auto_doc_setup.last_process_id
-        assert req.code_version == repo_indexed.commit_sha
+    parent_process_id = (
+        BriceDeNice.has_defined_additional_documentation_prompts().process_id
+    )
+    expected_requests: list[DocumentationGenerationRequested] = []
+    child_id_iter = iter(child_ids)
+    for prompt_id, prompt_description in expected_prompts.items():
+        expected_requests.append(
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=prompt_description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=parent_process_id,
+                process_id=next(child_id_iter),
+                occurred_at=run_started_at,
+            )
+        )
+    assert requests == expected_requests
 
 
 @pytest.mark.asyncio
@@ -145,6 +155,44 @@ async def test_generate_docs_should_not_enqueue_events_when_no_prompts_defined(
 
 
 @pytest.mark.asyncio
+async def test_generate_docs_should_raise_when_docs_agent_missing(
+    event_store,
+    time_under_control: ControllableClock,
+    knowledge_repo: KnowledgeRepository,
+):
+    # Given
+    git_helper = Mock(spec=GitHelper)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    id_generator = Mock()
+    id_generator.new.return_value = "a1processid"
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(),
+        repo_connected,
+    )
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+    )
+    repo_indexed = BriceDeNice.got_his_first_repo_indexed()
+
+    # When / Then
+    with pytest.raises(RuntimeError, match="Docs agent is not configured"):
+        await process_event_message(
+            repo_indexed,
+            dependencies=Dependencies(
+                event_store,
+                git_helper,
+                coding_agent,
+                knowledge_repo,
+                time_under_control,
+                id_generator=id_generator,
+                docs_agent=None,
+            ),
+        )
+
+
+@pytest.mark.asyncio
 async def test_generate_docs_should_use_latest_prompt_configuration(
     event_store,
     time_under_control: ControllableClock,
@@ -155,13 +203,8 @@ async def test_generate_docs_should_use_latest_prompt_configuration(
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
     docs_agent = AsyncMock(spec=DocumentingAgent)
     id_generator = Mock()
-    id_generator.new.side_effect = [
-        "a1processid",
-        "child-1",
-        "child-2",
-        "child-3",
-        "child-4",
-    ]
+    child_ids = ["child-1", "child-2"]
+    id_generator.new.side_effect = ["a1processid", *child_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -171,10 +214,10 @@ async def test_generate_docs_should_use_latest_prompt_configuration(
     await event_store.append(
         BriceDeNice.doc_configuration_process_id(),
         BriceDeNice.has_defined_documentation_prompts(),
-        BriceDeNice.has_defined_additional_documentation_prompts(),
     )
 
     repo_indexed = BriceDeNice.got_his_first_repo_indexed()
+    run_started_at = time_under_control.now()
 
     # When
     await process_event_message(
@@ -195,15 +238,23 @@ async def test_generate_docs_should_use_latest_prompt_configuration(
     requests = await event_store.find(
         {"knowledge_base_id": kb_id}, DocumentationGenerationRequested
     )
-    expected_prompts = (
-        BriceDeNice.defined_prompts_for_documentation()
-        | BriceDeNice.defined_additional_prompts_for_documentation()
-    )
-    assert {req.prompt_id for req in requests} == set(expected_prompts.keys())
-    auto_doc_setup = await load_auto_documentation_setup(event_store, kb_id)
-    assert auto_doc_setup.last_process_id is not None
-    for req in requests:
-        assert req.parent_process_id == auto_doc_setup.last_process_id
+    expected_prompts = BriceDeNice.defined_prompts_for_documentation()
+    parent_process_id = BriceDeNice.doc_configuration_process_id()
+    expected_requests: list[DocumentationGenerationRequested] = []
+    child_iter = iter(child_ids)
+    for prompt_id, prompt_description in expected_prompts.items():
+        expected_requests.append(
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=prompt_description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=parent_process_id,
+                process_id=next(child_iter),
+                occurred_at=run_started_at,
+            )
+        )
+    assert requests == expected_requests
 
 
 @pytest.mark.asyncio
@@ -216,14 +267,9 @@ async def test_generate_docs_should_emit_requests_using_changed_prompts(
     git_helper = Mock(spec=GitHelper)
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
     docs_agent = AsyncMock(spec=DocumentingAgent)
+    child_ids = ["child-1", "child-2", "child-3", "child-4"]
     id_generator = Mock()
-    id_generator.new.side_effect = [
-        "a1processid",
-        "child-1",
-        "child-2",
-        "child-3",
-        "child-4",
-    ]
+    id_generator.new.side_effect = ["a1processid", *child_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -237,9 +283,12 @@ async def test_generate_docs_should_emit_requests_using_changed_prompts(
         BriceDeNice.has_changed_documentation_prompts(),
     )
 
+    repo_indexed = BriceDeNice.got_his_first_repo_indexed()
+    run_started_at = time_under_control.now()
+
     # When
     await process_event_message(
-        BriceDeNice.got_his_first_repo_indexed(),
+        repo_indexed,
         dependencies=Dependencies(
             event_store,
             git_helper,
@@ -260,12 +309,22 @@ async def test_generate_docs_should_emit_requests_using_changed_prompts(
         BriceDeNice.has_changed_documentation_prompts().docs_prompts
         | BriceDeNice.defined_additional_prompts_for_documentation()
     )
-    assert {req.prompt_id for req in requests} == set(expected_docs_prompts.keys())
-    auto_doc_setup = await load_auto_documentation_setup(event_store, kb_id)
-    assert auto_doc_setup.last_process_id is not None
-    for req in requests:
-        assert req.prompt_description == expected_docs_prompts[req.prompt_id]
-        assert req.parent_process_id == auto_doc_setup.last_process_id
+    parent_process_id = BriceDeNice.has_changed_documentation_prompts().process_id
+    expected_requests: list[DocumentationGenerationRequested] = []
+    child_iter = iter(child_ids)
+    for prompt_id, prompt_description in expected_docs_prompts.items():
+        expected_requests.append(
+            DocumentationGenerationRequested(
+                knowledge_base_id=kb_id,
+                prompt_id=prompt_id,
+                prompt_description=prompt_description,
+                code_version=repo_indexed.commit_sha,
+                parent_process_id=parent_process_id,
+                process_id=next(child_iter),
+                occurred_at=run_started_at,
+            )
+        )
+    assert requests == expected_requests
 
 
 def init_docs_directory(temp_documentation_directory: Path, *subdirs: str):
@@ -335,11 +394,14 @@ async def test_generate_docs_should_load_existing_repo_markdown(
         version=BriceDeNice.got_his_first_repo_indexed().commit_sha,
     )
 
-    assert knowledge_repo.contains(kb_key, "README.md")
-    assert knowledge_repo.get_origin(kb_key, "README.md") == "repo"
-    assert knowledge_repo.contains(kb_key, "docs/runbook.md")
-    assert knowledge_repo.get_origin(kb_key, "docs/runbook.md") == "repo"
-    assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
+    observed_docs = {
+        entry: knowledge_repo.get_origin(kb_key, entry)
+        for entry in knowledge_repo.list_entries(kb_key)
+    }
+    assert observed_docs == {
+        "README.md": "repo",
+        "docs/runbook.md": "repo",
+    }
     docs_agent.generate_documentation.assert_not_called()
 
 
@@ -349,23 +411,18 @@ async def test_process_documentation_generation_request_should_generate_docs(
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
 ):
+    # Given
     git_helper = Mock(spec=GitHelper)
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
     docs_agent = AsyncMock(spec=DocumentingAgent)
     child_process_id = "doc-child-1"
-
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
         repo_connected,
     )
-
     kb_id = repo_connected.knowledge_base_id
-    prompt = {"domain_events_glossary": "Write glossary"}
-
-    temp_documentation_directory = (
-        Path(f"/tmp/repo/{child_process_id}").joinpath(kb_id)
-    )
+    temp_documentation_directory = Path(f"/tmp/repo/{child_process_id}").joinpath(kb_id)
     init_docs_directory(temp_documentation_directory)
     git_helper.clone_repository.side_effect = (
         lambda url, access_token, to_path: init_docs_directory(
@@ -379,7 +436,6 @@ async def test_process_documentation_generation_request_should_generate_docs(
             ).write_text("# Domain Events Glossary\n"),
         )
     )
-
     request_event = DocumentationGenerationRequested(
         knowledge_base_id=kb_id,
         prompt_id="domain_events_glossary",
@@ -389,7 +445,9 @@ async def test_process_documentation_generation_request_should_generate_docs(
         process_id=child_process_id,
         occurred_at=time_under_control.now(),
     )
+    await event_store.append(child_process_id, request_event)
 
+    # When
     await process_event_message(
         request_event,
         dependencies=Dependencies(
@@ -402,13 +460,25 @@ async def test_process_documentation_generation_request_should_generate_docs(
         ),
     )
 
+    # Then
     docs_agent.generate_documentation.assert_called_once()
     kb_key = KnowledgeBase(id=kb_id, version="commit-sha")
-    assert knowledge_repo.contains(kb_key, "domain_events_glossary.md")
-    assert knowledge_repo.get_origin(kb_key, "domain_events_glossary.md") == "auto"
+    observed_docs = {
+        entry: knowledge_repo.get_origin(kb_key, entry)
+        for entry in knowledge_repo.list_entries(kb_key)
+    }
+    assert observed_docs == {"domain_events_glossary.md": "auto"}
     child_events = await event_store.get(child_process_id)
-    assert isinstance(child_events[-1], DocumentationGenerationCompleted)
-    assert child_events[-1].generated_documents == ["domain_events_glossary.md"]
+    expected_completion = DocumentationGenerationCompleted(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        code_version="commit-sha",
+        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        generated_documents=["domain_events_glossary.md"],
+        process_id=child_process_id,
+        occurred_at=request_event.occurred_at,
+    )
+    assert child_events == [request_event, expected_completion]
 
 
 @pytest.mark.asyncio
@@ -417,17 +487,16 @@ async def test_process_documentation_generation_request_should_emit_failure_even
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
 ):
+    # Given
     git_helper = Mock(spec=GitHelper)
     coding_agent = AsyncMock(spec=IssueResolvingAgent)
     docs_agent = AsyncMock(spec=DocumentingAgent)
     docs_agent.generate_documentation.side_effect = RuntimeError("boom")
-
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
         repo_connected,
     )
-
     request_event = DocumentationGenerationRequested(
         knowledge_base_id=repo_connected.knowledge_base_id,
         prompt_id="overview",
@@ -437,7 +506,9 @@ async def test_process_documentation_generation_request_should_emit_failure_even
         process_id="doc-child-failure",
         occurred_at=time_under_control.now(),
     )
+    await event_store.append(request_event.process_id, request_event)
 
+    # When
     await process_event_message(
         request_event,
         dependencies=Dependencies(
@@ -450,6 +521,54 @@ async def test_process_documentation_generation_request_should_emit_failure_even
         ),
     )
 
+    # Then
     child_events = await event_store.get("doc-child-failure")
-    assert isinstance(child_events[-1], DocumentationGenerationFailed)
-    assert "boom" in child_events[-1].error_message
+    expected_failure = DocumentationGenerationFailed(
+        knowledge_base_id=repo_connected.knowledge_base_id,
+        prompt_id="overview",
+        code_version="commit-sha",
+        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        error_message="boom",
+        process_id="doc-child-failure",
+        occurred_at=request_event.occurred_at,
+    )
+    assert child_events == [request_event, expected_failure]
+
+
+@pytest.mark.asyncio
+async def test_process_documentation_generation_request_should_raise_when_docs_agent_missing(
+    event_store,
+    time_under_control: ControllableClock,
+    knowledge_repo: KnowledgeRepository,
+):
+    # Given
+    git_helper = Mock(spec=GitHelper)
+    coding_agent = AsyncMock(spec=IssueResolvingAgent)
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(),
+        repo_connected,
+    )
+    request_event = DocumentationGenerationRequested(
+        knowledge_base_id=repo_connected.knowledge_base_id,
+        prompt_id="overview",
+        prompt_description="Write overview",
+        code_version="commit-sha",
+        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        process_id="doc-child-no-agent",
+        occurred_at=time_under_control.now(),
+    )
+
+    # When / Then
+    with pytest.raises(RuntimeError, match="Docs agent is not configured"):
+        await process_event_message(
+            request_event,
+            dependencies=Dependencies(
+                event_store,
+                git_helper,
+                coding_agent,
+                knowledge_repo,
+                time_under_control,
+                docs_agent=None,
+            ),
+        )

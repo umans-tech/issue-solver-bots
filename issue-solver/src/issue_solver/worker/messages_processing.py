@@ -37,9 +37,7 @@ async def process_event_message(
             case IssueResolutionRequested():
                 await resolve_issue(message, dependencies)
             case DocumentationGenerationRequested():
-                await process_documentation_generation_request(
-                    message, dependencies
-                )
+                await process_documentation_generation_request(message, dependencies)
     except Exception as e:
         logger.error(f"Error processing repository message: {str(e)}")
         raise

@@ -882,9 +882,7 @@ class DocumentationGenerationCompletedRecord(BaseModel):
 
 
 class DocumentationGenerationFailedRecord(BaseModel):
-    type: Literal["documentation_generation_failed"] = (
-        "documentation_generation_failed"
-    )
+    type: Literal["documentation_generation_failed"] = "documentation_generation_failed"
     knowledge_base_id: str
     prompt_id: str
     code_version: str
