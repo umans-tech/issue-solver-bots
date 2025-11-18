@@ -27,12 +27,18 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorizationFailed,
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
+    DocumentationGenerationRequested,
+    DocumentationGenerationCompleted,
+    DocumentationGenerationFailed,
 )
 from issue_solver.events.auto_documentation import AutoDocumentationSetup
 from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
+    DocumentationGenerationRequestedRecord,
+    DocumentationGenerationCompletedRecord,
+    DocumentationGenerationFailedRecord,
 )
 from issue_solver.webapi.dependencies import (
     get_event_store,
@@ -77,6 +83,15 @@ class ProcessTimelineView(BaseModel):
             first_event, (DocumentationPromptsDefined, DocumentationPromptsRemoved)
         ):
             return "auto_documentation"
+        if isinstance(
+            first_event,
+            (
+                DocumentationGenerationRequested,
+                DocumentationGenerationCompleted,
+                DocumentationGenerationFailed,
+            ),
+        ):
+            return "auto_documentation_run"
         return "code_repository_integration"
 
     @classmethod
@@ -125,6 +140,12 @@ class ProcessTimelineView(BaseModel):
                 status = (
                     "configured" if _auto_doc_prompts_remaining(events) else "removed"
                 )
+            case DocumentationGenerationRequested():
+                status = "requested"
+            case DocumentationGenerationCompleted():
+                status = "completed"
+            case DocumentationGenerationFailed():
+                status = "failed"
             case _:
                 status = "unknown"
         return status
@@ -139,6 +160,9 @@ async def list_processes(
     ),
     process_type: str | None = Query(None, description="Filter by process type"),
     status: str | None = Query(None, description="Filter by status"),
+    parent_process_id: str | None = Query(
+        None, description="Filter by parent process ID"
+    ),
     limit: int = Query(50, ge=1, le=100, description="Number of processes to return"),
     offset: int = Query(0, ge=0, description="Number of processes to skip"),
 ) -> dict:
@@ -154,7 +178,9 @@ async def list_processes(
         processes = await _get_all_processes(event_store)
 
     # Apply additional filters
-    filtered_processes = _apply_filters(processes, process_type, status)
+    filtered_processes = _apply_filters(
+        processes, process_type, status, parent_process_id
+    )
 
     # Apply pagination
     total = len(filtered_processes)
@@ -209,7 +235,10 @@ async def _get_processes_by_criteria(
 
 
 def _apply_filters(
-    processes: list[dict], process_type: str | None, status: str | None
+    processes: list[dict],
+    process_type: str | None,
+    status: str | None,
+    parent_process_id: str | None,
 ) -> list[dict]:
     """Apply type and status filters to processes."""
     filtered = processes
@@ -220,7 +249,29 @@ def _apply_filters(
     if status:
         filtered = [p for p in filtered if p["status"] == status]
 
+    if parent_process_id:
+        filtered = [
+            p for p in filtered if _process_has_parent(p["events"], parent_process_id)
+        ]
+
     return filtered
+
+
+def _process_has_parent(
+    events: list[ProcessTimelineEventRecords], parent_id: str
+) -> bool:
+    for record in events:
+        if isinstance(
+            record,
+            (
+                DocumentationGenerationRequestedRecord,
+                DocumentationGenerationCompletedRecord,
+                DocumentationGenerationFailedRecord,
+            ),
+        ):
+            if record.parent_process_id == parent_id:
+                return True
+    return False
 
 
 async def _get_all_processes(event_store: EventStore) -> list[dict]:
