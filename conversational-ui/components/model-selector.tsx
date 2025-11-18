@@ -124,7 +124,7 @@ export function ModelSelector({
           const primary = chatModels.filter((m) => primaryIds.has(m.id));
           const other = chatModels.filter((m) => !primaryIds.has(m.id));
 
-          const Item = ({ m }: { m: { id: string; name: string; description: string; provider: 'openai' | 'anthropic'; providerDisplayName: string } }) => (
+          const Item = ({ m }: { m: { id: string; name: string; description: string; provider: 'openai' | 'anthropic' | 'google'; providerDisplayName: string } }) => (
             <DropdownMenuItem
               key={m.id}
               onSelect={() => {
