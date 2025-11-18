@@ -15,7 +15,6 @@ const anthropicBeta = createAnthropic({
 
 export const myProvider = customProvider({
     languageModels: {
-        'chat-model-small': openaiProvider.responses('gpt-5-mini'),
         'chat-model-small-codex': openaiProvider.responses('gpt-5.1-codex-mini'),
         'chat-model-large': openaiProvider.responses('gpt-5.1'),
         'chat-model-large-codex': openaiProvider.responses('gpt-5.1-codex'),
@@ -41,13 +40,6 @@ interface ChatModel {
 }
 
 export const chatModels: Array<ChatModel> = [
-    {
-        id: 'chat-model-small',
-        name: 'Quick Analysis',
-        description: 'Fast analysis for quick insights and lightweight tasks',
-        provider: 'openai',
-        providerDisplayName: 'GPT-5 mini',
-    },
     {
         id: 'chat-model-small-codex',
         name: 'Quick Code Analysis',

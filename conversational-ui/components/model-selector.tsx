@@ -32,9 +32,6 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
 
   // Then Radix icons (generic fallback)
   const radixMap: Record<string, IconRenderer> = {
-    'chat-model-small': ({ size = 16, className } = {}) => (
-      <MagicWandIcon width={size} height={size} className={className} />
-    ),
     'chat-model-large': ({ size = 16, className } = {}) => (
       <MagicWandIcon width={size} height={size} className={className} />
     ),
@@ -55,9 +52,6 @@ function getModelIconComponent(modelId: string): IconRenderer | null {
 
   // Finally react-icons with brand logos
   const reactIconsMap: Record<string, IconRenderer> = {
-    'chat-model-small': ({ size = 16, className } = {}) => (
-      <SiOpenai size={size} className={className} />
-    ),
     'chat-model-large': ({ size = 16, className } = {}) => (
       <SiOpenai size={size} className={className} />
     ),
