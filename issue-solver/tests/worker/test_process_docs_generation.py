@@ -1,20 +1,12 @@
 import shutil
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
-
 import pytest
-
-from issue_solver.agents.issue_resolving_agent import (
-    IssueResolvingAgent,
-    DocumentingAgent,
-)
 from issue_solver.events.domain import (
     DocumentationGenerationRequested,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
 )
 from issue_solver.events.event_store import EventStore
-from issue_solver.git_operations.git_helper import GitHelper
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeRepository,
     KnowledgeBase,
@@ -83,9 +75,8 @@ async def test_generate_docs_should_request_each_prompt_individually(
         | BriceDeNice.defined_additional_prompts_for_documentation()
     )
     expected_requests: list[DocumentationGenerationRequested] = []
-    for child_id, (prompt_id, prompt_description) in zip(
-        child_ids, expected_prompts.items(), strict=True
-    ):
+    for index, (prompt_id, prompt_description) in enumerate(expected_prompts.items()):
+        child_id = child_ids[index]
         expected_requests.append(
             DocumentationGenerationRequested(
                 knowledge_base_id=kb_id,
@@ -102,17 +93,15 @@ async def test_generate_docs_should_request_each_prompt_individually(
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_skip_when_no_prompts_defined(
-    event_store,
-    time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    event_store: EventStore,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
-    process_id = "a1processid"
-    id_generator = Mock()
-    id_generator.new.return_value = process_id
+    id_generator.new.return_value = "a1processid"
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -124,18 +113,7 @@ async def test_generate_docs_should_skip_when_no_prompts_defined(
     repo_indexed = BriceDeNice.got_his_first_repo_indexed()
 
     # When
-    await process_event_message(
-        repo_indexed,
-        dependencies=Dependencies(
-            event_store,
-            git_helper,
-            coding_agent,
-            knowledge_repo,
-            time_under_control,
-            id_generator=id_generator,
-            docs_agent=docs_agent,
-        ),
-    )
+    await process_event_message(repo_indexed, dependencies=worker_dependencies)
 
     # Then
     docs_agent.generate_documentation.assert_not_called()
@@ -147,14 +125,14 @@ async def test_generate_docs_should_skip_when_no_prompts_defined(
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_error_when_docs_agent_missing(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    id_generator,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    id_generator = Mock()
     id_generator.new.return_value = "a1processid"
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -185,15 +163,15 @@ async def test_generate_docs_should_error_when_docs_agent_missing(
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_request_using_latest_prompts(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
-    id_generator = Mock()
     child_ids = ["child-1", "child-2"]
     id_generator.new.side_effect = ["a1processid", *child_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
@@ -211,18 +189,7 @@ async def test_generate_docs_should_request_using_latest_prompts(
     run_started_at = time_under_control.now()
 
     # When
-    await process_event_message(
-        repo_indexed,
-        dependencies=Dependencies(
-            event_store,
-            git_helper,
-            coding_agent,
-            knowledge_repo,
-            time_under_control,
-            id_generator=id_generator,
-            docs_agent=docs_agent,
-        ),
-    )
+    await process_event_message(repo_indexed, dependencies=worker_dependencies)
 
     # Then
     kb_id = repo_connected.knowledge_base_id
@@ -232,8 +199,8 @@ async def test_generate_docs_should_request_using_latest_prompts(
     base_prompts = BriceDeNice.defined_prompts_for_documentation()
     parent_process_id = BriceDeNice.doc_configuration_process_id()
     expected_requests: list[DocumentationGenerationRequested] = []
-    for child_id, prompt_id in zip(child_ids, base_prompts.keys(), strict=True):
-        description = base_prompts[prompt_id]
+    for index, (prompt_id, description) in enumerate(base_prompts.items()):
+        child_id = child_ids[index]
         expected_requests.append(
             DocumentationGenerationRequested(
                 knowledge_base_id=kb_id,
@@ -250,16 +217,16 @@ async def test_generate_docs_should_request_using_latest_prompts(
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_request_changed_prompts(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
     child_ids = ["child-1", "child-2", "child-3", "child-4"]
-    id_generator = Mock()
     id_generator.new.side_effect = ["a1processid", *child_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -278,18 +245,7 @@ async def test_generate_docs_should_request_changed_prompts(
     run_started_at = time_under_control.now()
 
     # When
-    await process_event_message(
-        repo_indexed,
-        dependencies=Dependencies(
-            event_store,
-            git_helper,
-            coding_agent,
-            knowledge_repo,
-            time_under_control,
-            id_generator=id_generator,
-            docs_agent=docs_agent,
-        ),
-    )
+    await process_event_message(repo_indexed, dependencies=worker_dependencies)
 
     # Then
     kb_id = repo_connected.knowledge_base_id
@@ -301,9 +257,8 @@ async def test_generate_docs_should_request_changed_prompts(
     updated_prompts = changed_prompts | additional_prompts
     parent_process_id = BriceDeNice.has_changed_documentation_prompts().process_id
     expected_requests: list[DocumentationGenerationRequested] = []
-    for child_id, (prompt_id, prompt_description) in zip(
-        child_ids, updated_prompts.items(), strict=True
-    ):
+    for index, (prompt_id, prompt_description) in enumerate(updated_prompts.items()):
+        child_id = child_ids[index]
         expected_requests.append(
             DocumentationGenerationRequested(
                 knowledge_base_id=kb_id,
@@ -338,18 +293,17 @@ def seed_repository_markdown(target: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_generate_docs_should_import_existing_repo_markdown(
-    event_store,
-    time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    event_store: EventStore,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
-    docs_agent.generate_documentation.return_value = None
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
     process_id = "seeded-process"
-    id_generator = Mock()
     id_generator.new.side_effect = [process_id, "child-1", "child-2"]
+    docs_agent.generate_documentation.return_value = None
 
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -368,15 +322,7 @@ async def test_generate_docs_should_import_existing_repo_markdown(
     # When
     await process_event_message(
         BriceDeNice.got_his_first_repo_indexed(),
-        dependencies=Dependencies(
-            event_store,
-            git_helper,
-            coding_agent,
-            knowledge_repo,
-            time_under_control,
-            id_generator=id_generator,
-            docs_agent=docs_agent,
-        ),
+        dependencies=worker_dependencies,
     )
 
     # Then
@@ -398,14 +344,14 @@ async def test_generate_docs_should_import_existing_repo_markdown(
 
 @pytest.mark.asyncio
 async def test_process_documentation_generation_request_should_store_outputs(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    docs_agent,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
     child_process_id = "doc-child-1"
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -474,14 +420,14 @@ async def test_process_documentation_generation_request_should_store_outputs(
 
 @pytest.mark.asyncio
 async def test_process_documentation_generation_request_should_record_failure(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    docs_agent,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
-    docs_agent = AsyncMock(spec=DocumentingAgent)
     docs_agent.generate_documentation.side_effect = RuntimeError("boom")
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -528,13 +474,13 @@ async def test_process_documentation_generation_request_should_record_failure(
 
 @pytest.mark.asyncio
 async def test_process_documentation_generation_request_should_error_when_docs_agent_missing(
-    event_store,
+    event_store: EventStore,
     time_under_control: ControllableClock,
-    knowledge_repo: KnowledgeRepository,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
 ):
     # Given
-    git_helper = Mock(spec=GitHelper)
-    coding_agent = AsyncMock(spec=IssueResolvingAgent)
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
