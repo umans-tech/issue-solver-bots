@@ -86,7 +86,6 @@ def test_get_process_returns_200_when_the_process_is_found(
                 "space_id": "test-space-id",
                 "knowledge_base_id": CREATED_VECTOR_STORE_ID,
                 "process_id": process_id,
-                "token_permissions": None,
             }
         ],
     }

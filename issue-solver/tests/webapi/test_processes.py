@@ -391,27 +391,27 @@ def test_doc_generation_process_should_report_failed_status():
 
 def test_apply_filters_should_filter_by_parent_process_id():
     processes = [
-        {
-            "id": "doc-run-1",
-            "type": "auto_documentation_run",
-            "status": "completed",
-            "parent_process_id": "parent-123",
-            "events": [],
-        },
-        {
-            "id": "doc-run-2",
-            "type": "auto_documentation_run",
-            "status": "completed",
-            "parent_process_id": "other-parent",
-            "events": [],
-        },
+        ProcessTimelineView(
+            id="doc-run-1",
+            type="auto_documentation_run",
+            status="completed",
+            parent_process_id="parent-123",
+            events=[],
+        ),
+        ProcessTimelineView(
+            id="doc-run-2",
+            type="auto_documentation_run",
+            status="completed",
+            parent_process_id="other-parent",
+            events=[],
+        ),
     ]
 
     filtered = processes_router._apply_filters(
         processes, "auto_documentation_run", None, "parent-123"
     )
 
-    assert [p["id"] for p in filtered] == ["doc-run-1"]
+    assert [p.id for p in filtered] == ["doc-run-1"]
 
 
 def test_status_should_remain_connected_after_token_rotation():

@@ -42,12 +42,13 @@ from issue_solver.webapi.dependencies import (
     get_logger,
     get_agent_message_store,
 )
-from pydantic import BaseModel
+
+from issue_solver.webapi.payloads import BaseSchema
 
 router = APIRouter(prefix="/processes", tags=["processes"])
 
 
-class ProcessTimelineView(BaseModel):
+class ProcessTimelineView(BaseSchema):
     id: str
     type: str
     status: str
@@ -164,6 +165,13 @@ class ProcessTimelineView(BaseModel):
         return None
 
 
+class PaginatedProcessesResponse(BaseSchema):
+    processes: list[ProcessTimelineView]
+    total: int
+    limit: int
+    offset: int
+
+
 @router.get("/")
 async def list_processes(
     event_store: Annotated[EventStore, Depends(get_event_store)],
@@ -178,7 +186,7 @@ async def list_processes(
     ),
     limit: int = Query(50, ge=1, le=100, description="Number of processes to return"),
     offset: int = Query(0, ge=0, description="Number of processes to skip"),
-) -> dict:
+) -> PaginatedProcessesResponse:
     """List processes with filtering and pagination."""
 
     # Determine which processes to get based on filters
@@ -199,17 +207,17 @@ async def list_processes(
     total = len(filtered_processes)
     paginated_processes = filtered_processes[offset : offset + limit]
 
-    return {
-        "processes": paginated_processes,
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-    }
+    return PaginatedProcessesResponse(
+        processes=paginated_processes,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 async def _get_processes_by_criteria(
     event_store: EventStore, space_id: str | None, knowledge_base_id: str | None
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     """Get processes based on space_id or knowledge_base_id criteria."""
     processes = []
 
@@ -253,29 +261,27 @@ async def _get_processes_by_criteria(
 
 
 def _apply_filters(
-    processes: list[dict],
+    processes: list[ProcessTimelineView],
     process_type: str | None,
     status: str | None,
     parent_process_id: str | None,
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     """Apply type and status filters to processes."""
     filtered = processes
 
     if process_type:
-        filtered = [p for p in filtered if p["type"] == process_type]
+        filtered = [p for p in filtered if p.type == process_type]
 
     if status:
-        filtered = [p for p in filtered if p["status"] == status]
+        filtered = [p for p in filtered if p.status == status]
 
     if parent_process_id:
-        filtered = [
-            p for p in filtered if p.get("parent_process_id") == parent_process_id
-        ]
+        filtered = [p for p in filtered if p.parent_process_id == parent_process_id]
 
     return filtered
 
 
-async def _get_all_processes(event_store: EventStore) -> list[dict]:
+async def _get_all_processes(event_store: EventStore) -> list[ProcessTimelineView]:
     """Get all processes from all event types."""
     all_processes = []
 
@@ -316,7 +322,7 @@ async def _get_all_processes(event_store: EventStore) -> list[dict]:
 
 async def _convert_events_to_processes(
     event_store: EventStore, events: list
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     """Convert domain events to process timeline views."""
     processes = []
     seen_processes: set[str] = set()
@@ -327,7 +333,7 @@ async def _convert_events_to_processes(
         if not process_events:
             continue
         process_view = ProcessTimelineView.create_from(event.process_id, process_events)
-        processes.append(_process_view_to_dict(process_view))
+        processes.append(process_view)
         seen_processes.add(event.process_id)
     return processes
 
@@ -347,7 +353,7 @@ def _auto_doc_prompts_remaining(events: list[AnyDomainEvent]) -> bool:
 
 async def _get_auto_documentation_processes(
     event_store: EventStore, knowledge_base_ids: set[str]
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     if not knowledge_base_ids:
         return []
     auto_doc_events: list[AnyDomainEvent] = []
@@ -369,7 +375,7 @@ async def _get_auto_documentation_processes(
 
 async def _get_doc_generation_processes(
     event_store: EventStore, knowledge_base_ids: set[str] | None
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     doc_events: list[AnyDomainEvent] = []
     if knowledge_base_ids is None:
         doc_events = await event_store.find(
@@ -388,7 +394,11 @@ async def _get_doc_generation_processes(
     return await _convert_events_to_processes(event_store, doc_events)
 
 
-@router.get("/{process_id}")
+@router.get(
+    "/{process_id}",
+    response_model=ProcessTimelineView,
+    response_model_exclude_none=True,
+)
 async def get_process(
     process_id: str,
     event_store: Annotated[EventStore, Depends(get_event_store)],
@@ -398,7 +408,7 @@ async def get_process(
             lambda: get_logger("issue_solver.webapi.routers.processes.get_process")
         ),
     ],
-) -> dict:
+) -> ProcessTimelineView:
     """Get information about a specific process."""
     logger.info(f"Retrieving information for process ID: {process_id}")
     process_events = await event_store.get(process_id)
@@ -407,14 +417,7 @@ async def get_process(
         raise HTTPException(status_code=404, detail="Process not found")
     process_timeline_view = ProcessTimelineView.create_from(process_id, process_events)
     logger.info(f"Found process with {len(process_events)} events")
-    return _process_view_to_dict(process_timeline_view)
-
-
-def _process_view_to_dict(view: ProcessTimelineView) -> dict:
-    data = view.model_dump()
-    if data.get("parent_process_id") is None:
-        data.pop("parent_process_id", None)
-    return data
+    return process_timeline_view
 
 
 @router.get(
