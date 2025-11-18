@@ -21,7 +21,7 @@
 - Dev loop: keep your container runtime running, call `just start-services` once to boot LocalStack/backing infra, then use `just dev` to apply Alembic migrations and start FastAPI. Use `just worker-start`, `just run`, `just solve`, or `just start-services` when you need components individually. `just solve-priveleged` exists for Dockerized swe-agent flows that need sudo.
 - Worker: run `just w` (alias for `just worker-start`) whenever you need background features—`issue_solver/worker/local_runner.py` drives queue consumers, so auto-documentation, repo indexing, PR creation, and MCP refresh flows will stall if it isn't running.
 - Tests: follow the behavioural style shown in `tests/events/test_auto_documentation.py` or `tests/queueing/test_sqs_queueing_event_store.py`—fixtures set context, assertions describe outcomes in Given/When/Then form.
-- Quality: use the aliases in `issue-solver/justfile`—`just l c f t` (lint ➜ typing ➜ format ➜ pytest). `just l` is red in CI because of existing debt, but you should still capture its output to see how your change affects it. Alembic commands expect `DATABASE_URL`; CI wires it up through `operations/01-provision` outputs.
+- Quality: use the aliases in `issue-solver/justfile`—`just l c f t` (lint ➜ typing ➜ format ➜ pytest).
 - Secrets: set `TOKEN_ENCRYPTION_KEY` (use `just generate-encryption-key`) before migrations or worker processes.
 
 ## Ops & Deployment
