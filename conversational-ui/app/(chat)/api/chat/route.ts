@@ -216,7 +216,13 @@ export async function POST(request: Request) {
                     openai: {
                         reasoningEffort: 'high',
                         reasoningSummary: 'detailed', // Explicitly request detailed reasoning summaries
-                    }
+                    },
+                    google: {
+                      thinkingConfig: {
+                        enabled: true,
+                        includeThoughts: true,
+                      },
+                    },
                 },
                 experimental_activeTools: [
                     'getWeather',
