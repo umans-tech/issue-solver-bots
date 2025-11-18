@@ -25,7 +25,7 @@ from tests.examples.happy_path_persona import BriceDeNice
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_enqueue_events_for_each_prompt(
+async def test_generate_docs_should_request_each_prompt_individually(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -93,24 +93,25 @@ async def test_generate_docs_should_enqueue_events_for_each_prompt(
         BriceDeNice.has_defined_additional_documentation_prompts().process_id
     )
     expected_requests: list[DocumentationGenerationRequested] = []
-    child_id_iter = iter(child_ids)
-    for prompt_id, prompt_description in expected_prompts.items():
+    for child_id, (prompt_id, prompt_description) in zip(
+        child_ids, expected_prompts.items(), strict=True
+    ):
         expected_requests.append(
-            DocumentationGenerationRequested(
-                knowledge_base_id=kb_id,
-                prompt_id=prompt_id,
-                prompt_description=prompt_description,
-                code_version=repo_indexed.commit_sha,
-                parent_process_id=parent_process_id,
-                process_id=next(child_id_iter),
-                occurred_at=run_started_at,
+            doc_generation_request(
+                kb_id,
+                child_id,
+                prompt_id,
+                prompt_description,
+                parent_process_id,
+                repo_indexed.commit_sha,
+                run_started_at,
             )
         )
     assert requests == expected_requests
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_not_enqueue_events_when_no_prompts_defined(
+async def test_generate_docs_should_skip_when_no_prompts_defined(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -155,7 +156,7 @@ async def test_generate_docs_should_not_enqueue_events_when_no_prompts_defined(
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_raise_when_docs_agent_missing(
+async def test_generate_docs_should_error_when_docs_agent_missing(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -193,7 +194,7 @@ async def test_generate_docs_should_raise_when_docs_agent_missing(
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_use_latest_prompt_configuration(
+async def test_generate_docs_should_request_using_latest_prompts(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -238,27 +239,26 @@ async def test_generate_docs_should_use_latest_prompt_configuration(
     requests = await event_store.find(
         {"knowledge_base_id": kb_id}, DocumentationGenerationRequested
     )
-    expected_prompts = BriceDeNice.defined_prompts_for_documentation()
+    base_prompts = BriceDeNice.defined_prompts_for_documentation()
     parent_process_id = BriceDeNice.doc_configuration_process_id()
     expected_requests: list[DocumentationGenerationRequested] = []
-    child_iter = iter(child_ids)
-    for prompt_id, prompt_description in expected_prompts.items():
+    for child_id, prompt_id in zip(child_ids, base_prompts.keys(), strict=True):
         expected_requests.append(
-            DocumentationGenerationRequested(
-                knowledge_base_id=kb_id,
-                prompt_id=prompt_id,
-                prompt_description=prompt_description,
-                code_version=repo_indexed.commit_sha,
-                parent_process_id=parent_process_id,
-                process_id=next(child_iter),
-                occurred_at=run_started_at,
+            doc_generation_request(
+                kb_id,
+                child_id,
+                prompt_id,
+                base_prompts[prompt_id],
+                parent_process_id,
+                repo_indexed.commit_sha,
+                run_started_at,
             )
         )
     assert requests == expected_requests
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_emit_requests_using_changed_prompts(
+async def test_generate_docs_should_request_changed_prompts(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -305,23 +305,23 @@ async def test_generate_docs_should_emit_requests_using_changed_prompts(
     requests = await event_store.find(
         {"knowledge_base_id": kb_id}, DocumentationGenerationRequested
     )
-    expected_docs_prompts = (
-        BriceDeNice.has_changed_documentation_prompts().docs_prompts
-        | BriceDeNice.defined_additional_prompts_for_documentation()
-    )
+    changed_prompts = BriceDeNice.has_changed_documentation_prompts().docs_prompts
+    additional_prompts = BriceDeNice.defined_additional_prompts_for_documentation()
+    updated_prompts = changed_prompts | additional_prompts
     parent_process_id = BriceDeNice.has_changed_documentation_prompts().process_id
     expected_requests: list[DocumentationGenerationRequested] = []
-    child_iter = iter(child_ids)
-    for prompt_id, prompt_description in expected_docs_prompts.items():
+    for child_id, (prompt_id, prompt_description) in zip(
+        child_ids, updated_prompts.items(), strict=True
+    ):
         expected_requests.append(
-            DocumentationGenerationRequested(
-                knowledge_base_id=kb_id,
-                prompt_id=prompt_id,
-                prompt_description=prompt_description,
-                code_version=repo_indexed.commit_sha,
-                parent_process_id=parent_process_id,
-                process_id=next(child_iter),
-                occurred_at=run_started_at,
+            doc_generation_request(
+                kb_id,
+                child_id,
+                prompt_id,
+                prompt_description,
+                parent_process_id,
+                repo_indexed.commit_sha,
+                run_started_at,
             )
         )
     assert requests == expected_requests
@@ -346,7 +346,7 @@ def seed_repository_markdown(target: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_docs_should_load_existing_repo_markdown(
+async def test_generate_docs_should_import_existing_repo_markdown(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -394,19 +394,19 @@ async def test_generate_docs_should_load_existing_repo_markdown(
         version=BriceDeNice.got_his_first_repo_indexed().commit_sha,
     )
 
-    observed_docs = {
-        entry: knowledge_repo.get_origin(kb_key, entry)
-        for entry in knowledge_repo.list_entries(kb_key)
-    }
-    assert observed_docs == {
-        "README.md": "repo",
-        "docs/runbook.md": "repo",
-    }
+    assert_repo_has_documents(
+        knowledge_repo,
+        kb_key,
+        {
+            "README.md": "repo",
+            "docs/runbook.md": "repo",
+        },
+    )
     docs_agent.generate_documentation.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_process_documentation_generation_request_should_generate_docs(
+async def test_process_documentation_generation_request_should_store_outputs(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -463,11 +463,11 @@ async def test_process_documentation_generation_request_should_generate_docs(
     # Then
     docs_agent.generate_documentation.assert_called_once()
     kb_key = KnowledgeBase(id=kb_id, version="commit-sha")
-    observed_docs = {
-        entry: knowledge_repo.get_origin(kb_key, entry)
-        for entry in knowledge_repo.list_entries(kb_key)
-    }
-    assert observed_docs == {"domain_events_glossary.md": "auto"}
+    assert_repo_has_documents(
+        knowledge_repo,
+        kb_key,
+        {"domain_events_glossary.md": "auto"},
+    )
     child_events = await event_store.get(child_process_id)
     expected_completion = DocumentationGenerationCompleted(
         knowledge_base_id=kb_id,
@@ -482,7 +482,7 @@ async def test_process_documentation_generation_request_should_generate_docs(
 
 
 @pytest.mark.asyncio
-async def test_process_documentation_generation_request_should_emit_failure_event(
+async def test_process_documentation_generation_request_should_record_failure(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -536,7 +536,7 @@ async def test_process_documentation_generation_request_should_emit_failure_even
 
 
 @pytest.mark.asyncio
-async def test_process_documentation_generation_request_should_raise_when_docs_agent_missing(
+async def test_process_documentation_generation_request_should_error_when_docs_agent_missing(
     event_store,
     time_under_control: ControllableClock,
     knowledge_repo: KnowledgeRepository,
@@ -572,3 +572,35 @@ async def test_process_documentation_generation_request_should_raise_when_docs_a
                 docs_agent=None,
             ),
         )
+
+
+def doc_generation_request(
+    knowledge_base_id: str,
+    process_id: str,
+    prompt_id: str,
+    prompt_description: str,
+    parent_process_id: str,
+    code_version: str,
+    occurred_at,
+) -> DocumentationGenerationRequested:
+    return DocumentationGenerationRequested(
+        knowledge_base_id=knowledge_base_id,
+        prompt_id=prompt_id,
+        prompt_description=prompt_description,
+        code_version=code_version,
+        parent_process_id=parent_process_id,
+        process_id=process_id,
+        occurred_at=occurred_at,
+    )
+
+
+def assert_repo_has_documents(
+    knowledge_repo: KnowledgeRepository,
+    kb_key: KnowledgeBase,
+    expected: dict[str, str],
+) -> None:
+    observed = {
+        entry: knowledge_repo.get_origin(kb_key, entry)
+        for entry in knowledge_repo.list_entries(kb_key)
+    }
+    assert observed == expected
