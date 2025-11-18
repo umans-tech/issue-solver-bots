@@ -36,9 +36,6 @@ from issue_solver.events.event_store import EventStore
 from issue_solver.events.serializable_records import (
     ProcessTimelineEventRecords,
     serialize,
-    DocumentationGenerationRequestedRecord,
-    DocumentationGenerationCompletedRecord,
-    DocumentationGenerationFailedRecord,
 )
 from issue_solver.webapi.dependencies import (
     get_event_store,
@@ -55,6 +52,7 @@ class ProcessTimelineView(BaseModel):
     type: str
     status: str
     events: list[ProcessTimelineEventRecords]
+    parent_process_id: str | None = None
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
@@ -66,6 +64,7 @@ class ProcessTimelineView(BaseModel):
             type=cls.infer_process_type(events),
             status=cls.to_status(events),
             events=event_records,
+            parent_process_id=cls.parent_process(events),
         )
 
     @classmethod
@@ -150,6 +149,20 @@ class ProcessTimelineView(BaseModel):
                 status = "unknown"
         return status
 
+    @classmethod
+    def parent_process(cls, events: list[AnyDomainEvent]) -> str | None:
+        for event in events:
+            if isinstance(
+                event,
+                (
+                    DocumentationGenerationRequested,
+                    DocumentationGenerationCompleted,
+                    DocumentationGenerationFailed,
+                ),
+            ):
+                return getattr(event, "parent_process_id", None)
+        return None
+
 
 @router.get("/")
 async def list_processes(
@@ -213,6 +226,7 @@ async def _get_processes_by_criteria(
 
         kb_ids = {event.knowledge_base_id for event in repo_events}
         processes.extend(await _get_auto_documentation_processes(event_store, kb_ids))
+        processes.extend(await _get_doc_generation_processes(event_store, kb_ids))
 
     if knowledge_base_id:
         repo_events = await event_store.find(
@@ -229,6 +243,10 @@ async def _get_processes_by_criteria(
 
         processes.extend(
             await _get_auto_documentation_processes(event_store, {knowledge_base_id})
+        )
+
+        processes.extend(
+            await _get_doc_generation_processes(event_store, {knowledge_base_id})
         )
 
     return processes
@@ -251,27 +269,10 @@ def _apply_filters(
 
     if parent_process_id:
         filtered = [
-            p for p in filtered if _process_has_parent(p["events"], parent_process_id)
+            p for p in filtered if p.get("parent_process_id") == parent_process_id
         ]
 
     return filtered
-
-
-def _process_has_parent(
-    events: list[ProcessTimelineEventRecords], parent_id: str
-) -> bool:
-    for record in events:
-        if isinstance(
-            record,
-            (
-                DocumentationGenerationRequestedRecord,
-                DocumentationGenerationCompletedRecord,
-                DocumentationGenerationFailedRecord,
-            ),
-        ):
-            if record.parent_process_id == parent_id:
-                return True
-    return False
 
 
 async def _get_all_processes(event_store: EventStore) -> list[dict]:
@@ -308,6 +309,8 @@ async def _get_all_processes(event_store: EventStore) -> list[dict]:
         )
     )
 
+    all_processes.extend(await _get_doc_generation_processes(event_store, None))
+
     return all_processes
 
 
@@ -324,7 +327,7 @@ async def _convert_events_to_processes(
         if not process_events:
             continue
         process_view = ProcessTimelineView.create_from(event.process_id, process_events)
-        processes.append(process_view.model_dump())
+        processes.append(_process_view_to_dict(process_view))
         seen_processes.add(event.process_id)
     return processes
 
@@ -364,6 +367,27 @@ async def _get_auto_documentation_processes(
     return await _convert_events_to_processes(event_store, auto_doc_events)
 
 
+async def _get_doc_generation_processes(
+    event_store: EventStore, knowledge_base_ids: set[str] | None
+) -> list[dict]:
+    doc_events: list[AnyDomainEvent] = []
+    if knowledge_base_ids is None:
+        doc_events = await event_store.find(
+            criteria={}, event_type=DocumentationGenerationRequested
+        )
+    elif not knowledge_base_ids:
+        return []
+    else:
+        for kb_id in knowledge_base_ids:
+            doc_events.extend(
+                await event_store.find(
+                    criteria={"knowledge_base_id": kb_id},
+                    event_type=DocumentationGenerationRequested,
+                )
+            )
+    return await _convert_events_to_processes(event_store, doc_events)
+
+
 @router.get("/{process_id}")
 async def get_process(
     process_id: str,
@@ -374,7 +398,7 @@ async def get_process(
             lambda: get_logger("issue_solver.webapi.routers.processes.get_process")
         ),
     ],
-) -> ProcessTimelineView:
+) -> dict:
     """Get information about a specific process."""
     logger.info(f"Retrieving information for process ID: {process_id}")
     process_events = await event_store.get(process_id)
@@ -383,7 +407,14 @@ async def get_process(
         raise HTTPException(status_code=404, detail="Process not found")
     process_timeline_view = ProcessTimelineView.create_from(process_id, process_events)
     logger.info(f"Found process with {len(process_events)} events")
-    return process_timeline_view
+    return _process_view_to_dict(process_timeline_view)
+
+
+def _process_view_to_dict(view: ProcessTimelineView) -> dict:
+    data = view.model_dump()
+    if data.get("parent_process_id") is None:
+        data.pop("parent_process_id", None)
+    return data
 
 
 @router.get(

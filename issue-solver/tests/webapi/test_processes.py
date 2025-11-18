@@ -12,7 +12,11 @@ from issue_solver.events.domain import (
     CodeRepositoryIntegrationFailed,
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
+    DocumentationGenerationRequested,
+    DocumentationGenerationCompleted,
+    DocumentationGenerationFailed,
 )
+from issue_solver.webapi.routers import processes as processes_router
 from issue_solver.webapi.routers.processes import ProcessTimelineView
 from tests.examples.happy_path_persona import BriceDeNice
 
@@ -296,6 +300,118 @@ def test_auto_documentation_process_should_report_removed_status():
     # Then
     assert process_timeline_view.type == "auto_documentation"
     assert process_timeline_view.status == "removed"
+
+
+def test_doc_generation_process_should_report_requested_status():
+    parent_process_id = "doc-parent-001"
+    history = [
+        DocumentationGenerationRequested(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            prompt_description="Generate overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
+        )
+    ]
+
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-run-001", events=history
+    )
+
+    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.status == "requested"
+    assert process_timeline_view.parent_process_id == parent_process_id
+
+
+def test_doc_generation_process_should_report_completed_status():
+    parent_process_id = "doc-parent-001"
+    history = [
+        DocumentationGenerationRequested(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            prompt_description="Generate overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
+        ),
+        DocumentationGenerationCompleted(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            generated_documents=["overview.md"],
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:05:00"),
+        ),
+    ]
+
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-run-001", events=history
+    )
+
+    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.status == "completed"
+    assert process_timeline_view.parent_process_id == parent_process_id
+
+
+def test_doc_generation_process_should_report_failed_status():
+    parent_process_id = "doc-parent-001"
+    history = [
+        DocumentationGenerationRequested(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            prompt_description="Generate overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
+        ),
+        DocumentationGenerationFailed(
+            knowledge_base_id="kb-123",
+            prompt_id="overview",
+            code_version="commit-sha",
+            parent_process_id=parent_process_id,
+            error_message="boom",
+            process_id="doc-run-001",
+            occurred_at=datetime.fromisoformat("2025-11-02T12:05:00"),
+        ),
+    ]
+
+    process_timeline_view = ProcessTimelineView.create_from(
+        process_id="doc-run-001", events=history
+    )
+
+    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.status == "failed"
+    assert process_timeline_view.parent_process_id == parent_process_id
+
+
+def test_apply_filters_should_filter_by_parent_process_id():
+    processes = [
+        {
+            "id": "doc-run-1",
+            "type": "auto_documentation_run",
+            "status": "completed",
+            "parent_process_id": "parent-123",
+            "events": [],
+        },
+        {
+            "id": "doc-run-2",
+            "type": "auto_documentation_run",
+            "status": "completed",
+            "parent_process_id": "other-parent",
+            "events": [],
+        },
+    ]
+
+    filtered = processes_router._apply_filters(
+        processes, "auto_documentation_run", None, "parent-123"
+    )
+
+    assert [p["id"] for p in filtered] == ["doc-run-1"]
 
 
 def test_status_should_remain_connected_after_token_rotation():
