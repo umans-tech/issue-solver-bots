@@ -58,6 +58,7 @@ export default function DocsPage() {
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
   const [activeProcessId, setActiveProcessId] = useState<string | null>(null);
+  const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
   const [versionsLoading, setVersionsLoading] = useState(true);
@@ -364,14 +365,16 @@ export default function DocsPage() {
     };
   }, [kbId, commitSha]);
 
-  // Update activeProcessId when activePath changes
+  // Update activeProcessId and activeOrigin when activePath changes
   useEffect(() => {
     if (!activePath) {
       setActiveProcessId(null);
+      setActiveOrigin(null);
       return;
     }
     const entry = fileList.find(f => f.path === activePath);
     setActiveProcessId(entry?.process_id ?? null);
+    setActiveOrigin(entry?.origin ?? null);
   }, [activePath, fileList]);
 
   useEffect(() => {
@@ -1062,9 +1065,9 @@ export default function DocsPage() {
                         We couldn’t find this document in the selected version. Try another version or pick a different doc.
                       </div>
                     ) : showContent ? (
-                      <div className="relative">
+                      <>
                         {(showInlineLoader || showContentActions) && (
-                          <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
+                          <div className="absolute right-6 top-20 z-20 flex flex-col items-end gap-2">
                             {showInlineLoader && (
                               <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
                                 Loading latest…
@@ -1072,7 +1075,7 @@ export default function DocsPage() {
                             )}
                             {showContentActions && (
                               <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
-                                {activeProcessId && (
+                                {activeProcessId && activeOrigin === 'auto' && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
@@ -1129,7 +1132,7 @@ export default function DocsPage() {
                         <div className="max-w-none prose prose-neutral dark:prose-invert">
                           <Markdown>{content}</Markdown>
                         </div>
-                      </div>
+                      </>
                     ) : (
                       <div className="space-y-4">
                         <Skeleton className="h-8 w-1/2" />
