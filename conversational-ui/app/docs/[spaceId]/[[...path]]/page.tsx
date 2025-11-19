@@ -1048,106 +1048,104 @@ export default function DocsPage() {
                 </div>
               </aside>
 
-              <main className="min-w-0">
-                <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
-                  {showLoadingShell ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-8 w-1/2" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-5/6" />
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  ) : activePath ? (
-                    contentStatus === 'missing' ? (
-                      <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
-                        We couldn’t find this document in the selected version. Try another version or pick a different doc.
-                      </div>
-                    ) : showContent ? (
-                      <>
-                        {(showInlineLoader || showContentActions) && (
-                          <div className="absolute right-6 top-20 z-20 flex flex-col items-end gap-2">
-                            {showInlineLoader && (
-                              <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
-                                Loading latest…
-                              </div>
-                            )}
-                            {showContentActions && (
-                              <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
-                                {activeProcessId && activeOrigin === 'auto' && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                        onClick={() => window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')}
-                                        aria-label="View generation process"
-                                      >
-                                        <Activity className="h-4 w-4" />
-                                        <span className="sr-only">View generation process</span>
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom">View generation process</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground"
-                                      onClick={handleCopyMarkdown}
-                                      aria-label="Copy markdown"
-                                    >
-                                      <Copy className="h-4 w-4" />
-                                      <span className="sr-only">Copy markdown</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom">Copy markdown</TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground"
-                                      onClick={handleDownloadMarkdown}
-                                      aria-label="Download markdown"
-                                    >
-                                      <Download className="h-4 w-4" />
-                                      <span className="sr-only">Download markdown</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom">Download markdown</TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="max-w-none prose prose-neutral dark:prose-invert">
-                          <Markdown>{content}</Markdown>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="space-y-4">
-                        <Skeleton className="h-8 w-1/2" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    )
-                  ) : (
-                    <div className="text-sm text-muted-foreground">Select a document from the index.</div>
-                  )}
-                </div>
-              </main>
+               <main className="min-w-0 relative">
+                 {(showInlineLoader || showContentActions) && (
+                   <div className="absolute right-0 top-0 z-20 flex flex-col items-end gap-2">
+                     {showInlineLoader && (
+                       <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                         Loading latest…
+                       </div>
+                     )}
+                     {showContentActions && (
+                       <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                         {activeProcessId && activeOrigin === 'auto' && (
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button
+                                 type="button"
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                 onClick={() => window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')}
+                                 aria-label="View generation process"
+                               >
+                                 <Activity className="h-4 w-4" />
+                                 <span className="sr-only">View generation process</span>
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent side="bottom">View generation process</TooltipContent>
+                           </Tooltip>
+                         )}
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               type="button"
+                               variant="ghost"
+                               size="icon"
+                               className="h-8 w-8 text-muted-foreground"
+                               onClick={handleCopyMarkdown}
+                               aria-label="Copy markdown"
+                             >
+                               <Copy className="h-4 w-4" />
+                               <span className="sr-only">Copy markdown</span>
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                         </Tooltip>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               type="button"
+                               variant="ghost"
+                               size="icon"
+                               className="h-8 w-8 text-muted-foreground"
+                               onClick={handleDownloadMarkdown}
+                               aria-label="Download markdown"
+                             >
+                               <Download className="h-4 w-4" />
+                               <span className="sr-only">Download markdown</span>
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent side="bottom">Download markdown</TooltipContent>
+                         </Tooltip>
+                       </div>
+                     )}
+                   </div>
+                 )}
+                 <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
+                   {showLoadingShell ? (
+                     <div className="space-y-4">
+                       <Skeleton className="h-8 w-1/2" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-5/6" />
+                       <Skeleton className="h-4 w-2/3" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-3/4" />
+                     </div>
+                   ) : activePath ? (
+                     contentStatus === 'missing' ? (
+                       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+                         We couldn't find this document in the selected version. Try another version or pick a different doc.
+                       </div>
+                     ) : showContent ? (
+                       <div className="max-w-none prose prose-neutral dark:prose-invert">
+                         <Markdown>{content}</Markdown>
+                       </div>
+                     ) : (
+                       <div className="space-y-4">
+                         <Skeleton className="h-8 w-1/2" />
+                         <Skeleton className="h-4 w-full" />
+                         <Skeleton className="h-4 w-5/6" />
+                         <Skeleton className="h-4 w-2/3" />
+                         <Skeleton className="h-4 w-full" />
+                         <Skeleton className="h-4 w-3/4" />
+                       </div>
+                     )
+                   ) : (
+                     <div className="text-sm text-muted-foreground">Select a document from the index.</div>
+                   )}
+                 </div>
+               </main>
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
