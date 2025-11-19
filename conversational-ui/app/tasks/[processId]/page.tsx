@@ -1087,8 +1087,6 @@ export default function TaskPage() {
                               <a
                                 key={idx}
                                 href={docUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
                               >
                                 <FileText className="h-4 w-4" />
