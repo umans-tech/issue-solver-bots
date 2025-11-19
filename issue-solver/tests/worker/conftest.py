@@ -39,13 +39,13 @@ class InMemoryKnowledgeRepository(KnowledgeRepository):
         base: KnowledgeBase,
         document_name: str,
         content: str,
-        origin: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> None:
         if base not in self._documents:
             self._documents[base] = {}
         self._documents[base][document_name] = {
             "content": content,
-            "origin": origin or "unknown",
+            "metadata": metadata or {},
         }
 
     def contains(self, base: KnowledgeBase, document_name: str) -> bool:
@@ -60,11 +60,11 @@ class InMemoryKnowledgeRepository(KnowledgeRepository):
     def list_entries(self, base: KnowledgeBase) -> list[str]:
         return list(self._documents.get(base, {}).keys())
 
-    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
         entry = self._documents.get(base, {}).get(document_name)
         if not entry:
-            return None
-        return entry.get("origin")
+            return {}
+        return entry.get("metadata", {})
 
 
 @pytest.fixture

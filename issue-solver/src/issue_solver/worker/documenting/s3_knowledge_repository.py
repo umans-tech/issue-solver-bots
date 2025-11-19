@@ -36,15 +36,15 @@ class S3KnowledgeRepository(KnowledgeRepository):
         base: KnowledgeBase,
         document_name: str,
         content: str,
-        origin: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> None:
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=compute_key(base, document_name),
             Body=content,
         )
-        if origin:
-            self._update_manifest(base, document_name, origin)
+        if metadata:
+            self._update_manifest(base, document_name, metadata)
 
     def get_content(self, base: KnowledgeBase, document_name: str) -> str:
         response = self.s3_client.get_object(
@@ -62,21 +62,21 @@ class S3KnowledgeRepository(KnowledgeRepository):
             for obj in page.get("Contents", []):
                 key = obj["Key"]
                 document_name = key[len(str(prefix)) :]
-                if document_name == "__origins__.json":
+                if document_name in ("__origins__.json", "__metadata__.json"):
                     continue
                 document_names.append(document_name)
 
         return document_names
 
-    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
         manifest = self._load_manifest(base)
-        return manifest.get(document_name)
+        return manifest.get(document_name, {})
 
     @classmethod
     def _manifest_key(cls, base: KnowledgeBase) -> str:
-        return Path(to_key(base)).joinpath("__origins__.json").as_posix()
+        return Path(to_key(base)).joinpath("__metadata__.json").as_posix()
 
-    def _load_manifest(self, base: KnowledgeBase) -> dict[str, str]:
+    def _load_manifest(self, base: KnowledgeBase) -> dict[str, dict[str, str]]:
         try:
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name, Key=self._manifest_key(base)
@@ -90,10 +90,10 @@ class S3KnowledgeRepository(KnowledgeRepository):
             return {}
 
     def _update_manifest(
-        self, base: KnowledgeBase, document_name: str, origin: str
+        self, base: KnowledgeBase, document_name: str, metadata: dict[str, str]
     ) -> None:
         manifest = self._load_manifest(base)
-        manifest[document_name] = origin
+        manifest[document_name] = metadata
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=self._manifest_key(base),

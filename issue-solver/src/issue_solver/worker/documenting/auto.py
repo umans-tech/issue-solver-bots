@@ -42,6 +42,7 @@ async def generate_docs(
         knowledge_repo=dependencies.knowledge_repository,
         knowledge_base_id=event.knowledge_base_id,
         code_version=code_version,
+        process_id=event.process_id,
     )
     auto_doc_setup = await load_auto_documentation_setup(
         dependencies.event_store, event.knowledge_base_id
@@ -174,7 +175,7 @@ async def generate_and_load_docs(
                 KnowledgeBase(knowledge_base_id, code_version),
                 str(relative_path),
                 content,
-                origin="auto",
+                metadata={"origin": "auto", "process_id": process_id},
             )
             generated_documents.append(str(relative_path))
 
@@ -187,6 +188,7 @@ def load_existing_markdown_documents(
     knowledge_repo: KnowledgeRepository,
     knowledge_base_id: str,
     code_version: str,
+    process_id: str,
 ) -> None:
     if not repo_path.exists():
         return
@@ -200,4 +202,9 @@ def load_existing_markdown_documents(
         except OSError:
             continue
         relative_path = doc_file.relative_to(repo_path)
-        knowledge_repo.add(kb_key, str(relative_path), content, origin="repo")
+        knowledge_repo.add(
+            kb_key,
+            str(relative_path),
+            content,
+            metadata={"origin": "repo", "process_id": process_id},
+        )

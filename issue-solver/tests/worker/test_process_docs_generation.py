@@ -325,15 +325,24 @@ async def test_generate_docs_should_import_existing_repo_markdown(
     )
 
     # Then
+    repo_indexed = BriceDeNice.got_his_first_repo_indexed()
     kb_key = KnowledgeBase(
         id=repo_connected.knowledge_base_id,
-        version=BriceDeNice.got_his_first_repo_indexed().commit_sha,
+        version=repo_indexed.commit_sha,
     )
 
     assert knowledge_repo.contains(kb_key, "README.md")
     assert knowledge_repo.get_origin(kb_key, "README.md") == "repo"
+    assert knowledge_repo.get_metadata(kb_key, "README.md") == {
+        "origin": "repo",
+        "process_id": repo_indexed.process_id,
+    }
     assert knowledge_repo.contains(kb_key, "docs/runbook.md")
     assert knowledge_repo.get_origin(kb_key, "docs/runbook.md") == "repo"
+    assert knowledge_repo.get_metadata(kb_key, "docs/runbook.md") == {
+        "origin": "repo",
+        "process_id": repo_indexed.process_id,
+    }
     assert not knowledge_repo.contains(kb_key, "docs/notes.txt")
 
 
@@ -397,6 +406,10 @@ async def test_process_documentation_generation_request_should_store_outputs(
     kb_key = KnowledgeBase(id=kb_id, version="commit-sha")
     assert knowledge_repo.contains(kb_key, "domain_events_glossary.md")
     assert knowledge_repo.get_origin(kb_key, "domain_events_glossary.md") == "auto"
+    assert knowledge_repo.get_metadata(kb_key, "domain_events_glossary.md") == {
+        "origin": "auto",
+        "process_id": child_process_id,
+    }
 
     child_events = await event_store.get(child_process_id)
     expected_started = DocumentationGenerationStarted(
