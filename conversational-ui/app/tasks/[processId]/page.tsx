@@ -113,6 +113,7 @@ export default function TaskPage() {
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [isSummaryVisible, setIsSummaryVisible] = useState(true);
   const completionEvent = processData?.events?.find((event) => event.type === 'issue_resolution_completed');
+  const docCompletionEvent = processData?.events?.find((event) => event.type === 'documentation_generation_completed');
   const headerTimeline = processData ? getTimelineMeta(processData) : null;
 
   // Reuse chat scroll-to-bottom behavior
@@ -1073,6 +1074,26 @@ export default function TaskPage() {
                           <ExternalLink className="h-4 w-4" />
                           PR #{completionEvent.pr_number}
                         </a>
+                      )}
+                      {docCompletionEvent?.data?.knowledge_base_id && docCompletionEvent?.data?.generated_documents && docCompletionEvent.data.generated_documents.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          {docCompletionEvent.data.generated_documents.map((docPath: string, idx: number) => {
+                            const docUrl = `/docs/${encodeURIComponent(docCompletionEvent.data.knowledge_base_id)}/${docPath.split('/').map(encodeURIComponent).join('/')}${docCompletionEvent.data?.code_version ? `?v=${docCompletionEvent.data.code_version}` : ''}`;
+                            const docName = docPath.split('/').pop() || docPath;
+                            return (
+                              <a
+                                key={idx}
+                                href={docUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                              >
+                                <FileText className="h-4 w-4" />
+                                {docName}
+                              </a>
+                            );
+                          })}
+                        </div>
                       )}
                       {processData.status?.toLowerCase() === 'failed' && (
                         <button

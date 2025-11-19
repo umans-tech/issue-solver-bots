@@ -1080,7 +1080,7 @@ export default function DocsPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                        onClick={() => router.push(`/tasks/${activeProcessId}`)}
+                                        onClick={() => window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')}
                                         aria-label="View generation process"
                                       >
                                         <Activity className="h-4 w-4" />
