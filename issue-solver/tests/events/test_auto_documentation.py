@@ -12,12 +12,6 @@ from issue_solver.events.domain import (
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
 )
-from issue_solver.events.event_store import InMemoryEventStore
-
-
-@pytest.fixture
-def event_store() -> InMemoryEventStore:
-    return InMemoryEventStore()
 
 
 def test_auto_documentation_setup_from_events_filters_blank_prompts():

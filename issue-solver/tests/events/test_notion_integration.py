@@ -3,17 +3,12 @@ from datetime import timedelta, datetime
 import pytest
 
 from issue_solver.events.domain import NotionIntegrationAuthorizationFailed
-from issue_solver.events.event_store import EventStore, InMemoryEventStore
+from issue_solver.events.event_store import EventStore
 from issue_solver.events.notion_integration import (
     get_notion_credentials,
     NotionCredentials,
 )
 from tests.examples.happy_path_persona import BriceDeNice
-
-
-@pytest.fixture
-def event_store() -> EventStore:
-    return InMemoryEventStore()
 
 
 @pytest.mark.asyncio
