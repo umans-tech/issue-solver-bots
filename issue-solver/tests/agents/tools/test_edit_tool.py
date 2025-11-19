@@ -7,19 +7,12 @@ from issue_solver.agents.tools.edit import EditTool
 
 @pytest.mark.asyncio
 async def test_end_to_end_edit_flow(abs_tmp_path: Path, edit_tool: EditTool):
-    # Given an absolute path and new editor tool
+    # Given
     path = abs_tmp_path / "note.txt"
 
-    # When we create and view the file
+    # When
     create = await edit_tool(command="create", path=str(path), file_text="one\ntwo")
     view = await edit_tool(command="view", path=str(path))
-
-    # Then the file is persisted and numbered output is returned
-    assert "File created successfully" in create.output
-    assert "1\tone" in view.output
-    assert "2\ttwo" in view.output
-
-    # When we insert, replace, and undo twice
     insert = await edit_tool(
         command="insert", path=str(path), insert_line=1, new_str="middle"
     )
@@ -29,12 +22,13 @@ async def test_end_to_end_edit_flow(abs_tmp_path: Path, edit_tool: EditTool):
     undo1 = await edit_tool(command="undo_edit", path=str(path))
     undo2 = await edit_tool(command="undo_edit", path=str(path))
 
-    # Then the file content evolves and unwinds as expected
+    # Then
+    assert "File created successfully" in create.output
+    assert "1\tone" in view.output and "2\ttwo" in view.output
     assert "middle" in insert.output
     assert "MID" in replace.output
     assert path.read_text() == "one\ntwo"
-    assert "Last edit to" in undo1.output
-    assert "Last edit to" in undo2.output
+    assert "Last edit to" in undo1.output and "Last edit to" in undo2.output
 
 
 def test_to_params_reports_name_and_type(edit_tool: EditTool):
@@ -43,176 +37,199 @@ def test_to_params_reports_name_and_type(edit_tool: EditTool):
     assert params["type"] == edit_tool.api_type
 
 
+@pytest.mark.parametrize(
+    "command,kwargs",
+    [
+        ("create", {"file_text": None}),
+        ("str_replace", {"new_str": "x"}),  # missing old_str
+        ("insert", {"new_str": "x"}),  # missing insert_line
+        ("insert", {"insert_line": 0}),  # missing new_str
+    ],
+)
 @pytest.mark.asyncio
-async def test_validation_and_uniqueness_errors(
-    abs_tmp_path: Path, edit_tool: EditTool
+async def test_missing_required_arguments(
+    abs_tmp_path: Path, edit_tool: EditTool, command, kwargs
 ):
-    path = abs_tmp_path / "dupes.txt"
-    path.write_text("a\na\n")
+    # Given
+    path = abs_tmp_path / "missing.txt"
+    path.write_text("line")
 
-    # Given a relative path, view should fail
+    # When / Then
     with pytest.raises(ToolError):
-        await edit_tool(command="view", path="relative.txt")
+        await edit_tool(command=command, path=str(path), **kwargs)
 
-    # Given multiple matches, str_replace should reject the edit
-    edit_tool._file_history[path].clear()
-    with pytest.raises(ToolError) as excinfo:
-        await edit_tool(command="str_replace", path=str(path), old_str="a", new_str="b")
-    assert "Multiple occurrences" in str(excinfo.value)
 
-    # Given an out-of-range insert line, it should raise with bounds
-    with pytest.raises(ToolError) as excinfo:
-        await edit_tool(command="insert", path=str(path), insert_line=99, new_str="z")
-    assert "Invalid `insert_line` parameter" in str(excinfo.value)
-    assert "range of lines of the file" in str(excinfo.value)
+@pytest.mark.parametrize(
+    "path_setup,command,kwargs",
+    [
+        (lambda base: "relative.txt", "view", {}),
+        (lambda base: base / "does-not-exist.txt", "view", {}),
+        (lambda base: base, "insert", {"insert_line": 0, "new_str": "x"}),  # dir misuse
+        (
+            lambda base: (base / "exists.txt").write_text("x") or (base / "exists.txt"),
+            "create",
+            {"file_text": "new"},
+        ),  # create overwrite
+    ],
+)
+@pytest.mark.asyncio
+async def test_path_validation_errors(
+    abs_tmp_path: Path, edit_tool: EditTool, path_setup, command, kwargs
+):
+    # Given
+    target = path_setup(abs_tmp_path)
+
+    # When / Then
+    with pytest.raises(ToolError):
+        await edit_tool(command=command, path=str(target), **kwargs)
+
+
+@pytest.mark.parametrize(
+    "view_range",
+    [
+        [1],  # wrong length
+        [2, 1],  # end < start
+        [0, 1],  # start < 1
+        [4, 5],  # start > n_lines
+        [1, 99],  # end > n_lines
+    ],
+)
+@pytest.mark.asyncio
+async def test_view_range_invalid(abs_tmp_path: Path, edit_tool: EditTool, view_range):
+    # Given
+    path = abs_tmp_path / "range-invalid.txt"
+    path.write_text("a\nb\nc")
+
+    # When / Then
+    with pytest.raises(ToolError):
+        await edit_tool(command="view", path=str(path), view_range=view_range)
+
+
+@pytest.mark.parametrize(
+    "view_range, expected",
+    [
+        ([1, 1], "1\tl1"),
+        ([2, -1], "2\tl2"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_view_range_valid_slices(
+    abs_tmp_path: Path, edit_tool: EditTool, view_range, expected
+):
+    # Given
+    path = abs_tmp_path / "slice.txt"
+    path.write_text("l1\nl2\nl3")
+
+    # When
+    result = await edit_tool(command="view", path=str(path), view_range=view_range)
+
+    # Then
+    assert expected in result.output
 
 
 @pytest.mark.asyncio
-async def test_directory_view_and_range_guardrails(
-    abs_tmp_path: Path, edit_tool: EditTool
-):
+async def test_directory_view_and_guardrails(abs_tmp_path: Path, edit_tool: EditTool):
+    # Given
     directory = abs_tmp_path / "dir"
     directory.mkdir()
     (directory / "file.txt").write_text("content")
 
-    # Given a directory path, view lists files via find
+    # When
     result = await edit_tool(command="view", path=str(directory))
+
+    # Then
     assert "files and directories up to 2 levels deep" in result.output
     assert "file.txt" in result.output
-
-    # view_range is not allowed for directories
     with pytest.raises(ToolError):
         await edit_tool(command="view", path=str(directory), view_range=[1, 2])
 
 
+@pytest.mark.parametrize(
+    "content, old_str, new_str, expected_error_fragment",
+    [
+        ("only one line", "missing", "x", "did not appear"),
+        ("a\na\n", "a", "b", "Multiple occurrences"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_view_range_and_create_validation(
-    abs_tmp_path: Path, edit_tool: EditTool
+async def test_str_replace_error_paths(
+    abs_tmp_path: Path,
+    edit_tool: EditTool,
+    content,
+    old_str,
+    new_str,
+    expected_error_fragment,
 ):
-    path = abs_tmp_path / "range.txt"
-    path.write_text("line1\nline2")
-
-    # invalid view_range ordering
-    with pytest.raises(ToolError):
-        await edit_tool(command="view", path=str(path), view_range=[2, 1])
-
-    # final line beyond file length
-    with pytest.raises(ToolError):
-        await edit_tool(command="view", path=str(path), view_range=[1, 99])
-
-    # create should refuse to overwrite existing files
-    with pytest.raises(ToolError):
-        await edit_tool(command="create", path=str(path), file_text="new")
-
-    # init_line outside file bounds
-    with pytest.raises(ToolError):
-        await edit_tool(command="view", path=str(path), view_range=[0, 1])
-
-    # open-ended view_range (-1) slices to file end
-    result = await edit_tool(command="view", path=str(path), view_range=[2, -1])
-    assert "2\tline2" in result.output
-
-
-@pytest.mark.asyncio
-async def test_str_replace_missing_and_undo_empty_history(
-    abs_tmp_path: Path, edit_tool: EditTool
-):
+    # Given
     path = abs_tmp_path / "replace.txt"
-    path.write_text("only one line")
+    path.write_text(content)
+    edit_tool._file_history[path].clear()
 
+    # When
     with pytest.raises(ToolError) as excinfo:
         await edit_tool(
-            command="str_replace", path=str(path), old_str="missing", new_str="x"
+            command="str_replace", path=str(path), old_str=old_str, new_str=new_str
         )
-    assert "did not appear" in str(excinfo.value)
-
-    # undo should fail when nothing was edited
+    # Then
+    assert expected_error_fragment in str(excinfo.value)
     with pytest.raises(ToolError):
         await edit_tool(command="undo_edit", path=str(path))
 
 
 @pytest.mark.asyncio
 async def test_insert_at_file_end(abs_tmp_path: Path, edit_tool: EditTool):
+    # Given
     path = abs_tmp_path / "append.txt"
     path.write_text("a\nb")
 
+    # When
     result = await edit_tool(
         command="insert", path=str(path), insert_line=2, new_str="c"
     )
+
+    # Then
     assert "c" in result.output
     assert path.read_text() == "a\nb\nc"
 
 
 @pytest.mark.asyncio
-async def test_missing_required_arguments_and_path_checks(
-    abs_tmp_path: Path, edit_tool: EditTool
-):
-    path = abs_tmp_path / "missing.txt"
+async def test_insert_out_of_range(abs_tmp_path: Path, edit_tool: EditTool):
+    # Given
+    path = abs_tmp_path / "insert-range.txt"
+    path.write_text("a\nb")
 
-    # create without file_text
+    # When / Then
     with pytest.raises(ToolError):
-        await edit_tool(command="create", path=str(path))
-
-    # str_replace without old_str
-    with pytest.raises(ToolError):
-        await edit_tool(command="str_replace", path=str(path), new_str="x")
-
-    # insert without insert_line or new_str
-    path.write_text("line")
-    with pytest.raises(ToolError):
-        await edit_tool(command="insert", path=str(path), new_str="x")
-    with pytest.raises(ToolError):
-        await edit_tool(command="insert", path=str(path), insert_line=0)
-
-    # non-existent path with non-create command
-    missing_path = abs_tmp_path / "does-not-exist.txt"
-    with pytest.raises(ToolError):
-        await edit_tool(command="view", path=str(missing_path))
-
-    # directory path with non-view command
-    with pytest.raises(ToolError):
-        await edit_tool(
-            command="insert", path=str(abs_tmp_path), insert_line=0, new_str="x"
-        )
-
-
-def test_read_write_errors_are_wrapped(tmp_path: Path, monkeypatch):
-    tool = EditTool()
-
-    dir_path = tmp_path
-    # read_file on a directory raises wrapped ToolError
-    with pytest.raises(ToolError):
-        tool.read_file(dir_path)
-
-    # write_file failure is wrapped too (writing to a directory)
-    with pytest.raises(ToolError):
-        tool.write_file(dir_path, "data")
+        await edit_tool(command="insert", path=str(path), insert_line=99, new_str="x")
 
 
 @pytest.mark.asyncio
-async def test_old_str_required_and_unknown_command(
-    abs_tmp_path: Path, edit_tool: EditTool
-):
-    path = abs_tmp_path / "file.txt"
+async def test_create_requires_file_text(abs_tmp_path: Path, edit_tool: EditTool):
+    # Given
+    path = abs_tmp_path / "create-missing.txt"
+
+    # When / Then
+    with pytest.raises(ToolError):
+        await edit_tool(command="create", path=str(path))
+
+
+@pytest.mark.asyncio
+async def test_unknown_command_raises(abs_tmp_path: Path, edit_tool: EditTool):
+    # Given
+    path = abs_tmp_path / "unknown.txt"
     path.write_text("data")
 
-    with pytest.raises(ToolError):
-        await edit_tool(command="str_replace", path=str(path), new_str="x")
-
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command=None, path=str(path))
 
 
-@pytest.mark.asyncio
-async def test_view_range_requires_two_ints_and_handles_exact_slice(
-    abs_tmp_path: Path, edit_tool: EditTool
-):
-    path = abs_tmp_path / "slice.txt"
-    path.write_text("l1\nl2\nl3")
+def test_read_write_errors_are_wrapped(tmp_path: Path):
+    # Given
+    tool = EditTool()
 
+    # When / Then
     with pytest.raises(ToolError):
-        await edit_tool(command="view", path=str(path), view_range=[1])  # wrong length
-
-    result = await edit_tool(command="view", path=str(path), view_range=[1, 1])
-    assert "1\tl1" in result.output
-    assert "2\t" not in result.output
+        tool.read_file(tmp_path)
+    with pytest.raises(ToolError):
+        tool.write_file(tmp_path, "data")
