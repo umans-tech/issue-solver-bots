@@ -814,7 +814,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
     prompt_id: str
     prompt_description: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     process_id: str
     occurred_at: datetime
 
@@ -827,7 +827,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
             prompt_id=self.prompt_id,
             prompt_description=self.prompt_description,
             code_version=self.code_version,
-            parent_process_id=self.parent_process_id,
+            run_id=self.run_id,
             process_id=self.process_id,
             occurred_at=self.occurred_at,
         )
@@ -839,7 +839,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
             prompt_id=event.prompt_id,
             prompt_description=event.prompt_description,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             process_id=event.process_id,
             occurred_at=event.occurred_at,
         )
@@ -852,7 +852,7 @@ class DocumentationGenerationStartedRecord(BaseModel):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     process_id: str
     occurred_at: datetime
 
@@ -864,7 +864,7 @@ class DocumentationGenerationStartedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             prompt_id=self.prompt_id,
             code_version=self.code_version,
-            parent_process_id=self.parent_process_id,
+            run_id=self.run_id,
             process_id=self.process_id,
             occurred_at=self.occurred_at,
         )
@@ -875,7 +875,7 @@ class DocumentationGenerationStartedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             prompt_id=event.prompt_id,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             process_id=event.process_id,
             occurred_at=event.occurred_at,
         )
@@ -888,7 +888,7 @@ class DocumentationGenerationCompletedRecord(BaseModel):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     generated_documents: list[str]
     process_id: str
     occurred_at: datetime
@@ -901,7 +901,7 @@ class DocumentationGenerationCompletedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             prompt_id=self.prompt_id,
             code_version=self.code_version,
-            parent_process_id=self.parent_process_id,
+            run_id=self.run_id,
             generated_documents=self.generated_documents,
             process_id=self.process_id,
             occurred_at=self.occurred_at,
@@ -913,7 +913,7 @@ class DocumentationGenerationCompletedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             prompt_id=event.prompt_id,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             generated_documents=event.generated_documents,
             process_id=event.process_id,
             occurred_at=event.occurred_at,
@@ -925,7 +925,7 @@ class DocumentationGenerationFailedRecord(BaseModel):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     error_message: str
     process_id: str
     occurred_at: datetime
@@ -938,7 +938,7 @@ class DocumentationGenerationFailedRecord(BaseModel):
             knowledge_base_id=self.knowledge_base_id,
             prompt_id=self.prompt_id,
             code_version=self.code_version,
-            parent_process_id=self.parent_process_id,
+            run_id=self.run_id,
             error_message=self.error_message,
             process_id=self.process_id,
             occurred_at=self.occurred_at,
@@ -950,7 +950,7 @@ class DocumentationGenerationFailedRecord(BaseModel):
             knowledge_base_id=event.knowledge_base_id,
             prompt_id=event.prompt_id,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             error_message=event.error_message,
             process_id=event.process_id,
             occurred_at=event.occurred_at,

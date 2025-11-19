@@ -54,7 +54,7 @@ class ProcessTimelineView(BaseSchema):
     type: str
     status: str
     events: list[ProcessTimelineEventRecords]
-    parent_process_id: str | None = None
+    run_id: str | None = None
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
@@ -66,7 +66,7 @@ class ProcessTimelineView(BaseSchema):
             type=cls.infer_process_type(events),
             status=cls.to_status(events),
             events=event_records,
-            parent_process_id=cls.parent_process(events),
+            run_id=cls.extract_run_id(events),
         )
 
     @classmethod
@@ -155,7 +155,7 @@ class ProcessTimelineView(BaseSchema):
         return status
 
     @classmethod
-    def parent_process(cls, events: list[AnyDomainEvent]) -> str | None:
+    def extract_run_id(cls, events: list[AnyDomainEvent]) -> str | None:
         for event in events:
             if isinstance(
                 event,
@@ -166,7 +166,7 @@ class ProcessTimelineView(BaseSchema):
                     DocumentationGenerationFailed,
                 ),
             ):
-                return getattr(event, "parent_process_id", None)
+                return getattr(event, "run_id", None)
         return None
 
 
@@ -186,9 +186,7 @@ async def list_processes(
     ),
     process_type: str | None = Query(None, description="Filter by process type"),
     status: str | None = Query(None, description="Filter by status"),
-    parent_process_id: str | None = Query(
-        None, description="Filter by parent process ID"
-    ),
+    run_id: str | None = Query(None, description="Filter by run ID"),
     limit: int = Query(50, ge=1, le=100, description="Number of processes to return"),
     offset: int = Query(0, ge=0, description="Number of processes to skip"),
 ) -> PaginatedProcessesResponse:
@@ -204,9 +202,7 @@ async def list_processes(
         processes = await _get_all_processes(event_store)
 
     # Apply additional filters
-    filtered_processes = _apply_filters(
-        processes, process_type, status, parent_process_id
-    )
+    filtered_processes = _apply_filters(processes, process_type, status, run_id)
 
     # Apply pagination
     total = len(filtered_processes)
@@ -269,7 +265,7 @@ def _apply_filters(
     processes: list[ProcessTimelineView],
     process_type: str | None,
     status: str | None,
-    parent_process_id: str | None,
+    run_id: str | None,
 ) -> list[ProcessTimelineView]:
     """Apply type and status filters to processes."""
     filtered = processes
@@ -280,8 +276,8 @@ def _apply_filters(
     if status:
         filtered = [p for p in filtered if p.status == status]
 
-    if parent_process_id:
-        filtered = [p for p in filtered if p.parent_process_id == parent_process_id]
+    if run_id:
+        filtered = [p for p in filtered if p.run_id == run_id]
 
     return filtered
 

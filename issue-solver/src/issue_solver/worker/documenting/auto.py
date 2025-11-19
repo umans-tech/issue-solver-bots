@@ -30,8 +30,8 @@ async def generate_docs(
         knowledge_base_id=event.knowledge_base_id,
     )
     code_version = event.commit_sha
-    process_id = dependencies.id_generator.new()
-    repo_path = await prepare_repo_path(process_id)
+    run_id = dependencies.id_generator.new()
+    repo_path = await prepare_repo_path(run_id)
     dependencies.git_client.clone_repository(
         url=repo_credentials.url,
         access_token=repo_credentials.access_token,
@@ -50,18 +50,17 @@ async def generate_docs(
     if not auto_doc_setup.docs_prompts:
         return
 
-    parent_process_id = auto_doc_setup.last_process_id or event.process_id
     for prompt_id, prompt_description in auto_doc_setup.docs_prompts.items():
-        child_process_id = dependencies.id_generator.new()
+        one_document_generation_process_id = dependencies.id_generator.new()
         await dependencies.event_store.append(
-            child_process_id,
+            one_document_generation_process_id,
             DocumentationGenerationRequested(
                 knowledge_base_id=event.knowledge_base_id,
                 prompt_id=prompt_id,
                 prompt_description=prompt_description,
                 code_version=code_version,
-                parent_process_id=parent_process_id,
-                process_id=child_process_id,
+                run_id=run_id,
+                process_id=one_document_generation_process_id,
                 occurred_at=dependencies.clock.now(),
             ),
         )
@@ -91,7 +90,7 @@ async def process_documentation_generation_request(
             knowledge_base_id=event.knowledge_base_id,
             prompt_id=event.prompt_id,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             process_id=event.process_id,
             occurred_at=dependencies.clock.now(),
         ),
@@ -119,7 +118,7 @@ async def process_documentation_generation_request(
                 knowledge_base_id=event.knowledge_base_id,
                 prompt_id=event.prompt_id,
                 code_version=event.code_version,
-                parent_process_id=event.parent_process_id,
+                run_id=event.run_id,
                 error_message=str(exc),
                 process_id=event.process_id,
                 occurred_at=dependencies.clock.now(),
@@ -133,7 +132,7 @@ async def process_documentation_generation_request(
             knowledge_base_id=event.knowledge_base_id,
             prompt_id=event.prompt_id,
             code_version=event.code_version,
-            parent_process_id=event.parent_process_id,
+            run_id=event.run_id,
             generated_documents=generated_docs,
             process_id=event.process_id,
             occurred_at=dependencies.clock.now(),

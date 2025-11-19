@@ -305,151 +305,155 @@ def test_auto_documentation_process_should_report_removed_status():
 
 
 def test_doc_generation_process_should_report_requested_status():
-    parent_process_id = "doc-parent-001"
+    run_id = "generation-run-001"
+    child_process_id = "doc-child-001"
     history = [
         DocumentationGenerationRequested(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             prompt_description="Generate overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
         )
     ]
 
     process_timeline_view = ProcessTimelineView.create_from(
-        process_id="doc-run-001", events=history
+        process_id=child_process_id, events=history
     )
 
     assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "requested"
-    assert process_timeline_view.parent_process_id == parent_process_id
+    assert process_timeline_view.run_id == run_id
 
 
 def test_doc_generation_process_should_report_in_progress_status():
-    parent_process_id = "doc-parent-001"
+    run_id = "generation-run-001"
+    child_process_id = "doc-child-001"
     history = [
         DocumentationGenerationRequested(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             prompt_description="Generate overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
         ),
         DocumentationGenerationStarted(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:30"),
         ),
     ]
 
     process_timeline_view = ProcessTimelineView.create_from(
-        process_id="doc-run-001", events=history
+        process_id=child_process_id, events=history
     )
 
     assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "in_progress"
-    assert process_timeline_view.parent_process_id == parent_process_id
+    assert process_timeline_view.run_id == run_id
 
 
 def test_doc_generation_process_should_report_completed_status():
-    parent_process_id = "doc-parent-001"
+    run_id = "generation-run-001"
+    child_process_id = "doc-child-001"
     history = [
         DocumentationGenerationRequested(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             prompt_description="Generate overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
         ),
         DocumentationGenerationStarted(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:30"),
         ),
         DocumentationGenerationCompleted(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
+            run_id=run_id,
             generated_documents=["overview.md"],
-            process_id="doc-run-001",
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:05:00"),
         ),
     ]
 
     process_timeline_view = ProcessTimelineView.create_from(
-        process_id="doc-run-001", events=history
+        process_id=child_process_id, events=history
     )
 
     assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "completed"
-    assert process_timeline_view.parent_process_id == parent_process_id
+    assert process_timeline_view.run_id == run_id
 
 
 def test_doc_generation_process_should_report_failed_status():
-    parent_process_id = "doc-parent-001"
+    run_id = "generation-run-001"
+    child_process_id = "doc-child-001"
     history = [
         DocumentationGenerationRequested(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             prompt_description="Generate overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
-            process_id="doc-run-001",
+            run_id=run_id,
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:00:00"),
         ),
         DocumentationGenerationFailed(
             knowledge_base_id="kb-123",
             prompt_id="overview",
             code_version="commit-sha",
-            parent_process_id=parent_process_id,
+            run_id=run_id,
             error_message="boom",
-            process_id="doc-run-001",
+            process_id=child_process_id,
             occurred_at=datetime.fromisoformat("2025-11-02T12:05:00"),
         ),
     ]
 
     process_timeline_view = ProcessTimelineView.create_from(
-        process_id="doc-run-001", events=history
+        process_id=child_process_id, events=history
     )
 
     assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "failed"
-    assert process_timeline_view.parent_process_id == parent_process_id
+    assert process_timeline_view.run_id == run_id
 
 
-def test_apply_filters_should_filter_by_parent_process_id():
+def test_apply_filters_should_filter_by_run_id():
     processes = [
         ProcessTimelineView(
             id="doc-run-1",
             type="docs_generation",
             status="completed",
-            parent_process_id="parent-123",
+            run_id="run-123",
             events=[],
         ),
         ProcessTimelineView(
             id="doc-run-2",
             type="docs_generation",
             status="completed",
-            parent_process_id="other-parent",
+            run_id="run-456",
             events=[],
         ),
     ]
 
     filtered = processes_router._apply_filters(
-        processes, "docs_generation", None, "parent-123"
+        processes, "docs_generation", None, "run-123"
     )
 
     assert [p.id for p in filtered] == ["doc-run-1"]

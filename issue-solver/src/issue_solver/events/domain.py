@@ -226,7 +226,7 @@ class DocumentationGenerationRequested(DomainEvent):
     prompt_id: str
     prompt_description: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     process_id: str
     occurred_at: datetime
 
@@ -236,7 +236,7 @@ class DocumentationGenerationStarted(DomainEvent):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     process_id: str
     occurred_at: datetime
 
@@ -246,7 +246,7 @@ class DocumentationGenerationCompleted(DomainEvent):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     generated_documents: list[str]
     process_id: str
     occurred_at: datetime
@@ -257,7 +257,7 @@ class DocumentationGenerationFailed(DomainEvent):
     knowledge_base_id: str
     prompt_id: str
     code_version: str
-    parent_process_id: str
+    run_id: str
     error_message: str
     process_id: str
     occurred_at: datetime

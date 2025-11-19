@@ -29,8 +29,8 @@ async def test_generate_docs_should_request_each_prompt_individually(
 ):
     # Given
     initial_process_id = "a1processid"
-    child_ids = ["child-1", "child-2", "child-3", "child-4"]
-    id_generator.new.side_effect = [initial_process_id, *child_ids]
+    requested_generation_ids = ["child-1", "child-2", "child-3", "child-4"]
+    id_generator.new.side_effect = [initial_process_id, *requested_generation_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -76,15 +76,15 @@ async def test_generate_docs_should_request_each_prompt_individually(
     )
     expected_requests: list[DocumentationGenerationRequested] = []
     for index, (prompt_id, prompt_description) in enumerate(expected_prompts.items()):
-        child_id = child_ids[index]
+        run_id = initial_process_id
         expected_requests.append(
             DocumentationGenerationRequested(
                 knowledge_base_id=kb_id,
                 prompt_id=prompt_id,
                 prompt_description=prompt_description,
                 code_version=repo_indexed.commit_sha,
-                parent_process_id=BriceDeNice.doc_configuration_process_id(),
-                process_id=child_id,
+                run_id=run_id,
+                process_id=requested_generation_ids[index],
                 occurred_at=run_started_at,
             )
         )
@@ -172,8 +172,9 @@ async def test_generate_docs_should_request_using_latest_prompts(
     worker_dependencies,
 ):
     # Given
-    child_ids = ["child-1", "child-2"]
-    id_generator.new.side_effect = ["a1processid", *child_ids]
+    requested_generation_ids = ["child-1", "child-2"]
+    run_id = "a1processid"
+    id_generator.new.side_effect = [run_id, *requested_generation_ids]
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -197,17 +198,16 @@ async def test_generate_docs_should_request_using_latest_prompts(
         {"knowledge_base_id": kb_id}, DocumentationGenerationRequested
     )
     base_prompts = BriceDeNice.defined_prompts_for_documentation()
-    parent_process_id = BriceDeNice.doc_configuration_process_id()
     expected_requests: list[DocumentationGenerationRequested] = []
     for index, (prompt_id, description) in enumerate(base_prompts.items()):
-        child_id = child_ids[index]
+        child_id = requested_generation_ids[index]
         expected_requests.append(
             DocumentationGenerationRequested(
                 knowledge_base_id=kb_id,
                 prompt_id=prompt_id,
                 prompt_description=description,
                 code_version=repo_indexed.commit_sha,
-                parent_process_id=parent_process_id,
+                run_id=run_id,
                 process_id=child_id,
                 occurred_at=run_started_at,
             )
@@ -255,7 +255,7 @@ async def test_generate_docs_should_request_changed_prompts(
     changed_prompts = BriceDeNice.has_changed_documentation_prompts().docs_prompts
     additional_prompts = BriceDeNice.defined_additional_prompts_for_documentation()
     updated_prompts = changed_prompts | additional_prompts
-    parent_process_id = BriceDeNice.has_changed_documentation_prompts().process_id
+    run_id = "a1processid"
     expected_requests: list[DocumentationGenerationRequested] = []
     for index, (prompt_id, prompt_description) in enumerate(updated_prompts.items()):
         child_id = child_ids[index]
@@ -265,7 +265,7 @@ async def test_generate_docs_should_request_changed_prompts(
                 prompt_id=prompt_id,
                 prompt_description=prompt_description,
                 code_version=repo_indexed.commit_sha,
-                parent_process_id=parent_process_id,
+                run_id=run_id,
                 process_id=child_id,
                 occurred_at=run_started_at,
             )
@@ -356,6 +356,7 @@ async def test_process_documentation_generation_request_should_store_outputs(
     docs_agent,
 ):
     # Given
+    run_id = "generation-run-001"
     child_process_id = "doc-child-1"
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -382,7 +383,7 @@ async def test_process_documentation_generation_request_should_store_outputs(
         prompt_id="domain_events_glossary",
         prompt_description="Write glossary",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        run_id=run_id,
         process_id=child_process_id,
         occurred_at=time_under_control.now(),
     )
@@ -416,18 +417,18 @@ async def test_process_documentation_generation_request_should_store_outputs(
         knowledge_base_id=kb_id,
         prompt_id="domain_events_glossary",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        run_id=run_id,
         process_id=child_process_id,
-        occurred_at=child_events[1].occurred_at,
+        occurred_at=time_under_control.now(),
     )
     expected_completion = DocumentationGenerationCompleted(
         knowledge_base_id=kb_id,
         prompt_id="domain_events_glossary",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        run_id=run_id,
         generated_documents=["domain_events_glossary.md"],
         process_id=child_process_id,
-        occurred_at=request_event.occurred_at,
+        occurred_at=time_under_control.now(),
     )
     assert child_events == [request_event, expected_started, expected_completion]
 
@@ -442,6 +443,8 @@ async def test_process_documentation_generation_request_should_record_failure(
     docs_agent,
 ):
     # Given
+    run_id = "generation-run-002"
+    child_process_id = "doc-child-failure"
     docs_agent.generate_documentation.side_effect = RuntimeError("boom")
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
@@ -453,11 +456,11 @@ async def test_process_documentation_generation_request_should_record_failure(
         prompt_id="overview",
         prompt_description="Write overview",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
-        process_id="doc-child-failure",
+        run_id=run_id,
+        process_id=child_process_id,
         occurred_at=time_under_control.now(),
     )
-    await event_store.append(request_event.process_id, request_event)
+    await event_store.append(child_process_id, request_event)
 
     # When
     await process_event_message(
@@ -473,22 +476,22 @@ async def test_process_documentation_generation_request_should_record_failure(
     )
 
     # Then
-    child_events = await event_store.get("doc-child-failure")
+    child_events = await event_store.get(child_process_id)
     expected_started = DocumentationGenerationStarted(
         knowledge_base_id=repo_connected.knowledge_base_id,
         prompt_id="overview",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
-        process_id="doc-child-failure",
+        run_id=run_id,
+        process_id=child_process_id,
         occurred_at=child_events[1].occurred_at,
     )
     expected_failure = DocumentationGenerationFailed(
         knowledge_base_id=repo_connected.knowledge_base_id,
         prompt_id="overview",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        run_id=run_id,
         error_message="boom",
-        process_id="doc-child-failure",
+        process_id=child_process_id,
         occurred_at=request_event.occurred_at,
     )
     assert child_events == [request_event, expected_started, expected_failure]
@@ -503,6 +506,7 @@ async def test_process_documentation_generation_request_should_error_when_docs_a
     coding_agent,
 ):
     # Given
+    run_id = "generation-run-003"
     repo_connected = BriceDeNice.got_his_first_repo_connected()
     await event_store.append(
         BriceDeNice.first_repo_integration_process_id(),
@@ -513,7 +517,7 @@ async def test_process_documentation_generation_request_should_error_when_docs_a
         prompt_id="overview",
         prompt_description="Write overview",
         code_version="commit-sha",
-        parent_process_id=BriceDeNice.doc_configuration_process_id(),
+        run_id=run_id,
         process_id="doc-child-no-agent",
         occurred_at=time_under_control.now(),
     )

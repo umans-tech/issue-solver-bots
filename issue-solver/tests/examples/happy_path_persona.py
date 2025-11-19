@@ -367,7 +367,7 @@ class BriceDeNice:
                 "Update the glossary of domain events to include recent additions and provide clearer usage examples."
             ),
             code_version=cls.got_his_first_repo_indexed().commit_sha,
-            parent_process_id=cls.has_changed_documentation_prompts().process_id,
+            run_id=cls.has_changed_documentation_prompts().process_id,
             process_id=cls.doc_generation_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-06T08:05:00Z"),
         )
@@ -378,7 +378,7 @@ class BriceDeNice:
             knowledge_base_id="brice-kb-001",
             prompt_id="domain_events_glossary",
             code_version=cls.got_his_first_repo_indexed().commit_sha,
-            parent_process_id=cls.has_changed_documentation_prompts().process_id,
+            run_id=cls.has_changed_documentation_prompts().process_id,
             process_id=cls.doc_generation_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-06T08:05:30Z"),
         )
@@ -389,7 +389,7 @@ class BriceDeNice:
             knowledge_base_id="brice-kb-001",
             prompt_id="domain_events_glossary",
             code_version=cls.got_his_first_repo_indexed().commit_sha,
-            parent_process_id=cls.has_changed_documentation_prompts().process_id,
+            run_id=cls.has_changed_documentation_prompts().process_id,
             generated_documents=["domain_events_glossary.md"],
             process_id=cls.doc_generation_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-06T08:07:00Z"),
@@ -401,7 +401,7 @@ class BriceDeNice:
             knowledge_base_id="brice-kb-001",
             prompt_id="overview",
             code_version=cls.got_his_first_repo_indexed().commit_sha,
-            parent_process_id=cls.has_changed_documentation_prompts().process_id,
+            run_id=cls.has_changed_documentation_prompts().process_id,
             error_message="Claude Code agent failed: missing context",
             process_id="brice-doc-generation-process-002",
             occurred_at=datetime.fromisoformat("2025-01-06T09:15:00Z"),
