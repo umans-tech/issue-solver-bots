@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, ExternalLink} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,11 +20,13 @@ type DocFileEntry = {
   path: string;
   title: string;
   origin?: string;
+  process_id?: string;
 };
 
 type DocListEntry = {
   path: string;
   origin?: string;
+  process_id?: string;
 };
 
 type DocFolderNode = {
@@ -55,6 +57,7 @@ export default function DocsPage() {
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
+  const [activeProcessId, setActiveProcessId] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
   const [versionsLoading, setVersionsLoading] = useState(true);
@@ -233,14 +236,14 @@ export default function DocsPage() {
     };
 
     for (const entry of fileList) {
-      const { path, origin } = entry;
+      const { path, origin, process_id } = entry;
       const parts = path.split('/').filter(Boolean);
       if (parts.length === 0) continue;
       let cursor = root;
       parts.forEach((segment, index) => {
         const isFile = index === parts.length - 1;
         if (isFile) {
-          cursor.files.push({ path, title: titleMap[path] || segment, origin });
+          cursor.files.push({ path, title: titleMap[path] || segment, origin, process_id });
           return;
         }
         cursor = ensureChild(cursor, segment);
@@ -323,9 +326,13 @@ export default function DocsPage() {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
-        const originsMap: Record<string, string> = j.origins && typeof j.origins === 'object' ? j.origins : {};
+        const metadataMap: Record<string, { origin?: string; process_id?: string }> = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
         if (!cancelled) {
-          setFileList(files.map((path: string) => ({ path, origin: originsMap[path] })));
+          setFileList(files.map((path: string) => ({ 
+            path, 
+            origin: metadataMap[path]?.origin,
+            process_id: metadataMap[path]?.process_id
+          })));
         }
         // lazily resolve titles for index entries
         const entries = await Promise.all(files.map(async (f: string) => {
@@ -356,6 +363,16 @@ export default function DocsPage() {
       cancelled = true;
     };
   }, [kbId, commitSha]);
+
+  // Update activeProcessId when activePath changes
+  useEffect(() => {
+    if (!activePath) {
+      setActiveProcessId(null);
+      return;
+    }
+    const entry = fileList.find(f => f.path === activePath);
+    setActiveProcessId(entry?.process_id ?? null);
+  }, [activePath, fileList]);
 
   useEffect(() => {
     if (!kbId || !commitSha) return;
@@ -1055,6 +1072,24 @@ export default function DocsPage() {
                             )}
                             {showContentActions && (
                               <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                                {activeProcessId && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => router.push(`/tasks/${activeProcessId}`)}
+                                        aria-label="View generation process"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                        <span className="sr-only">View generation process</span>
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">View generation process</TooltipContent>
+                                  </Tooltip>
+                                )}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button

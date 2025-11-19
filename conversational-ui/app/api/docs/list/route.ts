@@ -51,20 +51,35 @@ export async function GET(request: Request) {
     files.sort((a, b) => a.localeCompare(b));
     const indexFirst = files.includes('index.md') ? ['index.md', ...files.filter(f => f !== 'index.md')] : files;
 
-    let origins: Record<string, string> = {};
+    let metadata: Record<string, { origin?: string; process_id?: string }> = {};
+    // Try new metadata format first, then fall back to old origins format
     try {
-      const originKey = `${prefix}__origins__.json`;
-      const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: originKey }));
+      const metadataKey = `${prefix}__metadata__.json`;
+      const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: metadataKey }));
       const manifestBody = await streamToString(manifestRes.Body);
       const parsed = JSON.parse(manifestBody);
       if (parsed && typeof parsed === 'object') {
-        origins = parsed;
+        metadata = parsed;
       }
-    } catch (manifestError) {
-      // No manifest yet; ignore
+    } catch (metadataError) {
+      // Fall back to old __origins__.json format for backward compatibility
+      try {
+        const originKey = `${prefix}__origins__.json`;
+        const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: originKey }));
+        const manifestBody = await streamToString(manifestRes.Body);
+        const parsed = JSON.parse(manifestBody);
+        if (parsed && typeof parsed === 'object') {
+          // Convert old format to new format
+          metadata = Object.fromEntries(
+            Object.entries(parsed).map(([path, origin]) => [path, { origin: origin as string }])
+          );
+        }
+      } catch (originError) {
+        // No manifest yet; ignore
+      }
     }
 
-    return NextResponse.json({ files: indexFirst, origins });
+    return NextResponse.json({ files: indexFirst, metadata });
   } catch (error) {
     console.error('List docs error', error);
     return NextResponse.json({ error: 'Failed to list docs' }, { status: 500 });
