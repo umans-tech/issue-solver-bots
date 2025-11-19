@@ -271,7 +271,7 @@ def test_auto_documentation_process_should_report_configured_status():
     )
 
     # Then
-    assert process_timeline_view.type == "auto_documentation"
+    assert process_timeline_view.type == "docs_setup"
     assert process_timeline_view.status == "configured"
 
 
@@ -300,7 +300,7 @@ def test_auto_documentation_process_should_report_removed_status():
     )
 
     # Then
-    assert process_timeline_view.type == "auto_documentation"
+    assert process_timeline_view.type == "docs_setup"
     assert process_timeline_view.status == "removed"
 
 
@@ -322,7 +322,7 @@ def test_doc_generation_process_should_report_requested_status():
         process_id="doc-run-001", events=history
     )
 
-    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "requested"
     assert process_timeline_view.parent_process_id == parent_process_id
 
@@ -353,7 +353,7 @@ def test_doc_generation_process_should_report_in_progress_status():
         process_id="doc-run-001", events=history
     )
 
-    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "in_progress"
     assert process_timeline_view.parent_process_id == parent_process_id
 
@@ -393,7 +393,7 @@ def test_doc_generation_process_should_report_completed_status():
         process_id="doc-run-001", events=history
     )
 
-    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "completed"
     assert process_timeline_view.parent_process_id == parent_process_id
 
@@ -425,7 +425,7 @@ def test_doc_generation_process_should_report_failed_status():
         process_id="doc-run-001", events=history
     )
 
-    assert process_timeline_view.type == "auto_documentation_run"
+    assert process_timeline_view.type == "docs_generation"
     assert process_timeline_view.status == "failed"
     assert process_timeline_view.parent_process_id == parent_process_id
 
@@ -434,14 +434,14 @@ def test_apply_filters_should_filter_by_parent_process_id():
     processes = [
         ProcessTimelineView(
             id="doc-run-1",
-            type="auto_documentation_run",
+            type="docs_generation",
             status="completed",
             parent_process_id="parent-123",
             events=[],
         ),
         ProcessTimelineView(
             id="doc-run-2",
-            type="auto_documentation_run",
+            type="docs_generation",
             status="completed",
             parent_process_id="other-parent",
             events=[],
@@ -449,7 +449,7 @@ def test_apply_filters_should_filter_by_parent_process_id():
     ]
 
     filtered = processes_router._apply_filters(
-        processes, "auto_documentation_run", None, "parent-123"
+        processes, "docs_generation", None, "parent-123"
     )
 
     assert [p.id for p in filtered] == ["doc-run-1"]

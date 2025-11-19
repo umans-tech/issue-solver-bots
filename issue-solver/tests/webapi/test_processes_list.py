@@ -224,14 +224,14 @@ def test_returns_auto_documentation_process(api_client, time_under_control):
     assert auto_doc_response.status_code == 201
 
     # When
-    response = api_client.get("/processes?process_type=auto_documentation")
+    response = api_client.get("/processes?process_type=docs_setup")
 
     # Then
     assert response.status_code == 200
     data = response.json()
     assert len(data["processes"]) == 1
     process = data["processes"][0]
-    assert process["type"] == "auto_documentation"
+    assert process["type"] == "docs_setup"
     assert process["status"] == "configured"
 
 
@@ -279,7 +279,7 @@ def test_auto_documentation_process_list_deduplicates_events(
     )
 
     # When
-    response = api_client.get("/processes?process_type=auto_documentation")
+    response = api_client.get("/processes?process_type=docs_setup")
 
     # Then
     assert response.status_code == 200

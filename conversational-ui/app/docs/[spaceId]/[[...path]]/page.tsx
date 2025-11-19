@@ -959,7 +959,7 @@ export default function DocsPage() {
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        Auto documentation settings
+                        Docs setup
                     </TooltipContent>
                 </Tooltip>
                 <div className="flex items-center gap-2">
@@ -998,7 +998,7 @@ export default function DocsPage() {
             disabled={!kbId}
           >
             <Sparkles className="h-4 w-4" />
-            <span className="sr-only">Auto documentation</span>
+            <span className="sr-only">Docs setup</span>
           </Button>
         </div>
       </SharedHeader>
@@ -1285,7 +1285,7 @@ export default function DocsPage() {
       <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="sr-only">Auto documentation</SheetTitle>
+            <SheetTitle className="sr-only">Docs setup</SheetTitle>
           </SheetHeader>
           <DocPromptsPanel knowledgeBaseId={kbId} className="py-6" />
         </SheetContent>

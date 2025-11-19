@@ -83,7 +83,7 @@ class ProcessTimelineView(BaseSchema):
         if isinstance(
             first_event, (DocumentationPromptsDefined, DocumentationPromptsRemoved)
         ):
-            return "auto_documentation"
+            return "docs_setup"
         if isinstance(
             first_event,
             (
@@ -93,7 +93,7 @@ class ProcessTimelineView(BaseSchema):
                 DocumentationGenerationFailed,
             ),
         ):
-            return "auto_documentation_run"
+            return "docs_generation"
         return "code_repository_integration"
 
     @classmethod

@@ -63,7 +63,7 @@ def test_configure_auto_documentation_should_publish_event_and_create_process(
     process_response = api_client.get(f"/processes/{process_id}")
     assert process_response.status_code == 200
     process_json = process_response.json()
-    assert process_json["type"] == "auto_documentation"
+    assert process_json["type"] == "docs_setup"
     assert process_json["status"] == "configured"
     assert process_json["events"][0]["type"] == "documentation_prompts_defined"
 

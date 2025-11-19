@@ -181,7 +181,7 @@ export function DocPromptsPanel({ knowledgeBaseId, className }: DocPromptsPanelP
     <section className={cn('space-y-4', className)}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Auto documentation</p>
+          <p className="text-sm font-semibold text-foreground">Docs Setup</p>
           <p className="text-xs text-muted-foreground">Tell the agent what to write each sync.</p>
           {updatedLabel && <p className="text-[11px] text-muted-foreground/80 mt-1">Updated {updatedLabel}</p>}
         </div>
