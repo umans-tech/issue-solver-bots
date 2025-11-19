@@ -84,6 +84,9 @@ interface ProcessData {
     knowledge_base_id?: string;
     branch?: string;
     commit_sha?: string;
+    // Documentation generation specific fields
+    code_version?: string;
+    generated_documents?: string[];
   }>;
   result?: any;
   error?: string;
@@ -1075,10 +1078,10 @@ export default function TaskPage() {
                           PR #{completionEvent.pr_number}
                         </a>
                       )}
-                      {docCompletionEvent?.data?.knowledge_base_id && docCompletionEvent?.data?.generated_documents && docCompletionEvent.data.generated_documents.length > 0 && (
+                      {docCompletionEvent?.knowledge_base_id && docCompletionEvent?.generated_documents && docCompletionEvent.generated_documents.length > 0 && (
                         <div className="flex flex-col gap-1">
-                          {docCompletionEvent.data.generated_documents.map((docPath: string, idx: number) => {
-                            const docUrl = `/docs/${encodeURIComponent(docCompletionEvent.data.knowledge_base_id)}/${docPath.split('/').map(encodeURIComponent).join('/')}${docCompletionEvent.data?.code_version ? `?v=${docCompletionEvent.data.code_version}` : ''}`;
+                          {docCompletionEvent.generated_documents.map((docPath: string, idx: number) => {
+                            const docUrl = `/docs/${encodeURIComponent(docCompletionEvent.knowledge_base_id!)}/${docPath.split('/').map(encodeURIComponent).join('/')}${docCompletionEvent.code_version ? `?v=${docCompletionEvent.code_version}` : ''}`;
                             const docName = docPath.split('/').pop() || docPath;
                             return (
                               <a
