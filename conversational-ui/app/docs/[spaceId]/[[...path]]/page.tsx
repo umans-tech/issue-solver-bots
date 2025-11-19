@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, ExternalLink} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1064,7 +1064,7 @@ export default function DocsPage() {
                     ) : showContent ? (
                       <div className="relative">
                         {(showInlineLoader || showContentActions) && (
-                          <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-2">
+                          <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
                             {showInlineLoader && (
                               <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
                                 Loading latest…
@@ -1083,7 +1083,7 @@ export default function DocsPage() {
                                         onClick={() => router.push(`/tasks/${activeProcessId}`)}
                                         aria-label="View generation process"
                                       >
-                                        <ExternalLink className="h-4 w-4" />
+                                        <Activity className="h-4 w-4" />
                                         <span className="sr-only">View generation process</span>
                                       </Button>
                                     </TooltipTrigger>
