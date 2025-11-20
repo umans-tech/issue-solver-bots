@@ -30,6 +30,10 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorizationFailed,
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
+    DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
+    DocumentationGenerationCompleted,
+    DocumentationGenerationFailed,
 )
 from pydantic import BaseModel, Field, AliasChoices
 
@@ -79,6 +83,14 @@ def get_record_type(event_type: Type[T]) -> str:
             return "documentation_prompts_defined"
         case type() if event_type is DocumentationPromptsRemoved:
             return "documentation_prompts_removed"
+        case type() if event_type is DocumentationGenerationRequested:
+            return "documentation_generation_requested"
+        case type() if event_type is DocumentationGenerationStarted:
+            return "documentation_generation_started"
+        case type() if event_type is DocumentationGenerationCompleted:
+            return "documentation_generation_completed"
+        case type() if event_type is DocumentationGenerationFailed:
+            return "documentation_generation_failed"
         case _:
             raise Exception(f"Unknown event type: {event_type}")
 
@@ -794,6 +806,157 @@ class DocumentationPromptsRemovedRecord(BaseModel):
         )
 
 
+class DocumentationGenerationRequestedRecord(BaseModel):
+    type: Literal["documentation_generation_requested"] = (
+        "documentation_generation_requested"
+    )
+    knowledge_base_id: str
+    prompt_id: str
+    prompt_description: str
+    code_version: str
+    run_id: str
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationGenerationRequested:
+        return DocumentationGenerationRequested(
+            knowledge_base_id=self.knowledge_base_id,
+            prompt_id=self.prompt_id,
+            prompt_description=self.prompt_description,
+            code_version=self.code_version,
+            run_id=self.run_id,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationGenerationRequested) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            prompt_description=event.prompt_description,
+            code_version=event.code_version,
+            run_id=event.run_id,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
+class DocumentationGenerationStartedRecord(BaseModel):
+    type: Literal["documentation_generation_started"] = (
+        "documentation_generation_started"
+    )
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    run_id: str
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationGenerationStarted:
+        return DocumentationGenerationStarted(
+            knowledge_base_id=self.knowledge_base_id,
+            prompt_id=self.prompt_id,
+            code_version=self.code_version,
+            run_id=self.run_id,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationGenerationStarted) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            code_version=event.code_version,
+            run_id=event.run_id,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
+class DocumentationGenerationCompletedRecord(BaseModel):
+    type: Literal["documentation_generation_completed"] = (
+        "documentation_generation_completed"
+    )
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    run_id: str
+    generated_documents: list[str]
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationGenerationCompleted:
+        return DocumentationGenerationCompleted(
+            knowledge_base_id=self.knowledge_base_id,
+            prompt_id=self.prompt_id,
+            code_version=self.code_version,
+            run_id=self.run_id,
+            generated_documents=self.generated_documents,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationGenerationCompleted) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            code_version=event.code_version,
+            run_id=event.run_id,
+            generated_documents=event.generated_documents,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
+class DocumentationGenerationFailedRecord(BaseModel):
+    type: Literal["documentation_generation_failed"] = "documentation_generation_failed"
+    knowledge_base_id: str
+    prompt_id: str
+    code_version: str
+    run_id: str
+    error_message: str
+    process_id: str
+    occurred_at: datetime
+
+    def safe_copy(self) -> Self:
+        return self.model_copy()
+
+    def to_domain_event(self) -> DocumentationGenerationFailed:
+        return DocumentationGenerationFailed(
+            knowledge_base_id=self.knowledge_base_id,
+            prompt_id=self.prompt_id,
+            code_version=self.code_version,
+            run_id=self.run_id,
+            error_message=self.error_message,
+            process_id=self.process_id,
+            occurred_at=self.occurred_at,
+        )
+
+    @classmethod
+    def create_from(cls, event: DocumentationGenerationFailed) -> Self:
+        return cls(
+            knowledge_base_id=event.knowledge_base_id,
+            prompt_id=event.prompt_id,
+            code_version=event.code_version,
+            run_id=event.run_id,
+            error_message=event.error_message,
+            process_id=event.process_id,
+            occurred_at=event.occurred_at,
+        )
+
+
 ProcessTimelineEventRecords = (
     CodeRepositoryConnectedRecord
     | CodeRepositoryTokenRotatedRecord
@@ -813,6 +976,10 @@ ProcessTimelineEventRecords = (
     | NotionIntegrationAuthorizationFailedRecord
     | DocumentationPromptsDefinedRecord
     | DocumentationPromptsRemovedRecord
+    | DocumentationGenerationRequestedRecord
+    | DocumentationGenerationStartedRecord
+    | DocumentationGenerationCompletedRecord
+    | DocumentationGenerationFailedRecord
 )
 
 
@@ -858,6 +1025,14 @@ def serialize(event: AnyDomainEvent) -> ProcessTimelineEventRecords:
             return DocumentationPromptsDefinedRecord.create_from(event)
         case DocumentationPromptsRemoved():
             return DocumentationPromptsRemovedRecord.create_from(event)
+        case DocumentationGenerationRequested():
+            return DocumentationGenerationRequestedRecord.create_from(event)
+        case DocumentationGenerationStarted():
+            return DocumentationGenerationStartedRecord.create_from(event)
+        case DocumentationGenerationCompleted():
+            return DocumentationGenerationCompletedRecord.create_from(event)
+        case DocumentationGenerationFailed():
+            return DocumentationGenerationFailedRecord.create_from(event)
         case _:
             assert_never(event)
 
@@ -934,6 +1109,22 @@ def deserialize(event_type: str, data: str) -> AnyDomainEvent:
             ).to_domain_event()
         case "documentation_prompts_removed":
             return DocumentationPromptsRemovedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_generation_requested":
+            return DocumentationGenerationRequestedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_generation_started":
+            return DocumentationGenerationStartedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_generation_completed":
+            return DocumentationGenerationCompletedRecord.model_validate_json(
+                data
+            ).to_domain_event()
+        case "documentation_generation_failed":
+            return DocumentationGenerationFailedRecord.model_validate_json(
                 data
             ).to_domain_event()
         case _:

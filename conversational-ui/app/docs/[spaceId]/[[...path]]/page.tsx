@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,11 +20,13 @@ type DocFileEntry = {
   path: string;
   title: string;
   origin?: string;
+  process_id?: string;
 };
 
 type DocListEntry = {
   path: string;
   origin?: string;
+  process_id?: string;
 };
 
 type DocFolderNode = {
@@ -55,6 +57,8 @@ export default function DocsPage() {
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [titleMap, setTitleMap] = useState<Record<string, string>>({});
   const [activePath, setActivePathState] = useState<string | null>(null);
+  const [activeProcessId, setActiveProcessId] = useState<string | null>(null);
+  const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
   const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
   const [versionsLoading, setVersionsLoading] = useState(true);
@@ -233,14 +237,14 @@ export default function DocsPage() {
     };
 
     for (const entry of fileList) {
-      const { path, origin } = entry;
+      const { path, origin, process_id } = entry;
       const parts = path.split('/').filter(Boolean);
       if (parts.length === 0) continue;
       let cursor = root;
       parts.forEach((segment, index) => {
         const isFile = index === parts.length - 1;
         if (isFile) {
-          cursor.files.push({ path, title: titleMap[path] || segment, origin });
+          cursor.files.push({ path, title: titleMap[path] || segment, origin, process_id });
           return;
         }
         cursor = ensureChild(cursor, segment);
@@ -323,9 +327,13 @@ export default function DocsPage() {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
-        const originsMap: Record<string, string> = j.origins && typeof j.origins === 'object' ? j.origins : {};
+        const metadataMap: Record<string, { origin?: string; process_id?: string }> = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
         if (!cancelled) {
-          setFileList(files.map((path: string) => ({ path, origin: originsMap[path] })));
+          setFileList(files.map((path: string) => ({ 
+            path, 
+            origin: metadataMap[path]?.origin,
+            process_id: metadataMap[path]?.process_id
+          })));
         }
         // lazily resolve titles for index entries
         const entries = await Promise.all(files.map(async (f: string) => {
@@ -356,6 +364,18 @@ export default function DocsPage() {
       cancelled = true;
     };
   }, [kbId, commitSha]);
+
+  // Update activeProcessId and activeOrigin when activePath changes
+  useEffect(() => {
+    if (!activePath) {
+      setActiveProcessId(null);
+      setActiveOrigin(null);
+      return;
+    }
+    const entry = fileList.find(f => f.path === activePath);
+    setActiveProcessId(entry?.process_id ?? null);
+    setActiveOrigin(entry?.origin ?? null);
+  }, [activePath, fileList]);
 
   useEffect(() => {
     if (!kbId || !commitSha) return;
@@ -939,7 +959,7 @@ export default function DocsPage() {
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        Auto documentation settings
+                        Docs setup
                     </TooltipContent>
                 </Tooltip>
                 <div className="flex items-center gap-2">
@@ -978,7 +998,7 @@ export default function DocsPage() {
             disabled={!kbId}
           >
             <Sparkles className="h-4 w-4" />
-            <span className="sr-only">Auto documentation</span>
+            <span className="sr-only">Docs setup</span>
           </Button>
         </div>
       </SharedHeader>
@@ -1028,88 +1048,104 @@ export default function DocsPage() {
                 </div>
               </aside>
 
-              <main className="min-w-0">
-                <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
-                  {showLoadingShell ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-8 w-1/2" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-5/6" />
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  ) : activePath ? (
-                    contentStatus === 'missing' ? (
-                      <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
-                        We couldn’t find this document in the selected version. Try another version or pick a different doc.
-                      </div>
-                    ) : showContent ? (
-                      <div className="relative">
-                        {(showInlineLoader || showContentActions) && (
-                          <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-2">
-                            {showInlineLoader && (
-                              <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
-                                Loading latest…
-                              </div>
-                            )}
-                            {showContentActions && (
-                              <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground"
-                                      onClick={handleCopyMarkdown}
-                                      aria-label="Copy markdown"
-                                    >
-                                      <Copy className="h-4 w-4" />
-                                      <span className="sr-only">Copy markdown</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom">Copy markdown</TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground"
-                                      onClick={handleDownloadMarkdown}
-                                      aria-label="Download markdown"
-                                    >
-                                      <Download className="h-4 w-4" />
-                                      <span className="sr-only">Download markdown</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom">Download markdown</TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <div className="max-w-none prose prose-neutral dark:prose-invert">
-                          <Markdown>{content}</Markdown>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <Skeleton className="h-8 w-1/2" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    )
-                  ) : (
-                    <div className="text-sm text-muted-foreground">Select a document from the index.</div>
-                  )}
-                </div>
-              </main>
+               <main className="min-w-0 relative">
+                 {(showInlineLoader || showContentActions) && (
+                   <div className="absolute right-0 top-0 z-20 flex flex-col items-end gap-2">
+                     {showInlineLoader && (
+                       <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                         Loading latest…
+                       </div>
+                     )}
+                     {showContentActions && (
+                       <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                         {activeProcessId && activeOrigin === 'auto' && (
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button
+                                 type="button"
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                 onClick={() => window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')}
+                                 aria-label="View generation process"
+                               >
+                                 <Activity className="h-4 w-4" />
+                                 <span className="sr-only">View generation process</span>
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent side="bottom">View generation process</TooltipContent>
+                           </Tooltip>
+                         )}
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               type="button"
+                               variant="ghost"
+                               size="icon"
+                               className="h-8 w-8 text-muted-foreground"
+                               onClick={handleCopyMarkdown}
+                               aria-label="Copy markdown"
+                             >
+                               <Copy className="h-4 w-4" />
+                               <span className="sr-only">Copy markdown</span>
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                         </Tooltip>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <Button
+                               type="button"
+                               variant="ghost"
+                               size="icon"
+                               className="h-8 w-8 text-muted-foreground"
+                               onClick={handleDownloadMarkdown}
+                               aria-label="Download markdown"
+                             >
+                               <Download className="h-4 w-4" />
+                               <span className="sr-only">Download markdown</span>
+                             </Button>
+                           </TooltipTrigger>
+                           <TooltipContent side="bottom">Download markdown</TooltipContent>
+                         </Tooltip>
+                       </div>
+                     )}
+                   </div>
+                 )}
+                 <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
+                   {showLoadingShell ? (
+                     <div className="space-y-4">
+                       <Skeleton className="h-8 w-1/2" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-5/6" />
+                       <Skeleton className="h-4 w-2/3" />
+                       <Skeleton className="h-4 w-full" />
+                       <Skeleton className="h-4 w-3/4" />
+                     </div>
+                   ) : activePath ? (
+                     contentStatus === 'missing' ? (
+                       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+                         We couldn't find this document in the selected version. Try another version or pick a different doc.
+                       </div>
+                     ) : showContent ? (
+                       <div className="max-w-none prose prose-neutral dark:prose-invert">
+                         <Markdown>{content}</Markdown>
+                       </div>
+                     ) : (
+                       <div className="space-y-4">
+                         <Skeleton className="h-8 w-1/2" />
+                         <Skeleton className="h-4 w-full" />
+                         <Skeleton className="h-4 w-5/6" />
+                         <Skeleton className="h-4 w-2/3" />
+                         <Skeleton className="h-4 w-full" />
+                         <Skeleton className="h-4 w-3/4" />
+                       </div>
+                     )
+                   ) : (
+                     <div className="text-sm text-muted-foreground">Select a document from the index.</div>
+                   )}
+                 </div>
+               </main>
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
                 <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
@@ -1249,7 +1285,7 @@ export default function DocsPage() {
       <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="sr-only">Auto documentation</SheetTitle>
+            <SheetTitle className="sr-only">Docs setup</SheetTitle>
           </SheetHeader>
           <DocPromptsPanel knowledgeBaseId={kbId} className="py-6" />
         </SheetContent>

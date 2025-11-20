@@ -18,7 +18,7 @@ async def test_s3_knowledge_repo_should_add_and_check_document_existence(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="auto",
+        metadata={"origin": "auto"},
     )
 
     # Then
@@ -46,7 +46,7 @@ async def test_s3_knowledge_repo_should_add_each_doc_to_its_knowledge_base(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="repo",
+        metadata={"origin": "repo"},
     )
 
     # Then
@@ -78,13 +78,13 @@ async def test_s3_knowledge_repo_should_list_documents(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="auto",
+        metadata={"origin": "auto"},
     )
     knowledge_repository.add(
         base=knowledge_base_key,
         document_name="doc2.md",
         content="# Doc 2",
-        origin="repo",
+        metadata={"origin": "repo"},
     )
 
     # When
@@ -104,7 +104,7 @@ async def test_s3_knowledge_repo_should_overwrite_document_with_same_name(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="auto",
+        metadata={"origin": "auto"},
     )
 
     # When
@@ -112,7 +112,7 @@ async def test_s3_knowledge_repo_should_overwrite_document_with_same_name(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1 - Updated",
-        origin="repo",
+        metadata={"origin": "repo"},
     )
 
     # Then
@@ -134,7 +134,7 @@ async def test_s3_knowledge_repo_should_store_doc_origin(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="auto",
+        metadata={"origin": "auto"},
     )
 
     # Then
@@ -156,7 +156,7 @@ async def test_s3_knowledge_repo_should_update_origin_on_overwrite(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin="auto",
+        metadata={"origin": "auto"},
     )
 
     # When
@@ -164,7 +164,7 @@ async def test_s3_knowledge_repo_should_update_origin_on_overwrite(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1b",
-        origin="repo",
+        metadata={"origin": "repo"},
     )
 
     # Then
@@ -188,7 +188,7 @@ async def test_s3_knowledge_repo_should_return_none_when_origin_missing(
         base=knowledge_base_key,
         document_name="doc1.md",
         content="# Doc 1",
-        origin=None,
+        metadata=None,
     )
 
     # Then

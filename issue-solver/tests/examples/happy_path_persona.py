@@ -19,6 +19,10 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorized,
     NotionIntegrationTokenRefreshed,
     DocumentationPromptsDefined,
+    DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
+    DocumentationGenerationCompleted,
+    DocumentationGenerationFailed,
 )
 from issue_solver.issues.issue import IssueInfo
 
@@ -326,7 +330,7 @@ class BriceDeNice:
         cls,
     ) -> DocumentationPromptsDefined:
         return DocumentationPromptsDefined(
-            process_id="brice-doc-configuration-process-002",
+            process_id=cls.doc_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-04T12:15:00Z"),
             user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
@@ -336,7 +340,7 @@ class BriceDeNice:
     @classmethod
     def has_changed_documentation_prompts(cls) -> DocumentationPromptsDefined:
         return DocumentationPromptsDefined(
-            process_id="brice-doc-configuration-process-003",
+            process_id=cls.doc_configuration_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-05T09:20:00Z"),
             user_id=cls.user_id(),
             knowledge_base_id="brice-kb-001",
@@ -348,6 +352,59 @@ class BriceDeNice:
                     "Revise existing Architecture Decision Records (ADRs) to reflect changes in architectural choices and their implications."
                 ),
             },
+        )
+
+    @classmethod
+    def doc_generation_process_id(cls) -> str:
+        return "brice-doc-generation-process-001"
+
+    @classmethod
+    def requested_documentation_generation(cls) -> DocumentationGenerationRequested:
+        return DocumentationGenerationRequested(
+            knowledge_base_id="brice-kb-001",
+            prompt_id="domain_events_glossary",
+            prompt_description=(
+                "Update the glossary of domain events to include recent additions and provide clearer usage examples."
+            ),
+            code_version=cls.got_his_first_repo_indexed().commit_sha,
+            run_id=cls.has_changed_documentation_prompts().process_id,
+            process_id=cls.doc_generation_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-06T08:05:00Z"),
+        )
+
+    @classmethod
+    def started_documentation_generation(cls) -> DocumentationGenerationStarted:
+        return DocumentationGenerationStarted(
+            knowledge_base_id="brice-kb-001",
+            prompt_id="domain_events_glossary",
+            code_version=cls.got_his_first_repo_indexed().commit_sha,
+            run_id=cls.has_changed_documentation_prompts().process_id,
+            process_id=cls.doc_generation_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-06T08:05:30Z"),
+        )
+
+    @classmethod
+    def generated_documentation_completed(cls) -> DocumentationGenerationCompleted:
+        return DocumentationGenerationCompleted(
+            knowledge_base_id="brice-kb-001",
+            prompt_id="domain_events_glossary",
+            code_version=cls.got_his_first_repo_indexed().commit_sha,
+            run_id=cls.has_changed_documentation_prompts().process_id,
+            generated_documents=["domain_events_glossary.md"],
+            process_id=cls.doc_generation_process_id(),
+            occurred_at=datetime.fromisoformat("2025-01-06T08:07:00Z"),
+        )
+
+    @classmethod
+    def generated_documentation_failed(cls) -> DocumentationGenerationFailed:
+        return DocumentationGenerationFailed(
+            knowledge_base_id="brice-kb-001",
+            prompt_id="overview",
+            code_version=cls.got_his_first_repo_indexed().commit_sha,
+            run_id=cls.has_changed_documentation_prompts().process_id,
+            error_message="Claude Code agent failed: missing context",
+            process_id="brice-doc-generation-process-002",
+            occurred_at=datetime.fromisoformat("2025-01-06T09:15:00Z"),
         )
 
     @classmethod
@@ -379,6 +436,12 @@ class BriceDeNice:
             # Day 4: Failed integration attempt
             cls.failed_second_repo_integration(),  # 11:30:00 - Failed repo integration
             cls.has_defined_documentation_prompts(),
+            cls.has_defined_additional_documentation_prompts(),
+            cls.has_changed_documentation_prompts(),
+            cls.requested_documentation_generation(),
+            cls.started_documentation_generation(),
+            cls.generated_documentation_completed(),
+            cls.generated_documentation_failed(),
         ]
 
 

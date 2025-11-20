@@ -4,7 +4,7 @@ import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import { CheckSquare, Plug, MessageCircle, BookText } from 'lucide-react';
+import { Activity, Plug, MessageCircle, BookText } from 'lucide-react';
 import Link from 'next/link';
 
 import { PlusIcon } from '@/components/icons';
@@ -317,7 +317,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/tasks" className="w-full flex items-center gap-2">
-                    <CheckSquare className="h-4 w-4" />
+                    <Activity className="h-4 w-4" />
                     <span>Tasks</span>
                   </Link>
                 </SidebarMenuButton>

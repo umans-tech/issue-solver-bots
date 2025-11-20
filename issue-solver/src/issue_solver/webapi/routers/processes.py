@@ -27,6 +27,10 @@ from issue_solver.events.domain import (
     NotionIntegrationAuthorizationFailed,
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
+    DocumentationGenerationRequested,
+    DocumentationGenerationStarted,
+    DocumentationGenerationCompleted,
+    DocumentationGenerationFailed,
 )
 from issue_solver.events.auto_documentation import AutoDocumentationSetup
 from issue_solver.events.event_store import EventStore
@@ -39,16 +43,18 @@ from issue_solver.webapi.dependencies import (
     get_logger,
     get_agent_message_store,
 )
-from pydantic import BaseModel
+
+from issue_solver.webapi.payloads import BaseSchema
 
 router = APIRouter(prefix="/processes", tags=["processes"])
 
 
-class ProcessTimelineView(BaseModel):
+class ProcessTimelineView(BaseSchema):
     id: str
     type: str
     status: str
     events: list[ProcessTimelineEventRecords]
+    run_id: str | None = None
 
     @classmethod
     def create_from(cls, process_id: str, events: list[AnyDomainEvent]) -> Self:
@@ -60,6 +66,7 @@ class ProcessTimelineView(BaseModel):
             type=cls.infer_process_type(events),
             status=cls.to_status(events),
             events=event_records,
+            run_id=cls.extract_run_id(events),
         )
 
     @classmethod
@@ -76,7 +83,17 @@ class ProcessTimelineView(BaseModel):
         if isinstance(
             first_event, (DocumentationPromptsDefined, DocumentationPromptsRemoved)
         ):
-            return "auto_documentation"
+            return "docs_setup"
+        if isinstance(
+            first_event,
+            (
+                DocumentationGenerationRequested,
+                DocumentationGenerationStarted,
+                DocumentationGenerationCompleted,
+                DocumentationGenerationFailed,
+            ),
+        ):
+            return "docs_generation"
         return "code_repository_integration"
 
     @classmethod
@@ -125,9 +142,39 @@ class ProcessTimelineView(BaseModel):
                 status = (
                     "configured" if _auto_doc_prompts_remaining(events) else "removed"
                 )
+            case DocumentationGenerationRequested():
+                status = "requested"
+            case DocumentationGenerationStarted():
+                status = "in_progress"
+            case DocumentationGenerationCompleted():
+                status = "completed"
+            case DocumentationGenerationFailed():
+                status = "failed"
             case _:
                 status = "unknown"
         return status
+
+    @classmethod
+    def extract_run_id(cls, events: list[AnyDomainEvent]) -> str | None:
+        for event in events:
+            if isinstance(
+                event,
+                (
+                    DocumentationGenerationRequested,
+                    DocumentationGenerationStarted,
+                    DocumentationGenerationCompleted,
+                    DocumentationGenerationFailed,
+                ),
+            ):
+                return getattr(event, "run_id", None)
+        return None
+
+
+class PaginatedProcessesResponse(BaseSchema):
+    processes: list[ProcessTimelineView]
+    total: int
+    limit: int
+    offset: int
 
 
 @router.get("/")
@@ -139,9 +186,10 @@ async def list_processes(
     ),
     process_type: str | None = Query(None, description="Filter by process type"),
     status: str | None = Query(None, description="Filter by status"),
+    run_id: str | None = Query(None, description="Filter by run ID"),
     limit: int = Query(50, ge=1, le=100, description="Number of processes to return"),
     offset: int = Query(0, ge=0, description="Number of processes to skip"),
-) -> dict:
+) -> PaginatedProcessesResponse:
     """List processes with filtering and pagination."""
 
     # Determine which processes to get based on filters
@@ -154,23 +202,23 @@ async def list_processes(
         processes = await _get_all_processes(event_store)
 
     # Apply additional filters
-    filtered_processes = _apply_filters(processes, process_type, status)
+    filtered_processes = _apply_filters(processes, process_type, status, run_id)
 
     # Apply pagination
     total = len(filtered_processes)
     paginated_processes = filtered_processes[offset : offset + limit]
 
-    return {
-        "processes": paginated_processes,
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-    }
+    return PaginatedProcessesResponse(
+        processes=paginated_processes,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 async def _get_processes_by_criteria(
     event_store: EventStore, space_id: str | None, knowledge_base_id: str | None
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     """Get processes based on space_id or knowledge_base_id criteria."""
     processes = []
 
@@ -187,6 +235,7 @@ async def _get_processes_by_criteria(
 
         kb_ids = {event.knowledge_base_id for event in repo_events}
         processes.extend(await _get_auto_documentation_processes(event_store, kb_ids))
+        processes.extend(await _get_doc_generation_processes(event_store, kb_ids))
 
     if knowledge_base_id:
         repo_events = await event_store.find(
@@ -205,25 +254,35 @@ async def _get_processes_by_criteria(
             await _get_auto_documentation_processes(event_store, {knowledge_base_id})
         )
 
+        processes.extend(
+            await _get_doc_generation_processes(event_store, {knowledge_base_id})
+        )
+
     return processes
 
 
 def _apply_filters(
-    processes: list[dict], process_type: str | None, status: str | None
-) -> list[dict]:
+    processes: list[ProcessTimelineView],
+    process_type: str | None,
+    status: str | None,
+    run_id: str | None,
+) -> list[ProcessTimelineView]:
     """Apply type and status filters to processes."""
     filtered = processes
 
     if process_type:
-        filtered = [p for p in filtered if p["type"] == process_type]
+        filtered = [p for p in filtered if p.type == process_type]
 
     if status:
-        filtered = [p for p in filtered if p["status"] == status]
+        filtered = [p for p in filtered if p.status == status]
+
+    if run_id:
+        filtered = [p for p in filtered if p.run_id == run_id]
 
     return filtered
 
 
-async def _get_all_processes(event_store: EventStore) -> list[dict]:
+async def _get_all_processes(event_store: EventStore) -> list[ProcessTimelineView]:
     """Get all processes from all event types."""
     all_processes = []
 
@@ -257,12 +316,14 @@ async def _get_all_processes(event_store: EventStore) -> list[dict]:
         )
     )
 
+    all_processes.extend(await _get_doc_generation_processes(event_store, None))
+
     return all_processes
 
 
 async def _convert_events_to_processes(
     event_store: EventStore, events: list
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     """Convert domain events to process timeline views."""
     processes = []
     seen_processes: set[str] = set()
@@ -273,7 +334,7 @@ async def _convert_events_to_processes(
         if not process_events:
             continue
         process_view = ProcessTimelineView.create_from(event.process_id, process_events)
-        processes.append(process_view.model_dump())
+        processes.append(process_view)
         seen_processes.add(event.process_id)
     return processes
 
@@ -293,7 +354,7 @@ def _auto_doc_prompts_remaining(events: list[AnyDomainEvent]) -> bool:
 
 async def _get_auto_documentation_processes(
     event_store: EventStore, knowledge_base_ids: set[str]
-) -> list[dict]:
+) -> list[ProcessTimelineView]:
     if not knowledge_base_ids:
         return []
     auto_doc_events: list[AnyDomainEvent] = []
@@ -313,7 +374,32 @@ async def _get_auto_documentation_processes(
     return await _convert_events_to_processes(event_store, auto_doc_events)
 
 
-@router.get("/{process_id}")
+async def _get_doc_generation_processes(
+    event_store: EventStore, knowledge_base_ids: set[str] | None
+) -> list[ProcessTimelineView]:
+    doc_events: list[AnyDomainEvent] = []
+    if knowledge_base_ids is None:
+        doc_events = await event_store.find(
+            criteria={}, event_type=DocumentationGenerationRequested
+        )
+    elif not knowledge_base_ids:
+        return []
+    else:
+        for kb_id in knowledge_base_ids:
+            doc_events.extend(
+                await event_store.find(
+                    criteria={"knowledge_base_id": kb_id},
+                    event_type=DocumentationGenerationRequested,
+                )
+            )
+    return await _convert_events_to_processes(event_store, doc_events)
+
+
+@router.get(
+    "/{process_id}",
+    response_model=ProcessTimelineView,
+    response_model_exclude_none=True,
+)
 async def get_process(
     process_id: str,
     event_store: Annotated[EventStore, Depends(get_event_store)],

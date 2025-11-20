@@ -19,7 +19,7 @@ class KnowledgeRepository(ABC):
         base: KnowledgeBase,
         document_name: str,
         content: str,
-        origin: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> None:
         pass
 
@@ -32,5 +32,8 @@ class KnowledgeRepository(ABC):
         pass
 
     @abstractmethod
-    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
         pass
+
+    def get_origin(self, base: KnowledgeBase, document_name: str) -> str | None:
+        return self.get_metadata(base, document_name).get("origin")
