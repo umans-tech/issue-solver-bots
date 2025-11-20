@@ -4,7 +4,6 @@ from issue_solver.agents.tools.base import ToolError
 
 @pytest.mark.asyncio
 async def test_lists_repo_and_sees_docs(bash_tool, sample_repo):
-    # Given
     # When
     result = await bash_tool(command=f"cd {sample_repo} && ls -1")
     # Then
@@ -15,7 +14,6 @@ async def test_lists_repo_and_sees_docs(bash_tool, sample_repo):
 
 @pytest.mark.asyncio
 async def test_reads_file_and_captures_stderr(bash_tool, sample_repo):
-    # Given
     # When
     result = await bash_tool(
         command=f"cd {sample_repo} && cat README.md && echo warn 1>&2"
@@ -50,7 +48,7 @@ async def test_restart_after_shell_exit(bash_tool, sample_repo):
 
 @pytest.mark.asyncio
 async def test_missing_command_raises(bash_tool):
-    # Given / When / Then
+    # When / Then
     with pytest.raises(ToolError):
         await bash_tool()
 
