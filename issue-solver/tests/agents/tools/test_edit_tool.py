@@ -56,8 +56,7 @@ async def test_view_range_rejections(sample_repo: Path, edit_tool: EditTool, bad
     # Given
     path = sample_repo / "range.txt"
     path.write_text("a\nb\nc")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="view", path=str(path), view_range=bad_range)
 
@@ -69,7 +68,7 @@ async def test_str_replace_requires_unique_match(
     # Given
     path = sample_repo / "content.txt"
     path.write_text("line\nline\n")
-    # When
+    # When / Then
     # Then
     with pytest.raises(ToolError):
         await edit_tool(
@@ -82,8 +81,7 @@ async def test_insert_rejects_out_of_bounds(sample_repo: Path, edit_tool: EditTo
     # Given
     path = sample_repo / "lines.txt"
     path.write_text("a\nb")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="insert", path=str(path), insert_line=99, new_str="z")
 
@@ -93,8 +91,7 @@ async def test_undo_requires_prior_edits(sample_repo: Path, edit_tool: EditTool)
     # Given
     path = sample_repo / "undo.txt"
     path.write_text("content")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="undo_edit", path=str(path))
 
@@ -103,8 +100,7 @@ async def test_undo_requires_prior_edits(sample_repo: Path, edit_tool: EditTool)
 async def test_create_and_view_require_absolute_paths(edit_tool: EditTool):
     # Given
     relative_path = Path("relative.txt")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="view", path=str(relative_path))
 
@@ -114,8 +110,7 @@ async def test_create_refuses_overwrite(sample_repo: Path, edit_tool: EditTool):
     # Given
     path = sample_repo / "existing.txt"
     path.write_text("present")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="create", path=str(path), file_text="new")
 
@@ -142,8 +137,7 @@ async def test_required_parameters_are_enforced(sample_repo: Path, edit_tool: Ed
     # Given
     path = sample_repo / "needs.txt"
     path.write_text("line")
-    # When
-    # Then
+    # When / Then
     with pytest.raises(ToolError):
         await edit_tool(command="create", path=str(path))
     with pytest.raises(ToolError):
