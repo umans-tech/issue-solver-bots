@@ -24,3 +24,14 @@ def edit_tool():
 def abs_tmp_path(tmp_path: Path) -> Path:
     """Resolved tmp_path for absolute-path validations."""
     return tmp_path.resolve()
+
+
+@pytest.fixture
+def sample_repo(abs_tmp_path: Path) -> Path:
+    """Tiny repo layout for navigation/editing stories."""
+    (abs_tmp_path / "README.md").write_text("hello\n")
+    (abs_tmp_path / "src").mkdir()
+    (abs_tmp_path / "src" / "app.py").write_text("print('hi')\n")
+    (abs_tmp_path / "docs").mkdir()
+    (abs_tmp_path / "docs" / "guide.md").write_text("usage\n")
+    return abs_tmp_path
