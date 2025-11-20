@@ -99,6 +99,9 @@ class AutoDocumentationSetup:
         merged = self.docs_prompts | new_prompts
         return {key: value for key, value in merged.items() if value.strip()}
 
+    def prompt_matches(self, prompt_id: str, prompt_description: str) -> bool:
+        return self.docs_prompts.get(prompt_id) == prompt_description
+
 
 async def load_auto_documentation_setup(
     event_store: EventStore, knowledge_base_id: str

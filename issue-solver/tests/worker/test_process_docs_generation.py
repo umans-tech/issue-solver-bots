@@ -6,15 +6,40 @@ from issue_solver.events.domain import (
     DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
+    CodeRepositoryConnected,
+    DocumentationPromptsDefined,
+    DocumentationPromptsRemoved,
 )
 from issue_solver.events.event_store import EventStore
-from issue_solver.worker.documenting.knowledge_repository import (
-    KnowledgeBase,
-)
+from issue_solver.worker.documenting.knowledge_repository import KnowledgeBase
 from issue_solver.worker.messages_processing import process_event_message
 from issue_solver.worker.dependencies import Dependencies
 from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
+
+
+OLD_DOC_TEXT = "# Domain Events (old)\n"
+NEW_DOC_TEXT = "# Domain Events (updated)\n"
+
+
+def seed_repo_with_kb(kb_id: str):
+    def _seed(url, access_token, to_path):
+        Path(to_path).joinpath(kb_id).mkdir(parents=True, exist_ok=True)
+
+    return _seed
+
+
+def docs_agent_update_with_capture(capture: list[str | None], new_text: str):
+    def _update(repo_path, knowledge_base_id, output_path, docs_prompts, process_id):
+        output_path.mkdir(parents=True, exist_ok=True)
+        raw_name = next(iter(docs_prompts.keys()))
+        doc_name = raw_name if raw_name.endswith(".md") else f"{raw_name}.md"
+        seeded = output_path.joinpath(doc_name)
+        captured_text = seeded.read_text() if seeded.exists() else None
+        capture.append(captured_text)
+        seeded.write_text(new_text)
+
+    return _update
 
 
 @pytest.mark.asyncio
@@ -86,6 +111,7 @@ async def test_generate_docs_should_request_each_prompt_individually(
                 run_id=run_id,
                 process_id=requested_generation_ids[index],
                 occurred_at=run_started_at,
+                mode="update",
             )
         )
     assert requests == expected_requests
@@ -210,6 +236,7 @@ async def test_generate_docs_should_request_using_latest_prompts(
                 run_id=run_id,
                 process_id=child_id,
                 occurred_at=run_started_at,
+                mode="update",
             )
         )
     assert requests == expected_requests
@@ -268,6 +295,7 @@ async def test_generate_docs_should_request_changed_prompts(
                 run_id=run_id,
                 process_id=child_id,
                 occurred_at=run_started_at,
+                mode="update",
             )
         )
     assert requests == expected_requests
@@ -535,3 +563,313 @@ async def test_process_documentation_generation_request_should_error_when_docs_a
                 docs_agent=None,
             ),
         )
+
+
+@pytest.mark.asyncio
+async def test_generate_docs_should_request_update_mode_by_default(
+    event_store: EventStore,
+    time_under_control: ControllableClock,
+    knowledge_repo,
+    git_helper,
+    docs_agent,
+    id_generator,
+    worker_dependencies,
+):
+    # Given
+    run_id = "run-default-mode"
+    child_ids = ["child-a", "child-b"]
+    id_generator.new.side_effect = [run_id, *child_ids]
+    repo_connected = BriceDeNice.got_his_first_repo_connected()
+    await event_store.append(
+        BriceDeNice.first_repo_integration_process_id(), repo_connected
+    )
+    await event_store.append(
+        BriceDeNice.doc_configuration_process_id(),
+        BriceDeNice.has_defined_documentation_prompts(),
+    )
+    repo_indexed = BriceDeNice.got_his_first_repo_indexed()
+
+    # When
+    await process_event_message(repo_indexed, dependencies=worker_dependencies)
+
+    # Then
+    requests = await event_store.find(
+        {"knowledge_base_id": repo_connected.knowledge_base_id},
+        DocumentationGenerationRequested,
+    )
+    assert requests, "documentation requests should be emitted"
+    assert all(getattr(req, "mode", None) == "update" for req in requests)
+
+
+@pytest.mark.asyncio
+async def test_process_documentation_generation_request_complete_mode_should_skip_seed(
+    event_store: EventStore,
+    time_under_control: ControllableClock,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    docs_agent,
+):
+    # Given
+    kb_id = "kb-auto-doc-complete"
+    old_version = "commit-old"
+    new_version = "commit-new"
+    observed_seed_texts: list[str | None] = []
+
+    repo_connected = CodeRepositoryConnected(
+        url="https://example.com/repo.git",
+        access_token="token",
+        user_id="user-123",
+        space_id="space-123",
+        knowledge_base_id=kb_id,
+        process_id="conn-process-id",
+        occurred_at=time_under_control.now(),
+        token_permissions=None,
+    )
+    await event_store.append(repo_connected.process_id, repo_connected)
+
+    knowledge_repo.add(
+        KnowledgeBase(kb_id, old_version),
+        "domain_events_glossary.md",
+        OLD_DOC_TEXT,
+        metadata={"origin": "auto", "process_id": "old-process"},
+    )
+
+    git_helper.clone_repository.side_effect = seed_repo_with_kb(kb_id)
+    docs_agent.generate_documentation.side_effect = docs_agent_update_with_capture(
+        observed_seed_texts, NEW_DOC_TEXT
+    )
+
+    request_event = DocumentationGenerationRequested(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        prompt_description="Write glossary",
+        code_version=new_version,
+        run_id="run-complete",
+        process_id="doc-child-complete",
+        occurred_at=time_under_control.now(),
+        mode="complete",
+    )
+    await event_store.append("doc-child-complete", request_event)
+
+    # When
+    await process_event_message(
+        request_event,
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    assert observed_seed_texts == [None]
+
+
+@pytest.mark.asyncio
+async def test_update_mode_should_skip_seed_when_prompt_changed(
+    event_store: EventStore,
+    time_under_control: ControllableClock,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    docs_agent,
+):
+    # Given
+    kb_id = "kb-auto-doc-update-changed"
+    old_version = "commit-old"
+    new_version = "commit-new"
+    observed_seed_texts: list[str | None] = []
+
+    repo_connected = CodeRepositoryConnected(
+        url="https://example.com/repo.git",
+        access_token="token",
+        user_id="user-123",
+        space_id="space-123",
+        knowledge_base_id=kb_id,
+        process_id="conn-process-id",
+        occurred_at=time_under_control.now(),
+        token_permissions=None,
+    )
+    completed = DocumentationGenerationCompleted(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        code_version=old_version,
+        run_id="prior-run",
+        generated_documents=["domain_events_glossary.md"],
+        process_id="prior-process",
+        occurred_at=time_under_control.now(),
+    )
+    prompt_defined = DocumentationPromptsDefined(
+        knowledge_base_id=kb_id,
+        user_id="user-123",
+        docs_prompts={"domain_events_glossary": "Old prompt"},
+        process_id="def-process",
+        occurred_at=time_under_control.now(),
+    )
+    prompt_changed = DocumentationPromptsRemoved(
+        knowledge_base_id=kb_id,
+        user_id="user-123",
+        prompt_ids={"domain_events_glossary"},
+        process_id="removal-process",
+        occurred_at=time_under_control.now(),
+    )
+    awaited_definition = DocumentationPromptsDefined(
+        knowledge_base_id=kb_id,
+        user_id="user-123",
+        docs_prompts={"domain_events_glossary": "New different prompt"},
+        process_id="def-process-2",
+        occurred_at=time_under_control.now(),
+    )
+    await event_store.append(
+        repo_connected.process_id,
+        repo_connected,
+        prompt_defined,
+        completed,
+        prompt_changed,
+        awaited_definition,
+    )
+
+    knowledge_repo.add(
+        KnowledgeBase(kb_id, old_version),
+        "domain_events_glossary.md",
+        OLD_DOC_TEXT,
+        metadata={"origin": "auto", "process_id": "old-process"},
+    )
+
+    git_helper.clone_repository.side_effect = seed_repo_with_kb(kb_id)
+    docs_agent.generate_documentation.side_effect = docs_agent_update_with_capture(
+        observed_seed_texts, NEW_DOC_TEXT
+    )
+
+    request_event = DocumentationGenerationRequested(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        prompt_description="New different prompt",
+        code_version=new_version,
+        run_id="run-update-changed",
+        process_id="doc-child-update-changed",
+        occurred_at=time_under_control.now(),
+        mode="update",
+    )
+    await event_store.append("doc-child-update-changed", request_event)
+
+    # When
+    await process_event_message(
+        request_event,
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    assert observed_seed_texts == [None]
+
+
+@pytest.mark.asyncio
+async def test_process_documentation_generation_request_update_mode_should_reuse_previous_docs(
+    event_store: EventStore,
+    time_under_control: ControllableClock,
+    knowledge_repo,
+    git_helper,
+    coding_agent,
+    docs_agent,
+):
+    # Given
+    kb_id = "kb-auto-doc-update"
+    old_version = "commit-old"
+    new_version = "commit-new"
+    run_id = "generation-run-update"
+    child_process_id = "doc-child-update"
+    observed_seed_texts: list[str | None] = []
+
+    completed = DocumentationGenerationCompleted(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        code_version=old_version,
+        run_id="prior-run",
+        generated_documents=["domain_events_glossary.md"],
+        process_id="prior-process",
+        occurred_at=time_under_control.now(),
+    )
+    prompt_defined = DocumentationPromptsDefined(
+        knowledge_base_id=kb_id,
+        user_id="user-123",
+        docs_prompts={"domain_events_glossary": "Write glossary"},
+        process_id="def-process",
+        occurred_at=time_under_control.now(),
+    )
+    repo_connected = CodeRepositoryConnected(
+        url="https://example.com/repo.git",
+        access_token="token",
+        user_id="user-123",
+        space_id="space-123",
+        knowledge_base_id=kb_id,
+        process_id="conn-process-id",
+        occurred_at=time_under_control.now(),
+        token_permissions=None,
+    )
+    await event_store.append(
+        repo_connected.process_id, repo_connected, prompt_defined, completed
+    )
+
+    knowledge_repo.add(
+        KnowledgeBase(kb_id, old_version),
+        "domain_events_glossary.md",
+        OLD_DOC_TEXT,
+        metadata={"origin": "auto", "process_id": "old-process"},
+    )
+
+    git_helper.clone_repository.side_effect = seed_repo_with_kb(kb_id)
+    docs_agent.generate_documentation.side_effect = docs_agent_update_with_capture(
+        observed_seed_texts, NEW_DOC_TEXT
+    )
+
+    request_event = DocumentationGenerationRequested(
+        knowledge_base_id=kb_id,
+        prompt_id="domain_events_glossary",
+        prompt_description="Write glossary",
+        code_version=new_version,
+        run_id=run_id,
+        process_id=child_process_id,
+        occurred_at=time_under_control.now(),
+        mode="update",
+    )
+    await event_store.append(child_process_id, request_event)
+
+    # When
+    await process_event_message(
+        request_event,
+        dependencies=Dependencies(
+            event_store,
+            git_helper,
+            coding_agent,
+            knowledge_repo,
+            time_under_control,
+            docs_agent=docs_agent,
+        ),
+    )
+
+    # Then
+    kb_key_new = KnowledgeBase(id=kb_id, version=new_version)
+    assert knowledge_repo.contains(kb_key_new, "domain_events_glossary.md")
+    assert (
+        knowledge_repo.get_content(kb_key_new, "domain_events_glossary.md")
+        == NEW_DOC_TEXT
+    )
+    assert knowledge_repo.get_origin(kb_key_new, "domain_events_glossary.md") == "auto"
+
+    kb_key_old = KnowledgeBase(id=kb_id, version=old_version)
+    assert (
+        knowledge_repo.get_content(kb_key_old, "domain_events_glossary.md")
+        == OLD_DOC_TEXT
+    )
+    assert observed_seed_texts == [OLD_DOC_TEXT]
