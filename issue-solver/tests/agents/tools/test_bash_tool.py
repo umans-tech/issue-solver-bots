@@ -53,6 +53,29 @@ async def test_missing_command_raises(bash_tool):
         await bash_tool()
 
 
+@pytest.mark.asyncio
+async def test_timeout_requests_restart(bash_tool, sample_repo):
+    # Given
+    await bash_tool(command=f"cd {sample_repo} && echo ready")
+    bash_tool._session._timeout = 0.01
+    # When / Then
+    with pytest.raises(ToolError) as exc:
+        await bash_tool(command="sleep 0.1")
+    assert "timed out" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_run_after_exit_signals_restart(bash_tool, sample_repo):
+    # Given
+    await bash_tool(command=f"cd {sample_repo} && echo warmup")
+    bash_tool._session.stop()
+    await bash_tool._session._process.wait()
+    # When
+    result = await bash_tool(command="pwd")
+    # Then
+    assert result.error
+
+
 async def _terminate_session(tool):
     if tool._session and tool._session._process:
         tool._session.stop()
