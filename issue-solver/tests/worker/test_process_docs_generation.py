@@ -17,6 +17,14 @@ from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
 
 
+# TODO: mode defaults to "update" on emission; legacy events without mode still process.
+# TODO: mode "complete" skips retrieval even when prior auto docs exist.
+# TODO: mode "update" reuses latest auto-doc version and preserves unchanged sections.
+# TODO: mode "update" falls back to full generation when no prior auto docs exist.
+# TODO: legacy event lacking mode is treated as "complete" for backward compatibility.
+# TODO: generated docs keep correct metadata (origin/process_id/version path) under both modes.
+# TODO: failure path still records DocumentationGenerationFailed and leaves prior docs intact.
+
 @pytest.mark.asyncio
 async def test_generate_docs_should_request_each_prompt_individually(
     event_store: EventStore,
