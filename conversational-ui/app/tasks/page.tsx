@@ -567,7 +567,30 @@ export default function TasksPage() {
                               }
                             });
                             
-                            const renderProcess = (process: ProcessData, index: number) => {
+                            let renderIndex = 0;
+                            const allProcesses: Array<{ process: ProcessData; runInfo?: { runId: string; count: number; isFirst: boolean } }> = [];
+                            
+                            // Prepare grouped processes with run info
+                            Array.from(runGroups.entries()).forEach(([runId, processes]) => {
+                              if (processes.length > 1) {
+                                processes.forEach((p, idx) => {
+                                  allProcesses.push({
+                                    process: p,
+                                    runInfo: { runId, count: processes.length, isFirst: idx === 0 }
+                                  });
+                                });
+                              } else {
+                                allProcesses.push({ process: processes[0] });
+                              }
+                            });
+                            
+                            // Add standalone processes
+                            standalone.forEach(p => {
+                              allProcesses.push({ process: p });
+                            });
+                            
+                            // Render all processes with optional group indicator
+                            return allProcesses.map(({ process, runInfo }) => {
                               const { badge, color: statusColor } = getStatusBadgeWithIcon(process.status);
                               const typeMeta = getProcessTypeWithIcon(process.processType, process.type);
                               const prInfo = getPRInfo(process);
@@ -578,100 +601,71 @@ export default function TasksPage() {
                                   key={process.id}
                                   initial={{ opacity: 0, y: 12 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.25, delay: index * 0.05 }}
+                                  transition={{ duration: 0.25, delay: renderIndex++ * 0.05 }}
                                 >
                                   <Link href={`/tasks/${process.id}`}>
-                                    <Card className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor}`}>
-                                  <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start gap-3 mb-2">
-                                      <div className="min-w-0 flex-1">
-                                        <CardTitle className="text-base font-semibold leading-tight line-clamp-2">
-                                          {getTaskTitle(process)}
-                                        </CardTitle>
-                                        <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                          <span className="font-mono">{process.id.slice(0, 8)}...</span>
-                                        </CardDescription>
-                                      </div>
-                                      <div className="flex flex-col items-end gap-1">
-                                        {badge}
-                                        {prInfo && (
-                                          <button
-                                            type="button"
-                                            onClick={(event) => {
-                                              event.preventDefault();
-                                              event.stopPropagation();
-                                              window.open(prInfo.url, '_blank', 'noopener,noreferrer');
-                                            }}
-                                            className="text-[0.7rem] text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
-                                          >
-                                            <ExternalLink className="h-3 w-3" />
-                                            PR #{prInfo.number}
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Badge variant="outline" className={`${typeMeta.color} flex items-center gap-1`}>
-                                        {typeMeta.icon}
-                                        <span className="text-xs">{typeMeta.label}</span>
-                                      </Badge>
-                                      {timelineMeta && (
-                                        <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <Clock className="h-3 w-3" />
-                                          <span>{timelineMeta.label} {getRelativeTime(timelineMeta.value)}</span>
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </CardHeader>
-
-                                  <CardContent className="pt-0 space-y-3">
-                                    {process.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {process.description}
-                                      </p>
-                                    )}
-
-                                  </CardContent>
-                                </Card>
-                              </Link>
-                            </motion.div>
-                              );
-                            };
-                            
-                            let renderIndex = 0;
-                            const elements: React.ReactElement[] = [];
-                            
-                            // Render grouped processes
-                            Array.from(runGroups.entries()).forEach(([runId, processes]) => {
-                              if (processes.length > 1) {
-                                // Add simple group label for first item
-                                processes.forEach((p, idx) => {
-                                  const isFirst = idx === 0;
-                                  elements.push(
-                                    <div key={p.id} className="relative">
-                                      {isFirst && (
-                                        <div className="absolute -top-8 left-0 flex items-center gap-2 text-xs text-muted-foreground">
-                                          <BookOpen className="h-3 w-3" />
-                                          <span>Run {runId.slice(0, 8)} • {processes.length} prompts</span>
+                                    <Card className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor} ${runInfo ? 'border-l-4 border-l-cyan-400' : ''}`}>
+                                      <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start gap-3 mb-2">
+                                          <div className="min-w-0 flex-1">
+                                            <CardTitle className="text-base font-semibold leading-tight line-clamp-2">
+                                              {getTaskTitle(process)}
+                                            </CardTitle>
+                                            <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                              <span className="font-mono">{process.id.slice(0, 8)}...</span>
+                                              {runInfo?.isFirst && (
+                                                <Badge variant="secondary" className="text-[0.65rem] h-4 px-1.5">
+                                                  <BookOpen className="h-2.5 w-2.5 mr-1" />
+                                                  Run {runInfo.runId.slice(0, 6)} ({runInfo.count})
+                                                </Badge>
+                                              )}
+                                            </CardDescription>
+                                          </div>
+                                          <div className="flex flex-col items-end gap-1">
+                                            {badge}
+                                            {prInfo && (
+                                              <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                  event.preventDefault();
+                                                  event.stopPropagation();
+                                                  window.open(prInfo.url, '_blank', 'noopener,noreferrer');
+                                                }}
+                                                className="text-[0.7rem] text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                                              >
+                                                <ExternalLink className="h-2.5 w-2.5" />
+                                                PR #{prInfo.number}
+                                              </button>
+                                            )}
+                                          </div>
                                         </div>
-                                      )}
-                                      {renderProcess(p, renderIndex++)}
-                                    </div>
-                                  );
-                                });
-                              } else {
-                                // Single process in run, render normally
-                                elements.push(renderProcess(processes[0], renderIndex++));
-                              }
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <Badge variant="outline" className={`${typeMeta.color} flex items-center gap-1`}>
+                                            {typeMeta.icon}
+                                            <span className="text-xs">{typeMeta.label}</span>
+                                          </Badge>
+                                          {timelineMeta && (
+                                            <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
+                                              <Clock className="h-3 w-3" />
+                                              <span>{timelineMeta.label} {getRelativeTime(timelineMeta.value)}</span>
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </CardHeader>
+
+                                      <CardContent className="pt-0 space-y-3">
+                                        {process.description && (
+                                          <p className="text-sm text-muted-foreground line-clamp-2">
+                                            {process.description}
+                                          </p>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  </Link>
+                                </motion.div>
+                              );
                             });
-                            
-                            // Render standalone processes
-                            standalone.forEach(p => {
-                              elements.push(renderProcess(p, renderIndex++));
-                            });
-                            
-                            return elements;
                           } else {
                             // Non-docs_generation types: render normally
                             return items.map((process, index) => {
