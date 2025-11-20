@@ -11,6 +11,7 @@ from issue_solver.env_setup.dev_environments_management import (
 from issue_solver.env_setup.errors import Phase
 from issue_solver.events.domain import (
     AnyDomainEvent,
+    Mode,
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
     CodeRepositoryIntegrationFailed,
@@ -817,6 +818,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
     run_id: str
     process_id: str
     occurred_at: datetime
+    mode: Mode = Field(default="complete")
 
     def safe_copy(self) -> Self:
         return self.model_copy()
@@ -830,6 +832,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
             run_id=self.run_id,
             process_id=self.process_id,
             occurred_at=self.occurred_at,
+            mode=self.mode or "complete",
         )
 
     @classmethod
@@ -842,6 +845,7 @@ class DocumentationGenerationRequestedRecord(BaseModel):
             run_id=event.run_id,
             process_id=event.process_id,
             occurred_at=event.occurred_at,
+            mode=event.mode,
         )
 
 

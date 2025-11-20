@@ -9,10 +9,12 @@ from issue_solver.events.domain import (
     DocumentationGenerationStarted,
     DocumentationGenerationCompleted,
     DocumentationGenerationFailed,
+    Mode,
 )
 from issue_solver.worker.documenting.knowledge_repository import (
     KnowledgeBase,
     KnowledgeRepository,
+    DocRef,
 )
 from issue_solver.worker.dependencies import Dependencies
 from issue_solver.events.auto_documentation import load_auto_documentation_setup
@@ -62,6 +64,7 @@ async def generate_docs(
                 run_id=run_id,
                 process_id=one_document_generation_process_id,
                 occurred_at=dependencies.clock.now(),
+                mode="update",
             ),
         )
 
@@ -100,10 +103,12 @@ async def process_documentation_generation_request(
         generated_docs = await generate_and_load_docs(
             docs_agent,
             dependencies.knowledge_repository,
+            dependencies.event_store,
             event.process_id,
             event.knowledge_base_id,
             event.code_version,
             {event.prompt_id: event.prompt_description},
+            mode=event.mode,
         )
     except Exception as exc:
         logger.error(
@@ -150,12 +155,25 @@ async def prepare_repo_path(process_id: str) -> Path:
 async def generate_and_load_docs(
     docs_agent: DocumentingAgent,
     knowledge_repo: KnowledgeRepository,
+    event_store,
     process_id: str,
     knowledge_base_id: str,
     code_version: str,
     docs_prompts: dict[str, str],
+    mode: Mode = "complete",
 ) -> list[str]:
     generated_docs_path = Path(f"/tmp/repo/{process_id}").joinpath(knowledge_base_id)
+    if mode == "update":
+        previous_docs = await _get_previous_doc_refs(
+            event_store=event_store,
+            knowledge_base_id=knowledge_base_id,
+            docs_prompts=docs_prompts,
+        )
+        seed_previous_auto_docs(
+            knowledge_repo=knowledge_repo,
+            target_path=generated_docs_path,
+            seeds=previous_docs,
+        )
     await docs_agent.generate_documentation(
         repo_path=Path(f"/tmp/repo/{process_id}"),
         knowledge_base_id=knowledge_base_id,
@@ -179,6 +197,65 @@ async def generate_and_load_docs(
             generated_documents.append(str(relative_path))
 
     return generated_documents
+
+
+def seed_previous_auto_docs(
+    *,
+    knowledge_repo: KnowledgeRepository,
+    target_path: Path,
+    seeds: set[DocRef],
+) -> None:
+    if not seeds:
+        return
+    target_path.mkdir(parents=True, exist_ok=True)
+    for ref in seeds:
+        if not knowledge_repo.contains(ref.base, ref.document_name):
+            continue
+        if knowledge_repo.get_origin(ref.base, ref.document_name) != "auto":
+            continue
+        content = knowledge_repo.get_content(ref.base, ref.document_name)
+        destination = target_path.joinpath(ref.document_name)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(content)
+
+
+async def _get_previous_doc_refs(
+    *,
+    event_store,
+    knowledge_base_id: str,
+    docs_prompts: dict[str, str],
+) -> set[DocRef]:
+    prompt_id, prompt_description = next(iter(docs_prompts.items()))
+    setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
+    if not setup.prompt_matches(prompt_id, prompt_description):
+        return set()
+    previous_version = await _previous_version(
+        event_store=event_store,
+        knowledge_base_id=knowledge_base_id,
+        prompt_id=prompt_id,
+    )
+    if not previous_version:
+        return set()
+    target_docs = {
+        name if name.endswith(".md") else f"{name}.md" for name in docs_prompts.keys()
+    }
+    return {
+        DocRef(KnowledgeBase(knowledge_base_id, previous_version), doc_name)
+        for doc_name in target_docs
+    }
+
+
+async def _previous_version(
+    *, event_store, knowledge_base_id: str, prompt_id: str
+) -> str | None:
+    completions = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id, "prompt_id": prompt_id},
+        DocumentationGenerationCompleted,
+    )
+    if not completions:
+        return None
+    latest_generated_doc = max(completions, key=lambda e: e.occurred_at)
+    return latest_generated_doc.code_version if latest_generated_doc else None
 
 
 def load_existing_markdown_documents(
