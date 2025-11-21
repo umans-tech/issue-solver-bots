@@ -11,6 +11,7 @@ Thank you for considering contributing to issue-solver-bots! We appreciate your 
 4. [Templates](#templates)
 5. [Code of Conduct](#code-of-conduct)
 6. [License](#license)
+7. [Project Guidelines](#project-guidelines)
 
 ## Getting Started
 
@@ -80,3 +81,7 @@ We follow the [Contributor Covenant Code of Conduct](https://www.contributor-cov
 ## License
 
 By contributing to issue-solver-bots, you agree that your contributions will be licensed under the MIT License.
+
+## Project Guidelines
+
+- For code that lives under `issue-solver/`, please also read `issue-solver/CONTRIBUTING.md` for coding/testing style and expectations.
