@@ -8,6 +8,12 @@ class KnowledgeBase:
     version: str
 
 
+@dataclass(frozen=True)
+class DocRef:
+    base: KnowledgeBase
+    document_name: str
+
+
 class KnowledgeRepository(ABC):
     @abstractmethod
     def contains(self, base: KnowledgeBase, document_name: str) -> bool:

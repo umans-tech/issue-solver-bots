@@ -370,6 +370,7 @@ class BriceDeNice:
             run_id=cls.has_changed_documentation_prompts().process_id,
             process_id=cls.doc_generation_process_id(),
             occurred_at=datetime.fromisoformat("2025-01-06T08:05:00Z"),
+            mode="update",
         )
 
     @classmethod

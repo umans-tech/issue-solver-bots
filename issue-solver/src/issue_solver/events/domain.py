@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Sequence, TypeVar
+from typing import Any, Sequence, TypeVar, Literal
 
 from issue_solver.agents.supported_agents import SupportedAgent
 from issue_solver.env_setup.dev_environments_management import (
@@ -220,6 +220,9 @@ class DocumentationPromptsRemoved(DomainEvent):
     occurred_at: datetime
 
 
+Mode = Literal["update", "complete"]
+
+
 @dataclass(frozen=True, slots=True)
 class DocumentationGenerationRequested(DomainEvent):
     knowledge_base_id: str
@@ -229,6 +232,7 @@ class DocumentationGenerationRequested(DomainEvent):
     run_id: str
     process_id: str
     occurred_at: datetime
+    mode: Mode = "complete"
 
 
 @dataclass(frozen=True, slots=True)
