@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity, MoreVertical, RotateCcw, Wand2} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,6 +15,12 @@ import { Input } from '@/components/ui/input';
 import { DocPromptsPanel } from '@/components/doc-prompts-panel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type DocFileEntry = {
   path: string;
@@ -78,6 +84,12 @@ export default function DocsPage() {
   const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
   const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
   const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
+  const promptIdForActiveDoc = useMemo(() => {
+    if (!activePath) return null;
+    const segments = activePath.split('/').filter(Boolean);
+    const last = segments[segments.length - 1];
+    return last ?? null;
+  }, [activePath]);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
   const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
   const versionParam = searchParams?.get('v')?.trim() ?? null;
@@ -211,6 +223,22 @@ export default function DocsPage() {
       setActivePath(next, options);
     });
   }, [setActivePath, startTransition]);
+
+  const triggerManualAutoDoc = useCallback(
+    async (mode: 'update' | 'complete') => {
+      if (!kbId || !promptIdForActiveDoc) return;
+      await fetch('/api/docs/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          knowledgeBaseId: kbId,
+          promptId: promptIdForActiveDoc,
+          mode,
+        }),
+      }).catch((err) => console.error('Failed to trigger auto-doc generation', err));
+    },
+    [kbId, promptIdForActiveDoc],
+  );
 
 
   const docTree = useMemo(() => {
@@ -1051,67 +1079,99 @@ export default function DocsPage() {
                <main className="min-w-0 relative">
                  {(showInlineLoader || showContentActions) && (
                    <div className="absolute right-0 top-0 z-20 flex flex-col items-end gap-2">
-                     {showInlineLoader && (
-                       <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
-                         Loading latest…
-                       </div>
-                     )}
-                     {showContentActions && (
-                       <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
-                         {activeProcessId && activeOrigin === 'auto' && (
-                           <Tooltip>
-                             <TooltipTrigger asChild>
-                               <Button
-                                 type="button"
-                                 variant="ghost"
-                                 size="icon"
-                                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                 onClick={() => window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')}
-                                 aria-label="View generation process"
-                               >
-                                 <Activity className="h-4 w-4" />
-                                 <span className="sr-only">View generation process</span>
-                               </Button>
-                             </TooltipTrigger>
-                             <TooltipContent side="bottom">View generation process</TooltipContent>
-                           </Tooltip>
-                         )}
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               type="button"
-                               variant="ghost"
-                               size="icon"
-                               className="h-8 w-8 text-muted-foreground"
-                               onClick={handleCopyMarkdown}
-                               aria-label="Copy markdown"
-                             >
-                               <Copy className="h-4 w-4" />
-                               <span className="sr-only">Copy markdown</span>
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent side="bottom">Copy markdown</TooltipContent>
-                         </Tooltip>
-                         <Tooltip>
-                           <TooltipTrigger asChild>
-                             <Button
-                               type="button"
-                               variant="ghost"
-                               size="icon"
-                               className="h-8 w-8 text-muted-foreground"
-                               onClick={handleDownloadMarkdown}
-                               aria-label="Download markdown"
-                             >
-                               <Download className="h-4 w-4" />
-                               <span className="sr-only">Download markdown</span>
-                             </Button>
-                           </TooltipTrigger>
-                           <TooltipContent side="bottom">Download markdown</TooltipContent>
-                         </Tooltip>
-                       </div>
-                     )}
-                   </div>
-                 )}
+                        {showInlineLoader && (
+                          <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                            Loading latest…
+                          </div>
+                        )}
+                        {showContentActions && (
+                          <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                            {activeOrigin === 'auto' && (
+                              <DropdownMenu>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        aria-label="Auto docs actions"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                        <span className="sr-only">Auto docs actions</span>
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">Auto-doc actions</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end" sideOffset={4}>
+                                  {activeProcessId && (
+                                    <DropdownMenuItem
+                                      className="gap-2 text-sm"
+                                      onClick={() =>
+                                        window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')
+                                      }
+                                    >
+                                      <Activity className="h-4 w-4" />
+                                      View generation progress
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    className="gap-2 text-sm"
+                                    onClick={() => triggerManualAutoDoc('complete')}
+                                    disabled={!promptIdForActiveDoc}
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                    Re-generate doc (from scratch)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="gap-2 text-sm"
+                                    onClick={() => triggerManualAutoDoc('update')}
+                                    disabled={!promptIdForActiveDoc}
+                                  >
+                                    <Wand2 className="h-4 w-4" />
+                                    Update doc (reuse prior output)
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={handleCopyMarkdown}
+                                  aria-label="Copy markdown"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                  <span className="sr-only">Copy markdown</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={handleDownloadMarkdown}
+                                  aria-label="Download markdown"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  <span className="sr-only">Download markdown</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Download markdown</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </div>
+                    )}
                  <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
                    {showLoadingShell ? (
                      <div className="space-y-4">
