@@ -164,10 +164,9 @@ async def generate_and_load_docs(
 ) -> list[str]:
     generated_docs_path = Path(f"/tmp/repo/{process_id}").joinpath(knowledge_base_id)
     if mode == "update":
-        previous_docs = await _seed_previous_docs(
+        previous_docs = await _get_previous_doc_refs(
             event_store=event_store,
             knowledge_base_id=knowledge_base_id,
-            code_version=code_version,
             docs_prompts=docs_prompts,
         )
         seed_previous_auto_docs(
@@ -220,11 +219,10 @@ def seed_previous_auto_docs(
         destination.write_text(content)
 
 
-async def _seed_previous_docs(
+async def _get_previous_doc_refs(
     *,
     event_store,
     knowledge_base_id: str,
-    code_version: str,
     docs_prompts: dict[str, str],
 ) -> set[DocRef]:
     prompt_id, prompt_description = next(iter(docs_prompts.items()))
@@ -235,7 +233,6 @@ async def _seed_previous_docs(
         event_store=event_store,
         knowledge_base_id=knowledge_base_id,
         prompt_id=prompt_id,
-        current_version=code_version,
     )
     if not previous_version:
         return set()
@@ -249,7 +246,7 @@ async def _seed_previous_docs(
 
 
 async def _previous_version(
-    *, event_store, knowledge_base_id: str, prompt_id: str, current_version: str
+    *, event_store, knowledge_base_id: str, prompt_id: str
 ) -> str | None:
     completions = await event_store.find(
         {"knowledge_base_id": knowledge_base_id, "prompt_id": prompt_id},
@@ -257,11 +254,8 @@ async def _previous_version(
     )
     if not completions:
         return None
-    completions_sorted = sorted(completions, key=lambda e: e.occurred_at, reverse=True)
-    for event in completions_sorted:
-        if event.code_version != current_version:
-            return event.code_version
-    return None
+    latest_generated_doc = max(completions, key=lambda e: e.occurred_at)
+    return latest_generated_doc.code_version if latest_generated_doc else None
 
 
 def load_existing_markdown_documents(
