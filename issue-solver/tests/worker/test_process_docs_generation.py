@@ -18,8 +18,6 @@ from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
 
 
-# Covered: default emission uses update mode; complete skips seeding; update seeds last completion when prompt unchanged; update skips when prompt changed.
-
 OLD_DOC_TEXT = "# Domain Events (old)\n"
 NEW_DOC_TEXT = "# Domain Events (updated)\n"
 
