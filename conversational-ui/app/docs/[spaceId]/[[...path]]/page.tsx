@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 type DocFileEntry = {
   path: string;
@@ -84,6 +85,7 @@ export default function DocsPage() {
   const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
   const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
   const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
+  const [isGenerating, setIsGenerating] = useState(false);
   const promptIdForActiveDoc = useMemo(() => {
     if (!activePath) return null;
     const segments = activePath.split('/').filter(Boolean);
@@ -227,17 +229,53 @@ export default function DocsPage() {
   const triggerManualAutoDoc = useCallback(
     async (mode: 'update' | 'complete') => {
       if (!kbId || !promptIdForActiveDoc) return;
-      await fetch('/api/docs/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          knowledgeBaseId: kbId,
-          promptId: promptIdForActiveDoc,
-          mode,
-        }),
-      }).catch((err) => console.error('Failed to trigger auto-doc generation', err));
+      try {
+        setIsGenerating(true);
+        const res = await fetch('/api/docs/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            knowledgeBaseId: kbId,
+            promptId: promptIdForActiveDoc,
+            mode,
+          }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          throw new Error(payload?.detail || payload?.error || 'Failed to trigger generation');
+        }
+        const shortId = payload?.process_id ? payload.process_id.slice(0, 8) : null;
+        toast.custom(
+          () => (
+            <div className="rounded-md border bg-background px-3 py-2 shadow-sm text-sm space-y-1">
+              <div className="font-medium">Doc generation started</div>
+              <div className="text-muted-foreground">
+                {shortId ? `See progress here (#${shortId}).` : 'We’ll keep this page updated.'}
+              </div>
+              {payload?.process_id ? (
+                <div className="pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(`/tasks/${payload.process_id}`, '_blank', 'noopener,noreferrer')
+                    }
+                  >
+                    Open
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ),
+          { duration: 3500 }
+        );
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to start auto-doc');
+      } finally {
+        setIsGenerating(false);
+      }
     },
-    [kbId, promptIdForActiveDoc],
+    [kbId, promptIdForActiveDoc, toast],
   );
 
 
@@ -1120,18 +1158,18 @@ export default function DocsPage() {
                                   <DropdownMenuItem
                                     className="gap-2 text-sm"
                                     onClick={() => triggerManualAutoDoc('complete')}
-                                    disabled={!promptIdForActiveDoc}
+                                    disabled={!promptIdForActiveDoc || isGenerating}
                                   >
                                     <RotateCcw className="h-4 w-4" />
-                                    Re-generate doc (from scratch)
+                                    Re-generate (fresh)
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="gap-2 text-sm"
                                     onClick={() => triggerManualAutoDoc('update')}
-                                    disabled={!promptIdForActiveDoc}
+                                    disabled={!promptIdForActiveDoc || isGenerating}
                                   >
                                     <Wand2 className="h-4 w-4" />
-                                    Update doc (reuse prior output)
+                                    Update (reuse previous)
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
