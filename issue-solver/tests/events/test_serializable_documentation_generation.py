@@ -7,7 +7,7 @@ from issue_solver.events.serializable_records import (
 
 
 def test_serialization_defaults_mode_to_complete_when_absent():
-    # Given: legacy record without mode
+    # Given
     record = DocumentationGenerationRequestedRecord(
         occurred_at=datetime.fromisoformat("2025-01-01T12:00:00+00:00"),
         knowledge_base_id="kb-legacy",

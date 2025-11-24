@@ -7,6 +7,7 @@ from issue_solver.clock import Clock
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryTokenRotated,
+    CodeRepositoryIndexed,
     DocumentationPromptsDefined,
     DocumentationPromptsRemoved,
     RepositoryIndexationRequested,
@@ -30,12 +31,17 @@ from issue_solver.webapi.payloads import (
     EnvironmentConfiguration,
     AutoDocumentationConfigRequest,
     AutoDocumentationDeleteRequest,
+    AutoDocManualGenerationRequest,
 )
 from issue_solver.events.auto_documentation import (
     load_auto_documentation_setup,
     CannotRemoveAutoDocumentationWithoutPrompts,
     CannotRemoveUnknownAutoDocumentationPrompts,
 )
+from issue_solver.events.domain import (
+    DocumentationGenerationRequested,
+)
+from issue_solver.worker.logging_config import logger as worker_logger
 from openai import OpenAI
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
@@ -430,6 +436,61 @@ async def get_auto_documentation(
     }
 
 
+@router.post(
+    "/{knowledge_base_id}/auto-documentation/generate",
+    status_code=201,
+)
+async def trigger_auto_document_generation(
+    knowledge_base_id: str,
+    request: AutoDocManualGenerationRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    clock: Annotated[Clock, Depends(get_clock)],
+):
+    """Trigger on-demand auto documentation generation for a specific prompt."""
+    setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
+    prompt_description = setup.docs_prompts.get(request.prompt_id)
+    if not prompt_description:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Prompt {request.prompt_id} not found for knowledge base {knowledge_base_id}",
+        )
+
+    latest_commit = await _latest_indexed_commit(event_store, knowledge_base_id)
+    if not latest_commit:
+        raise HTTPException(
+            status_code=409,
+            detail="Repository has not been indexed yet; cannot generate documentation.",
+        )
+
+    process_id = str(uuid.uuid4())
+    run_id = str(uuid.uuid4())
+    event = DocumentationGenerationRequested(
+        knowledge_base_id=knowledge_base_id,
+        prompt_id=request.prompt_id,
+        prompt_description=prompt_description,
+        code_version=latest_commit,
+        run_id=run_id,
+        process_id=process_id,
+        occurred_at=clock.now(),
+        mode=request.mode,  # type: ignore[arg-type]
+    )
+    await event_store.append(process_id, event)
+    worker_logger.info(
+        "Auto-doc manual generation requested",
+        extra={
+            "knowledge_base_id": knowledge_base_id,
+            "prompt_id": request.prompt_id,
+            "mode": request.mode,
+            "code_version": latest_commit,
+            "process_id": process_id,
+            "run_id": run_id,
+            "user_id": user_id,
+        },
+    )
+    return {"process_id": process_id, "run_id": run_id}
+
+
 @router.get(
     "/{knowledge_base_id}/environments/latest",
 )
@@ -499,3 +560,15 @@ def _validate_repository_access(connect_repository_request, logger, validation_s
     except GitValidationError as e:
         logger.error(f"Repository validation failed: {e.message}")
         raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
+async def _latest_indexed_commit(
+    event_store: EventStore, knowledge_base_id: str
+) -> str | None:
+    indexed_events = await event_store.find(
+        {"knowledge_base_id": knowledge_base_id}, CodeRepositoryIndexed
+    )
+    if not indexed_events:
+        return None
+    latest = max(indexed_events, key=lambda e: e.occurred_at)
+    return latest.commit_sha

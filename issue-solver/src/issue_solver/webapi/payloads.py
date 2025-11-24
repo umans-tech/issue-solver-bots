@@ -96,3 +96,8 @@ class AutoDocumentationDeleteRequest(BaseSchema):
         min_length=1,
         validation_alias=AliasChoices("promptIds"),
     )
+
+
+class AutoDocManualGenerationRequest(BaseSchema):
+    prompt_id: str = Field(..., min_length=1, validation_alias=AliasChoices("promptId"))
+    mode: str = Field(default="update", pattern="^(update|complete)$")
