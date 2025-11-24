@@ -1,0 +1,16 @@
+#!/usr/bin/env just --justfile
+
+# 📦 Build the project
+build:
+    @echo "Building the project..."
+    @pnpm build
+
+# ▶️ Start the development server
+dev:
+    @echo "Starting the development server..."
+    @pnpm dev
+
+# ⬇️ Install dependencies
+install:
+    @echo "Installing dependencies..."
+    @pnpm install
