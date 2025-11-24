@@ -244,31 +244,24 @@ export default function DocsPage() {
         if (!res.ok) {
           throw new Error(payload?.detail || payload?.error || 'Failed to trigger generation');
         }
-        const shortId = payload?.process_id ? payload.process_id.slice(0, 8) : null;
-        toast.custom(
-          () => (
-            <div className="rounded-md border bg-background px-3 py-2 shadow-sm text-sm space-y-1">
-              <div className="font-medium">Doc generation started</div>
-              <div className="text-muted-foreground">
-                {shortId ? `See progress here (#${shortId}).` : 'We’ll keep this page updated.'}
-              </div>
-              {payload?.process_id ? (
-                <div className="pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      window.open(`/tasks/${payload.process_id}`, '_blank', 'noopener,noreferrer')
-                    }
-                  >
-                    Open
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ),
-          { duration: 3500 }
-        );
+        const processId = payload?.process_id;
+        toast.success('Doc generation started', {
+          description: processId ? (
+            <>
+              See progress{' '}
+              <a
+                href={`/tasks/${processId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-medium"
+              >
+                here
+              </a>
+              .
+            </>
+          ) : null,
+          duration: 3500,
+        });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to start auto-doc');
       } finally {
@@ -1152,7 +1145,7 @@ export default function DocsPage() {
                                       }
                                     >
                                       <Activity className="h-4 w-4" />
-                                      View generation progress
+                                      View generation details
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem
@@ -1161,7 +1154,7 @@ export default function DocsPage() {
                                     disabled={!promptIdForActiveDoc || isGenerating}
                                   >
                                     <RotateCcw className="h-4 w-4" />
-                                    Re-generate (fresh)
+                                    Re-generate
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="gap-2 text-sm"
@@ -1169,7 +1162,7 @@ export default function DocsPage() {
                                     disabled={!promptIdForActiveDoc || isGenerating}
                                   >
                                     <Wand2 className="h-4 w-4" />
-                                    Update (reuse previous)
+                                    Update existing doc
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
