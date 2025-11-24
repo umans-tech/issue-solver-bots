@@ -1,18 +1,13 @@
 import pytest
-import pytest_asyncio
 from pathlib import Path
 
 from issue_solver.agents.tools.bash import BashTool
 from issue_solver.agents.tools.edit import EditTool
 
 
-@pytest_asyncio.fixture
-async def bash_tool():
-    tool = BashTool()
-    yield tool
-    if tool._session and tool._session._process.returncode is None:
-        tool._session.stop()
-        await tool._session._process.wait()
+@pytest.fixture
+def bash_tool():
+    return BashTool()
 
 
 @pytest.fixture
