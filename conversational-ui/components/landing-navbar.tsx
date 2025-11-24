@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { IconUmansLogo } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { FaXTwitter, FaLinkedinIn, FaDiscord } from 'react-icons/fa6';
 
 export function LandingNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -37,6 +38,14 @@ export function LandingNavbar() {
               <IconUmansLogo className="h-8 w-auto" />
             </Link>
             <nav className="landing-nav hidden md:flex items-center gap-6 text-sm">
+              <Link
+                href="https://blog.umans.ai"
+                className="text-foreground/80 hover:text-foreground transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-0 px-0 py-0"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Blog
+              </Link>
               <a
                 href="https://discord.gg/Q5hdNrk7Rw"
                 target="_blank"
@@ -56,6 +65,17 @@ export function LandingNavbar() {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-4">
+            <div className="hidden sm:flex items-center gap-3 text-foreground/80">
+              <a href="https://discord.gg/Q5hdNrk7Rw" target="_blank" rel="noreferrer" className="hover:text-foreground">
+                <FaDiscord className="h-4 w-4" />
+              </a>
+              <a href="https://x.com/umans_ai" target="_blank" rel="noreferrer" className="hover:text-foreground">
+                <FaXTwitter className="h-4 w-4" />
+              </a>
+              <a href="https://www.linkedin.com/company/umans-ai" target="_blank" rel="noreferrer" className="hover:text-foreground">
+                <FaLinkedinIn className="h-4 w-4" />
+              </a>
+            </div>
             {/* Theme Toggle */}
             <ThemeToggle variant="ghost" />
             
