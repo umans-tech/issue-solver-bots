@@ -1,5 +1,6 @@
 import pytest
 from issue_solver.agents.tools.base import ToolError
+from tests.agents.tools.conftest import terminate_session
 
 
 @pytest.mark.asyncio
@@ -68,8 +69,7 @@ async def test_timeout_requests_restart(bash_tool, sample_repo):
 async def test_run_after_exit_signals_restart(bash_tool, sample_repo):
     # Given
     await bash_tool(command=f"cd {sample_repo} && echo warmup")
-    bash_tool._session.stop()
-    await bash_tool._session._process.wait()
+    await _terminate_session(bash_tool)
     # When
     result = await bash_tool(command="pwd")
     # Then
@@ -78,5 +78,4 @@ async def test_run_after_exit_signals_restart(bash_tool, sample_repo):
 
 async def _terminate_session(tool):
     if tool._session and tool._session._process:
-        tool._session.stop()
-        await tool._session._process.wait()
+        await terminate_session(tool._session._process, tool._session.stop)
