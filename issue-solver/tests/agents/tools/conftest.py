@@ -1,13 +1,24 @@
+import asyncio
+
 import pytest
+import pytest_asyncio
 from pathlib import Path
 
 from issue_solver.agents.tools.bash import BashTool
 from issue_solver.agents.tools.edit import EditTool
 
 
-@pytest.fixture
-def bash_tool():
-    return BashTool()
+@pytest_asyncio.fixture
+async def bash_tool():
+    tool = BashTool()
+    yield tool
+    if tool._session and tool._session._process.returncode is None:
+        tool._session.stop()
+        try:
+            await asyncio.wait_for(tool._session._process.wait(), timeout=2)
+        except asyncio.TimeoutError:
+            tool._session._process.kill()
+            await tool._session._process.wait()
 
 
 @pytest.fixture
