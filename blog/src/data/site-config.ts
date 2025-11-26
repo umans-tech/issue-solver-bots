@@ -6,7 +6,7 @@ const siteConfig: SiteConfig = {
     src: '/umans-u-logo.svg',
     alt: 'Umans AI'
   },
-  title: 'Umans AI Engineering Blog',
+  title: 'Umans AI Blog',
   subtitle: 'Field notes on working with AI in real software teams.',
   description: 'Notes on collaborative AI teammates, consistency, and the tooling that keeps teams aligned.',
   image: {
