@@ -1,7 +1,8 @@
 # Static blog hosting (S3 + CloudFront, private bucket with OAC and SPA rewrite)
 
 resource "aws_s3_bucket" "blog_site" {
-  bucket = "blog${local.environment_name_suffix}-site"
+  bucket        = "blog${local.environment_name_suffix}-umans-site"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "blog_site" {
