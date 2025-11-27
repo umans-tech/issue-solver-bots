@@ -1,8 +1,8 @@
 ---
-title: "AI coding agents and the messy truth about consistency"
+title: "Your AI Coding Agent Doesn’t Care About Your Conventions"
 excerpt: "Exploring the challenges and strategies for maintaining codebase consistency in the age of AI coding agents."
 publishDate: 2025-11-10
-updatedDate: 2025-11-10
+updatedDate: 2025-11-27
 isFeatured: true
 tags: [ "AI", "Engineering", "Consistency" ]
 seo:
@@ -29,6 +29,10 @@ Even when we add “be consistent with existing code” to our prompts, it often
 So let’s talk about consistency: why it still matters, what inconsistency actually looks like in a living codebase, and
 how we are starting to use agents to manage it instead of making it worse.
 
+One scope note before we dive in: I am talking about AI in the context of existing repositories and long-lived systems.
+Real software that evolves over months and years, not a one-off prototype or a project scaffold you generate and then
+throw away.
+
 ## Why consistency still matters
 
 When you don’t have a shared way of doing things (humans or humans + AI), you pay a tax everywhere:
@@ -48,42 +52,54 @@ When you don’t have a shared way of doing things (humans or humans + AI), you 
 That’s what people usually mean when they complain about “AI patchwork”:
 not just style differences, but **inconsistent ways of solving the same kind of problem**.
 
+There is also a very direct impact on productivity. In teams that use agents, I see more and more PRs rejected not
+because the solution is wrong, but because it does not fit the existing patterns.
+If you keep accepting inconsistent code, the codebase becomes harder to work with over time.
+If you keep rejecting AI-generated changes for inconsistency, you do not get much leverage from the agents either.
+That tension is exactly why we need better ways to align agents with the conventions of a living codebase.
+
+![The only valid measurement of code quality is: WTFs/minute](../../assets/images/wtf_metric.png)
+
 ## What is inconsistency, really?
 
 For me, inconsistency is very simple:
 
 > **Doing the same thing in different ways, without a good reason.**
 
-A few examples that keep coming back in real codebases:
+A few concrete examples.
 
-* **Validation**
-  Some endpoints do manual `if` checks, others use a schema library, others rely on database constraints and hope for
-  the best.
+**Error handling**
 
-* **Async code**
-  One module uses callbacks, another uses `.then()`, another uses `async/await`.
+The codebase handles errors in at least three different ways with no clear pattern  
+(throwing exceptions, returning Result/Either, logging and swallowing).
 
-* **Time**
-  Sometimes you see `new Date()` in the middle of the domain.
-  Sometimes there is a `Clock` abstraction.
-  Sometimes time is passed around as a string.
+Impact: it is hard to reason about error flows. Is it logged? recorded somewhere? will it crash or degrade gracefully?  
+Result: refactors are scary and people are never sure which pattern to follow.
 
-* **IDs**
-  In one place, IDs come from the database.
-  In another, they are generated with a library.
-  Elsewhere, someone sprinkled random UUIDs directly in the frontend.
+**Time**
 
-* **Configuration**
-  Environment variables are read with `process.env` in some files, through a config module in others, via a DI container
-  somewhere else, and hardcoded in tests.
+There are several ways to get “now” with no clear rule  
+(`new Date()`, `datetime.now(UTC)`, injected `Clock`, etc.).
 
-These patterns create cognitive load because **the intent is not obvious**.
-A developer reading the code has to ask questions like:
+Impact: some parts of the code have testable time, others rely on the system clock.  
+Result: you get flaky tests for time-sensitive logic and time zone bugs where the abstraction is not used.
 
-* “Should I use `await` or `.then()` here?”
-* “Do I call `new Date()` or inject the `Clock`?”
-* “Where is this ID supposed to come from?”
-* “How do we read config safely in this part of the code?”
+**Configuration**
+
+Environment variables are accessed in multiple ways across the codebase  
+(direct `process.env` / `os.environ`, utility functions, different config loaders, hardcoded values in tests).
+
+Impact: behaviour depends on where you are in the code.  
+Result: debugging “works on my machine” and deployment issues turns into a treasure hunt.
+
+Other flavours of the same problem:
+
+- Logging done with different formats and levels, making incidents harder to investigate.
+- Async code mixing callbacks, `.then()` and `async/await`.
+- IDs generated in different layers for similar concepts.
+- Domain concepts (`User`, `Customer`, `Client`) modelled differently without a clear context for why.
+
+All of these create cognitive load because **the intent is not obvious**.
 
 If the answers are not visible in the code or the documentation, every small decision requires archaeology.
 And when intent is missing, people tend to add defensive code and speculation, which often makes things more complex
@@ -111,7 +127,8 @@ A typical pattern looks like this:
 3. Other people copy what they see locally.
 4. Months later, you realise you now have three patterns for the same concern.
 
-In other words, decisions are either missing, or they exist but take a long time to propagate.
+So the inconsistency you see in the code is rarely random. It’s either the absence of a real decision, or the side
+effect of a decision that’s still slowly propagating through a living system.
 
 ### What helped consistent teams before agents
 
@@ -119,12 +136,14 @@ Before AI agents entered the picture, the most stable codebases I saw had one th
 they were good at the loop **decide → record → apply**.
 
 * **Decide**
+
   The team discusses trade offs and chooses an approach.
   Sometimes this is quite centralised, with a small group of people who own the technical direction.
   Sometimes it is more decentralised and collaborative.
   The structure can vary, but a decision is actually made.
 
 * **Record**
+
   They write down the decision in a place that is a real source of truth.
   That can be an ADR, a short design note, or a coding guideline with concrete examples.
   The important part is that you can:
@@ -133,24 +152,37 @@ they were good at the loop **decide → record → apply**.
     * understand the intent and the motivation behind it.
 
 * **Apply**
-  They use building blocks and frameworks that embody these decisions.
-  Things like shared modules, base classes, or patterns that make the “right way” the easy way.
-  They reinforce this with:
 
-    * pair programming,
-    * code reviews,
-    * collective ownership practices,
-    * sometimes tooling like linters and CI checks.
+  Finally, they make it possible to actually apply those decisions in the code:
+    * **Tooling where it helps**: linters, CI checks, simple scripts that nudge the codebase back toward the agreed
+      conventions.
+
+    * **Building blocks and lightweight frameworks** that *reinforce* some decisions: shared modules, patterns, or base
+      abstractions that make the “right way” the easy way. Not every decision deserves a framework, and these things
+      have a cost, but when used well they reduce cognitive load, simplify testing, and even make living documentation
+      possible.
+
+The goal is not to mechanise everything. It is to make sure that when someone touches the code, they can see the intent,
+follow the conventions, and understand *why* things are structured that way.
 
 One important warning here:
 if people only copy the pattern without understanding the intent, you get cargo cult.
-Cargo cult can be more harmful than inconsistency, because you end up with complex structures nobody can explain.
+[Cargo cult](https://en.wikipedia.org/wiki/Cargo_cult_programming) can be more harmful than inconsistency, because you
+end up with complex structures nobody can explain.
+
+The only reliable antidote is shared understanding. In teams that do this well, that understanding comes from everyday
+practices: pair or mob programming on tricky changes, code reviews that talk about intent not just style, and spaces
+where developers can think through design together. When that’s in place, the whole loop “decide → record → apply”
+becomes much easier and more natural.
 
 So for me, the health of a codebase is less about “is everything consistent” and more about:
 
-> Can we see the decisions, the intent, and the building blocks that make those decisions easy to follow?
+> Can we understand why it is the way it is and still change it safely without getting lost?
 
-## How AI agents change the picture
+When the answer is “yes”, consistency tends to show up as a side effect of that decide → record → apply loop, not as a
+goal you chase directly.
+
+## How AI agents change the picture?
 
 AI agents sit right in the middle of this loop and disturb it in both good and bad ways.
 
@@ -168,94 +200,65 @@ On the opportunity side:
 * They can be fed your existing decisions, guidelines, and examples.
 * They can help check how well the codebase follows the conventions you care about.
 
-That leads to a useful question:
-
-> Given our building blocks and architectural rules, how well does this codebase actually follow its own conventions?
-
-This is exactly the angle we are exploring.
-
 ## Using agents to work with inconsistency
 
-The way I see it today, agents can join the same loop as humans:
+The angle we are exploring is simple:
 
-> decide → record → apply
+> Let agents join the same loop (**decide → record → apply**) as humans instead of pretending they can replace it.
 
-They do not replace it. They help scale it.
+We have a few working hypotheses around that.
 
 ### 1. Make the implicit explicit
 
-First step is still human work.
+Today, most of the intent lives in people’s heads.  
+Sometimes it is not even aligned between humans, so agents have nothing solid to connect to.
 
-* Capture decisions in short, concrete docs, not just in people’s heads.
-* Define the core building blocks of the system and how they are meant to be combined.
-* Write coding guidelines with real examples from the codebase.
+The first step has nothing to do with AI. It is on us:
 
-Then bring agents into that context:
+- Adopt processes that force intent out in the open: discussions, design reviews, ADRs, written guidelines with concrete
+  examples.
+- Make sure these outcomes land in the repo (or somewhere accessible to the agent via tool or mcp), not just in slides
+  or chats.
 
-* Feed them these docs and example files.
-* Remind them in prompts:
+The challenge we are exploring is how to plug agents into those existing processes, not bypass them.  
+When a team makes a decision, we want to turn it into **actionable artefacts** in the codebase that both humans and
+agents can use: files that describe conventions, capabilities, and rules.
 
-    * “Follow existing patterns in this module.”
-    * “Use `Clock` instead of `new Date()` in the domain layer.”
-    * “Reuse the existing config module instead of reading `process.env` directly.”
-
-It is simple, but if you skip this step, you basically ask the agent to improvise a style on top of your system.
+The goal is simple: an agent working on a task should be able to discover “how we do things here” by looking at the
+repo, instead of us re-teaching the same things in every session.
 
 ### 2. Use agents to surface inconsistency
 
-Next, use agents to make inconsistency visible.
+Once some conventions exist, a natural question is:
 
-Examples of prompts:
+> How well does this codebase follow its own rules?
 
-* “List the different ways we handle time in this repository.”
-* “Show me the patterns we use for async code in this service.”
-* “Where and how do we read configuration values?”
-* “Give me examples of how we validate input across modules.”
-
-You move from a vague feeling of “this codebase is messy” to a concrete map of where patterns diverge.
-That is something a team can actually discuss and decide on.
+Here, agents are useful as scanners. They can map how time, config, async code, or domain concepts are handled across a
+repo and highlight where patterns diverge. The goal is not to let them judge the code, but to give humans a clearer
+picture of what is really happening so we can decide what to keep and what to change.
 
 ### 3. Use agents to apply decisions
 
-Finally, once the team decides:
+The last step is applying decisions without overwhelming people.
 
-> “From now on, we do it this way.”
+At this point, the rules and conventions are written down; the question is how agents can help bring existing code
+closer to them and keep new code from drifting.
+The tempting mental model is: *“we feed our conventions to the agent and it will just generate consistent, working
+code.”*  
+In practice, conventions are incomplete, LLMs still hallucinate, and without running the code they have no grounded
+signal when they are wrong. On top of that, large changes are hard to review. That’s the gap we are trying to close.
 
-Agents can help apply that decision.
+A few principles we are testing:
 
-For example:
+* Keep humans in the loop, with changes small enough to be reviewed and understood.
+* Lean on executable feedback (tests, tools, static code analysis, checks) rather than pure “trust the LLM”.
+* Run agents in environments that look like a real developer setup, so they can actually run the code and get concrete
+  signals instead of guessing.
 
-* Refactor one or two files carefully to the new pattern, with tests as safety net.
-* Use that as a reference and ask the agent to generalise the change across a wider scope.
-* Keep humans in the loop to review, adjust, and stop when things get risky.
+We are currently measuring how different models behave under these conditions: how well they follow repo-level
+conventions, where they drift, how much review effort they create, and how much they really help reduce the cost of
+bringing a codebase back in shape.
 
-This is also where our future experiments live:
-
-* How well do different models follow explicit guidelines and architectural rules when refactoring?
-* How far can we push them before they start drifting from the conventions?
-* What kind of prompts, context, or tooling make them more reliable collaborators?
-
-We are starting to measure that in practice, not just in theory, and we will share those results in follow up posts.
-
-## Where we go from here
-
-I do not see AI as a magic answer to consistency.
-Right now, my working hypothesis is that agents can:
-
-* **Help spot** inconsistencies more systematically.
-* **Help spread** good patterns once the team has decided on them.
-* **Reduce the cost** of bringing a messy codebase back in shape.
-
-We are currently running experiments around this, for example:
-
-* Using agents to apply explicit guidelines at scale.
-* Measuring how well different models follow conventions and architectural rules.
-* Comparing instruction following across multiple agent setups, and seeing where they succeed or fail to respect the
-  agreed patterns.
-
-We will share concrete metrics, prompts, and results in follow-up posts, so you can see where it works, where it breaks,
-and how we design these experiments.
-
-We have opinions, but they are still evolving.
-If you are experimenting with similar ideas in your team, I would love to compare notes.
-
+These are still hypotheses, not conclusions. This post is a snapshot of how we think about consistency with agents
+today. In future articles, we’ll share more concrete experiments, metrics, and failures so we can refine these ideas
+together with other teams facing the same questions.
