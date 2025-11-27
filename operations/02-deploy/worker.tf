@@ -27,7 +27,7 @@ resource "aws_lambda_function" "worker" {
       DEV_ENVIRONMENT_SERVICE_ENABLED = var.dev_environment_service_enabled,
       WEBHOOK_BASE_URL                = aws_apigatewayv2_api.cudu_api.api_endpoint,
       KNOWLEDGE_BUCKET_NAME           = data.terraform_remote_state.provision.outputs.blob_bucket_name
-      PROCESS_QUEUE_URL            = aws_sqs_queue.process_queue.url,
+      PROCESS_QUEUE_URL               = aws_sqs_queue.process_queue.url,
     }
   }
 }
