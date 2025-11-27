@@ -32,25 +32,25 @@ resource "aws_lambda_function" "webapi" {
   memory_size   = 256
 
   vpc_config {
-    subnet_ids = data.terraform_remote_state.provision.outputs.private_subnet_ids
+    subnet_ids         = data.terraform_remote_state.provision.outputs.private_subnet_ids
     security_group_ids = [data.terraform_remote_state.provision.outputs.lambda_security_group_id]
   }
 
   environment {
     variables = {
-      DATABASE_URL                 = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string,
-      OPENAI_API_KEY               = var.openai_api_key,
-      ANTHROPIC_BASE_URL           = var.anthropic_base_url,
-      ANTHROPIC_API_KEY            = var.anthropic_api_key,
-      GOOGLE_GENERATIVE_AI_API_KEY = var.google_generative_ai_api_key,
-      PROCESS_QUEUE_URL            = aws_sqs_queue.process_queue.url,
-      TOKEN_ENCRYPTION_KEY         = var.token_encryption_key,
-      REDIS_URL                    = data.terraform_remote_state.provision.outputs.redis_connection_string,
-      NOTION_MCP_CLIENT_ID         = var.notion_mcp_client_id,
-      NOTION_MCP_CLIENT_SECRET     = var.notion_mcp_client_secret,
+      DATABASE_URL                  = data.terraform_remote_state.provision.outputs.transaction_pooler_connection_string,
+      OPENAI_API_KEY                = var.openai_api_key,
+      ANTHROPIC_BASE_URL            = var.anthropic_base_url,
+      ANTHROPIC_API_KEY             = var.anthropic_api_key,
+      GOOGLE_GENERATIVE_AI_API_KEY  = var.google_generative_ai_api_key,
+      PROCESS_QUEUE_URL             = aws_sqs_queue.process_queue.url,
+      TOKEN_ENCRYPTION_KEY          = var.token_encryption_key,
+      REDIS_URL                     = data.terraform_remote_state.provision.outputs.redis_connection_string,
+      NOTION_MCP_CLIENT_ID          = var.notion_mcp_client_id,
+      NOTION_MCP_CLIENT_SECRET      = var.notion_mcp_client_secret,
       NOTION_MCP_OAUTH_REDIRECT_URI = "https://${local.api_domain}/integrations/notion/mcp/oauth/callback",
-      NOTION_MCP_RETURN_BASE_URL   = "https://${local.app_domain}",
-      NOTION_MCP_STATE_TTL_SECONDS = tostring(var.notion_mcp_state_ttl_seconds),
+      NOTION_MCP_RETURN_BASE_URL    = "https://${local.app_domain}",
+      NOTION_MCP_STATE_TTL_SECONDS  = tostring(var.notion_mcp_state_ttl_seconds),
     }
   }
 }
@@ -62,7 +62,7 @@ resource "aws_apigatewayv2_api" "cudu_api" {
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]
-    max_age = 300
+    max_age       = 300
   }
 }
 
@@ -120,7 +120,7 @@ resource "aws_route53_record" "api_cert_validation" {
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name            = each.value.resource_record_name
   type            = each.value.resource_record_type
-  records = [each.value.resource_record_value]
+  records         = [each.value.resource_record_value]
   ttl             = 60
 }
 

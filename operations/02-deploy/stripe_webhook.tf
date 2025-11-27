@@ -18,7 +18,7 @@ resource "aws_secretsmanager_secret" "stripe_webhook_secret" {
 }
 
 resource "aws_secretsmanager_secret_version" "stripe_webhook_secret_current" {
-  count        = var.stripe_webhook_enabled ? 1 : 0
+  count         = var.stripe_webhook_enabled ? 1 : 0
   secret_id     = aws_secretsmanager_secret.stripe_webhook_secret[0].id
   secret_string = stripe_webhook_endpoint.conversational_ui[0].secret
 }

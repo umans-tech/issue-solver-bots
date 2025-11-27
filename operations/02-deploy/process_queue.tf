@@ -12,8 +12,8 @@ resource "aws_sqs_queue" "process_queue" {
 
 # Dead-Letter Queue for failed messages
 resource "aws_sqs_queue" "process_dlq" {
-  name                       = "process-dlq${local.environment_name_suffix}"
-  message_retention_seconds = 1209600  # 14 days
+  name                      = "process-dlq${local.environment_name_suffix}"
+  message_retention_seconds = 1209600 # 14 days
 }
 
 # IAM policy for Lambda to access SQS
@@ -32,7 +32,7 @@ resource "aws_iam_policy" "lambda_sqs_policy" {
           "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl"
         ]
-        Effect   = "Allow"
+        Effect = "Allow"
         Resource = [
           aws_sqs_queue.process_queue.arn,
           aws_sqs_queue.process_dlq.arn

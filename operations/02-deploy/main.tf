@@ -48,15 +48,15 @@ data "terraform_remote_state" "foundation" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  environment_name               = terraform.workspace
-  deployment_target              = terraform.workspace == "production" ? "production" : "preview"
-  environment_name_suffix        = terraform.workspace == "production" ? "" : "-${local.environment_name}"
-  domain_prefix                 = terraform.workspace == "production" ? "" : "${local.environment_name}."
-  landing_domain                 = "${local.domain_prefix}umans.ai"
-  app_domain                     = "app.${local.domain_prefix}umans.ai"
-  api_domain                     = "api.${local.domain_prefix}umans.ai"
-  blog_domain                    = "blog.${local.domain_prefix}umans.ai"
-  auth_url                       = "https://${local.app_domain}"
+  environment_name          = terraform.workspace
+  deployment_target         = terraform.workspace == "production" ? "production" : "preview"
+  environment_name_suffix   = terraform.workspace == "production" ? "" : "-${local.environment_name}"
+  domain_prefix             = terraform.workspace == "production" ? "" : "${local.environment_name}."
+  landing_domain            = "${local.domain_prefix}umans.ai"
+  app_domain                = "app.${local.domain_prefix}umans.ai"
+  api_domain                = "api.${local.domain_prefix}umans.ai"
+  blog_domain               = "blog.${local.domain_prefix}umans.ai"
+  auth_url                  = "https://${local.app_domain}"
   custom_app_runner_domains = [local.landing_domain, local.app_domain]
 
 }
