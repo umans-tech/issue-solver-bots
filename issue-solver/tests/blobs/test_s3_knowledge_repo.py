@@ -198,3 +198,83 @@ async def test_s3_knowledge_repo_should_return_none_when_origin_missing(
         )
         is None
     )
+
+
+@pytest.mark.asyncio
+async def test_s3_manifest_merge_should_preserve_previous_metadata_when_approving(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb-merge", "sha1")
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        metadata={"origin": "auto", "process_id": "p-123"},
+    )
+
+    # When
+    knowledge_repository._update_manifest(  # type: ignore[attr-defined]
+        knowledge_base_key,
+        "doc1.md",
+        {
+            "approved_by_id": "user-1",
+            "approved_by_name": "Pat Approver",
+            "approved_at": "2025-11-28T10:00:00Z",
+        },
+    )
+
+    # Then
+    metadata = knowledge_repository.get_metadata(
+        base=knowledge_base_key, document_name="doc1.md"
+    )
+    assert metadata == {
+        "origin": "auto",
+        "process_id": "p-123",
+        "approved_by_id": "user-1",
+        "approved_by_name": "Pat Approver",
+        "approved_at": "2025-11-28T10:00:00Z",
+    }
+
+
+@pytest.mark.asyncio
+async def test_s3_manifest_merge_should_replace_existing_approval_fields_only(
+    knowledge_repository: KnowledgeRepository,
+):
+    # Given
+    knowledge_base_key = KnowledgeBase("kb-merge", "sha2")
+    knowledge_repository.add(
+        base=knowledge_base_key,
+        document_name="doc1.md",
+        content="# Doc 1",
+        metadata={
+            "origin": "auto",
+            "process_id": "p-123",
+            "approved_by_id": "user-1",
+            "approved_by_name": "Pat Approver",
+            "approved_at": "2025-11-28T10:00:00Z",
+        },
+    )
+
+    # When
+    knowledge_repository._update_manifest(  # type: ignore[attr-defined]
+        knowledge_base_key,
+        "doc1.md",
+        {
+            "approved_by_id": "user-2",
+            "approved_by_name": "Riley Reviewer",
+            "approved_at": "2025-11-28T11:15:00Z",
+        },
+    )
+
+    # Then
+    metadata = knowledge_repository.get_metadata(
+        base=knowledge_base_key, document_name="doc1.md"
+    )
+    assert metadata == {
+        "origin": "auto",
+        "process_id": "p-123",
+        "approved_by_id": "user-2",
+        "approved_by_name": "Riley Reviewer",
+        "approved_at": "2025-11-28T11:15:00Z",
+    }
