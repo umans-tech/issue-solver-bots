@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity, MoreVertical, RotateCcw, Wand2} from 'lucide-react';
+import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity, MoreVertical, RotateCcw, Wand2, ShieldCheck, ShieldOff} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,12 +28,18 @@ type DocFileEntry = {
   title: string;
   origin?: string;
   process_id?: string;
+  approved_by_id?: string;
+  approved_by_name?: string;
+  approved_at?: string;
 };
 
 type DocListEntry = {
   path: string;
   origin?: string;
   process_id?: string;
+  approved_by_id?: string;
+  approved_by_name?: string;
+  approved_at?: string;
 };
 
 type DocFolderNode = {
@@ -86,6 +92,8 @@ export default function DocsPage() {
   const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
   const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [activeApproval, setActiveApproval] = useState<{ approved_by_id?: string; approved_by_name?: string; approved_at?: string } | null>(null);
   const promptIdForActiveDoc = useMemo(() => {
     if (!activePath) return null;
     const segments = activePath.split('/').filter(Boolean);
@@ -271,6 +279,48 @@ export default function DocsPage() {
     [kbId, promptIdForActiveDoc, toast],
   );
 
+  const toggleApproval = useCallback(
+    async (action: 'approve' | 'revoke') => {
+      if (!kbId || !commitSha || !activePath) return;
+      setIsApproving(true);
+      try {
+        const res = await fetch('/api/docs/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kbId, commitSha, path: activePath, action }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to update approval');
+        }
+        const meta = data?.metadata || {};
+        setFileList((prev) => prev.map((entry) => {
+          if (entry.path !== activePath) return entry;
+          if (action === 'revoke') {
+            const { approved_by_id, approved_by_name, approved_at, ...rest } = entry;
+            return { ...rest } as DocFileEntry;
+          }
+          return { ...entry, ...meta } as DocFileEntry;
+        }));
+        if (action === 'revoke') {
+          setActiveApproval(null);
+        } else {
+          setActiveApproval({
+            approved_by_id: meta.approved_by_id,
+            approved_by_name: meta.approved_by_name,
+            approved_at: meta.approved_at,
+          });
+        }
+        toast.success(action === 'approve' ? 'Document approved' : 'Approval revoked');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update approval');
+      } finally {
+        setIsApproving(false);
+      }
+    },
+    [kbId, commitSha, activePath, toast],
+  );
+
 
   const docTree = useMemo(() => {
     const formatSegment = (segment: string) => segment
@@ -386,12 +436,15 @@ export default function DocsPage() {
         const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
-        const metadataMap: Record<string, { origin?: string; process_id?: string }> = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
+        const metadataMap: Record<string, { origin?: string; process_id?: string; approved_by_id?: string; approved_by_name?: string; approved_at?: string }> = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
         if (!cancelled) {
           setFileList(files.map((path: string) => ({ 
             path, 
             origin: metadataMap[path]?.origin,
-            process_id: metadataMap[path]?.process_id
+            process_id: metadataMap[path]?.process_id,
+            approved_by_id: metadataMap[path]?.approved_by_id,
+            approved_by_name: metadataMap[path]?.approved_by_name,
+            approved_at: metadataMap[path]?.approved_at,
           })));
         }
         // lazily resolve titles for index entries
@@ -429,11 +482,17 @@ export default function DocsPage() {
     if (!activePath) {
       setActiveProcessId(null);
       setActiveOrigin(null);
+      setActiveApproval(null);
       return;
     }
     const entry = fileList.find(f => f.path === activePath);
     setActiveProcessId(entry?.process_id ?? null);
     setActiveOrigin(entry?.origin ?? null);
+    setActiveApproval(entry ? {
+      approved_by_id: entry.approved_by_id,
+      approved_by_name: entry.approved_by_name,
+      approved_at: entry.approved_at,
+    } : null);
   }, [activePath, fileList]);
 
   useEffect(() => {
@@ -483,11 +542,20 @@ export default function DocsPage() {
       prefetchDoc(pathParam);
       return;
     }
+    if (activePath) return;
     if (fileList.length > 0) {
       prefetchDoc(fileList[0].path);
       navigateToPath(fileList[0].path, { replace: true });
     }
-  }, [fileList, pathParam, navigateToPath, prefetchDoc]);
+  }, [fileList, pathParam, activePath, navigateToPath, prefetchDoc]);
+
+  const approvalSummary = useMemo(() => {
+    if (!activeApproval?.approved_at || !activeApproval?.approved_by_name) return null;
+    const date = new Date(activeApproval.approved_at);
+    const isValid = !Number.isNaN(date.getTime());
+    const when = isValid ? date.toLocaleString() : activeApproval.approved_at;
+    return `${activeApproval.approved_by_name} • ${when}`;
+  }, [activeApproval]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -930,6 +998,7 @@ export default function DocsPage() {
   const showContent = contentStatus === 'ready' || (contentStatus === 'loading' && !!content);
   const showInlineLoader = contentStatus === 'loading' && !!content;
   const showContentActions = showContent && !!content;
+  const isApproved = !!activeApproval?.approved_by_id;
 
   const displayedItems = hasSearchQuery
     ? results.map((r) => ({
@@ -977,6 +1046,19 @@ export default function DocsPage() {
           <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-[1px] text-[10px] font-semibold uppercase tracking-wide text-primary">
             Auto
           </span>
+        )}
+        {entry.approved_by_name && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-[1px] text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100">
+                Approved
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {entry.approved_by_name}
+              {entry.approved_at ? ` • ${new Date(entry.approved_at).toLocaleString()}` : ''}
+            </TooltipContent>
+          </Tooltip>
         )}
       </span>
       <span className="text-[11px] text-muted-foreground/70 leading-tight">{entry.path}</span>
@@ -1118,6 +1200,60 @@ export default function DocsPage() {
                         {showContentActions && (
                           <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
                             {activeOrigin === 'auto' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant={isApproved ? 'secondary' : 'outline'}
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground"
+                                    onClick={() => toggleApproval(isApproved ? 'revoke' : 'approve')}
+                                    disabled={isApproving || !kbId || !commitSha}
+                                    aria-label={isApproved ? 'Revoke approval' : 'Approve document'}
+                                  >
+                                    {isApproved ? <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-500" /> : <ShieldOff className="h-4 w-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                  {isApproved
+                                    ? approvalSummary || 'Approved'
+                                    : 'Add a human approval seal'}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={handleCopyMarkdown}
+                                  aria-label="Copy markdown"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                  <span className="sr-only">Copy markdown</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={handleDownloadMarkdown}
+                                  aria-label="Download markdown"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  <span className="sr-only">Download markdown</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Download markdown</TooltipContent>
+                            </Tooltip>
+                            {activeOrigin === 'auto' && (
                               <DropdownMenu>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -1167,38 +1303,6 @@ export default function DocsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleCopyMarkdown}
-                                  aria-label="Copy markdown"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  <span className="sr-only">Copy markdown</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleDownloadMarkdown}
-                                  aria-label="Download markdown"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  <span className="sr-only">Download markdown</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Download markdown</TooltipContent>
-                            </Tooltip>
                           </div>
                         )}
                       </div>
@@ -1220,6 +1324,12 @@ export default function DocsPage() {
                        </div>
                      ) : showContent ? (
                        <div className="max-w-none prose prose-neutral dark:prose-invert">
+                         {isApproved && (
+                           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100">
+                             <ShieldCheck className="h-3.5 w-3.5" />
+                             <span>{approvalSummary || 'Approved'}</span>
+                           </div>
+                         )}
                          <Markdown>{content}</Markdown>
                        </div>
                      ) : (

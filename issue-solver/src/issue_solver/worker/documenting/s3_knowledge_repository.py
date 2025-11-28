@@ -93,7 +93,11 @@ class S3KnowledgeRepository(KnowledgeRepository):
         self, base: KnowledgeBase, document_name: str, metadata: dict[str, str]
     ) -> None:
         manifest = self._load_manifest(base)
-        manifest[document_name] = metadata
+
+        existing = manifest.get(document_name, {})
+        merged_metadata = {**existing, **metadata}
+
+        manifest[document_name] = merged_metadata
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=self._manifest_key(base),
