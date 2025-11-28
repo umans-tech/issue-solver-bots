@@ -294,12 +294,23 @@ export default function DocsPage() {
           throw new Error(data?.error || 'Failed to update approval');
         }
         const meta = data?.metadata || {};
-        setFileList((prev) => prev.map((entry) => (entry.path === activePath ? { ...entry, ...meta } : entry)));
-        setActiveApproval({
-          approved_by_id: meta.approved_by_id,
-          approved_by_name: meta.approved_by_name,
-          approved_at: meta.approved_at,
-        });
+        setFileList((prev) => prev.map((entry) => {
+          if (entry.path !== activePath) return entry;
+          if (action === 'revoke') {
+            const { approved_by_id, approved_by_name, approved_at, ...rest } = entry;
+            return { ...rest } as DocFileEntry;
+          }
+          return { ...entry, ...meta } as DocFileEntry;
+        }));
+        if (action === 'revoke') {
+          setActiveApproval(null);
+        } else {
+          setActiveApproval({
+            approved_by_id: meta.approved_by_id,
+            approved_by_name: meta.approved_by_name,
+            approved_at: meta.approved_at,
+          });
+        }
         toast.success(action === 'approve' ? 'Document approved' : 'Approval revoked');
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to update approval');
@@ -1187,25 +1198,59 @@ export default function DocsPage() {
                         )}
                         {showContentActions && (
                           <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                            {activeOrigin === 'auto' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant={isApproved ? 'secondary' : 'outline'}
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground"
+                                    onClick={() => toggleApproval(isApproved ? 'revoke' : 'approve')}
+                                    disabled={isApproving || !kbId || !commitSha}
+                                    aria-label={isApproved ? 'Revoke approval' : 'Approve document'}
+                                  >
+                                    {isApproved ? <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-500" /> : <ShieldOff className="h-4 w-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                  {isApproved
+                                    ? approvalSummary || 'Approved'
+                                    : 'Add a human approval seal'}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   type="button"
-                                  variant={isApproved ? 'secondary' : 'outline'}
+                                  variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 text-muted-foreground"
-                                  onClick={() => toggleApproval(isApproved ? 'revoke' : 'approve')}
-                                  disabled={isApproving || !kbId || !commitSha}
-                                  aria-label={isApproved ? 'Revoke approval' : 'Approve document'}
+                                  onClick={handleCopyMarkdown}
+                                  aria-label="Copy markdown"
                                 >
-                                  {isApproved ? <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-500" /> : <ShieldOff className="h-4 w-4" />}
+                                  <Copy className="h-4 w-4" />
+                                  <span className="sr-only">Copy markdown</span>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent side="bottom">
-                                {isApproved
-                                  ? approvalSummary || 'Approved'
-                                  : 'Add a human approval seal'}
-                              </TooltipContent>
+                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground"
+                                  onClick={handleDownloadMarkdown}
+                                  aria-label="Download markdown"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  <span className="sr-only">Download markdown</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">Download markdown</TooltipContent>
                             </Tooltip>
                             {activeOrigin === 'auto' && (
                               <DropdownMenu>
@@ -1257,38 +1302,6 @@ export default function DocsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleCopyMarkdown}
-                                  aria-label="Copy markdown"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  <span className="sr-only">Copy markdown</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleDownloadMarkdown}
-                                  aria-label="Download markdown"
-                                >
-                                  <Download className="h-4 w-4" />
-                                  <span className="sr-only">Download markdown</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Download markdown</TooltipContent>
-                            </Tooltip>
                           </div>
                         )}
                       </div>
