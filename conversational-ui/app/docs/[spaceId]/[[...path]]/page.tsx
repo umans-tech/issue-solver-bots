@@ -542,11 +542,12 @@ export default function DocsPage() {
       prefetchDoc(pathParam);
       return;
     }
+    if (activePath) return;
     if (fileList.length > 0) {
       prefetchDoc(fileList[0].path);
       navigateToPath(fileList[0].path, { replace: true });
     }
-  }, [fileList, pathParam, navigateToPath, prefetchDoc]);
+  }, [fileList, pathParam, activePath, navigateToPath, prefetchDoc]);
 
   const approvalSummary = useMemo(() => {
     if (!activeApproval?.approved_at || !activeApproval?.approved_by_name) return null;
