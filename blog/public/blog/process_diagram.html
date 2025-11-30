@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Diagram</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --mono-font: 'JetBrains Mono', monospace;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --glow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: transparent;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px;
+        }
+
+        /* Main Grid Container */
+        .grid-container {
+            display: grid;
+            /* Column widths: Agent(400) Arrow(100) Tests(300) Arrow(100) Quality(340) */
+            grid-template-columns: 400px 100px 300px 100px 340px;
+            /* Rows: Task(Auto) Arrow(40) Workspace(Auto) */
+            grid-template-rows: auto 40px auto;
+            grid-template-areas: 
+                "task    .       .      .      ."
+                "arrow-d .       .      .      ."
+                "agent   arrow1  tests  arrow2 quality";
+            gap: 0px;
+            align-items: start; /* Changed from center to start */
+            max-width: 1400px;
+            position: relative;
+        }
+
+        /* Common Card Styles */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            /* height: 100%; Removed to allow auto-sizing */
+        }
+
+        .card:hover {
+            border-color: #475569;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        /* Scale down for narrow embeds (e.g., blog content column) */
+        .diagram-scale {
+            transform: scale(0.62);
+            transform-origin: top center;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* --- Task Card (Top Left) --- */
+        .task-card {
+            grid-area: task;
+            padding: 16px 32px;
+            background: linear-gradient(to bottom right, #1e293b, #0f172a);
+            border-left: 4px solid var(--accent-blue);
+            width: fit-content;
+            justify-self: center;
+        }
+
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .task-content {
+            font-size: 1.1rem;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        /* --- Vertical Arrow (Task -> Agent) --- */
+        .arrow-down-container {
+            grid-area: arrow-d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            position: relative;
+        }
+
+        .arrow-vertical-line {
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--card-border));
+            opacity: 0.8;
+        }
+
+        /* --- Agent Workspace Card --- */
+        .agent-workspace {
+            grid-area: agent;
+            background: linear-gradient(to bottom, #1e293b, #111827);
+            box-shadow: var(--glow), var(--shadow-lg);
+        }
+
+        .agent-header {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background-image: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+        }
+
+        .agent-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .workspace-body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .section-header i { color: var(--accent-blue); }
+
+        /* Codebase Section */
+        .codebase-preview {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: var(--mono-font);
+            font-size: 0.8rem;
+        }
+
+        .file-entry {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            color: #cbd5e1;
+        }
+        .file-entry i { color: #64748b; width: 16px; text-align: center; }
+        .file-dim { color: #475569; }
+
+        /* Tools Section */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0px;
+            padding-top: 4px;
+        }
+
+        .tool-item {
+            /* Removed borders and background */
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: default;
+        }
+        
+        .tool-item:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .tool-icon {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            opacity: 0.8;
+            transition: all 0.2s;
+        }
+        
+        .tool-name {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            opacity: 0.8;
+            transition: all 0.2s;
+            letter-spacing: 0.03em;
+        }
+        
+        .tool-item:hover .tool-icon,
+        .tool-item:hover .tool-name {
+            color: var(--text-primary);
+            opacity: 1;
+        }
+
+
+        /* --- Generated Tests Card --- */
+        .generated-pr-card {
+            grid-area: tests;
+            padding: 24px;
+        }
+
+        .pr-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .pr-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pr-title i { color: var(--accent-purple); }
+
+        .pr-stats {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            font-family: var(--mono-font);
+            font-size: 0.75rem;
+            background: #0f172a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #334155;
+        }
+        
+        .stat-block { width: 6px; height: 6px; border-radius: 1px; }
+        .bg-green { background-color: var(--success); }
+        .bg-red { background-color: var(--danger); }
+        .bg-gray { background-color: #475569; }
+
+        .pr-file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-family: var(--mono-font);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .pr-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 6px;
+        }
+        .pr-file-item:hover { background-color: #334155; }
+        
+        .file-status {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 8px;
+            color: white;
+            font-weight: bold;
+        }
+        .status-added { background-color: var(--success); }
+        .status-modified { background-color: var(--warning); }
+        
+        .file-item-group { display: flex; align-items: center; gap: 8px; }
+
+        /* --- Quality Checks Card --- */
+        .quality-checks-card {
+            grid-area: quality;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Adjusted Quality Title */
+        .quality-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            gap: 10px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        .table-container {
+            margin-top: 0; 
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+        }
+        
+        th:nth-child(1) { width: 15%; text-align: center; } /* G/W/T */
+        th:nth-child(2) { width: 15%; text-align: center; } /* Pass */
+        th:last-child { width: 70%; }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #1e293b; color: var(--text-primary); }
+
+        .check-icon { color: var(--success); font-size: 1rem; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4)); }
+        .cross-icon { color: var(--danger); font-size: 1rem; opacity: 0.8; }
+
+        /* --- Enhanced Arrow Styles --- */
+        .arrow-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Changed from center to top */
+            height: 100%;
+            position: relative;
+            padding-top: 100px; /* Added spacing */
+        }
+
+        .arrow-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .arrow-label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            background-color: var(--bg-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--card-border);
+            white-space: nowrap;
+        }
+
+        .arrow-icon-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            font-size: 0.8rem;
+        }
+
+        /* Commit Arrow (Purple/Solid) */
+        .arrow-commit .arrow-icon-circle { 
+            color: var(--text-primary);
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+        }
+        .arrow-commit .arrow-label {
+            color: var(--accent-purple);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        /* Evaluation Arrow (Green/Action) */
+        .arrow-eval .arrow-icon-circle { 
+            color: var(--success);
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .arrow-eval .arrow-label {
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-icon {
+            height: 32px;
+            width: 32px;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            background: none;
+            border-radius: 0;
+            padding: 4px;
+            z-index: 2;
+        }
+        .logo-icon:first-child { z-index: 1; margin-right: -10px; }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f8fafc;
+            }
+            .arrow-label {
+                color: #475569;
+                background-color: var(--bg-color);
+                border-color: #cbd5e1;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="diagram-scale">
+    <div class="grid-container">
+        
+        <!-- Task Card (Moved outside, above Agent) -->
+        <div class="card task-card">
+            <div class="task-header">
+                <i class="far fa-dot-circle"></i> Task
+            </div>
+            <div class="task-content">
+                Test generation
+            </div>
+        </div>
+
+        <!-- Vertical Arrow connecting Task to Agent -->
+        <div class="arrow-down-container">
+            <div class="arrow-vertical-line"></div>
+        </div>
+
+        <!-- Agent Workspace Card -->
+        <div class="card agent-workspace">
+            <!-- Header (Identity) -->
+            <div class="agent-header">
+                <div class="logo-group">
+                    <img src="https://cdn.simpleicons.org/openai/white" class="logo-icon" alt="OpenAI" />
+                    <img src="https://unpkg.com/@lobehub/icons-static-svg@latest/icons/claude-color.svg" class="logo-icon" alt="Claude" style="margin-left: 10px;" />
+                    <img src="https://unpkg.com/@lobehub/icons-static-svg@latest/icons/gemini-color.svg" class="logo-icon" alt="Gemini" />
+                </div>
+                <div class="agent-title">Coding Agent</div>
+            </div>
+
+            <!-- Body -->
+            <div class="workspace-body">
+                
+                <!-- Codebase -->
+                <div class="codebase-section">
+                    <div class="section-header">
+                        <span><i class="fab fa-github"></i> Codebase</span>
+                    </div>
+                    <div class="codebase-preview">
+                        <div class="file-entry">
+                            <i class="far fa-file-alt"></i> 
+                            <span>AGENTS.md</span>
+                        </div>
+                        <div class="file-entry">
+                            <i class="fas fa-folder"></i>
+                            <span>src</span>
+                        </div>
+                        <div class="file-entry" style="padding-left: 12px;">
+                            <i class="fas fa-folder"></i>
+                            <span>agents</span>
+                        </div>
+                        <div class="file-entry" style="padding-left: 24px;">
+                            <i class="fas fa-folder"></i>
+                            <span>tools</span>
+                        </div>
+                        <div class="file-entry" style="padding-left: 36px;">
+                            <i class="far fa-file-code"></i>
+                            <span class="file-dim">bash.py</span>
+                        </div>
+                        <div class="file-entry" style="padding-left: 36px;">
+                            <i class="far fa-file-code"></i>
+                            <span class="file-dim">edit.py</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coding Tools -->
+                <div class="tools-section">
+                    <div class="section-header">
+                        <span><i class="fas fa-code" style="margin-right: 6px;"></i> Coding Tools</span>
+                    </div>
+                    <div class="tools-grid">
+                        <div class="tool-item">
+                            <i class="fas fa-terminal tool-icon"></i>
+                            <span class="tool-name">Shell</span>
+                        </div>
+                        <div class="tool-item">
+                            <i class="far fa-file-code tool-icon"></i>
+                            <span class="tool-name">Edit</span>
+                        </div>
+                        <div class="tool-item">
+                            <i class="fas fa-search tool-icon"></i>
+                            <span class="tool-name">Grep</span>
+                        </div>
+                        <div class="tool-item">
+                            <i class="fas fa-globe tool-icon"></i>
+                            <span class="tool-name">Web</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Arrow: Agent -> Tests (Commit) -->
+        <div class="arrow-container" style="grid-area: arrow1;">
+             <div style="position: absolute; z-index: 1; width: 100%; height: 2px; background: var(--accent-purple); opacity: 0.8;"></div>
+             <div class="arrow-wrapper arrow-commit">
+                <span class="arrow-label">Code Changes</span>
+                <div class="arrow-icon-circle">
+                    <i class="fas fa-code-commit"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Tests Area -->
+        <div class="card generated-pr-card">
+            <div class="pr-header">
+                <div class="pr-title">
+                    <i class="fas fa-code-branch"></i> Generated Tests
+                </div>
+                <div class="pr-stats">
+                    <span style="color: var(--success); font-weight: bold;">+287</span>
+                    <span style="color: var(--danger); font-weight: bold; margin-right: 6px;">-22</span>
+                    <div class="stat-block bg-green"></div>
+                    <div class="stat-block bg-green"></div>
+                    <div class="stat-block bg-red"></div>
+                    <div class="stat-block bg-gray"></div>
+                </div>
+            </div>
+
+            <div class="pr-file-list">
+                <div class="file-item-group"><i class="fas fa-folder" style="color:#64748b;"></i> tests</div>
+                <div class="file-item-group" style="padding-left: 16px;"><i class="fas fa-folder" style="color:#64748b;"></i> agents</div>
+                
+                <div class="pr-file-item" style="padding-left: 32px;">
+                    <div class="file-item-group"><i class="far fa-file-code"></i> conftest.py</div>
+                    <div class="file-status status-modified"><i class="fas fa-pen" style="font-size: 8px;"></i></div>
+                </div>
+                <div class="pr-file-item" style="padding-left: 32px;">
+                    <div class="file-item-group"><i class="far fa-file-code"></i> test_bash.py</div>
+                    <div class="file-status status-added"><i class="fas fa-plus" style="font-size: 8px;"></i></div>
+                </div>
+                <div class="pr-file-item" style="padding-left: 32px;">
+                    <div class="file-item-group"><i class="far fa-file-code"></i> test_edit.py</div>
+                    <div class="file-status status-added"><i class="fas fa-plus" style="font-size: 8px;"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow: Tests -> Quality (Evaluation) -->
+        <div class="arrow-container" style="grid-area: arrow2;">
+             <div style="position: absolute; z-index: 1; width: 100%; height: 2px; background: var(--success); opacity: 0.8;"></div>
+             <div class="arrow-wrapper arrow-eval">
+                <span class="arrow-label">Evaluate</span>
+                <div class="arrow-icon-circle">
+                    <i class="fas fa-vial"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quality Checks Area -->
+        <div class="card quality-checks-card">
+            <div class="quality-header-row">
+                <i class="fas fa-check-circle" style="color: var(--success); margin-right: 4px;"></i>
+                <span>Quality Checks</span>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>G/W/T</th>
+                            <th>Pass</th>
+                            <th>Tests</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align: center;"><i class="fas fa-times cross-icon"></i></td>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td>test_lists_repo_and_sees_docs</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td>test_reads_file_and_captures_stderr</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center;"><i class="fas fa-times cross-icon"></i></td>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td>test_directory_view_shows_tree</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td style="text-align: center;"><i class="fas fa-check check-icon"></i></td>
+                            <td>test_edits_and_undoes_working_copy</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    </div>
+
+</body>
+</html>
