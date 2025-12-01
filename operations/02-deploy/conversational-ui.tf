@@ -180,7 +180,11 @@ resource "aws_route53_record" "apprunner_cert_validation_app" {
 
 # Create CNAME records for subdomains and alias record for apex domain
 resource "aws_route53_record" "landing_alias" {
-  for_each = aws_apprunner_custom_domain_association.conversational_ui
+  # Skip landing domain when CloudFront handles it (all environments)
+  for_each = {
+    for domain, assoc in aws_apprunner_custom_domain_association.conversational_ui : domain => assoc
+    if domain != local.landing_domain
+  }
 
   allow_overwrite = true
   zone_id         = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
@@ -207,4 +211,3 @@ resource "aws_route53_record" "landing_alias" {
     create_before_destroy = true
   }
 }
-
