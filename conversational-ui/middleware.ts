@@ -51,7 +51,7 @@ export default function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!terms|privacy|landing).)*',
+    '/((?!terms|privacy|landing|home).)*',
     '/api/:path*',
     '/login',
     '/register',
