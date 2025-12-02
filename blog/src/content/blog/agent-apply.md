@@ -85,7 +85,7 @@ Next, we’ll look at how we set the experiment up, what actually happened, and 
   src="/blog/process_diagram.html"
   style="width: 100%; max-width: 100%; height: 400px; border: none; background: transparent; display: block; margin: 0 auto;"
   loading="lazy"
-/>
+></iframe>
 
 The diagram at the top is basically the whole experiment:
 **give a task → let an agent work in the repo → analyse the tests it wrote.**
@@ -156,6 +156,12 @@ At a high level, three things stood out:
 * Agents running in **provider tools** (Codex CLI, Claude Code) behaved more like collaborators inside the repo: they respected more of `AGENTS.md`, ran checks, and produced code we could imagine keeping after edits.
 * The **Cursor agents** behaved more like raw code generators: they often ignored parts of the guidelines and needed an external loop to rescue them with error output and checks.
 * None of the setups fully matched the testing style in `AGENTS.md`; every one drifted somewhere (missing behaviors, ignoring fixtures, or over-focusing on internals).
+
+<iframe
+  src="/blog/metrics_chart.html"
+  style="width: 100%; max-width: 100%; height: 750px; border: none; background: transparent; display: block; margin: 0 auto;"
+  loading="lazy"
+></iframe>
 
 ### Codex-Max via Codex CLI
 
@@ -244,7 +250,7 @@ From this single module and task, three things stood out.
 
 ## What's next
 
-This experiment is a first small step on the apply side of the previous article: taking the conventions we have written down and watching how coding agents behave against them in a live repo. One thing it suggests is that when even a small part of those expectations becomes an executable check, agents can lean on it instead of guessing—and the same signal that guides them also gives human teams a clearer view of when code is drifting from the conventions they care about.
+This experiment is a first small step on the apply side of the previous article: taking the conventions we have written down and watching how coding agents behave against them in a live repo. One thing it suggests is that when even a small part of those expectations becomes an executable check, agents can lean on it instead of guessing and the same signal that guides them also gives human teams a clearer view of when code is drifting from the conventions they care about.
 
 From here, the plan is to keep exploring in that direction with small, concrete experiments, looking for ways to turn more of a codebase's intent into this kind of actionable feedback.
 
