@@ -80,6 +80,7 @@ resource "aws_cloudfront_distribution" "apex_redirect" {
 }
 
 resource "aws_route53_record" "apex_redirect_alias" {
+  allow_overwrite = true
   zone_id = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name    = local.landing_domain
   type    = "A"
@@ -92,6 +93,7 @@ resource "aws_route53_record" "apex_redirect_alias" {
 }
 
 resource "aws_route53_record" "apex_redirect_alias_ipv6" {
+  allow_overwrite = true
   zone_id = data.terraform_remote_state.foundation.outputs.umans_route53_zone_id
   name    = local.landing_domain
   type    = "AAAA"
