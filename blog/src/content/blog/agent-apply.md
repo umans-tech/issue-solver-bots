@@ -34,7 +34,7 @@ So in this experiment, we tried to do a bit better than that:
 * we ran them as actual coding agents (editing files, running commands),
 * and we checked how closely their behavior matched what we asked for.
 
-In parallel, labs keep announcing [“improved instruction following”](https://openai.com/index/gpt-5-1/), but most of the popular instruction-following benchmarks (e.g. [IFEVAL](https://arxiv.org/abs/2311.07911) and [COLLIE}(https://collie-benchmark.github.io/)) are already essentially maxed (see [o3-mini](https://openai.com/index/gpt-4-1/) for IFEVAL and [GPT-5](https://openai.com/index/introducing-gpt-5/) for COLLIE) out for top models. Those numbers don’t tell you whether a model will respect three pages of project-specific rules once it is inside your repository.
+In parallel, labs keep announcing [“improved instruction following”](https://openai.com/index/gpt-5-1/), but most of the popular instruction-following benchmarks (e.g. [IFEVAL](https://arxiv.org/abs/2311.07911) and [COLLIE](https://collie-benchmark]github.io/)) are already essentially maxed (see [o3-mini](https://openai.com/index/gpt-4-1/) for IFEVAL and [GPT-5](https://openai.com/index/introducing-gpt-5/) for COLLIE) out for top models. Those numbers don’t tell you whether a model will respect three pages of project-specific rules once it is inside your repository.
 
 We wanted a small, concrete check anchored in reality:
 
@@ -86,6 +86,9 @@ Next, we’ll look at how we set the experiment up, what actually happened, and 
   style="width: 100%; max-width: 100%; height: 400px; border: none; background: transparent; display: block; margin: 0 auto;"
   loading="lazy"
 ></iframe>
+<figcaption style="text-align: center; font-size: 0.9em; color: #666;">
+    Experiment pipeline: task → agent run → quality evaluation
+</figcaption>
 
 The diagram at the top is basically the whole experiment:
 **give a task → let an agent work in the repo → analyse the tests it wrote.**
@@ -154,14 +157,19 @@ The next section looks at how the different setups behaved under this pipeline, 
 At a high level, three things stood out:
 
 * Agents running in **provider tools** (Codex CLI, Claude Code) behaved more like collaborators inside the repo: they respected more of `AGENTS.md`, ran checks, and produced code we could imagine keeping after edits.
-* The **Cursor agents** behaved more like raw code generators: they often ignored parts of the guidelines and needed an external loop to rescue them with error output and checks.
-* None of the setups fully matched the testing style in `AGENTS.md`; every one drifted somewhere (missing behaviors, ignoring fixtures, or over-focusing on internals).
+* The **Cursor** and **Gemini CLI agents** behaved more like raw code generators: they often ignored parts of the guidelines. Cursor agents, specifically, needed an external loop to rescue them with error output and checks.
+* None of the setups fully matched the testing style in `AGENTS.md`; every one drifted somewhere (missing behaviors or formatting, ignoring fixtures, or over-focusing on internals).
 
 <iframe
   src="/blog/metrics_chart.html"
-  style="width: 100%; max-width: 100%; height: 850px; border: none; background: transparent; display: block; margin: 0 auto;"
+  style="width: 100%; max-width: 100%; height: 800px; border: none; background: transparent; display: block; margin: 0 auto;"
   loading="lazy"
 ></iframe>
+ <figcaption style="text-align: center; font-size: 0.9em; color: #666;">
+    Agent comparison across five quality dimensions
+  </figcaption>
+
+
 
 ### Codex-Max via Codex CLI
 
@@ -267,3 +275,18 @@ All numbers below are for the same target: the 431 lines of `bash.py` (143 LOC) 
 | Claude Sonnet 4.5 — Cursor (Thinking)            | 90.7%                      | 45 tests, 769 LOC | Yes                         | Rarely          | No (fixed by outer loop)  | Many tests and good coverage; surface style partly aligned, fixtures and checks much less so.                   |
 | GPT-5.1 Codex High — Cursor                      | 55.3%                      | 4 tests, 110 LOC  | Yes                         | Yes             | No (fixed by outer loop)  | Matches surface style but covers little of the module and leans heavily on mocking.                             |
 | Claude Sonnet 4.5 — Claude Code                  | 96.8%                      | 57 tests, 936 LOC | Yes                         | Almost always   | Yes                       | Very high coverage and strong adherence to visible style; large diff, many assertions tied to internal details. |
+
+
+### `AGENTS.md` - Testing guidelines
+
+``` markdown
+- Make tests read like short stories of real usage; assert externally visible behaviour, not internal logging or strings that may change.
+- Comment only with `# Given`, `# When`, `# Then`; let fixture and helper names explain the setup.
+- Centralize fixtures in `tests/**/conftest.py`; build small, realistic fixtures per domain (e.g., minimal filesystem, HTTP payload, queue event) instead of bespoke per-test setup.
+- Keep tests fast and deterministic: tighten timeouts when you need one, avoid sleeps, and prefer parametrization over copy‑paste cases.
+- Target behaviours that matter to users—successful flows and a few critical failures that change the experience—rather than defensive checks that don’t surface externally.
+- Use behavioural assertions (state changed, side effect happened, command allowed/denied) so alternative implementations that keep behaviour intact stay green.
+-  Quality guardrail is the alias chain `just l c f t` (ruff lint → mypy → ruff format → pytest).
+- Tests should mirror existing behavioural suites like `tests/events/test_auto_documentation.py` and `tests/queueing/test_sqs_queueing_event_store.py`—fixtures plus Given/When/Then assertions.
+
+```
