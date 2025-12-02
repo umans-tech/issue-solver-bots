@@ -159,7 +159,7 @@ At a high level, three things stood out:
 
 <iframe
   src="/blog/metrics_chart.html"
-  style="width: 100%; max-width: 100%; height: 750px; border: none; background: transparent; display: block; margin: 0 auto;"
+  style="width: 100%; max-width: 100%; height: 850px; border: none; background: transparent; display: block; margin: 0 auto;"
   loading="lazy"
 ></iframe>
 

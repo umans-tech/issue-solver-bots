@@ -15,8 +15,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
             box-sizing: border-box;
         }
 
@@ -33,34 +32,38 @@
 
         canvas {
             width: 100% !important;
-            height: 650px !important;
+            height: 500px !important;
         }
     </style>
 </head>
 <body>
 
     <div class="chart-card">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <button id="toggleButton" style="background: rgba(255, 255, 255, 0.1); border: 1px solid #334155; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; transition: all 0.2s;">
+                Hide All
+            </button>
+        </div>
         <canvas id="radarChart"></canvas>
+        <div id="customLegend" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px;"></div>
     </div>
 
     <script>
         const ctx = document.getElementById('radarChart').getContext('2d');
+        const toggleButton = document.getElementById('toggleButton');
+        const legendContainer = document.getElementById('customLegend');
 
         Chart.defaults.font.family = "'Inter', sans-serif";
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.borderColor = '#334155';
 
-        // Data definition
-        // Conciseness scoring (approx):
-        // 110 -> 95, 125 -> 92, 194/197 -> 86, 260/274 -> 75/76, 582 -> 50, 769 -> 40, 936 -> 30
-        
         const data = {
-            labels: ['Factored', 'Coverage', 'Formatted', 'Behavioral', 'Concise'],
+            labels: ['Coverage', 'Formatted', 'Factored', 'Behavioral', 'Concise'],
             datasets: [
                 // --- Codex / GPT Models (Greyscale) ---
                 {
                     label: 'Codex Max [xHigh] (Codex CLI)',
-                    data: [0, 82.3, 100, 100, 86],
+                    data: [82.3, 100, 0, 100, 86],
                     backgroundColor: 'rgba(241, 245, 249, 0.1)', // Whiteish
                     borderColor: '#f1f5f9',
                     pointBackgroundColor: '#f1f5f9',
@@ -68,7 +71,7 @@
                 },
                 {
                     label: 'Codex Max [High] (Codex CLI)',
-                    data: [33, 75.0, 100, 100, 92],
+                    data: [75.0, 100, 33, 100, 92],
                     backgroundColor: 'rgba(148, 163, 184, 0.1)', // Light Grey
                     borderColor: '#94a3b8',
                     pointBackgroundColor: '#94a3b8',
@@ -76,7 +79,7 @@
                 },
                 {
                     label: 'GPT-5.1 Codex [High] (Codex CLI)',
-                    data: [0, 78.6, 100, 90, 86],
+                    data: [78.6, 100, 0, 90, 86],
                     backgroundColor: 'rgba(100, 116, 139, 0.1)', // Medium Grey
                     borderColor: '#64748b',
                     pointBackgroundColor: '#64748b',
@@ -84,7 +87,7 @@
                 },
                 {
                     label: 'GPT-5.1 Codex [High] (Cursor)',
-                    data: [0, 54.1, 100, 100, 95],
+                    data: [54.1, 100, 0, 100, 95],
                     backgroundColor: 'rgba(71, 85, 105, 0.1)', // Dark Grey
                     borderColor: '#475569',
                     pointBackgroundColor: '#475569',
@@ -94,7 +97,7 @@
                 // --- Gemini Models (Blue) ---
                 {
                     label: 'Gemini 3 Pro (Gemini CLI)',
-                    data: [0, 90.8, 0, 93, 75],
+                    data: [90.8, 0, 0, 93, 75],
                     backgroundColor: 'rgba(78, 133, 240, 0.2)', // Blue
                     borderColor: '#4E85F0',
                     pointBackgroundColor: '#4E85F0',
@@ -102,7 +105,7 @@
                 },
                 {
                     label: 'Gemini 3 Pro (Cursor)',
-                    data: [0, 90.5, 0, 100, 76],
+                    data: [90.5, 0, 0, 100, 76],
                     backgroundColor: 'rgba(59, 130, 246, 0.15)', // Lighter Blue
                     borderColor: '#60a5fa',
                     pointBackgroundColor: '#60a5fa',
@@ -112,7 +115,7 @@
                 // --- Claude Models (Orange) ---
                 {
                     label: 'Sonnet 4.5 (Cursor)',
-                    data: [0, 90.5, 100, 100, 40],
+                    data: [90.5, 100, 0, 100, 40],
                     backgroundColor: 'rgba(217, 119, 87, 0.15)', // Orange
                     borderColor: '#D97757',
                     pointBackgroundColor: '#D97757',
@@ -120,7 +123,7 @@
                 },
                 {
                     label: 'Sonnet 4.5 (Claude Code)',
-                    data: [0, 96.8, 100, 82.5, 30],
+                    data: [96.8, 100, 0, 82.5, 30],
                     backgroundColor: 'rgba(253, 186, 116, 0.15)', // Light Orange
                     borderColor: '#fb923c',
                     pointBackgroundColor: '#fb923c',
@@ -128,7 +131,7 @@
                 },
                 {
                     label: 'Opus 4.5 (Claude Code)',
-                    data: [0, 95.1, 98, 84.8, 50],
+                    data: [95.1, 98, 0, 84.8, 50],
                     backgroundColor: 'rgba(234, 88, 12, 0.1)', // Burnt Orange
                     borderColor: '#ea580c',
                     pointBackgroundColor: '#ea580c',
@@ -137,12 +140,13 @@
             ]
         };
 
-        new Chart(ctx, {
+        const chart = new Chart(ctx, {
             type: 'radar',
             data: data,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: 20 },
                 elements: {
                     line: { tension: 0.1 }
                 },
@@ -157,20 +161,12 @@
                         },
                         ticks: { display: false, backdropColor: 'transparent' },
                         suggestedMin: 0,
-                        suggestedMax: 100
+                        suggestedMax: 110
                     }
                 },
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#f8fafc',
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 20,
-                            font: { size: 12, weight: 500 },
-                            boxWidth: 10
-                        }
+                        display: false // Disable default legend
                     },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',
@@ -182,6 +178,104 @@
                         cornerRadius: 8
                     }
                 }
+            }
+        });
+
+        // Function to generate Custom HTML Legend
+        function generateLegend() {
+            legendContainer.innerHTML = '';
+            chart.data.datasets.forEach((dataset, index) => {
+                const isHidden = !chart.isDatasetVisible(index);
+                
+                const item = document.createElement('div');
+                item.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 12px;
+                    border: 1px solid ${isHidden ? '#334155' : dataset.borderColor};
+                    background: ${isHidden ? 'transparent' : 'rgba(30, 41, 59, 0.5)'};
+                    border-radius: 20px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    color: ${isHidden ? '#64748b' : '#f8fafc'};
+                    transition: all 0.2s;
+                    user-select: none;
+                `;
+                
+                // Color dot
+                const dot = document.createElement('span');
+                dot.style.cssText = `
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background-color: ${isHidden ? '#64748b' : dataset.borderColor};
+                    transition: background-color 0.2s;
+                `;
+                
+                // Label text
+                const text = document.createElement('span');
+                text.innerText = dataset.label;
+
+                item.appendChild(dot);
+                item.appendChild(text);
+
+                item.onclick = () => {
+                    chart.setDatasetVisibility(index, isHidden); // Toggle
+                    chart.update();
+                    generateLegend(); // Re-render buttons
+                };
+
+                item.onmouseenter = () => {
+                    item.style.backgroundColor = isHidden ? 'rgba(255, 255, 255, 0.05)' : 'rgba(30, 41, 59, 0.8)';
+                };
+                item.onmouseleave = () => {
+                    item.style.backgroundColor = isHidden ? 'transparent' : 'rgba(30, 41, 59, 0.5)';
+                };
+
+                legendContainer.appendChild(item);
+            });
+        }
+
+        // Initial generation
+        generateLegend();
+
+        // Toggle All functionality
+        let allVisible = true;
+        
+        toggleButton.addEventListener('click', () => {
+            allVisible = !allVisible;
+            
+            chart.data.datasets.forEach((_, index) => {
+                chart.setDatasetVisibility(index, allVisible);
+            });
+            
+            chart.update();
+            generateLegend(); // Update buttons
+            
+            // Update Toggle Button Style
+            toggleButton.textContent = allVisible ? 'Hide All' : 'Show All';
+            toggleButton.style.backgroundColor = allVisible ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.2)';
+            toggleButton.style.borderColor = allVisible ? '#334155' : '#3b82f6';
+            toggleButton.style.color = allVisible ? '#94a3b8' : '#60a5fa';
+        });
+
+        // Hover effect for Toggle Button
+        toggleButton.addEventListener('mouseenter', () => {
+            if (allVisible) {
+                toggleButton.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                toggleButton.style.color = '#f8fafc';
+            } else {
+                toggleButton.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+            }
+        });
+        
+        toggleButton.addEventListener('mouseleave', () => {
+            if (allVisible) {
+                toggleButton.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                toggleButton.style.color = '#94a3b8';
+            } else {
+                toggleButton.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
             }
         });
     </script>
