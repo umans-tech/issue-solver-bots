@@ -114,6 +114,10 @@ worker-start:
     PROCESS_QUEUE_URL="http://sqs.eu-west-3.localhost.localstack.cloud:4566/000000000000/process-queue" \
     uv run src/issue_solver/worker/local_runner.py
 
+# ⏰ Simulate scheduled timeout sweep (direct handler call)
+simulate-timeout-sweep:
+    uv run python -c "from issue_solver.worker.lambda_handler import handler; import json; print(json.dumps(handler({'source':'scheduled.repository.indexing.timeout-recovery'}, None)))"
+
 # 🔍 Check LocalStack status
 check-localstack:
     @echo "Checking LocalStack status..."
