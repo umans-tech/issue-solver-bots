@@ -26,7 +26,7 @@ The short version of what we found:
 
 ## Why we did this
 
-In the first article, we argued that consistency in a codebase comes from a human loop: decide → record → apply. Agents don’t automatically join that loop just because they can see your code. Unless you give them explicit, repo-local rules and checks to latch onto, they tend to optimize for “get this change done” and let small deviations from the conventions accumulate.
+In the first [article](https://blog.umans.ai/blog/consistency-matters/), we argued that consistency in a codebase comes from a human loop: decide → record → apply. Agents don’t automatically join that loop just because they can see your code. Unless you give them explicit, repo-local rules and checks to latch onto, they tend to optimize for “get this change done” and let small deviations from the conventions accumulate.
 
 So in this experiment, we tried to do a bit better than that:
 
@@ -76,6 +76,8 @@ We scoped the experiment around four goals.
    * they are easy to run automatically,
    * we can define simple repo-specific heuristics (Given/When/Then comments, fixture reuse, coverage),
    * and we can ask another model to review the generated tests for more qualitative issues.
+
+   Test generation also has a growing body of work. Benchmarks like [SWT-bench](https://www.swebench.com/) measure whether generated tests can distinguish correct patches from broken ones. We wanted to see something different: not just whether tests *work*, but whether agents follow the structural and stylistic rules the repo asks for.
 
 Next, we’ll look at how we set the experiment up, what actually happened, and what we changed in how we use these agents as a result.
 
@@ -165,59 +167,64 @@ At a high level, three things stood out:
   style="width: 100%; max-width: 100%; height: 800px; border: none; background: transparent; display: block; margin: 0 auto;"
   loading="lazy"
 ></iframe>
- <figcaption style="text-align: center; font-size: 0.9em; color: #666;">
-    Agent comparison across five quality dimensions
-  </figcaption>
+<figcaption style="text-align: center; font-size: 0.9em; color: #666;">
+  Agent comparison across five quality dimensions
+</figcaption>
+
+**Radar chart legend:**
+* **Coverage**: percentage of the target module (431 LOC) exercised by tests
+* **Formatted**: percentage of tests using `# Given` / `# When` / `# Then` comments
+* **Factored**: percentage of fixtures centralized in `conftest.py` (vs. defined locally)
+* **Behavioral**: percentage of tests asserting on outputs rather than internals
+* **Concise**: inverse of test LOC per coverage point (more coverage with fewer lines = higher score)
 
 
 
-### Codex-Max via Codex CLI
+### Codex CLI (GPT-5.1 Codex-Max and Codex)
 
-The GPT-5.1 Codex-Max runs through Codex CLI were the most “balanced”:
+We ran three configurations: Codex-Max at **extra-high** and **high** effort, plus GPT-5.1 Codex at **high** effort.
 
-* they produced small, readable tests,
-* they used pytest and the `# Given` / `# When` / `# Then` comments as requested,
-* they passed checks on their own,
-* and they reached coverage in the **mid-70% range** on the module.
+All three runs were the most "balanced" in this experiment:
 
-The main gap was depth: they covered the core flows but left a noticeable number of edge conditions and error paths untested. In practice, we’d keep most of these tests and then add more cases by hand.
+* small, readable tests with `# Given` / `# When` / `# Then` comments,
+* checks passed on first run without needing an external loop,
+* coverage in the **high 70s to low 80s** range.
 
-### Claude Sonnet 4.5 in Claude Code
+Codex-Max (high) was the **only configuration** that created a `conftest.py` at all. It centralized one of its three fixtures there; the other two were still defined locally. Every other setup ignored the fixture centralization rule entirely.
 
-Claude Sonnet 4.5 in Claude Code felt like the opposite trade-off:
+The main gap was depth: core flows were covered, but several edge conditions and error paths remained untested.
 
-* it respected the visible parts of the style very strongly (pytest, `# Given` / `# When` / `# Then`, fixtures),
-* it always finished with all checks green,
-* and it pushed coverage into the **high-90% range**.
+### Claude Code (Sonnet 4.5 and Opus 4.5, with Thinking)
 
-The downside: it did this with a **very large** test diff for a relatively small module, and many assertions were tightly coupled to internal details rather than just behavior. Our realistic use here would be to treat its output as a map of scenarios and edge cases, not something to merge as-is.
+Both Claude models ran with **Thinking mode** enabled.
 
-### Cursor agents (Gemini 3 Pro, Sonnet 4.5, Codex High)
+**Sonnet 4.5** produced the highest coverage (**96.8%**) but also the largest diff (57 tests, 936 LOC). It:
 
-The Cursor configurations were strong on paper but needed much more curation.
+* followed the visible style very strongly (pytest, `# Given` / `# When` / `# Then`, fixtures),
+* always finished with checks green,
+* but generated many assertions tied to internal details, not just behavior.
 
-* **Gemini 3 Pro in Cursor**
+**Opus 4.5** was similar in character (46 tests, 95% coverage) but with slightly fewer implementation-coupled assertions.
 
-  * reached coverage in the **low-90% range**,
-  * but ignored key parts of `AGENTS.md`:
+Both would work best as a **map of scenarios and edge cases** rather than something to merge directly.
 
-    * no `# Given` / `# When` / `# Then`,
-    * no fixture reuse,
-    * and it did not reliably run the project checks by itself.
+### Gemini CLI (Gemini 3 Pro)
 
-* **Sonnet 4.5 in Cursor**
+Gemini 3 Pro through Gemini CLI landed at **89% coverage** with 28 tests, a reasonable middle ground.
 
-  * also landed in the **low-90% coverage** band,
-  * used `# Given` / `# When` / `# Then` everywhere,
-  * but rarely reused fixtures and, like Gemini, relied on the outer loop to run checks and feed back errors.
+However, it completely ignored the `# Given` / `# When` / `# Then` comment style (0% compliance) and did not centralize fixtures. Tests were structured as flat functions without class organization. In a real PR, the raw logic could be useful, but the tests would need reformatting to match project conventions.
 
-* **GPT-5.1 Codex High in Cursor**
+### Cursor (Sonnet 4.5, Gemini 3 Pro, Codex High)
 
-  * matched the surface style (pytest, G/W/T, fixtures),
-  * but wrote only a handful of tests with **noticeably lower coverage** than any of the others,
-  * and leaned heavily on mocks instead of exercising real behavior.
+All three Cursor configurations shared the same pattern: strong on paper, but needing heavy curation.
 
-Across all three Cursor setups, the pattern was similar: they produced a lot of code, but only partially followed `AGENTS.md` and did not enforce the **checks that should pass** by themselves. In a real PR, we would mostly skim these changes for ideas and then rewrite tests rather than adapting and merging what they produced.
+* **Sonnet 4.5 (Thinking)**: 90.7% coverage, 45 tests. Used G/W/T comments, but never reused fixtures and relied on the outer loop to fix failing checks.
+
+* **Gemini 3 Pro (High)**: 90.8% coverage, 21 tests. Ignored G/W/T entirely, no fixture reuse, and did not run project checks by itself.
+
+* **Codex High**: Only 55% coverage with 4 tests. Matched the surface style but leaned heavily on mocks instead of exercising real behavior.
+
+Across all Cursor setups, agents did not self-verify with the project's quality guardrail. In a real PR, we would mostly skim these for ideas and then rewrite.
 
 ## What we learned
 
@@ -230,8 +237,8 @@ From this single module and task, three things stood out.
    But even with that in place:
 
    * some setups ignored parts of the testing style (Given/When/Then, fixtures),
-   * some did not respect the **“run checks before you’re done”** rule,
-   * some reached high coverage in a shape we wouldn’t merge.
+   * some did not self-verify with the quality guardrail before finishing,
+   * some reached high coverage in a shape we wouldn't merge.
 
    So `AGENTS.md` is a useful baseline, not a guarantee that agents will behave the way you intend.
 
@@ -244,21 +251,23 @@ From this single module and task, three things stood out.
 
    The point is not that scaffolding is “as important” as the model, but that a good model inside a weak or misaligned wrapper can feel much less useful than it should. We have to evaluate the **model + agent + tooling** together.
 
-3. **Behavioral tests are where agents struggle the most**
+3. **Fixture reuse and centralization is where agents struggled the most**
 
-   The hardest target in `AGENTS.md` was not syntax (`# Given` / `# When` / `# Then`) or fixtures. It was keeping tests focused on externally visible behavior instead of implementation details.
+   Benchmarks like [SWT-bench](https://www.swebench.com/) show that frontier models can already produce behavioral tests that characterize code well enough to distinguish correct patches from broken ones. In our experiment, most agents also achieved high "behavioral" scores, asserting on outputs rather than internals.
 
-   Strong agents often did something that feels like “gaming the instructions”:
+   The harder target turned out to be the **structural** requirement in `AGENTS.md`: centralizing fixtures in `conftest.py` and reusing existing helpers instead of creating bespoke setup in each test file.
 
-   * they pushed coverage high,
-   * they added lots of assertions,
-   * but many of those assertions were tied to logs, internal attributes, or exact control flow.
+   Only one configuration (Codex-Max, high effort) even created a `conftest.py`, and it only centralized one of its three fixtures there. Every other agent:
 
-   On paper, the tests looked thorough and aligned with some of the rules. In practice, they were still too coupled to the current implementation to be the kind of behavioral tests we want.
+   * defined fixtures locally in each test file,
+   * duplicated setup code across tests,
+   * or ignored fixtures entirely.
+
+   This matters because scattered fixtures accumulate maintenance debt and make it harder to evolve the codebase without breaking tests. The explicit rule was there and agents just didn't follow it.
 
 ## What's next
 
-This experiment is a first small step on the apply side of the previous article: taking the conventions we have written down and watching how coding agents behave against them in a live repo. One thing it suggests is that when even a small part of those expectations becomes an executable check, agents can lean on it instead of guessing and the same signal that guides them also gives human teams a clearer view of when code is drifting from the conventions they care about.
+This experiment is a first small step on the apply side of the previous [article](https://blog.umans.ai/blog/consistency-matters/): taking the conventions we have written down and watching how coding agents behave against them in a live repo. One thing it suggests is that when even a small part of those expectations becomes an executable check, agents can lean on it instead of guessing and the same signal that guides them also gives human teams a clearer view of when code is drifting from the conventions they care about.
 
 From here, the plan is to keep exploring in that direction with small, concrete experiments, looking for ways to turn more of a codebase's intent into this kind of actionable feedback.
 
@@ -267,14 +276,15 @@ From here, the plan is to keep exploring in that direction with small, concrete 
 
 All numbers below are for the same target: the 431 lines of `bash.py` (143 LOC) and `edit.py` (288 LOC), after at most one automatic “run checks → feed errors back once” loop.
 
-| Setup                                            | Overall coverage on module | Tests / test LOC  | `# Given / # When / # Then` | Fixtures reused | Checks clean on first run | Notes                                                                                                           |
-| ------------------------------------------------ | -------------------------- | ----------------- | --------------------------- | --------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| GPT-5.1 Codex-Max — Codex CLI, extra-high effort | 73.8%                      | 6 tests, 135 LOC  | Yes                         | Mostly no       | Yes                       | Small, readable tests; core flows covered, several guard/error behaviors still missing.                        |
-| GPT-5.1 Codex-Max — Codex CLI, high effort       | 74.8%                      | 12 tests, 125 LOC | Yes                         | Yes             | Yes                       | Similar style; slightly higher coverage; still light on some edge cases and validation branches.                |
-| Gemini 3 Pro — Cursor (High)                     | 90.8%                      | 21 tests, 261 LOC | No                          | No              | No (fixed by outer loop)  | High coverage but ignores testing style; relies on external checks to catch and fix errors.                     |
-| Claude Sonnet 4.5 — Cursor (Thinking)            | 90.7%                      | 45 tests, 769 LOC | Yes                         | Rarely          | No (fixed by outer loop)  | Many tests and good coverage; surface style partly aligned, fixtures and checks much less so.                   |
-| GPT-5.1 Codex High — Cursor                      | 55.3%                      | 4 tests, 110 LOC  | Yes                         | Yes             | No (fixed by outer loop)  | Matches surface style but covers little of the module and leans heavily on mocking.                             |
-| Claude Sonnet 4.5 — Claude Code                  | 96.8%                      | 57 tests, 936 LOC | Yes                         | Almost always   | Yes                       | Very high coverage and strong adherence to visible style; large diff, many assertions tied to internal details. |
+| Metric | CC Opus 4.5 | CC Sonnet 4.5 | Cursor Sonnet 4.5 | Gemini 3 Pro | Cursor Gemini 3 Pro | Codex Max (xhigh) | Codex Max (high) | Codex (high) | Cursor Codex |
+|--------|-----------------|---------------|-------------------|--------------|---------------------|-------------------|------------------|--------------|--------------|
+| **Scaffolding** | Claude Code | Claude Code | Cursor | Gemini CLI | Cursor | Codex CLI | Codex CLI | Codex CLI | Cursor |
+| **Total Tests** | 46 | 57 | 45 | 28 | 21 | 10 | 6 | 10 | 4 |
+| **LOC Written** | 582 | 936 | 769 | 274 | 260 | 197 | 125 | 194 | 110 |
+| **Coverage** | 95.1% | 96.8% | 90.5% | 89.4% | 90.5% | 82.3% | 75.0% | 78.6% | 54.1% |
+| **GWT** | 98% | 100% | 100% | 0% | 0% | 100% | 100% | 100% | 100% |
+| **Behavioral** | 84.8% | 82.5% | 100% | 92.9% | 100% | 100% | 100% | 90% | 100% |
+| **Factored** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 1/3 | ❌ | ❌ |
 
 
 ### `AGENTS.md` - Testing guidelines
