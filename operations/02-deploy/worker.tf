@@ -68,3 +68,24 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   batch_size       = 1
   enabled          = true
 }
+
+# Scheduled timeout recovery sweep
+resource "aws_cloudwatch_event_rule" "indexing_timeout_recovery" {
+  name                = "indexing-timeout-recovery${local.environment_name_suffix}"
+  schedule_expression = "rate(15 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "indexing_timeout_recovery" {
+  rule      = aws_cloudwatch_event_rule.indexing_timeout_recovery.name
+  target_id = "worker-timeout-recovery"
+  arn       = aws_lambda_function.worker.arn
+  input     = jsonencode({ source = "scheduled.repository.indexing.timeout-recovery" })
+}
+
+resource "aws_lambda_permission" "allow_events_indexing_timeout_recovery" {
+  statement_id  = "AllowExecutionFromEventBridgeTimeoutRecovery"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.worker.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.indexing_timeout_recovery.arn
+}
