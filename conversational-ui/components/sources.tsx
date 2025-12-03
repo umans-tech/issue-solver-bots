@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Earth, CodeXml, X } from 'lucide-react';
-import { getFallbackFaviconUrls } from '@/lib/utils';
 import { SourceFavicon } from './source-favicon';
 import { GitIcon } from './icons';
 

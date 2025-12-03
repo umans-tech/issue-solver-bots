@@ -6,6 +6,11 @@ isFeatured: true
 seo:
   title: "Do coding agents follow AGENTS.md?"
   description: "A practical experiment measuring how closely various coding agents obey repository rules when writing tests."
+  image:
+    src: "../../assets/images/experimentation_setup.jpeg"
+    alt: "Experimentation setup"
+
+
 ---
 
 Benchmarks say instruction following is getting better.
