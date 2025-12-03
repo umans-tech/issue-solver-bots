@@ -34,7 +34,7 @@ So in this experiment, we tried to do a bit better than that:
 * we ran them as actual coding agents (editing files, running commands),
 * and we checked how closely their behavior matched what we asked for.
 
-In parallel, labs keep announcing [“improved instruction following”](https://openai.com/index/gpt-5-1/), but most of the popular instruction-following benchmarks (e.g. [IFEVAL](https://arxiv.org/abs/2311.07911) and [COLLIE](https://collie-benchmark]github.io/)) are already essentially maxed (see [o3-mini](https://openai.com/index/gpt-4-1/) for IFEVAL and [GPT-5](https://openai.com/index/introducing-gpt-5/) for COLLIE) out for top models. Those numbers don’t tell you whether a model will respect three pages of project-specific rules once it is inside your repository.
+In parallel, labs keep announcing [“improved instruction following”](https://openai.com/index/gpt-5-1/), but most of the popular instruction-following benchmarks (e.g. [IFEVAL](https://arxiv.org/abs/2311.07911) and [COLLIE](https://collie-benchmark.github.io/)) are already essentially maxed (see [o3-mini](https://openai.com/index/gpt-4-1/) for IFEVAL and [GPT-5](https://openai.com/index/introducing-gpt-5/) for COLLIE) out for top models. Those numbers don’t tell you whether a model will respect three pages of project-specific rules once it is inside your repository.
 
 We wanted a small, concrete check anchored in reality:
 
@@ -92,7 +92,7 @@ Next, we’ll look at how we set the experiment up, what actually happened, and 
     Experiment pipeline: task → agent run → quality evaluation
 </figcaption>
 
-The diagram at the top is basically the whole experiment:
+The diagram above is basically the whole experiment:
 **give a task → let an agent work in the repo → analyse the tests it wrote.**
 
 ### Task and codebase
@@ -117,10 +117,12 @@ The repo already contains:
 
 ### Agent configurations
 
-We try several “model + tool” setups on exactly the same repo snapshot:
+We try several "model + tool" setups on exactly the same repo snapshot:
 
 * GPT-5.1 Codex-Max via **Codex CLI** (high and extra-high effort)
-* Claude Sonnet 4.5 in **Claude Code** (`CLAUDE.md`)
+* GPT-5.1 Codex via **Codex CLI** (high effort)
+* Claude Sonnet 4.5 and Opus 4.5 in **Claude Code** (Thinking)
+* Gemini 3 Pro via **Gemini CLI**
 * Claude Sonnet 4.5 in **Cursor** (Thinking)
 * Gemini 3 Pro in **Cursor** (High)
 * GPT-5.1 Codex High in **Cursor**
@@ -276,7 +278,7 @@ From here, the plan is to keep exploring in that direction with small, concrete 
 
 All numbers below are for the same target: the 431 lines of `bash.py` (143 LOC) and `edit.py` (288 LOC), after at most one automatic “run checks → feed errors back once” loop.
 
-| Metric | CC Opus 4.5 | CC Sonnet 4.5 | Cursor Sonnet 4.5 | Gemini 3 Pro | Cursor Gemini 3 Pro | Codex Max (xhigh) | Codex Max (high) | Codex (high) | Cursor Codex |
+| Metric | Opus 4.5 | Sonnet 4.5 | Sonnet 4.5 (Cursor) | Gemini 3 Pro | Gemini 3 Pro (Cursor) | Codex-Max (xhigh) | Codex-Max (high) | Codex (high) | Codex (Cursor) |
 |--------|-----------------|---------------|-------------------|--------------|---------------------|-------------------|------------------|--------------|--------------|
 | **Scaffolding** | Claude Code | Claude Code | Cursor | Gemini CLI | Cursor | Codex CLI | Codex CLI | Codex CLI | Cursor |
 | **Total Tests** | 46 | 57 | 45 | 28 | 21 | 10 | 6 | 10 | 4 |
@@ -296,7 +298,7 @@ All numbers below are for the same target: the 431 lines of `bash.py` (143 LOC) 
 - Keep tests fast and deterministic: tighten timeouts when you need one, avoid sleeps, and prefer parametrization over copy‑paste cases.
 - Target behaviours that matter to users—successful flows and a few critical failures that change the experience—rather than defensive checks that don’t surface externally.
 - Use behavioural assertions (state changed, side effect happened, command allowed/denied) so alternative implementations that keep behaviour intact stay green.
--  Quality guardrail is the alias chain `just l c f t` (ruff lint → mypy → ruff format → pytest).
+- Quality guardrail is the alias chain `just l c f t` (ruff lint → mypy → ruff format → pytest).
 - Tests should mirror existing behavioural suites like `tests/events/test_auto_documentation.py` and `tests/queueing/test_sqs_queueing_event_store.py`—fixtures plus Given/When/Then assertions.
 
 ```
