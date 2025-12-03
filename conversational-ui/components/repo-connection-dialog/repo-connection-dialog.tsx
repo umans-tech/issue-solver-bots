@@ -83,6 +83,9 @@ interface RepositoryDetails {
   commit_sha?: string;
   indexing_started?: string;
   indexing_completed?: string;
+  last_failed_at?: string;
+  last_failed_error?: string;
+  last_failed_type?: string;
   error?: boolean;
   errorType?: string;
   errorMessage?: string;
@@ -186,6 +189,14 @@ export function RepoConnectionDialog({
   // Update local status when process status changes
   useEffect(() => {
     if (open && repoDetails && liveProcessStatus) {
+      const failedAfterSuccess =
+        repoDetails.status === 'failed' && !!repoDetails.indexing_completed;
+
+      // Don't downgrade a failed-after-success state to "none" from the polling hook
+      if (failedAfterSuccess && liveProcessStatus === 'none') {
+        return;
+      }
+
       // Only update if status actually changed
       if (liveProcessStatus !== repoDetails.status) {
         console.log(`Status updated from process hook: ${repoDetails.status} -> ${liveProcessStatus}`);
@@ -252,6 +263,9 @@ export function RepoConnectionDialog({
           commit_sha: data.commit_sha,
           indexing_started: data.indexing_started,
           indexing_completed: data.indexing_completed,
+          last_failed_at: data.last_failed_at,
+          last_failed_error: data.last_failed_error,
+          last_failed_type: data.last_failed_type,
           token_permissions: data.token_permissions
         });
       } else {
@@ -393,6 +407,10 @@ export function RepoConnectionDialog({
     
     // If we have an error, show an error message instead of repository details
     if (repoDetails.error) {
+      const friendlyErrorMessage = repoDetails.errorType === 'timeout'
+        ? 'Indexing took too long. Please try again.'
+        : repoDetails.errorMessage || 'Unknown error occurred';
+
       return (
         <div className="space-y-4 py-4 text-sm">
           <div className="flex flex-col gap-1 border-b pb-3">
@@ -406,7 +424,7 @@ export function RepoConnectionDialog({
             <div className="font-semibold">Error Details</div>
             <div className="flex items-center text-red-500 gap-2">
               <AlertCircle size={16} />
-              <span>{repoDetails.errorMessage || 'Unknown error occurred'}</span>
+              <span>{friendlyErrorMessage}</span>
             </div>
             <div className="text-muted-foreground text-xs mt-2">
               {repoDetails.errorType === 'authentication_failed' && (
@@ -450,17 +468,34 @@ export function RepoConnectionDialog({
             return (
               <div className="flex items-start justify-between">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-                  <div className="inline-flex items-center gap-1">
-                    <StatusIcon status={repoDetails.status} />
-                    <span className="capitalize" title="Indexation status">
-                      {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
-                    </span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 pl-3 ml-3 border-l border-border" title="Indexation times">
-                    <span>Started: {formatDate(repoDetails.indexing_started)}</span>
-                    <span className="text-muted-foreground"></span>
-                    <span>Completed: {formatDate(repoDetails.indexing_completed)}</span>
-                  </div>
+                  {repoDetails.last_failed_at ? (
+                    <>
+                      <div className="inline-flex items-center gap-1 text-amber-700">
+                        <AlertCircle size={14} />
+                        <span className="capitalize" title="Indexation status">
+                          Failed
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-3 pl-3 ml-3 border-l border-border" title="Last indexation state">
+                        <span>Failed: {formatDate(repoDetails.last_failed_at)}</span>
+                        <span className="text-muted-foreground">Last indexed: {formatDate(repoDetails.indexing_completed)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="inline-flex items-center gap-1">
+                        <StatusIcon status={repoDetails.status} />
+                        <span className="capitalize" title="Indexation status">
+                          {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center gap-2 pl-3 ml-3 border-l border-border" title="Indexation times">
+                        <span>Started: {formatDate(repoDetails.indexing_started)}</span>
+                        <span className="text-muted-foreground"></span>
+                        <span>Completed: {formatDate(repoDetails.indexing_completed)}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border" title="Git branch">
                     <span>Branch: {repoDetails.branch || 'N/A'}</span>
                   </div>
@@ -487,7 +522,7 @@ export function RepoConnectionDialog({
                   variant="outline"
                   className="h-8 px-3 ml-3 flex items-center gap-1"
                   onClick={handleSyncRepository}
-                  disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected' || repoDetails.status === 'failed'}
+                  disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected'}
                 >
                   <div className={isSyncing ? 'animate-spin' : ''}>
                     <ClockRewind size={14} />

@@ -89,26 +89,27 @@ export async function GET(request: Request) {
       .sort((a: { occurred_at: string }, b: { occurred_at: string }) => 
         new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
       
-    // If we have a connection failed event, check if it's more recent than any successful indexing
-    if (connectionFailedEvent) {
-      const failedEventTime = new Date(connectionFailedEvent.occurred_at).getTime();
-      const lastSuccessTime = latestRepositoryIndexedEvent 
-        ? new Date(latestRepositoryIndexedEvent.occurred_at).getTime()
-        : 0;
-      
-      // If the failure is more recent than the last successful indexing, return the error
-      if (!latestRepositoryIndexedEvent || failedEventTime > lastSuccessTime) {
-        console.log(`Repository connection failed: ${connectionFailedEvent.error_message}`);
-        return NextResponse.json({
-          connected: false,
-          error: true,
-          errorType: connectionFailedEvent.error_type,
-          errorMessage: connectionFailedEvent.error_message,
-          url: connectionFailedEvent.url,
-          status: 'failed',
-          process_id: processId
-        });
-      }
+    const failedEventTime = connectionFailedEvent
+      ? new Date(connectionFailedEvent.occurred_at).getTime()
+      : 0;
+    const lastSuccessTime = latestRepositoryIndexedEvent 
+      ? new Date(latestRepositoryIndexedEvent.occurred_at).getTime()
+      : 0;
+    const failureWithoutSuccess = connectionFailedEvent && !latestRepositoryIndexedEvent;
+    const failureAfterSuccess = connectionFailedEvent && latestRepositoryIndexedEvent && failedEventTime > lastSuccessTime;
+
+    // If we have a failure and no success yet, keep the hard error flow
+    if (failureWithoutSuccess) {
+      console.log(`Repository connection failed: ${connectionFailedEvent.error_message}`);
+      return NextResponse.json({
+        connected: false,
+        error: true,
+        errorType: connectionFailedEvent.error_type,
+        errorMessage: connectionFailedEvent.error_message,
+        url: connectionFailedEvent.url,
+        status: 'failed',
+        process_id: processId
+      });
     }
       
     if (!repoEvent) {
@@ -142,13 +143,16 @@ export async function GET(request: Request) {
     return NextResponse.json({
       connected: true,
       url: repoEvent.url,
-      status: data.status || 'unknown',
+      status: failureAfterSuccess ? 'failed' : data.status || 'unknown',
       knowledge_base_id: repoEvent.knowledge_base_id,
       process_id: processId,
       branch: latestRepositoryIndexedEvent?.branch,
       commit_sha: latestRepositoryIndexedEvent?.commit_sha,
       indexing_started: indexingStartTime,
       indexing_completed: latestRepositoryIndexedEvent?.occurred_at,
+      last_failed_at: connectionFailedEvent?.occurred_at,
+      last_failed_error: connectionFailedEvent?.error_message,
+      last_failed_type: connectionFailedEvent?.error_type,
       token_permissions: mostRecentTokenPermissions
     });
   } catch (error) {
