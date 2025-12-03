@@ -26,6 +26,7 @@ from issue_solver.webapi.dependencies import (
 from issue_solver.worker.documenting.s3_knowledge_repository import (
     S3KnowledgeRepository,
 )
+from issue_solver.worker.indexing.timeout_recovery import recover_timed_out_indexing
 from issue_solver.worker.messages_processing import (
     process_event_message,
 )
@@ -59,6 +60,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         logger.info(f"Received event: {json.dumps(event)}")
 
+        if event.get("source") == "scheduled.repository.indexing.timeout-recovery":
+            logger.info("Running scheduled recovery check")
+            asyncio.run(load_dependencies_and_recover_timed_out_indexing())
+            return {"statusCode": 200, "body": "Recovery check complete"}
+
         # Process each record (message) from SQS
         for record in event.get("Records", []):
             # Extract the message body
@@ -86,6 +92,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 async def load_dependencies_and_process_event_message(
     event_record: AnyDomainEvent,
 ) -> None:
+    dependencies = await load_dependencies()
+    await process_event_message(
+        event_record,
+        dependencies,
+    )
+
+
+async def load_dependencies_and_recover_timed_out_indexing():
+    dependencies = await load_dependencies()
+    await recover_timed_out_indexing(dependencies)
+
+
+async def load_dependencies() -> Dependencies:
     event_store = await init_event_store(
         database_url=extract_direct_database_url(),
         queue_url=os.getenv("PROCESS_QUEUE_URL"),
@@ -111,7 +130,4 @@ async def load_dependencies_and_process_event_message(
             api_key=os.environ["ANTHROPIC_API_KEY"], agent_messages=agent_message_store
         ),
     )
-    await process_event_message(
-        event_record,
-        dependencies,
-    )
+    return dependencies
