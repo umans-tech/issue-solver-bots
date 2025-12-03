@@ -161,18 +161,18 @@ export default function LandingPage() {
       </div>
 
       {/* Hero Section */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-8">
+      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="max-w-4xl text-center"
         >
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
-          Deliver Value, Not Just Code
+          <h1 className="mb-6 text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 sm:text-6xl text-balance">
+            Deliver Value, <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Not Just Code</span>
           </h1>
           
-          <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto text-balance">
           Bridge the gap between what your system does, what business needs, and what your team plans to build.
           </p>
 
@@ -197,10 +197,10 @@ export default function LandingPage() {
             Currently in Early Access (Alpha)
           </div>
         </motion.div>
-      </div>
+      </section>
 
       {/* Current Capabilities Section */}
-      <div ref={featuresRef} className="relative z-10 bg-background py-24">
+      <section ref={featuresRef} className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -210,7 +210,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl font-bold text-foreground mb-4">What You Get Today</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
               AI agents that understand your codebase and collaborate with your team
             </p>
           </motion.div>
@@ -269,10 +269,10 @@ export default function LandingPage() {
           </div>
 
         </div>
-      </div>
+      </section>
 
       {/* Vision Section */}
-      <div className="relative z-10 bg-muted/30 py-24">
+      <section className="relative z-10 bg-muted/30 py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -282,7 +282,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl font-bold text-foreground mb-4">Where We're Going</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
               Exploring the future of software delivery
             </p>
           </motion.div>
@@ -353,10 +353,10 @@ export default function LandingPage() {
             </div>
           </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* CTA Section */}
-      <div className="relative z-10 bg-background py-24">
+      <section className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -367,7 +367,7 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold text-foreground mb-6">
               Ready to transform your software delivery?
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto text-balance">
               Join teams that are already using AI agents to bridge the gap between
               business understanding and technical implementation.
             </p>
@@ -379,10 +379,10 @@ export default function LandingPage() {
             </Link>
           </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Pricing Section */}
-      <div id="pricing" className="relative z-10 bg-muted/30 py-24 scroll-mt-24">
+      <section id="pricing" className="relative z-10 bg-muted/30 py-24 scroll-mt-24">
         <div className="mx-auto max-w-6xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -438,10 +438,14 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 * index }}
                   viewport={{ once: true }}
-                  className={`group relative flex h-full flex-col rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/80 p-8 shadow-lg transition-all duration-300 hover:border-border/80 hover:shadow-xl backdrop-blur-sm ${plan.popular ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow-xl' : ''}`}
+                  className={`group relative flex h-full flex-col rounded-2xl border bg-gradient-to-br from-card to-card/80 p-8 shadow-lg transition-all duration-300 hover:shadow-xl backdrop-blur-sm ${
+                    plan.popular 
+                      ? 'border-primary ring-1 ring-primary/20 from-primary/5 shadow-xl md:scale-105 z-10' 
+                      : 'border-border/50 hover:border-border/80'
+                  }`}
                 >
                   {plan.popular && (
-                    <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+                    <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center rounded-full bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold shadow-sm">
                       Most popular
                     </span>
                   )}
@@ -495,7 +499,7 @@ export default function LandingPage() {
           </div>
 
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border bg-background py-8">
