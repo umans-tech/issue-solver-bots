@@ -1,5 +1,5 @@
 ---
-title: "Can AI coding agents actually follow your repo’s rules?"
+title: "Can coding agents actually follow your codebase’s rules?"
 publishDate: 2025-11-29
 excerpt: "We ran a reality check to see how well different coding agents follow a repo’s AGENTS.md in practice."
 isFeatured: true
@@ -77,7 +77,7 @@ We scoped the experiment around four goals.
    * we can define simple repo-specific heuristics (Given/When/Then comments, fixture reuse, coverage),
    * and we can ask another model to review the generated tests for more qualitative issues.
 
-   Test generation also has a growing body of work. Benchmarks like [SWT-bench](https://www.swebench.com/) measure whether generated tests can distinguish correct patches from broken ones. We wanted to see something different: not just whether tests *work*, but whether agents follow the structural and stylistic rules the repo asks for.
+   Test generation also has a growing body of work. Benchmarks like [SWT-bench](https://swtbench.com/?results=verified) measure whether generated tests can distinguish correct patches from broken ones. We wanted to see something different: not just whether tests *work*, but whether agents follow the structural and stylistic rules the repo asks for.
 
 Next, we’ll look at how we set the experiment up, what actually happened, and what we changed in how we use these agents as a result.
 
@@ -161,7 +161,8 @@ The next section looks at how the different setups behaved under this pipeline, 
 At a high level, three things stood out:
 
 * Agents running in **provider tools** (Codex CLI, Claude Code) behaved more like collaborators inside the repo: they respected more of `AGENTS.md`, ran checks, and produced code we could imagine keeping after edits.
-* The **Cursor** and **Gemini CLI agents** behaved more like raw code generators: they often ignored parts of the guidelines. Cursor agents, specifically, needed an external loop to rescue them with error output and checks.
+* The Cursor and Gemini CLI setups were weaker on convention-following: they produced working tests but ignored style rules like Given/When/Then comments and fixture 
+  centralization. Cursor agents, specifically, needed an external loop to rescue them with error output and checks.
 * None of the setups fully matched the testing style in `AGENTS.md`; every one drifted somewhere (missing behaviors or formatting, ignoring fixtures, or over-focusing on internals).
 
 <iframe
@@ -255,7 +256,7 @@ From this single module and task, three things stood out.
 
 3. **Fixture reuse and centralization is where agents struggled the most**
 
-   Benchmarks like [SWT-bench](https://www.swebench.com/) show that frontier models can already produce behavioral tests that characterize code well enough to distinguish correct patches from broken ones. In our experiment, most agents also achieved high "behavioral" scores, asserting on outputs rather than internals.
+   Benchmarks like [SWT-bench](https://swtbench.com/?results=verified) show that frontier models can already produce behavioral tests that characterize code well enough to distinguish correct patches from broken ones. In our experiment, most agents also achieved high "behavioral" scores, asserting on outputs rather than internals.
 
    The harder target turned out to be the **structural** requirement in `AGENTS.md`: centralizing fixtures in `conftest.py` and reusing existing helpers instead of creating bespoke setup in each test file.
 

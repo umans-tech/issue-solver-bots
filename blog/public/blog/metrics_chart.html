@@ -58,12 +58,12 @@
         Chart.defaults.borderColor = '#334155';
 
         const data = {
-            labels: ['Coverage', 'Formatted', 'Factored', 'Behavioral', 'Concise'],
+            labels: ['Coverage', 'Concise', 'Behavioral', 'Factored', 'Formatted'],
             datasets: [
                 // --- Codex / GPT Models (Greyscale) ---
                 {
                     label: 'Codex Max [xHigh] (Codex CLI)',
-                    data: [82.3, 100, 0, 100, 86],
+                    data: [82.3, 86, 100, 0, 100],
                     backgroundColor: 'rgba(241, 245, 249, 0.1)', // Whiteish
                     borderColor: '#f1f5f9',
                     pointBackgroundColor: '#f1f5f9',
@@ -71,7 +71,7 @@
                 },
                 {
                     label: 'Codex Max [High] (Codex CLI)',
-                    data: [75.0, 100, 33, 100, 92],
+                    data: [75.0, 92, 100, 33, 100],
                     backgroundColor: 'rgba(148, 163, 184, 0.1)', // Light Grey
                     borderColor: '#94a3b8',
                     pointBackgroundColor: '#94a3b8',
@@ -79,7 +79,7 @@
                 },
                 {
                     label: 'GPT-5.1 Codex [High] (Codex CLI)',
-                    data: [78.6, 100, 0, 90, 86],
+                    data: [78.6, 86, 90, 0, 100],
                     backgroundColor: 'rgba(100, 116, 139, 0.1)', // Medium Grey
                     borderColor: '#64748b',
                     pointBackgroundColor: '#64748b',
@@ -87,7 +87,7 @@
                 },
                 {
                     label: 'GPT-5.1 Codex [High] (Cursor)',
-                    data: [54.1, 100, 0, 100, 95],
+                    data: [54.1, 95, 100, 0, 100],
                     backgroundColor: 'rgba(71, 85, 105, 0.1)', // Dark Grey
                     borderColor: '#475569',
                     pointBackgroundColor: '#475569',
@@ -97,7 +97,7 @@
                 // --- Gemini Models (Blue) ---
                 {
                     label: 'Gemini 3 Pro (Gemini CLI)',
-                    data: [90.8, 0, 0, 93, 75],
+                    data: [90.8, 75, 93, 0, 0],
                     backgroundColor: 'rgba(78, 133, 240, 0.2)', // Blue
                     borderColor: '#4E85F0',
                     pointBackgroundColor: '#4E85F0',
@@ -105,7 +105,7 @@
                 },
                 {
                     label: 'Gemini 3 Pro (Cursor)',
-                    data: [90.5, 0, 0, 100, 76],
+                    data: [90.5, 76, 100, 0, 0],
                     backgroundColor: 'rgba(59, 130, 246, 0.15)', // Lighter Blue
                     borderColor: '#60a5fa',
                     pointBackgroundColor: '#60a5fa',
@@ -115,7 +115,7 @@
                 // --- Claude Models (Orange) ---
                 {
                     label: 'Sonnet 4.5 (Cursor)',
-                    data: [90.5, 100, 0, 100, 40],
+                    data: [90.5, 40, 100, 0, 100],
                     backgroundColor: 'rgba(217, 119, 87, 0.15)', // Orange
                     borderColor: '#D97757',
                     pointBackgroundColor: '#D97757',
@@ -123,7 +123,7 @@
                 },
                 {
                     label: 'Sonnet 4.5 (Claude Code)',
-                    data: [96.8, 100, 0, 82.5, 30],
+                    data: [96.8, 30, 82.5, 0, 100],
                     backgroundColor: 'rgba(253, 186, 116, 0.15)', // Light Orange
                     borderColor: '#fb923c',
                     pointBackgroundColor: '#fb923c',
@@ -131,7 +131,7 @@
                 },
                 {
                     label: 'Opus 4.5 (Claude Code)',
-                    data: [95.1, 98, 0, 84.8, 50],
+                    data: [95.1, 50, 84.8, 0, 98],
                     backgroundColor: 'rgba(234, 88, 12, 0.1)', // Burnt Orange
                     borderColor: '#ea580c',
                     pointBackgroundColor: '#ea580c',
@@ -147,8 +147,13 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: 20 },
+                interaction: {
+                    mode: 'nearest',
+                    intersect: true
+                },
                 elements: {
-                    line: { tension: 0.1 }
+                    line: { tension: 0.1 },
+                    point: { hitRadius: 30, hoverRadius: 8 }
                 },
                 scales: {
                     r: {
