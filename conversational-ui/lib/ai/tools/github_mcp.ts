@@ -9,7 +9,7 @@ export async function codeRepositoryMCPClient(userContext?: { userId?: string; s
     }
 }
 
-const noMCPClient = (error: any) => ({
+const noMCPClient = (_error: any) => ({
     client: {
         tools: async () => ({}),
         close: async () => {
