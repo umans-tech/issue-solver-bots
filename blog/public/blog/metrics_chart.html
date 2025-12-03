@@ -149,11 +149,11 @@
                 layout: { padding: 20 },
                 interaction: {
                     mode: 'nearest',
-                    intersect: true
+                    intersect: false
                 },
                 elements: {
                     line: { tension: 0.1 },
-                    point: { hitRadius: 30, hoverRadius: 8 }
+                    point: { radius: 4, hitRadius: 18, hoverRadius: 9 }
                 },
                 scales: {
                     r: {
@@ -164,9 +164,9 @@
                             font: { size: 14, weight: 600, family: "'JetBrains Mono', monospace" },
                             backdropColor: 'transparent'
                         },
-                        ticks: { display: false, backdropColor: 'transparent' },
-                        suggestedMin: 0,
-                        suggestedMax: 110
+                        ticks: { display: false, backdropColor: 'transparent', stepSize: 20 },
+                        min: 0,
+                        max: 100
                     }
                 },
                 plugins: {
