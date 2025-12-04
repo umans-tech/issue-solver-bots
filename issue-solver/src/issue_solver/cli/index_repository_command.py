@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,9 +34,11 @@ class IndexRepositoryCommandSettings(BaseSettings):
     )
 
     repo_url: str
-    access_token: str
+    access_token: str | None = Field(
+        default=None, description="Access token if the repository is private"
+    )
     knowledge_base_id: str
-    webhook_base_url: str
+    webhook_base_url: str | None = Field(default=None)
     database_url: str | None = Field(
         default=None,
         description="Database URL for storing events. If not provided, an in-memory store is used.",
@@ -44,7 +47,10 @@ class IndexRepositoryCommandSettings(BaseSettings):
         default=None,
         description="SQS Queue URL for event streaming. Mutually exclusive with webhook_base_url.",
     )
-    process_id: str
+    process_id: str | None = Field(
+        default=None,
+        description="Process ID for the indexing. If not provided, a UUID will be generated.",
+    )
     repo_path: Path = Field(default=Path("/tmp/repo"))
     from_commit_sha: str | None = Field(default=None)
 
@@ -65,13 +71,14 @@ class IndexRepositoryCommand(IndexRepositoryCommandSettings):
 async def main(
     settings: IndexRepositoryCommandSettings,
     dependencies: IndexRepositoryDependencies | None = None,
-):
+) -> str:
     deps = dependencies or await _init_dependencies(settings)
 
     repo_path = settings.repo_path
     git = deps.git_helper
     clock = deps.clock
     from_commit_sha = await _resolve_from_commit_sha(deps.event_store, settings)
+    process_id = settings.process_id or str(uuid.uuid4())
 
     try:
         if from_commit_sha:
@@ -102,42 +109,43 @@ async def main(
             )
 
         await deps.event_store.append(
-            settings.process_id,
+            process_id,
             CodeRepositoryIndexed(
                 branch=code_version.branch,
                 commit_sha=code_version.commit_sha,
                 stats=stats,
                 knowledge_base_id=settings.knowledge_base_id,
-                process_id=settings.process_id,
+                process_id=process_id,
                 occurred_at=clock.now(),
             ),
         )
     except GitValidationError as e:
         await deps.event_store.append(
-            settings.process_id,
+            process_id,
             CodeRepositoryIntegrationFailed(
                 url=settings.repo_url,
                 error_type=e.error_type,
                 error_message=e.message,
                 knowledge_base_id=settings.knowledge_base_id,
-                process_id=settings.process_id,
+                process_id=process_id,
                 occurred_at=clock.now(),
             ),
         )
         raise
     except Exception as e:
         await deps.event_store.append(
-            settings.process_id,
+            process_id,
             CodeRepositoryIntegrationFailed(
                 url=settings.repo_url,
                 error_type="unexpected_error",
                 error_message=str(e),
                 knowledge_base_id=settings.knowledge_base_id,
-                process_id=settings.process_id,
+                process_id=process_id,
                 occurred_at=clock.now(),
             ),
         )
         raise
+    return process_id
 
 
 async def _init_dependencies(
@@ -150,7 +158,7 @@ async def _init_dependencies(
     )
     git_helper = GitHelper.of(
         git_settings=GitSettings(
-            repository_url=settings.repo_url, access_token=settings.access_token
+            repository_url=settings.repo_url, access_token=settings.access_token or ""
         )
     )
     indexer = OpenAIVectorStoreRepositoryIndexer()
@@ -167,6 +175,9 @@ async def _resolve_from_commit_sha(
 ) -> str | None:
     if settings.from_commit_sha:
         return settings.from_commit_sha
+
+    if not settings.process_id:
+        return None
 
     events = await event_store.get(settings.process_id)
     last_indexed = most_recent_event(events, CodeRepositoryIndexed)
