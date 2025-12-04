@@ -15,9 +15,11 @@ from issue_solver.git_operations.git_helper import (
     GitHelper,
     GitValidationError,
     GitSettings,
-    GitDiffFiles,
 )
 from issue_solver.indexing.repository_indexer import RepositoryIndexer
+from issue_solver.indexing.openai_repository_indexer import (
+    OpenAIVectorStoreRepositoryIndexer,
+)
 from issue_solver.factories import init_event_store
 
 
@@ -122,20 +124,10 @@ async def _init_dependencies(
             repository_url=settings.repo_url, access_token=settings.access_token
         )
     )
-    indexer = _InlineRepositoryIndexer()
+    indexer = OpenAIVectorStoreRepositoryIndexer()
     return IndexRepositoryDependencies(
         event_store=event_store,
         git_helper=git_helper,
         indexer=indexer,
         clock=UTCSystemClock(),
     )
-
-
-class _InlineRepositoryIndexer(RepositoryIndexer):
-    def upload_full_repository(self, repo_path: Path, vector_store_id: str) -> dict:
-        return {}
-
-    def apply_delta(
-        self, repo_path: Path, diff: GitDiffFiles, vector_store_id: str
-    ) -> dict:
-        return {}
