@@ -36,6 +36,14 @@ class IndexRepositoryCommandSettings(BaseSettings):
     access_token: str
     knowledge_base_id: str
     webhook_base_url: str
+    database_url: str | None = Field(
+        default=None,
+        description="Database URL for storing events. If not provided, an in-memory store is used.",
+    )
+    process_queue_url: str | None = Field(
+        default=None,
+        description="SQS Queue URL for event streaming. Mutually exclusive with webhook_base_url.",
+    )
     process_id: str
     repo_path: Path = Field(default=Path("/tmp/repo"))
     from_commit_sha: str | None = Field(default=None)
@@ -135,7 +143,11 @@ async def main(
 async def _init_dependencies(
     settings: IndexRepositoryCommandSettings,
 ) -> IndexRepositoryDependencies:
-    event_store = await init_event_store(webhook_base_url=settings.webhook_base_url)
+    event_store = await init_event_store(
+        database_url=settings.database_url,
+        queue_url=settings.process_queue_url,
+        webhook_base_url=settings.webhook_base_url,
+    )
     git_helper = GitHelper.of(
         git_settings=GitSettings(
             repository_url=settings.repo_url, access_token=settings.access_token
