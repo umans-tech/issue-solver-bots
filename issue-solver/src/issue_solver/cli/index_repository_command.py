@@ -38,7 +38,10 @@ class IndexRepositoryCommandSettings(BaseSettings):
         default=None, description="Access token if the repository is private"
     )
     knowledge_base_id: str
-    webhook_base_url: str | None = Field(default=None)
+    webhook_base_url: str | None = Field(
+        default=None,
+        description="Webhook base URL to send events and or messages related to issue resolution process. If not provided, no webhook will be used.",
+    )
     database_url: str | None = Field(
         default=None,
         description="Database URL for storing events. If not provided, an in-memory store is used.",
