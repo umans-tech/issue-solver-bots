@@ -9,6 +9,7 @@ from issue_solver.clock import UTCSystemClock, Clock
 from issue_solver.events.domain import (
     CodeRepositoryIndexed,
     CodeRepositoryIntegrationFailed,
+    most_recent_event,
 )
 from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
@@ -62,18 +63,34 @@ async def main(
     repo_path = settings.repo_path
     git = deps.git_helper
     clock = deps.clock
+    from_commit_sha = await _resolve_from_commit_sha(deps.event_store, settings)
 
     try:
-        if settings.from_commit_sha:
+        if from_commit_sha:
             code_version = git.clone_repository(repo_path, depth=None)
-            diff = git.get_changed_files_commit(repo_path, settings.from_commit_sha)
+            diff = git.get_changed_files_commit(repo_path, from_commit_sha)
             stats = deps.indexer.apply_delta(
                 repo_path, diff, settings.knowledge_base_id
+            )
+            print(
+                (
+                    "[index-repository] delta mode "
+                    f"from={from_commit_sha} "
+                    f"new_files={len(diff.get_paths_of_all_new_files())} "
+                    f"obsolete_files={len(diff.get_paths_of_all_obsolete_files())} "
+                    f"branch={code_version.branch} commit={code_version.commit_sha}"
+                )
             )
         else:
             code_version = git.clone_repository(repo_path, depth=1)
             stats = deps.indexer.upload_full_repository(
                 repo_path, settings.knowledge_base_id
+            )
+            print(
+                (
+                    "[index-repository] full mode "
+                    f"branch={code_version.branch} commit={code_version.commit_sha}"
+                )
             )
 
         await deps.event_store.append(
@@ -131,3 +148,14 @@ async def _init_dependencies(
         indexer=indexer,
         clock=UTCSystemClock(),
     )
+
+
+async def _resolve_from_commit_sha(
+    event_store: EventStore, settings: IndexRepositoryCommandSettings
+) -> str | None:
+    if settings.from_commit_sha:
+        return settings.from_commit_sha
+
+    events = await event_store.get(settings.process_id)
+    last_indexed = most_recent_event(events, CodeRepositoryIndexed)
+    return last_indexed.commit_sha if last_indexed else None

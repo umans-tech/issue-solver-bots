@@ -164,6 +164,120 @@ async def test_delta_mode_indexes_diff_and_unindexes_obsolete(
 
 
 @pytest.mark.asyncio
+async def test_auto_delta_uses_last_indexed_commit_when_missing_from_commit(
+    index_repo_deps: IndexRepositoryDependencies,
+    git_helper: Mock,
+    repository_indexer: Mock,
+):
+    # Given
+    process_id = BriceDeNice.first_repo_integration_process_id()
+    last_commit = "prev123"
+    await index_repo_deps.event_store.append(
+        process_id,
+        CodeRepositoryIndexed(
+            branch="main",
+            commit_sha=last_commit,
+            stats={"files_indexed": 10},
+            knowledge_base_id="kb-001",
+            process_id=process_id,
+            occurred_at=index_repo_deps.clock.now(),
+        ),
+    )
+
+    settings = IndexRepositoryCommandSettings(
+        repo_url="https://github.com/umans-tech/issue-solver-bots.git",
+        access_token="ghp_dummy",
+        knowledge_base_id="kb-001",
+        webhook_base_url="https://api.example.umans.ai",
+        process_id=process_id,
+        repo_path=Path(f"/tmp/repo/{process_id}"),
+    )
+
+    git_helper.clone_repository.return_value = CodeVersion(
+        branch="main", commit_sha="newhead"
+    )
+    git_helper.get_changed_files_commit.return_value = GitDiffFiles(
+        repo_path=settings.repo_path,
+        added_files=[Path("src/new.py")],
+        deleted_files=[],
+        modified_files=[],
+        renamed_files=[],
+    )
+    repository_indexer.apply_delta.return_value = {
+        "new_indexed_files": {"successful_uploads": 1}
+    }
+
+    # When
+    await run_index_repository(settings, index_repo_deps)
+
+    # Then
+    git_helper.clone_repository.assert_called_once_with(settings.repo_path, depth=None)
+    git_helper.get_changed_files_commit.assert_called_once_with(
+        settings.repo_path, last_commit
+    )
+    repository_indexer.apply_delta.assert_called_once()
+    events = await index_repo_deps.event_store.get(process_id)
+    assert any(
+        isinstance(event, CodeRepositoryIndexed) and event.commit_sha == "newhead"
+        for event in events
+    )
+
+
+@pytest.mark.asyncio
+async def test_explicit_from_commit_overrides_last_indexed(
+    index_repo_deps: IndexRepositoryDependencies,
+    git_helper: Mock,
+    repository_indexer: Mock,
+):
+    # Given
+    process_id = BriceDeNice.first_repo_integration_process_id()
+    await index_repo_deps.event_store.append(
+        process_id,
+        CodeRepositoryIndexed(
+            branch="main",
+            commit_sha="prev123",
+            stats={"files_indexed": 10},
+            knowledge_base_id="kb-001",
+            process_id=process_id,
+            occurred_at=index_repo_deps.clock.now(),
+        ),
+    )
+
+    settings = IndexRepositoryCommandSettings(
+        repo_url="https://github.com/umans-tech/issue-solver-bots.git",
+        access_token="ghp_dummy",
+        knowledge_base_id="kb-001",
+        webhook_base_url="https://api.example.umans.ai",
+        process_id=process_id,
+        repo_path=Path(f"/tmp/repo/{process_id}"),
+        from_commit_sha="explicit123",
+    )
+
+    git_helper.clone_repository.return_value = CodeVersion(
+        branch="main", commit_sha="newhead"
+    )
+    git_helper.get_changed_files_commit.return_value = GitDiffFiles(
+        repo_path=settings.repo_path,
+        added_files=[Path("src/new.py")],
+        deleted_files=[],
+        modified_files=[],
+        renamed_files=[],
+    )
+    repository_indexer.apply_delta.return_value = {
+        "new_indexed_files": {"successful_uploads": 1}
+    }
+
+    # When
+    await run_index_repository(settings, index_repo_deps)
+
+    # Then
+    git_helper.get_changed_files_commit.assert_called_once_with(
+        settings.repo_path, "explicit123"
+    )
+    repository_indexer.apply_delta.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_git_validation_error_emits_integration_failed(
     event_store: InMemoryEventStore,
     git_helper: Mock,
