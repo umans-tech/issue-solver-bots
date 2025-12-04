@@ -24,7 +24,9 @@ async def recover_timed_out_indexing(dependencies: Dependencies) -> None:
     await mark_indexing_as_timed_out(stale_connections, event_store, now)
 
 
-async def find_abandoned_indexing_processes(event_store, now, threshold: timedelta) -> list[CodeRepositoryConnected]:
+async def find_abandoned_indexing_processes(
+    event_store, now, threshold: timedelta
+) -> list[CodeRepositoryConnected]:
     connections: Sequence[CodeRepositoryConnected] = await event_store.find(
         {}, CodeRepositoryConnected
     )
@@ -36,7 +38,9 @@ async def find_abandoned_indexing_processes(event_store, now, threshold: timedel
             continue
 
         last_event = events[-1]
-        if isinstance(last_event, (CodeRepositoryIndexed, CodeRepositoryIntegrationFailed)):
+        if isinstance(
+            last_event, (CodeRepositoryIndexed, CodeRepositoryIntegrationFailed)
+        ):
             continue
 
         latest_start = _latest_start_event_at(events)

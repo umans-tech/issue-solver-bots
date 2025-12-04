@@ -6,6 +6,7 @@ from pydantic_settings import CliApp, SettingsError
 from issue_solver.cli.prepare_command import PrepareCommand
 from issue_solver.cli.review_command import ReviewSettings
 from issue_solver.cli.solve_command import SolveCommand
+from issue_solver.cli.index_repository_command import IndexRepositoryCommand
 
 
 class CuduCLI:
@@ -38,6 +39,12 @@ class CuduCLI:
                     cli_args=sub_args,
                     cli_cmd_method_name="cli_cmd",
                 )
+            elif subcmd == "index-repository":
+                CliApp.run(
+                    model_cls=IndexRepositoryCommand,
+                    cli_args=sub_args,
+                    cli_cmd_method_name="cli_cmd",
+                )
             elif subcmd in ("help", "-h", "--help"):
                 show_usage()
                 sys.exit(0)
@@ -66,6 +73,7 @@ def show_usage() -> None:
       prepare  🏗️ prepare a workspace for issue resolution
       review   👀 review a pull request or issue
       solve    🧩 solve an issue
+      index-repository  🧠 index a repository into a knowledge base (full or delta)
       help     🛟 show this message
     
     Examples:
