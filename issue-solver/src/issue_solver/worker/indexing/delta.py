@@ -1,7 +1,6 @@
 import json
+import os
 from pathlib import Path
-
-from openai import OpenAI
 
 from issue_solver.events.code_repo_integration import get_access_token
 from issue_solver.events.domain import (
@@ -16,17 +15,23 @@ from issue_solver.git_operations.git_helper import (
     GitSettings,
     GitValidationError,
 )
+from issue_solver.indexing.openai_repository_indexer import (
+    OpenAIVectorStoreRepositoryIndexer,
+)
+from issue_solver.cli.index_repository_command import IndexRepositoryCommandSettings
 from issue_solver.webapi.dependencies import (
     get_validation_service,
     get_clock,
 )
 from issue_solver.worker.logging_config import logger
 from issue_solver.worker.dependencies import Dependencies
-from issue_solver.worker.vector_store_helper import (
-    get_obsolete_files_ids,
-    index_new_files,
-    unindex_obsolete_files,
+from issue_solver.env_setup.dev_environments_management import (
+    run_as_umans_with_env,
+    get_snapshot,
 )
+
+MICROVM_LIFETIME_IN_SECONDS = 90 * 60
+DEFAULT_LARGE_DELTA_THRESHOLD = 200
 
 
 async def index_new_changes_codebase(
@@ -50,12 +55,17 @@ async def index_new_changes_codebase(
         event_store, code_repository_connected.process_id
     )
     url = code_repository_connected.url
+    if not access_token:
+        logger.error("No access token found for repository indexation")
+        return
 
     try:
-        # Use the validation service from dependencies
-        git_helper = GitHelper.of(
+        git_helper_factory = (
+            dependencies.git_helper_factory or _default_git_helper_factory
+        )
+        git_helper = git_helper_factory(
             GitSettings(repository_url=url, access_token=access_token),
-            validation_service=get_validation_service(),
+            get_validation_service(),
         )
         to_path = Path(f"/tmp/repo/{process_id}")
         if not to_path.exists():
@@ -72,27 +82,34 @@ async def index_new_changes_codebase(
         if not files_to_index:
             logger.info("No new commits found, skipping indexation")
             return
+
+        total_changed_files = len(files_to_index.get_paths_of_all_new_files()) + len(
+            files_to_index.get_paths_of_all_obsolete_files()
+        )
+        if _delta_is_likely_slow_and_microvm_ready(total_changed_files, dependencies):
+            _offload_delta_indexing_to_microvm(
+                access_token=access_token,
+                dependencies=dependencies,
+                knowledge_base_id=knowledge_base_id,
+                last_indexed_commit_sha=last_indexed_commit_sha,
+                process_id=process_id,
+                total_changed_files=total_changed_files,
+                url=url,
+            )
+            return
+
         logger.info(f"Indexing commit: {last_indexed_commit_sha}")
         logger.info(f"Indexing files: {files_to_index}")
 
-        client = OpenAI()
-
-        obsolete_files = get_obsolete_files_ids(
-            files_to_index.get_paths_of_all_obsolete_files(),
-            client,
-            knowledge_base_id,
+        repository_indexer = (
+            dependencies.repository_indexer or OpenAIVectorStoreRepositoryIndexer()
         )
-        logger.info(f"Obsolete files stats: {json.dumps(obsolete_files.stats)}")
-
-        new_indexed_files_stats = index_new_files(
-            files_to_index.get_paths_of_all_new_files(), client, knowledge_base_id
+        stats = repository_indexer.apply_delta(
+            repo_path=to_path,
+            diff=files_to_index,
+            vector_store_id=knowledge_base_id,
         )
-        logger.info(f"Vector store upload stats: {json.dumps(new_indexed_files_stats)}")
-
-        unindexed_files_stats = unindex_obsolete_files(
-            obsolete_files.file_ids_path, client, knowledge_base_id
-        )
-        logger.info(f"Unindexed files stats: {json.dumps(unindexed_files_stats)}")
+        logger.info(f"Indexing stats: {json.dumps(stats)}")
 
         # Store the updated repository indexation event
         await event_store.append(
@@ -100,11 +117,7 @@ async def index_new_changes_codebase(
             CodeRepositoryIndexed(
                 branch=code_version.branch,
                 commit_sha=code_version.commit_sha,
-                stats={
-                    "new_indexed_files": new_indexed_files_stats,
-                    "obsolete_files": obsolete_files.stats,
-                    "unindexed_files": unindexed_files_stats,
-                },
+                stats=stats,
                 knowledge_base_id=knowledge_base_id,
                 process_id=process_id,
                 occurred_at=get_clock().now(),
@@ -143,3 +156,92 @@ async def index_new_changes_codebase(
                 occurred_at=get_clock().now(),
             ),
         )
+
+
+def _delta_is_likely_slow_and_microvm_ready(
+    total_changed_files: int, dependencies: Dependencies
+) -> bool:
+    return (
+        dependencies.is_dev_environment_service_enabled
+        and dependencies.microvm_client is not None
+        and total_changed_files >= _microvm_offload_threshold()
+    )
+
+
+def _offload_delta_indexing_to_microvm(
+    access_token: str | None,
+    dependencies: Dependencies,
+    knowledge_base_id: str,
+    last_indexed_commit_sha: str,
+    process_id: str,
+    total_changed_files: int,
+    url: str,
+) -> None:
+    logger.info(
+        f"Large delta ({total_changed_files} files). Offloading indexing to MicroVM."
+    )
+    client = dependencies.microvm_client
+    if client is None:
+        logger.error("MicroVM client not available for offload")
+        return
+
+    snapshot = get_snapshot(client, metadata={"type": "base"})
+    if not snapshot:
+        logger.error("No base snapshot available for MicroVM indexing")
+        raise RuntimeError("base_snapshot_missing")
+
+    if access_token is None:
+        logger.error("No access token found for repository indexation")
+        return
+
+    instance = client.instances.start(
+        snapshot_id=snapshot.id, ttl_seconds=MICROVM_LIFETIME_IN_SECONDS
+    )
+    env_script = IndexRepositoryCommandSettings(
+        repo_url=url,
+        access_token=access_token,
+        knowledge_base_id=knowledge_base_id,
+        process_id=process_id,
+        repo_path=Path(f"/tmp/repo/{process_id}"),
+        from_commit_sha=last_indexed_commit_sha,
+        webhook_base_url=os.environ.get("WEBHOOK_BASE_URL"),
+        process_queue_url=None,
+    ).to_env_script()
+    env_script = _append_openai_env(env_script)
+    cmd = run_as_umans_with_env(
+        env_script,
+        "cudu index-repository",
+        background=True,
+    )
+    exec_response = instance.exec(cmd)
+    logger.info(
+        f"MicroVM delta offload started "
+        f"instance_id={instance.id} exit_code={exec_response.exit_code} "
+        f"stdout={exec_response.stdout!r} stderr={exec_response.stderr!r}"
+    )
+
+
+def _microvm_offload_threshold() -> int:
+    env_value = os.environ.get("MICROVM_INDEXING_THRESHOLD")
+    if env_value and env_value.isdigit():
+        return int(env_value)
+    return DEFAULT_LARGE_DELTA_THRESHOLD
+
+
+def _append_openai_env(env_script: str) -> str:
+    lines = [env_script.rstrip(), ""]
+    api_key = os.environ.get("OPENAI_API_KEY")
+    base_url = os.environ.get("OPENAI_BASE_URL")
+    if api_key:
+        lines.append(f"export OPENAI_API_KEY='{api_key}'")
+    if base_url:
+        lines.append(f"export OPENAI_BASE_URL='{base_url}'")
+    if len(lines) == 2:  # nothing added
+        return env_script
+    return "\n".join(lines) + "\n"
+
+
+def _default_git_helper_factory(
+    settings: GitSettings, validation_service=None
+) -> GitHelper:
+    return GitHelper.of(settings, validation_service=validation_service)

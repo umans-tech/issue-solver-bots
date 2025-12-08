@@ -179,15 +179,32 @@ def run_as_umans_with_env(
     global_setup_script: str | None = None,
     env_path: str = "/home/umans/.cudu_env",
     exec_path: str = "/home/umans/.cudu_run.sh",
+    background: bool = False,
 ) -> str:
     if not env_body.endswith("\n"):
         env_body += "\n"
+
+    if background:
+        run_line = (
+            "nohup runuser -u umans -- /bin/bash -lc '"
+            f'set -Eeuo pipefail; set -a; . "{env_path}"; set +a; '
+            'if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then '
+            'mkdir -p "${REPO_PATH}"; cd "${REPO_PATH}" || cd "$HOME"; else cd "$HOME"; fi; '
+            'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; '
+            'echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }; '
+            f"exec {command}' "
+            ">> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid"
+        )
+    else:
+        run_line = f'runuser -u umans -- /bin/bash "{exec_path}"'
+
+    trap_line = "" if background else f'trap \'rm -f "{env_path}" "{exec_path}"\' EXIT'
 
     script = f"""
 set -Eeuo pipefail
 umask 0077
 {global_setup_script.strip() if global_setup_script else ""}
-trap 'rm -f "{env_path}" "{exec_path}"' EXIT
+{trap_line}
 
 # 1) write .env literally
 cat > "{env_path}" <<'ENV'
@@ -205,6 +222,7 @@ set +a
 
 # --- pick a safe working directory so .env is readable ---
 if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
   cd "${{REPO_PATH}}" || cd "$HOME"
 else
   cd "$HOME"
@@ -222,6 +240,6 @@ chown umans:umans "{exec_path}"
 chmod 700 "{exec_path}"
 
 # 3) run as umans without -c or -l
-runuser -u umans -- /bin/bash "{exec_path}"
+{run_line}
 """
     return dedent(script)
