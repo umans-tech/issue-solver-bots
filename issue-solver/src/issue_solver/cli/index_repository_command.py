@@ -7,6 +7,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from issue_solver.clock import UTCSystemClock, Clock
+from issue_solver.cli.solve_command_settings import base_settings_to_env_script
 from issue_solver.events.domain import (
     CodeRepositoryIndexed,
     CodeRepositoryIntegrationFailed,
@@ -57,6 +58,9 @@ class IndexRepositoryCommandSettings(BaseSettings):
     repo_path: Path = Field(default=Path("/tmp/repo"))
     from_commit_sha: str | None = Field(default=None)
 
+    def to_env_script(self) -> str:
+        return base_settings_to_env_script(self)
+
 
 @dataclass
 class IndexRepositoryDependencies:
@@ -85,6 +89,14 @@ async def main(
 
     try:
         if from_commit_sha:
+            print(
+                (
+                    "[index-repository] starting delta mode "
+                    f"from={from_commit_sha} "
+                    f"repo={settings.repo_url} "
+                    f"kb={settings.knowledge_base_id}"
+                )
+            )
             code_version = git.clone_repository(repo_path, depth=None)
             diff = git.get_changed_files_commit(repo_path, from_commit_sha)
             stats = deps.indexer.apply_delta(
@@ -100,6 +112,13 @@ async def main(
                 )
             )
         else:
+            print(
+                (
+                    "[index-repository] starting full mode "
+                    f"repo={settings.repo_url} "
+                    f"kb={settings.knowledge_base_id}"
+                )
+            )
             code_version = git.clone_repository(repo_path, depth=1)
             stats = deps.indexer.upload_full_repository(
                 repo_path, settings.knowledge_base_id

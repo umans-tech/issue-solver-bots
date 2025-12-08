@@ -821,6 +821,7 @@ set +a
 
 # --- pick a safe working directory so .env is readable ---
 if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then
+  mkdir -p "${REPO_PATH}"
   cd "${REPO_PATH}" || cd "$HOME"
 else
   cd "$HOME"
