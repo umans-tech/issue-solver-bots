@@ -1,0 +1,1157 @@
+{
+  "plan": {
+    "total_stores": 86,
+    "production_stores": 46,
+    "non_production_stores": 40,
+    "total_size_bytes": 989775679,
+    "estimated_savings_bytes": 557140031,
+    "estimated_savings_gb": 0.5188770880922675,
+    "stores_to_delete": [
+      {
+        "id": "vs_69297a7b84908191ae3de4e78f4b7657",
+        "name": "issue-solver-bots.git",
+        "file_counts": 548,
+        "usage_bytes": 9304884,
+        "created_at": 1764326011,
+        "last_active_at": 1764326525,
+        "is_production": false
+      },
+      {
+        "id": "vs_6920aa48f29c8191839fb04e6fd725b9",
+        "name": "issue-solver-bots.git",
+        "file_counts": 491,
+        "usage_bytes": 7726292,
+        "created_at": 1763748425,
+        "last_active_at": 1763748948,
+        "is_production": false
+      },
+      {
+        "id": "vs_692036c786c0819198e0874a808a8658",
+        "name": "issue-solver-bots.git",
+        "file_counts": 489,
+        "usage_bytes": 7684279,
+        "created_at": 1763718855,
+        "last_active_at": 1763719330,
+        "is_production": false
+      },
+      {
+        "id": "vs_691cef33f04081918e13e8f58a664958",
+        "name": "issue-solver-bots.git",
+        "file_counts": 491,
+        "usage_bytes": 7587932,
+        "created_at": 1763503924,
+        "last_active_at": 1763512828,
+        "is_production": false
+      },
+      {
+        "id": "vs_6913264351fc819190502f838d5a6cc9",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762862659,
+        "last_active_at": 1762863171,
+        "is_production": false
+      },
+      {
+        "id": "vs_691325cb7df08191b5d0300b48860df0",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762862539,
+        "last_active_at": 1762863040,
+        "is_production": false
+      },
+      {
+        "id": "vs_691325562e5c8191aaf12c77d4e41fae",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762862422,
+        "last_active_at": 1762862886,
+        "is_production": false
+      },
+      {
+        "id": "vs_691325087c2c81919a4aec858719f81a",
+        "name": "gitingest",
+        "file_counts": 120,
+        "usage_bytes": 917389,
+        "created_at": 1762862344,
+        "last_active_at": 1762862379,
+        "is_production": false
+      },
+      {
+        "id": "vs_69131e9268e08191aa4824734b6c85b8",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762860690,
+        "last_active_at": 1762861164,
+        "is_production": false
+      },
+      {
+        "id": "vs_69123891760c819196d51b138ad46c89",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762801809,
+        "last_active_at": 1762802346,
+        "is_production": false
+      },
+      {
+        "id": "vs_6910d36a45588191a3cb5c53e4959102",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762710378,
+        "last_active_at": 1762710881,
+        "is_production": false
+      },
+      {
+        "id": "vs_6910ca642df481919e3f72176570d623",
+        "name": "issue-solver-bots.git",
+        "file_counts": 481,
+        "usage_bytes": 7389249,
+        "created_at": 1762708068,
+        "last_active_at": 1762708601,
+        "is_production": false
+      },
+      {
+        "id": "vs_6910b4a6ed248191a88ad2af515558fa",
+        "name": "ai",
+        "file_counts": 4140,
+        "usage_bytes": 26000559,
+        "created_at": 1762702503,
+        "last_active_at": 1762859761,
+        "is_production": false
+      },
+      {
+        "id": "vs_6910b266d67c819193798cf2fd7a7a63",
+        "name": "next.js",
+        "file_counts": 24996,
+        "usage_bytes": 252809567,
+        "created_at": 1762701927,
+        "last_active_at": 1762764079,
+        "is_production": false
+      },
+      {
+        "id": "vs_690141da2e8c8191a31f538e6878fb8c",
+        "name": "gitingest",
+        "file_counts": 120,
+        "usage_bytes": 917389,
+        "created_at": 1761690074,
+        "last_active_at": 1761690109,
+        "is_production": false
+      },
+      {
+        "id": "vs_68db9b1f61888191baeac4c04389f6ab",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1759222559,
+        "last_active_at": 1759238334,
+        "is_production": false
+      },
+      {
+        "id": "vs_68db9a000dc88191bb09eaa7e2181c5b",
+        "name": "marshmallow-twin.git",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1759222272,
+        "last_active_at": 1759222272,
+        "is_production": false
+      },
+      {
+        "id": "vs_68db94c0efec8191848ca790334dd3b2",
+        "name": "marshmallow-twin.git",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1759220929,
+        "last_active_at": 1759221281,
+        "is_production": false
+      },
+      {
+        "id": "vs_68db1e87d8a08191aacc495b932d2ccd",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1759190663,
+        "last_active_at": 1759249551,
+        "is_production": false
+      },
+      {
+        "id": "vs_68daf2a4787c819188cea0788a535c5a",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1759179428,
+        "last_active_at": 1759179911,
+        "is_production": false
+      },
+      {
+        "id": "vs_68dad92bf60c81918f13de5c74fbf11b",
+        "name": "issue-solver-bots.git",
+        "file_counts": 456,
+        "usage_bytes": 5463937,
+        "created_at": 1759172908,
+        "last_active_at": 1759173694,
+        "is_production": false
+      },
+      {
+        "id": "vs_68d6a398a67481919b224e134ae5b8a9",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1758897048,
+        "last_active_at": 1758897071,
+        "is_production": false
+      },
+      {
+        "id": "vs_68d366cf71c08191aa5488ca4d652bc3",
+        "name": "issue-solver-bots.git",
+        "file_counts": 435,
+        "usage_bytes": 5303466,
+        "created_at": 1758684879,
+        "last_active_at": 1758685486,
+        "is_production": false
+      },
+      {
+        "id": "vs_68c95e0d27848191b4afd4469c37da9a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 430,
+        "usage_bytes": 5278904,
+        "created_at": 1758027277,
+        "last_active_at": 1758483359,
+        "is_production": false
+      },
+      {
+        "id": "vs_68c045c6fb848191bfc89fda831f7863",
+        "name": "issue-solver-bots.git",
+        "file_counts": 422,
+        "usage_bytes": 5129570,
+        "created_at": 1757431239,
+        "last_active_at": 1757431858,
+        "is_production": false
+      },
+      {
+        "id": "vs_68ba090cecf48191bf4daf5cd4bd82bf",
+        "name": "marshmallow-twin.git",
+        "file_counts": 123,
+        "usage_bytes": 1267034,
+        "created_at": 1757022476,
+        "last_active_at": 1757023866,
+        "is_production": false
+      },
+      {
+        "id": "vs_68ba0576ae5c819185c60c246461b9b7",
+        "name": "issue-solver-bots.git",
+        "file_counts": 490,
+        "usage_bytes": 7219461,
+        "created_at": 1757021558,
+        "last_active_at": 1757057356,
+        "is_production": false
+      },
+      {
+        "id": "vs_68b808527808819194a95a8168b97879",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1756891218,
+        "last_active_at": 1756891990,
+        "is_production": false
+      },
+      {
+        "id": "vs_68b4773f9b208191b2b4cf600d8a2fd8",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1756657471,
+        "last_active_at": 1757670349,
+        "is_production": false
+      },
+      {
+        "id": "vs_68b1cbb96bd88191bce7afa7ba3cf954",
+        "name": "issue-solver-bots.git",
+        "file_counts": 421,
+        "usage_bytes": 5102191,
+        "created_at": 1756482489,
+        "last_active_at": 1756557505,
+        "is_production": false
+      },
+      {
+        "id": "vs_68af22fadc3c81918ddeda49398e0088",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1756308218,
+        "last_active_at": 1756309546,
+        "is_production": false
+      },
+      {
+        "id": "vs_68aec3e393fc81918da3724c559825dc",
+        "name": "issue-solver-bots.git",
+        "file_counts": 413,
+        "usage_bytes": 5062694,
+        "created_at": 1756283875,
+        "last_active_at": 1756293300,
+        "is_production": false
+      },
+      {
+        "id": "vs_68a74ba900ec8191b68d5821e499582b",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1755794345,
+        "last_active_at": 1756194977,
+        "is_production": false
+      },
+      {
+        "id": "vs_68a6094ab708819186445293e56a167a",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1755711818,
+        "last_active_at": 1755769431,
+        "is_production": false
+      },
+      {
+        "id": "vs_68a5ea07bd388191afcb8ed855433024",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1755703815,
+        "last_active_at": 1755705528,
+        "is_production": false
+      },
+      {
+        "id": "vs_689fad1dc1788191a3f20b985a3ef7d5",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1755295005,
+        "last_active_at": 1755295469,
+        "is_production": false
+      },
+      {
+        "id": "vs_6894b34924cc81918850ba3f725813bb",
+        "name": "images-hunter-api",
+        "file_counts": 0,
+        "usage_bytes": 0,
+        "created_at": 1754575689,
+        "last_active_at": 1754575797,
+        "is_production": false
+      },
+      {
+        "id": "vs_6894ac7499b8819199b8e4a4b088b275",
+        "name": "openai-cookbook",
+        "file_counts": 636,
+        "usage_bytes": 132533231,
+        "created_at": 1754573940,
+        "last_active_at": 1754574512,
+        "is_production": false
+      },
+      {
+        "id": "vs_68947b8f7840819181b21fa58a0512d9",
+        "name": "issue-solver-bots.git",
+        "file_counts": 378,
+        "usage_bytes": 4056860,
+        "created_at": 1754561423,
+        "last_active_at": 1754562089,
+        "is_production": false
+      },
+      {
+        "id": "vs_689476e3aebc81918ab892b3f1c92452",
+        "name": "issue-solver-bots.git",
+        "file_counts": 378,
+        "usage_bytes": 2294556,
+        "created_at": 1754560227,
+        "last_active_at": 1754574545,
+        "is_production": false
+      }
+    ],
+    "stores_to_keep": [
+      {
+        "id": "vs_68de3724e38c8191b56e085725e41672",
+        "name": "chartjs-twin.git",
+        "file_counts": 929,
+        "usage_bytes": 6855108,
+        "created_at": 1759393573,
+        "last_active_at": 1759399743,
+        "is_production": true
+      },
+      {
+        "id": "vs_68de30bb730481919db64e9aed30337a",
+        "name": "chartjs-twin.git",
+        "file_counts": 929,
+        "usage_bytes": 6857043,
+        "created_at": 1759391931,
+        "last_active_at": 1759393260,
+        "is_production": true
+      },
+      {
+        "id": "vs_68dd2fe592c0819194bf20091f18fd42",
+        "name": "httpx-twin.git",
+        "file_counts": 85,
+        "usage_bytes": 785661,
+        "created_at": 1759326181,
+        "last_active_at": 1759326200,
+        "is_production": true
+      },
+      {
+        "id": "vs_68dbd8db69048191b76f6e870caef2c9",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1759238363,
+        "last_active_at": 1759402754,
+        "is_production": true
+      },
+      {
+        "id": "vs_68af0c9f3da88191969b1dc4e7d26991",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1756302495,
+        "last_active_at": 1756302701,
+        "is_production": true
+      },
+      {
+        "id": "vs_68ad8f884908819190524b9dd3c5e097",
+        "name": "issue-solver-bots.git",
+        "file_counts": 626,
+        "usage_bytes": 7671005,
+        "created_at": 1756204936,
+        "last_active_at": 1764753325,
+        "is_production": true
+      },
+      {
+        "id": "vs_6894a2fa756081918495c900747e5b34",
+        "name": "issue-solver-bots.git",
+        "file_counts": 406,
+        "usage_bytes": 5019225,
+        "created_at": 1754571514,
+        "last_active_at": 1759170442,
+        "is_production": true
+      },
+      {
+        "id": "vs_689481177c108191a40664a5cdc1abea",
+        "name": "gitingest.git",
+        "file_counts": 121,
+        "usage_bytes": 422094,
+        "created_at": 1754562839,
+        "last_active_at": 1754607760,
+        "is_production": true
+      },
+      {
+        "id": "vs_68947c945e98819186ca7cf108ab37bb",
+        "name": "issue-solver-bots.git",
+        "file_counts": 909,
+        "usage_bytes": 10633858,
+        "created_at": 1754561684,
+        "last_active_at": 1763626496,
+        "is_production": true
+      },
+      {
+        "id": "vs_68935db5a0e88191b8e9babcec2743e0",
+        "name": "turn-me-off.git",
+        "file_counts": 10,
+        "usage_bytes": 91761,
+        "created_at": 1754488245,
+        "last_active_at": 1754488463,
+        "is_production": true
+      },
+      {
+        "id": "vs_68935c4d96f48191a4fe97a6e3b36d93",
+        "name": "woob.git",
+        "file_counts": 2152,
+        "usage_bytes": 15169847,
+        "created_at": 1754487885,
+        "last_active_at": 1754488225,
+        "is_production": true
+      },
+      {
+        "id": "vs_68797db6fb7c81919ec427fa571f005e",
+        "name": "issue-solver-bots.git",
+        "file_counts": 436,
+        "usage_bytes": 5381417,
+        "created_at": 1752792502,
+        "last_active_at": 1756195415,
+        "is_production": true
+      },
+      {
+        "id": "vs_68760f77807c81919adfd4a5c49079ab",
+        "name": "papaours-gestion-back",
+        "file_counts": 2041,
+        "usage_bytes": 6914121,
+        "created_at": 1752567671,
+        "last_active_at": 1752576287,
+        "is_production": true
+      },
+      {
+        "id": "vs_686678bec0e48191a96102448ec448bb",
+        "name": "issue-solver-bots.git",
+        "file_counts": 576,
+        "usage_bytes": 6672865,
+        "created_at": 1751546046,
+        "last_active_at": 1763626696,
+        "is_production": true
+      },
+      {
+        "id": "vs_686663ef79bc8191b759c5a97a0c395a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 362,
+        "usage_bytes": 3934942,
+        "created_at": 1751540719,
+        "last_active_at": 1751541119,
+        "is_production": true
+      },
+      {
+        "id": "vs_685bc63d89188191839933fe31cbf42e",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1750844989,
+        "last_active_at": 1758269581,
+        "is_production": true
+      },
+      {
+        "id": "vs_685bbf26c6108191ae4185e5d9b809bc",
+        "name": "excalidraw.git",
+        "file_counts": 855,
+        "usage_bytes": 22911992,
+        "created_at": 1750843174,
+        "last_active_at": 1750873857,
+        "is_production": true
+      },
+      {
+        "id": "vs_6856b8347d008191bc9c9c06b122ec5f",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1750513716,
+        "last_active_at": 1753708781,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d8b850bf081919108d0677447e84f",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749912453,
+        "last_active_at": 1749912461,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d799ca37081918a93d55319f3bf51",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749907868,
+        "last_active_at": 1749907877,
+        "is_production": true
+      },
+      {
+        "id": "vs_684d6305dc388191a6f65b3514bd4338",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 367088,
+        "created_at": 1749902085,
+        "last_active_at": 1749902095,
+        "is_production": true
+      },
+      {
+        "id": "vs_684991e3653c8191a9da832aad360326",
+        "name": "tractor-v2-module-federation",
+        "file_counts": 96,
+        "usage_bytes": 2371099,
+        "created_at": 1749651939,
+        "last_active_at": 1749652154,
+        "is_production": true
+      },
+      {
+        "id": "vs_6840637920e08191a47bd0710415e5dc",
+        "name": "QuantLib.git",
+        "file_counts": 2879,
+        "usage_bytes": 30260691,
+        "created_at": 1749050233,
+        "last_active_at": 1754578990,
+        "is_production": true
+      },
+      {
+        "id": "vs_68405e419ff4819194708205f1c0f1ba",
+        "name": "issue-solver-bots.git",
+        "file_counts": 351,
+        "usage_bytes": 3408448,
+        "created_at": 1749048897,
+        "last_active_at": 1749050179,
+        "is_production": true
+      },
+      {
+        "id": "vs_6840063395908191bf341f3a3c4d767f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 350,
+        "usage_bytes": 3403660,
+        "created_at": 1749026355,
+        "last_active_at": 1749026509,
+        "is_production": true
+      },
+      {
+        "id": "vs_684004513e248191a49d662c2a02ea5d",
+        "name": "issue-solver-bots.git",
+        "file_counts": 350,
+        "usage_bytes": 3403660,
+        "created_at": 1749025873,
+        "last_active_at": 1749026022,
+        "is_production": true
+      },
+      {
+        "id": "vs_683f0993106c8191ac6d11349dc30520",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 356483,
+        "created_at": 1748961683,
+        "last_active_at": 1748961742,
+        "is_production": true
+      },
+      {
+        "id": "vs_683dcbaa40a08191a6d95a2261122895",
+        "name": "issue-solver-bots.git",
+        "file_counts": 360,
+        "usage_bytes": 2425021,
+        "created_at": 1748880298,
+        "last_active_at": 1749026272,
+        "is_production": true
+      },
+      {
+        "id": "vs_68302bc0b96c8191b77816909c050b0a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1747987392,
+        "last_active_at": 1748178675,
+        "is_production": true
+      },
+      {
+        "id": "vs_6828da5415dc81919d5f03959df0c01e",
+        "name": "gpt-engineer.git",
+        "file_counts": 167,
+        "usage_bytes": 2080972,
+        "created_at": 1747507796,
+        "last_active_at": 1747983669,
+        "is_production": true
+      },
+      {
+        "id": "vs_682613325af88191a7c7f765f3b99f04",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747325746,
+        "last_active_at": 1747986248,
+        "is_production": true
+      },
+      {
+        "id": "vs_6825fcc40e2081918ced9998216f243f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 321,
+        "usage_bytes": 3047820,
+        "created_at": 1747320004,
+        "last_active_at": 1748177224,
+        "is_production": true
+      },
+      {
+        "id": "vs_6825e82bfcb48191b12ac237d04f6d5d",
+        "name": "marshmallow-twin.git",
+        "file_counts": 87,
+        "usage_bytes": 1250463,
+        "created_at": 1747314731,
+        "last_active_at": 1747319615,
+        "is_production": true
+      },
+      {
+        "id": "vs_6800155a81608191b1f485949ebe046b",
+        "name": "build-with-ai-tech-screen-app",
+        "file_counts": 7,
+        "usage_bytes": 21481,
+        "created_at": 1744835930,
+        "last_active_at": 1744835985,
+        "is_production": true
+      },
+      {
+        "id": "vs_67fe9f3dd0e481919b49fbf5254bba7f",
+        "name": "issue-solver-bots.git",
+        "file_counts": 340,
+        "usage_bytes": 2666948,
+        "created_at": 1744740157,
+        "last_active_at": 1748880181,
+        "is_production": true
+      },
+      {
+        "id": "vs_67f8f63890d481919155da2c5d47d678",
+        "name": "ai-chatbot.git",
+        "file_counts": 153,
+        "usage_bytes": 1471437,
+        "created_at": 1744369208,
+        "last_active_at": 1744369691,
+        "is_production": true
+      },
+      {
+        "id": "vs_67f8f3be5bd08191926294999912e6a7",
+        "name": "SWE-agent",
+        "file_counts": 368,
+        "usage_bytes": 8339377,
+        "created_at": 1744368574,
+        "last_active_at": 1749313408,
+        "is_production": true
+      },
+      {
+        "id": "vs_67ef20a9adec8191bf10bc0e30939d98",
+        "name": "SWE-agent.git",
+        "file_counts": 363,
+        "usage_bytes": 8321367,
+        "created_at": 1743724713,
+        "last_active_at": 1743725576,
+        "is_production": true
+      },
+      {
+        "id": "vs_67eda15501dc8191bccf269f4f08e63d",
+        "name": "smooth.git",
+        "file_counts": 3448,
+        "usage_bytes": 25614476,
+        "created_at": 1743626581,
+        "last_active_at": 1744633895,
+        "is_production": true
+      },
+      {
+        "id": "vs_67ed61bde3d081918932331cff03b071",
+        "name": "smooth.git",
+        "file_counts": 7362,
+        "usage_bytes": 98227645,
+        "created_at": 1743610301,
+        "last_active_at": 1764857447,
+        "is_production": true
+      },
+      {
+        "id": "vs_67ed4c8720d08191ba59674d566ef599",
+        "name": "smooth.git",
+        "file_counts": 5789,
+        "usage_bytes": 47298812,
+        "created_at": 1743604871,
+        "last_active_at": 1743606673,
+        "is_production": true
+      },
+      {
+        "id": "vs_67ecf3869d5c81918426bdde6c5d851a",
+        "name": "issue-solver-bots.git",
+        "file_counts": 269,
+        "usage_bytes": 2504851,
+        "created_at": 1743582086,
+        "last_active_at": 1747927634,
+        "is_production": true
+      },
+      {
+        "id": "vs_67e52404e95881918fab2eae65b7b75b",
+        "name": "smooth.git",
+        "file_counts": 3421,
+        "usage_bytes": 25127136,
+        "created_at": 1743070212,
+        "last_active_at": 1743070849,
+        "is_production": true
+      },
+      {
+        "id": "vs_67e51807540c81918d71d8ebf3329345",
+        "name": "smooth.git",
+        "file_counts": 3421,
+        "usage_bytes": 25129707,
+        "created_at": 1743067143,
+        "last_active_at": 1743067801,
+        "is_production": true
+      },
+      {
+        "id": "vs_67e48d6e8f9c8191b3c2769d61e4cfd7",
+        "name": "smooth.git",
+        "file_counts": 3480,
+        "usage_bytes": 25804649,
+        "created_at": 1743031662,
+        "last_active_at": 1744829200,
+        "is_production": true
+      },
+      {
+        "id": "vs_67e48591bfc48191b087dec4d31eff4c",
+        "name": "gitingest",
+        "file_counts": 65,
+        "usage_bytes": 377107,
+        "created_at": 1743029649,
+        "last_active_at": 1744374945,
+        "is_production": true
+      }
+    ]
+  },
+  "execution_started": "2025-12-08T10:25:40.937143",
+  "execution_completed": "2025-12-08T19:04:34.203335",
+  "deleted_stores": [
+    {
+      "id": "vs_69297a7b84908191ae3de4e78f4b7657",
+      "name": "issue-solver-bots.git",
+      "file_counts": 548,
+      "usage_bytes": 9304884,
+      "created_at": 1764326011,
+      "last_active_at": 1764326525,
+      "is_production": false
+    },
+    {
+      "id": "vs_6920aa48f29c8191839fb04e6fd725b9",
+      "name": "issue-solver-bots.git",
+      "file_counts": 491,
+      "usage_bytes": 7726292,
+      "created_at": 1763748425,
+      "last_active_at": 1763748948,
+      "is_production": false
+    },
+    {
+      "id": "vs_692036c786c0819198e0874a808a8658",
+      "name": "issue-solver-bots.git",
+      "file_counts": 489,
+      "usage_bytes": 7684279,
+      "created_at": 1763718855,
+      "last_active_at": 1763719330,
+      "is_production": false
+    },
+    {
+      "id": "vs_691cef33f04081918e13e8f58a664958",
+      "name": "issue-solver-bots.git",
+      "file_counts": 491,
+      "usage_bytes": 7587932,
+      "created_at": 1763503924,
+      "last_active_at": 1763512828,
+      "is_production": false
+    },
+    {
+      "id": "vs_6913264351fc819190502f838d5a6cc9",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762862659,
+      "last_active_at": 1762863171,
+      "is_production": false
+    },
+    {
+      "id": "vs_691325cb7df08191b5d0300b48860df0",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762862539,
+      "last_active_at": 1762863040,
+      "is_production": false
+    },
+    {
+      "id": "vs_691325562e5c8191aaf12c77d4e41fae",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762862422,
+      "last_active_at": 1762862886,
+      "is_production": false
+    },
+    {
+      "id": "vs_691325087c2c81919a4aec858719f81a",
+      "name": "gitingest",
+      "file_counts": 120,
+      "usage_bytes": 917389,
+      "created_at": 1762862344,
+      "last_active_at": 1762862379,
+      "is_production": false
+    },
+    {
+      "id": "vs_69131e9268e08191aa4824734b6c85b8",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762860690,
+      "last_active_at": 1762861164,
+      "is_production": false
+    },
+    {
+      "id": "vs_69123891760c819196d51b138ad46c89",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762801809,
+      "last_active_at": 1762802346,
+      "is_production": false
+    },
+    {
+      "id": "vs_6910d36a45588191a3cb5c53e4959102",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762710378,
+      "last_active_at": 1762710881,
+      "is_production": false
+    },
+    {
+      "id": "vs_6910ca642df481919e3f72176570d623",
+      "name": "issue-solver-bots.git",
+      "file_counts": 481,
+      "usage_bytes": 7389249,
+      "created_at": 1762708068,
+      "last_active_at": 1762708601,
+      "is_production": false
+    },
+    {
+      "id": "vs_6910b4a6ed248191a88ad2af515558fa",
+      "name": "ai",
+      "file_counts": 4140,
+      "usage_bytes": 26000559,
+      "created_at": 1762702503,
+      "last_active_at": 1762859761,
+      "is_production": false
+    },
+    {
+      "id": "vs_6910b266d67c819193798cf2fd7a7a63",
+      "name": "next.js",
+      "file_counts": 24996,
+      "usage_bytes": 252809567,
+      "created_at": 1762701927,
+      "last_active_at": 1762764079,
+      "is_production": false
+    },
+    {
+      "id": "vs_690141da2e8c8191a31f538e6878fb8c",
+      "name": "gitingest",
+      "file_counts": 120,
+      "usage_bytes": 917389,
+      "created_at": 1761690074,
+      "last_active_at": 1761690109,
+      "is_production": false
+    },
+    {
+      "id": "vs_68db9b1f61888191baeac4c04389f6ab",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1759222559,
+      "last_active_at": 1759238334,
+      "is_production": false
+    },
+    {
+      "id": "vs_68db9a000dc88191bb09eaa7e2181c5b",
+      "name": "marshmallow-twin.git",
+      "file_counts": 0,
+      "usage_bytes": 0,
+      "created_at": 1759222272,
+      "last_active_at": 1759222272,
+      "is_production": false
+    },
+    {
+      "id": "vs_68db94c0efec8191848ca790334dd3b2",
+      "name": "marshmallow-twin.git",
+      "file_counts": 0,
+      "usage_bytes": 0,
+      "created_at": 1759220929,
+      "last_active_at": 1759221281,
+      "is_production": false
+    },
+    {
+      "id": "vs_68db1e87d8a08191aacc495b932d2ccd",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1759190663,
+      "last_active_at": 1759249551,
+      "is_production": false
+    },
+    {
+      "id": "vs_68daf2a4787c819188cea0788a535c5a",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1759179428,
+      "last_active_at": 1759179911,
+      "is_production": false
+    },
+    {
+      "id": "vs_68dad92bf60c81918f13de5c74fbf11b",
+      "name": "issue-solver-bots.git",
+      "file_counts": 456,
+      "usage_bytes": 5463937,
+      "created_at": 1759172908,
+      "last_active_at": 1759173694,
+      "is_production": false
+    },
+    {
+      "id": "vs_68d6a398a67481919b224e134ae5b8a9",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1758897048,
+      "last_active_at": 1758897071,
+      "is_production": false
+    },
+    {
+      "id": "vs_68d366cf71c08191aa5488ca4d652bc3",
+      "name": "issue-solver-bots.git",
+      "file_counts": 435,
+      "usage_bytes": 5303466,
+      "created_at": 1758684879,
+      "last_active_at": 1758685486,
+      "is_production": false
+    },
+    {
+      "id": "vs_68c95e0d27848191b4afd4469c37da9a",
+      "name": "issue-solver-bots.git",
+      "file_counts": 430,
+      "usage_bytes": 5278904,
+      "created_at": 1758027277,
+      "last_active_at": 1758483359,
+      "is_production": false
+    },
+    {
+      "id": "vs_68c045c6fb848191bfc89fda831f7863",
+      "name": "issue-solver-bots.git",
+      "file_counts": 422,
+      "usage_bytes": 5129570,
+      "created_at": 1757431239,
+      "last_active_at": 1757431858,
+      "is_production": false
+    },
+    {
+      "id": "vs_68ba090cecf48191bf4daf5cd4bd82bf",
+      "name": "marshmallow-twin.git",
+      "file_counts": 123,
+      "usage_bytes": 1267034,
+      "created_at": 1757022476,
+      "last_active_at": 1757023866,
+      "is_production": false
+    },
+    {
+      "id": "vs_68ba0576ae5c819185c60c246461b9b7",
+      "name": "issue-solver-bots.git",
+      "file_counts": 490,
+      "usage_bytes": 7219461,
+      "created_at": 1757021558,
+      "last_active_at": 1757057356,
+      "is_production": false
+    },
+    {
+      "id": "vs_68b808527808819194a95a8168b97879",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1756891218,
+      "last_active_at": 1756891990,
+      "is_production": false
+    },
+    {
+      "id": "vs_68b4773f9b208191b2b4cf600d8a2fd8",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1756657471,
+      "last_active_at": 1757670349,
+      "is_production": false
+    },
+    {
+      "id": "vs_68b1cbb96bd88191bce7afa7ba3cf954",
+      "name": "issue-solver-bots.git",
+      "file_counts": 421,
+      "usage_bytes": 5102191,
+      "created_at": 1756482489,
+      "last_active_at": 1756557505,
+      "is_production": false
+    },
+    {
+      "id": "vs_68af22fadc3c81918ddeda49398e0088",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1756308218,
+      "last_active_at": 1756309546,
+      "is_production": false
+    },
+    {
+      "id": "vs_68aec3e393fc81918da3724c559825dc",
+      "name": "issue-solver-bots.git",
+      "file_counts": 413,
+      "usage_bytes": 5062694,
+      "created_at": 1756283875,
+      "last_active_at": 1756293300,
+      "is_production": false
+    },
+    {
+      "id": "vs_68a74ba900ec8191b68d5821e499582b",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1755794345,
+      "last_active_at": 1756194977,
+      "is_production": false
+    },
+    {
+      "id": "vs_68a6094ab708819186445293e56a167a",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1755711818,
+      "last_active_at": 1755769431,
+      "is_production": false
+    },
+    {
+      "id": "vs_68a5ea07bd388191afcb8ed855433024",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1755703815,
+      "last_active_at": 1755705528,
+      "is_production": false
+    },
+    {
+      "id": "vs_689fad1dc1788191a3f20b985a3ef7d5",
+      "name": "marshmallow-twin.git",
+      "file_counts": 87,
+      "usage_bytes": 1250463,
+      "created_at": 1755295005,
+      "last_active_at": 1755295469,
+      "is_production": false
+    },
+    {
+      "id": "vs_6894b34924cc81918850ba3f725813bb",
+      "name": "images-hunter-api",
+      "file_counts": 0,
+      "usage_bytes": 0,
+      "created_at": 1754575689,
+      "last_active_at": 1754575797,
+      "is_production": false
+    },
+    {
+      "id": "vs_6894ac7499b8819199b8e4a4b088b275",
+      "name": "openai-cookbook",
+      "file_counts": 636,
+      "usage_bytes": 132533231,
+      "created_at": 1754573940,
+      "last_active_at": 1754574512,
+      "is_production": false
+    },
+    {
+      "id": "vs_68947b8f7840819181b21fa58a0512d9",
+      "name": "issue-solver-bots.git",
+      "file_counts": 378,
+      "usage_bytes": 4056860,
+      "created_at": 1754561423,
+      "last_active_at": 1754562089,
+      "is_production": false
+    },
+    {
+      "id": "vs_689476e3aebc81918ab892b3f1c92452",
+      "name": "issue-solver-bots.git",
+      "file_counts": 378,
+      "usage_bytes": 2294556,
+      "created_at": 1754560227,
+      "last_active_at": 1754574545,
+      "is_production": false
+    }
+  ],
+  "failed_deletions": [],
+  "actual_savings_bytes": 557140031,
+  "actual_savings_gb": 0.5188770880922675,
+  "success_rate": 100.0,
+  "dry_run": false
+}
