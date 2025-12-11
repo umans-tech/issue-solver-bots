@@ -2,12 +2,27 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { IconUmansLogo } from '@/components/icons';
+import { motion, useReducedMotion } from 'framer-motion';
 import { LandingNavbar } from '@/components/landing-navbar';
-import { Brain, Zap, Users, Bot, BarChart3, Rocket, FlaskConical, FileText, Check } from 'lucide-react';
+import { 
+  Brain, 
+  Users,
+  Bot, 
+  FileText,
+  Check, 
+  Terminal, 
+  Code, 
+  Layout,
+  Globe, 
+  Shield, 
+  MessageCircle,
+  Loader2,
+  Clock
+} from 'lucide-react';
+import { SiNotion, SiGithub, SiSlack, SiLinear, SiFigma, SiJira, SiAnthropic } from 'react-icons/si';
 
 export default function LandingPage() {
+  const shouldReduceMotion = useReducedMotion();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const featuresRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +98,7 @@ export default function LandingPage() {
         'Extended runs with GPT-5, Claude Sonnet & Claude Code',
         'Personal workspace with persistent context & docs',
       ],
-      ctaLabel: 'Get started',
+      ctaLabel: 'Upgrade your team',
       ctaHref: 'https://buy.stripe.com/solo-plan-link',
       ctaType: 'external',
       ctaVariant: 'secondary',
@@ -102,7 +117,7 @@ export default function LandingPage() {
         'Shared spaces with cross-conversation memory',
         'Seats for up to 5 collaborators (per-user pricing)',
       ],
-      ctaLabel: 'Get started',
+      ctaLabel: 'Upgrade your team',
       ctaHref: 'https://buy.stripe.com/pro-plan-link',
       ctaType: 'external',
       ctaVariant: 'primary',
@@ -121,7 +136,7 @@ export default function LandingPage() {
         'Dedicated environment profiles per team',
         'White-glove enablement + shared roadmap planning',
       ],
-      ctaLabel: 'Contact us',
+      ctaLabel: 'Contact us for enterprise',
       ctaHref: 'mailto:contact@umans.ai',
       ctaType: 'external',
       ctaVariant: 'secondary',
@@ -160,46 +175,179 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-4xl text-center"
-        >
-          <h1 className="mb-6 text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 sm:text-6xl text-balance">
-            Deliver Value, <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Not Just Code</span>
-          </h1>
-          
-          <p className="mb-6 text-xl text-muted-foreground max-w-3xl mx-auto text-balance">
-          Bridge the gap between what your system does, what business needs, and what your team plans to build.
-          </p>
+      {/* Alignment Hero Section */}
+      <section className="relative z-10 flex flex-col items-center justify-center p-4 pt-32 pb-20 lg:pt-40 lg:pb-32 text-center">
+         <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="mb-4 text-xs font-bold tracking-widest text-primary uppercase">
+              Deliver value, not just code.
+            </div>
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-7xl text-balance">
+              Understand, change, and document <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">complex systems faster.</span>
+            </h1>
+            
+            <p className="mb-8 text-xl text-muted-foreground text-balance leading-relaxed max-w-2xl mx-auto">
+              Umans connects to your Git repos and gives your team AI coding agents that help them onboard faster, ship safe PRs, and keep docs in sync with your code.
+            </p>
 
 
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center mb-6">
-            <Link
-              href="/go-to-app"
-              className="rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Start Building
-            </Link>
-            <button
-              onClick={scrollToFeatures}
-              className="rounded-md bg-secondary px-8 py-3 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/90"
-            >
-              Learn More
-            </button>
-          </div>
 
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm font-medium">
-            <Rocket className="w-4 h-4 mr-2" />
-            Currently in Early Access (Alpha)
-          </div>
-        </motion.div>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link
+                href="/go-to-app"
+                className="rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary text-center"
+              >
+                Start for free
+              </Link>
+              <a
+                href="mailto:contact@umans.ai"
+                className="rounded-md bg-secondary/80 px-8 py-3 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary text-center backdrop-blur-sm"
+              >
+                Teams & Enterprise
+              </a>
+            </div>
+
+
+         </motion.div>
       </section>
 
-      {/* Current Capabilities Section */}
+      {/* Product Demo Section */}
+      <section className="relative z-10 p-4 pb-20 lg:pb-32 bg-muted/30">
+        <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-left"
+          >
+            <h2 className="mb-6 text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 sm:text-5xl text-balance">
+              Delegate real coding work to AI agents, <br />
+              from your browser.
+            </h2>
+            
+            <p className="mb-8 text-lg text-muted-foreground text-balance leading-relaxed">
+               Connect Umans to your repo and launch secure remote agents that run tests, update code, and open PRs you can review. Each repo gets its own micro VM with your tools and dependencies so agents behave like a real teammate, not a toy script.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative hidden lg:block"
+          >
+            {/* Fake Product UI Mockup */}
+            <div className="rounded-xl border border-border bg-card/50 backdrop-blur shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/20" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/20" />
+                </div>
+                <div className="h-5 w-64 rounded-md bg-muted/50 ml-4" />
+              </div>
+              <div className="grid grid-cols-12 h-[500px]">
+                {/* Chat Panel */}
+                <div className="col-span-5 border-r border-border p-4 flex flex-col gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3 text-sm">
+                      Can you refactor the payment validation logic?
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0">
+                      <Bot className="w-4 h-4 text-indigo-500" />
+                    </div>
+                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-lg p-3 text-sm w-full">
+                      <p className="mb-2 font-medium">I'll handle this refactor.</p>
+                      <ul className="space-y-2 text-xs text-muted-foreground mb-3">
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Scan <code>payment_service.py</code>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Run relevant tests
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Refactor validation logic
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Open a PR with changes
+                        </li>
+                      </ul>
+                      <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-1.5 rounded border border-indigo-500/20">
+                         <Loader2 className="w-3 h-3 animate-spin" />
+                         Launching remote agent...
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-auto">
+                    <div className="h-10 rounded-md bg-muted/30 border border-border" />
+                  </div>
+                </div>
+                {/* Agent Log Panel */}
+                <div className="col-span-7 bg-[#1e1e1e] p-0 font-mono text-xs overflow-hidden flex flex-col">
+                   <div className="p-2 border-b border-white/10 bg-white/5 flex items-center justify-between text-white/50">
+                      <span>agent-log.txt</span>
+                      <div className="flex gap-2">
+                         <div className="w-2 h-2 rounded-full bg-white/20" />
+                         <div className="w-2 h-2 rounded-full bg-white/20" />
+                      </div>
+                   </div>
+                   <div className="p-4 space-y-2 text-white/80 overflow-y-auto custom-scrollbar">
+                      <div className="flex gap-2 text-emerald-400">
+                         <span>$</span>
+                         <span className="text-white">agent start --task "refactor payment validation"</span>
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Connected to secure micro-VM (2.1s)
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Reading src/payments/service.py...
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Running tests (pytest)...
+                      </div>
+                      <div className="text-emerald-400 pl-3">
+                         ✓ test_validate_payment PASSED (0.4s)
+                      </div>
+                      <div className="text-white/50 pl-3 mt-2">
+                         &gt; Applying diff to service.py...
+                      </div>
+                      
+                      {/* Mini Diff */}
+                      <div className="mt-2 rounded bg-black/30 border border-white/10 p-2 text-[10px] leading-relaxed">
+                         <div className="text-white/40">@@ -45,7 +45,8 @@</div>
+                         <div className="text-red-400/70">- if not self.validate_amount(tx):</div>
+                         <div className="text-red-400/70">-     return False</div>
+                         <div className="text-emerald-400/70">+ if not self.validator.verify(tx):</div>
+                         <div className="text-emerald-400/70">+     raise ValidationError("Invalid tx")</div>
+                      </div>
+
+                      <div className="text-blue-400 pl-3 mt-2 animate-pulse">
+                         &gt; Opening PR #124...
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Why Teams Use Umans Section */}
       <section ref={featuresRef} className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
@@ -209,14 +357,11 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl font-bold text-foreground mb-4">What You Get Today</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-              AI agents that understand your codebase and collaborate with your team
-            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-4">Why teams use Umans</h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 mb-16">
-            {/* AI-Assisted Software Delivery */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Card 1 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -227,13 +372,23 @@ export default function LandingPage() {
               <div className="mb-4">
                 <Brain className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Deep Codebase Understanding</h3>
-              <p className="text-muted-foreground">
-                Chat with AI that truly understands your architecture, generates insightful diagrams, and helps your team navigate even the most complex codebases with confidence.
+              <h3 className="text-xl font-bold text-foreground mb-4">Understand large codebases in hours, not weeks</h3>
+              <p className="text-muted-foreground mb-6">
+                Connect your repo and chat with an AI that actually navigates your code. Follow references, jump across services, and get diagrams, explanations, and root cause analyses instead of grep driven archaeology.
               </p>
+              {/* Visual Hint */}
+              <div className="rounded-lg bg-muted/30 border border-border/50 p-3 text-xs font-mono">
+                <div className="flex items-center gap-2 mb-2">
+                   <MessageCircle className="w-3 h-3" />
+                   <span>"Explain the auth flow"</span>
+                </div>
+                <div className="pl-4 border-l-2 border-primary/30 text-muted-foreground">
+                   Generating call graph...
+                </div>
+              </div>
             </motion.div>
 
-            {/* Automated Issue Resolution */}
+            {/* Card 2 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -242,15 +397,22 @@ export default function LandingPage() {
               className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Zap className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
+                <Terminal className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Automated Issue Resolution</h3>
-              <p className="text-muted-foreground">
-                Delegate small changes, debugging fixes, and medium-sized pull requests to umans.ai remote agents.
+              <h3 className="text-xl font-bold text-foreground mb-4">Delegate coding work to secure remote agents</h3>
+              <p className="text-muted-foreground mb-6">
+                From the browser, delegate coding tasks to remote agents running in secure micro VMs. They use a real dev environment, run your tests, even open a browser when needed, and finish by sending a pull request.
               </p>
+              {/* Visual Hint */}
+               <div className="rounded-lg bg-black/80 border border-border/50 p-3 text-xs font-mono text-green-400">
+                <div>$ run-tests ./billing</div>
+                <div className="text-white/70">... 34 passed</div>
+                <div className="mt-1">$ git push origin fix/billing</div>
+                <div className="text-blue-400">Opening PR #123...</div>
+              </div>
             </motion.div>
 
-            {/* Team Collaboration */}
+            {/* Card 3 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -259,20 +421,97 @@ export default function LandingPage() {
               className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
             >
               <div className="mb-4">
-                <Users className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
+                <FileText className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Multi-User Collaboration</h3>
-              <p className="text-muted-foreground">
-                Capture collective knowledge, maintain context across conversations, and ensure everyone stays aligned on what you're building.
+              <h3 className="text-xl font-bold text-foreground mb-4">Keep architecture and docs close to reality</h3>
+              <p className="text-muted-foreground mb-6">
+                Define prompts once and let Umans generate system overviews, domain glossaries, and how tos from your code. Regenerate pages when things change so docs stay close to reality.
               </p>
+              {/* Visual Hint */}
+              <div className="rounded-lg bg-white dark:bg-slate-900 border border-border/50 p-3 text-xs">
+                <div className="flex justify-between items-center mb-2 border-b border-border/30 pb-1">
+                   <span className="font-semibold">System Architecture</span>
+                   <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded text-[10px]">Auto</span>
+                </div>
+                <div className="h-2 w-3/4 bg-muted mb-1 rounded"></div>
+                <div className="h-2 w-1/2 bg-muted rounded"></div>
+              </div>
             </motion.div>
           </div>
-
         </div>
       </section>
 
-      {/* Vision Section */}
+      {/* Built for Teams and Enterprises Section (Moved Up) */}
       <section className="relative z-10 bg-muted/30 py-24">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-4">Built for engineering teams and enterprise security needs</h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+             <div className="space-y-8">
+            <p className="text-lg text-muted-foreground leading-relaxed">
+                  We deploy our state of the art open source coding model in your VPC, plug it into Claude Code or Umans, and give your teams powerful coding agents without code ever leaving your infrastructure.
+                </p>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                   We connect to GitHub MCP, Notion, and soon Figma/Jira to reduce paperwork and keep your systems aligned.
+                </p>
+                
+                <div className="pt-2">
+                   <a href="mailto:contact@umans.ai" className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all">
+                      Contact us for enterprise
+                   </a>
+                </div>
+             </div>
+
+             <div className="bg-muted/20 rounded-2xl p-8 border border-border/50 flex flex-col items-center justify-center gap-8">
+                <div className="flex flex-col gap-3 w-full items-center">
+                    <div className="bg-background border border-border px-6 py-4 rounded-xl shadow-md font-medium text-lg flex items-center gap-3 w-full justify-center">
+                       <Shield className="w-6 h-6 text-primary" />
+                       Umans Model in your VPC
+                    </div>
+                    <div className="h-4 w-px bg-border/50"></div>
+                     <div className="bg-background border border-border px-4 py-2 rounded-lg shadow-sm font-medium text-sm flex items-center gap-2 text-muted-foreground">
+                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                       Connected to Claude Code & Umans
+                    </div>
+                </div>
+                
+                <div className="w-px h-8 bg-border/50"></div>
+                
+                <div className="text-center space-y-4 w-full">
+                   <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Connected Tools</div>
+                   <div className="grid grid-cols-2 gap-3">
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                         <SiGithub className="w-4 h-4" /> GitHub MCP
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                         <SiNotion className="w-4 h-4" /> Notion
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
+                         <SiSlack className="w-4 h-4" /> Slack
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
+                         <SiJira className="w-4 h-4" /> Jira (soon)
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2 col-span-2 w-max mx-auto">
+                         <SiFigma className="w-4 h-4" /> Figma (soon)
+                       </span>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Core Capabilities Section (Moved Down) */}
+      <section className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -281,103 +520,262 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl font-bold text-foreground mb-4">Where We're Going</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-              Exploring the future of software delivery
-            </p>
+             <h2 className="text-3xl font-bold text-foreground mb-4">What you can do with the Umans AI coding agent platform</h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Specifications-driven Development */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="mb-4">
-                <FileText className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Collaborative Executable Modeling</h3>
-              <p className="text-muted-foreground">
-                Transform business scenarios, examples, and specifications into a new level of coding abstraction where requirements become executable blueprints.
-              </p>
-            </motion.div>
-
-            {/* Production Intelligence */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="mb-4">
-                <BarChart3 className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Production Intelligence</h3>
-              <p className="text-muted-foreground">
-                Monitor your applications in real-time with AI agents that analyze incidents, predict issues, and suggest mitigation strategies before problems escalate.
-              </p>
-            </motion.div>
-
-            {/* Complex Task Automation */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="group landing-feature-card rounded-2xl bg-gradient-to-br from-card to-card/80 p-8 shadow-lg border border-border/50 hover:shadow-xl hover:border-border/80 transition-all duration-300 backdrop-blur-sm"
-            >
-              <div className="mb-4">
-                <Bot className="w-8 h-8 text-primary group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-4">Complex Task Automation</h3>
-              <p className="text-muted-foreground">
-                Scale beyond simple fixes with intelligent agents that handle sophisticated refactoring, architecture migrations, and multi-service deployments.
-              </p>
-            </motion.div>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            viewport={{ once: true }}
-            className="text-center mt-12"
-          >
-            <div className="inline-flex items-center px-6 py-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium">
-              <FlaskConical className="w-4 h-4 mr-2" />
-              Soon: Private Beta with expanded capabilities
+          <div className="space-y-24">
+            
+            {/* Capability 1: Chat */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <MessageCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Chat with your codebase</h3>
+                </div>
+                <p className="text-lg text-muted-foreground mb-4">
+                  Ask questions in natural language, get guided tours of complex flows, and quickly build mental models of large repositories.
+                </p>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Indexes large codebases reliably</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Generates diagrams and structured answers</li>
+                </ul>
+              </motion.div>
+              <motion.div
+                 initial={{ opacity: 0, x: 20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 transition={{ duration: 0.6 }}
+                 viewport={{ once: true }}
+                 className="rounded-xl border border-border bg-card/50 shadow-lg p-6 backdrop-blur-sm"
+              >
+                  {/* Fake Chat UI */}
+                  <div className="space-y-4">
+                     <div className="flex justify-end">
+                        <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2 text-sm max-w-[80%]">
+                           How are notifications dispatched?
+                        </div>
+                     </div>
+                     <div className="flex justify-start">
+                        <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-2 text-sm max-w-[90%]">
+                           <p className="mb-2">Notifications are handled by the <code>NotificationService</code> class. It uses a strategy pattern to dispatch via Email, SMS, or Push.</p>
+                           <div className="bg-card border border-border rounded p-2 text-xs font-mono">
+                              services/notification/dispatcher.py
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 bg-background py-24">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl font-bold text-foreground mb-6">
-              Ready to transform your software delivery?
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto text-balance">
-              Join teams that are already using AI agents to bridge the gap between
-              business understanding and technical implementation.
-            </p>
-            <Link
-              href="/go-to-app"
-              className="rounded-md bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Start Building
-            </Link>
-          </motion.div>
+            {/* Capability 2: Agents */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 transition={{ duration: 0.6 }}
+                 viewport={{ once: true }}
+                 className="order-2 lg:order-1 rounded-xl border border-border bg-card/50 shadow-lg p-6 backdrop-blur-sm relative overflow-hidden"
+              >
+                  {/* Fake Agent UI */}
+                  <div className="absolute inset-0 bg-black/90 z-0"></div>
+                  <div className="relative z-10 font-mono text-sm text-green-400 space-y-2">
+                     <div>&gt; initialize_env --stack python-3.11</div>
+                     <div className="text-white/60">Environment ready (2.1s)</div>
+                     <div>&gt; run_test tests/api/test_orders.py</div>
+                     <div className="text-red-400">FAIL: test_create_order_invalid_sku</div>
+                     <div>&gt; read_file src/orders/service.py</div>
+                     <div className="text-yellow-400">Analyzing failure...</div>
+                     <div>&gt; apply_fix src/orders/service.py</div>
+                     <div>&gt; run_test tests/api/test_orders.py</div>
+                     <div className="text-green-400">PASS (0.4s)</div>
+                     <div className="text-blue-400">Creating Pull Request...</div>
+                  </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="order-1 lg:order-2"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Bot className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Coding agents on cloud micro VMs</h3>
+                </div>
+                <p className="text-lg text-muted-foreground mb-4">
+                  Once a repo is connected, Umans prepares a micro VM snapshot with your stack. Agents share that snapshot, so it is like having a developer laptop ready from day one.
+                </p>
+                 <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Agents can run tests and terminal commands</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Capable of opening a browser in the VM</li>
+                  <li className="flex items-center gap-2"><Check className="w-4 h-4 text-primary" /> Deliveries culminate in a Pull Request</li>
+                </ul>
+              </motion.div>
+            </div>
+
+            {/* Capability 3: Auto Docs */}
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                 <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <FileText className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Auto docs</h3>
+                </div>
+                <p className="text-lg text-muted-foreground mb-4">
+                  Use prompts to generate docs from code and regenerate pages like architecture overviews, domain event glossaries, or onboarding guides from your codebase.
+                </p>
+                <p className="text-muted-foreground">
+                  Docs stay fresh because they are grounded in code and can be regenerated on demand, preventing wiki-rot.
+                </p>
+              </motion.div>
+              <motion.div
+                 initial={{ opacity: 0, x: 20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 transition={{ duration: 0.6 }}
+                 viewport={{ once: true }}
+                 className="rounded-xl border border-border bg-card/50 shadow-lg p-6 backdrop-blur-sm"
+              >
+                  {/* Fake Docs UI */}
+                   <div className="flex gap-4 h-48">
+                      {/* Index */}
+                      <div className="w-1/4 space-y-3 border-r border-border pr-2 py-2">
+                         <div className="h-1.5 w-12 bg-foreground/20 rounded"></div>
+                         <div className="space-y-1.5 pl-2">
+                            <div className="h-1 w-16 bg-primary/40 rounded"></div>
+                            <div className="h-1 w-12 bg-muted rounded"></div>
+                            <div className="h-1 w-14 bg-muted rounded"></div>
+                         </div>
+                         <div className="h-1.5 w-10 bg-foreground/20 rounded mt-4"></div>
+                         <div className="space-y-1.5 pl-2">
+                            <div className="h-1 w-12 bg-muted rounded"></div>
+                            <div className="h-1 w-8 bg-muted rounded"></div>
+                         </div>
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="w-3/4 py-2">
+                         <div className="flex justify-between mb-4">
+                            <div className="h-4 w-1/3 bg-foreground/20 rounded"></div>
+                            <div className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] rounded">Live</div>
+                         </div>
+                         <div className="space-y-2 mb-4">
+                            <div className="h-1.5 w-full bg-muted rounded"></div>
+                            <div className="h-1.5 w-5/6 bg-muted rounded"></div>
+                         </div>
+                         
+                         {/* C4 Context Diagram */}
+                         <div className="relative h-24 w-full bg-muted/20 border border-border/50 rounded flex items-center justify-center overflow-hidden">
+                            {/* User */}
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                               <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                  <Users className="w-3 h-3 text-blue-500" />
+                               </div>
+                               <div className="h-1 w-6 bg-muted rounded"></div>
+                            </div>
+                            
+                            {/* Arrow */}
+                             <div className="absolute left-14 top-1/2 w-8 h-px bg-border flex items-center justify-center">
+                                <div className="w-1 h-1 bg-border rounded-full transform rotate-45"></div>
+                             </div>
+
+                            {/* System */}
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-12 bg-primary/10 border border-primary/30 rounded flex flex-col items-center justify-center gap-1 z-10">
+                               <div className="h-1.5 w-8 bg-primary/40 rounded"></div>
+                               <div className="h-1 w-6 bg-primary/20 rounded"></div>
+                            </div>
+
+                             {/* Arrow */}
+                             <div className="absolute right-14 top-1/2 w-8 h-px bg-border flex items-center justify-center">
+                                <div className="w-1 h-1 bg-border rounded-full transform rotate-45"></div>
+                             </div>
+
+                            {/* External System */}
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                               <div className="w-8 h-6 rounded bg-muted/40 border border-border flex items-center justify-center">
+                                  <div className="w-2 h-2 bg-muted rounded-full"></div>
+                               </div>
+                               <div className="h-1 w-8 bg-muted rounded"></div>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+              </motion.div>
+            </div>
+
+            {/* Capability 4: Integrations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+               <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 whileInView={{ opacity: 1, x: 0 }}
+                 transition={{ duration: 0.6 }}
+                 viewport={{ once: true }}
+                 className="order-2 lg:order-1 rounded-xl border border-border bg-card/50 shadow-lg p-8 backdrop-blur-sm flex items-center justify-center gap-8 flex-wrap"
+              >
+                  {/* Integration Logos/Badges */}
+                  <div className="flex flex-col items-center gap-2">
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-black">
+                        <SiNotion className="w-7 h-7" />
+                     </div>
+                     <span className="text-xs font-medium">Notion</span>
+                  </div>
+                   <div className="flex flex-col items-center gap-2">
+                     <div className="w-12 h-12 bg-black rounded-lg shadow flex items-center justify-center text-white">
+                        <SiGithub className="w-7 h-7" />
+                     </div>
+                     <span className="text-xs font-medium">GitHub</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 opacity-50">
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-[#4A154B]">
+                        <SiSlack className="w-7 h-7" />
+                     </div>
+                     <span className="text-xs font-medium">Slack (Soon)</span>
+                  </div>
+                   <div className="flex flex-col items-center gap-2 opacity-50">
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-[#5E6AD2]">
+                        <SiLinear className="w-7 h-7" />
+                     </div>
+                     <span className="text-xs font-medium">Linear (Soon)</span>
+                  </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="order-1 lg:order-2"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Globe className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Integrations and spaces</h3>
+                </div>
+                <p className="text-lg text-muted-foreground mb-4">
+                  Connect a repo to create a shared space for your team. Everyone gets access to the same chat context, docs, and coding agents for that codebase.
+                </p>
+                <div className="flex gap-2">
+                   <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Notion</span>
+                   <span className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">GitHub MCP</span>
+                   <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">Coming: Linear, Figma, Slack</span>
+                </div>
+              </motion.div>
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -420,8 +818,6 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Subtitle removed for simplicity */}
-
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4 items-stretch">
             {pricingPlans.map((plan, index) => {
               const activePricing = plan.pricing[billingCycle];
@@ -452,7 +848,7 @@ export default function LandingPage() {
 
                   <div className="mt-4 space-y-2">
                     <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground">{plan.tagline}</p>
+                    <p className="text-sm text-muted-foreground min-h-[40px]">{plan.tagline}</p>
                   </div>
 
                   <div className="mt-6">
@@ -462,9 +858,9 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <p className="mt-4 text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="mt-4 text-sm text-muted-foreground min-h-[60px]">{plan.description}</p>
 
-                  <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
+                  <ul className="mt-6 space-y-2 text-sm text-muted-foreground flex-grow">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <Check className="shrink-0 mt-1 h-4 w-4 text-primary" />
@@ -473,7 +869,7 @@ export default function LandingPage() {
                     ))}
                   </ul>
 
-                  <div className="mt-auto">
+                  <div className="mt-8">
                     {plan.name === 'Solo' || plan.name === 'Pro' ? (
                       <button
                         type="button"
@@ -497,22 +893,25 @@ export default function LandingPage() {
               );
             })}
           </div>
-
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-border bg-background py-8">
+      <footer className="relative z-10 border-t border-border bg-muted/20 py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="flex flex-col items-center justify-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-8"
+            className="flex flex-col items-center justify-between space-y-4 sm:flex-row sm:space-y-0"
           >
-            <div className="flex space-x-6">
-              <Link
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Umans. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+               <a href="#" className="text-sm text-muted-foreground hover:text-foreground">Built in public with our community.</a>
+               <Link
                 href="/privacy"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -525,12 +924,9 @@ export default function LandingPage() {
                 Terms of Service
               </Link>
             </div>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Umans. All rights reserved.
-            </p>
           </motion.div>
         </div>
       </footer>
     </div>
   );
-} 
+}
