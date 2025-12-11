@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { LandingNavbar } from '@/components/landing-navbar';
 import { 
   Brain, 
@@ -21,6 +21,7 @@ import {
 import { SiNotion, SiGithub, SiSlack, SiLinear } from 'react-icons/si';
 
 export default function LandingPage() {
+  const shouldReduceMotion = useReducedMotion();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const featuresRef = useRef<HTMLDivElement>(null);
 
@@ -173,33 +174,41 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 pt-20 lg:pt-32">
-        <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <motion.div
+      {/* Alignment Hero Section */}
+      <section className="relative z-10 flex flex-col items-center justify-center p-4 pt-32 pb-12 lg:pt-40 lg:pb-20 text-center">
+         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-left"
+            className="max-w-4xl mx-auto"
           >
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-secondary/50 text-secondary-foreground text-sm font-medium mb-6 backdrop-blur-sm border border-border/50">
-              Deliver value, not just code.
+            <div className="mb-4 text-xs font-bold tracking-widest text-primary uppercase">
+              Alignment First AI Coding Agents
             </div>
-            
-            <h1 className="mb-6 text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 sm:text-6xl text-balance">
-              Delegate real coding work to AI agents, <br />
-              from your browser.
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-7xl text-balance">
+              Deliver Value, <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Not Just Code</span>
             </h1>
             
-            <h2 className="text-3xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Not Only Code</span>
-            </h2>
-
-            <p className="mb-8 text-xl text-muted-foreground text-balance leading-relaxed">
-              Connect Umans to your repo to chat with large codebases, delegate coding tasks to secure remote agents that ship PRs, and keep docs and diagrams in sync with reality. Bridge the gap between what your system does, what business needs, and what your team plans to build.
+            <p className="mb-8 text-xl text-muted-foreground text-balance leading-relaxed max-w-2xl mx-auto">
+              Keep your team aligned on how the system works while agents handle fixes, docs, and onboarding in your repo.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex flex-wrap justify-center gap-4 mb-8 text-sm font-medium text-muted-foreground">
+               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+                  <MessageCircle className="w-4 h-4 text-primary" />
+                  Understand your codebase
+               </div>
+               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+                  <Bot className="w-4 h-4 text-primary" />
+                  Ship changes with agents
+               </div>
+               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Keep docs and diagrams living
+               </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
                 href="/go-to-app"
                 className="rounded-md bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary text-center"
@@ -213,27 +222,34 @@ export default function LandingPage() {
                 Teams & Enterprise
               </a>
             </div>
+         </motion.div>
+      </section>
 
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                Chat with your codebase and generate architecture diagrams.
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                Delegate coding tasks to agents that run tests and open PRs.
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                Generate living docs directly from your repo.
-              </li>
-            </ul>
+      {/* Product Demo Section */}
+      <section className="relative z-10 p-4 pb-20 lg:pb-32">
+        <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-left"
+          >
+            <h2 className="mb-6 text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/70 sm:text-5xl text-balance">
+              Delegate real coding work to AI agents, <br />
+              from your browser.
+            </h2>
+            
+            <p className="mb-8 text-lg text-muted-foreground text-balance leading-relaxed">
+               Connect Umans to your repo and launch secure remote agents that run tests, update code, and open PRs you can review. Each repo gets its own micro VM with your tools and dependencies so agents behave like a real teammate, not a toy script.
+            </p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
             className="relative hidden lg:block"
           >
             {/* Fake Product UI Mockup */}
@@ -575,23 +591,65 @@ export default function LandingPage() {
                  className="rounded-xl border border-border bg-card/50 shadow-lg p-6 backdrop-blur-sm"
               >
                   {/* Fake Docs UI */}
-                   <div className="flex gap-4">
-                      <div className="w-1/4 space-y-2 border-r border-border pr-2">
-                         <div className="h-2 w-3/4 bg-muted rounded"></div>
-                         <div className="h-2 w-full bg-muted rounded"></div>
-                         <div className="h-2 w-2/3 bg-muted rounded"></div>
+                   <div className="flex gap-4 h-48">
+                      {/* Index */}
+                      <div className="w-1/4 space-y-3 border-r border-border pr-2 py-2">
+                         <div className="h-1.5 w-12 bg-foreground/20 rounded"></div>
+                         <div className="space-y-1.5 pl-2">
+                            <div className="h-1 w-16 bg-primary/40 rounded"></div>
+                            <div className="h-1 w-12 bg-muted rounded"></div>
+                            <div className="h-1 w-14 bg-muted rounded"></div>
+                         </div>
+                         <div className="h-1.5 w-10 bg-foreground/20 rounded mt-4"></div>
+                         <div className="space-y-1.5 pl-2">
+                            <div className="h-1 w-12 bg-muted rounded"></div>
+                            <div className="h-1 w-8 bg-muted rounded"></div>
+                         </div>
                       </div>
-                      <div className="w-3/4">
+                      
+                      {/* Content */}
+                      <div className="w-3/4 py-2">
                          <div className="flex justify-between mb-4">
-                            <div className="h-4 w-1/2 bg-foreground/20 rounded"></div>
+                            <div className="h-4 w-1/3 bg-foreground/20 rounded"></div>
                             <div className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] rounded">Live</div>
                          </div>
-                         <div className="space-y-2">
-                            <div className="h-2 w-full bg-muted rounded"></div>
-                            <div className="h-2 w-full bg-muted rounded"></div>
-                            <div className="h-2 w-3/4 bg-muted rounded"></div>
-                            <div className="my-4 h-24 w-full bg-muted/50 border border-border border-dashed rounded flex items-center justify-center text-xs text-muted-foreground">
-                               Generated Architecture Diagram
+                         <div className="space-y-2 mb-4">
+                            <div className="h-1.5 w-full bg-muted rounded"></div>
+                            <div className="h-1.5 w-5/6 bg-muted rounded"></div>
+                         </div>
+                         
+                         {/* C4 Context Diagram */}
+                         <div className="relative h-24 w-full bg-muted/20 border border-border/50 rounded flex items-center justify-center overflow-hidden">
+                            {/* User */}
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                               <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                  <Users className="w-3 h-3 text-blue-500" />
+                               </div>
+                               <div className="h-1 w-6 bg-muted rounded"></div>
+                            </div>
+                            
+                            {/* Arrow */}
+                             <div className="absolute left-14 top-1/2 w-8 h-px bg-border flex items-center justify-center">
+                                <div className="w-1 h-1 bg-border rounded-full transform rotate-45"></div>
+                             </div>
+
+                            {/* System */}
+                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-12 bg-primary/10 border border-primary/30 rounded flex flex-col items-center justify-center gap-1 z-10">
+                               <div className="h-1.5 w-8 bg-primary/40 rounded"></div>
+                               <div className="h-1 w-6 bg-primary/20 rounded"></div>
+                            </div>
+
+                             {/* Arrow */}
+                             <div className="absolute right-14 top-1/2 w-8 h-px bg-border flex items-center justify-center">
+                                <div className="w-1 h-1 bg-border rounded-full transform rotate-45"></div>
+                             </div>
+
+                            {/* External System */}
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                               <div className="w-8 h-6 rounded bg-muted/40 border border-border flex items-center justify-center">
+                                  <div className="w-2 h-2 bg-muted rounded-full"></div>
+                               </div>
+                               <div className="h-1 w-8 bg-muted rounded"></div>
                             </div>
                          </div>
                       </div>
