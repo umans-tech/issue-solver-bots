@@ -16,7 +16,8 @@ import {
   Globe, 
   Shield, 
   MessageCircle,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { SiNotion, SiGithub, SiSlack, SiLinear, SiFigma, SiJira, SiAnthropic } from 'react-icons/si';
 
@@ -175,7 +176,7 @@ export default function LandingPage() {
       </div>
 
       {/* Alignment Hero Section */}
-      <section className="relative z-10 flex flex-col items-center justify-center p-4 pt-32 pb-12 lg:pt-40 lg:pb-20 text-center">
+      <section className="relative z-10 flex flex-col items-center justify-center p-4 pt-32 pb-20 lg:pt-40 lg:pb-32 text-center">
          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -190,29 +191,10 @@ export default function LandingPage() {
             </h1>
             
             <p className="mb-8 text-xl text-muted-foreground text-balance leading-relaxed max-w-2xl mx-auto">
-              Umans gives your team <span className="text-foreground font-medium">AI coding agents for software teams</span> that help them onboard faster, ship safe PRs, and keep docs in sync with your real repos.
+              Umans connects to your Git repos and gives your team AI coding agents that help them onboard faster, ship safe PRs, and keep docs in sync with your code.
             </p>
 
-            <ul className="flex flex-col sm:flex-row items-center justify-center gap-x-8 gap-y-3 mb-10 text-sm font-medium text-muted-foreground">
-               <li className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  Onboard to any repo in hours, not weeks
-               </li>
-               <li className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  Offload repetitive fixes to agents
-               </li>
-               <li className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary">
-                    <Check className="w-3 h-3" />
-                  </div>
-                  Keep docs and diagrams honest
-               </li>
-            </ul>
+
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
@@ -228,11 +210,13 @@ export default function LandingPage() {
                 Teams & Enterprise
               </a>
             </div>
+
+
          </motion.div>
       </section>
 
       {/* Product Demo Section */}
-      <section className="relative z-10 p-4 pb-20 lg:pb-32">
+      <section className="relative z-10 p-4 pb-20 lg:pb-32 bg-muted/30">
         <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <motion.div
             initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
@@ -457,8 +441,77 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Core Capabilities Section */}
+      {/* Built for Teams and Enterprises Section (Moved Up) */}
       <section className="relative z-10 bg-muted/30 py-24">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-4">Built for engineering teams and enterprise security needs</h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+             <div className="space-y-8">
+            <p className="text-lg text-muted-foreground leading-relaxed">
+                  We deploy our state of the art open source coding model in your VPC, plug it into Claude Code or Umans, and give your teams powerful coding agents without code ever leaving your infrastructure.
+                </p>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                   We connect to GitHub MCP, Notion, and soon Figma/Jira to reduce paperwork and keep your systems aligned.
+                </p>
+                
+                <div className="pt-2">
+                   <a href="mailto:contact@umans.ai" className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all">
+                      Contact us for enterprise
+                   </a>
+                </div>
+             </div>
+
+             <div className="bg-muted/20 rounded-2xl p-8 border border-border/50 flex flex-col items-center justify-center gap-8">
+                <div className="flex flex-col gap-3 w-full items-center">
+                    <div className="bg-background border border-border px-6 py-4 rounded-xl shadow-md font-medium text-lg flex items-center gap-3 w-full justify-center">
+                       <Shield className="w-6 h-6 text-primary" />
+                       Umans Model in your VPC
+                    </div>
+                    <div className="h-4 w-px bg-border/50"></div>
+                     <div className="bg-background border border-border px-4 py-2 rounded-lg shadow-sm font-medium text-sm flex items-center gap-2 text-muted-foreground">
+                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                       Connected to Claude Code & Umans
+                    </div>
+                </div>
+                
+                <div className="w-px h-8 bg-border/50"></div>
+                
+                <div className="text-center space-y-4 w-full">
+                   <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Connected Tools</div>
+                   <div className="grid grid-cols-2 gap-3">
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                         <SiGithub className="w-4 h-4" /> GitHub MCP
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
+                         <SiNotion className="w-4 h-4" /> Notion
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
+                         <SiSlack className="w-4 h-4" /> Slack
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
+                         <SiJira className="w-4 h-4" /> Jira (soon)
+                       </span>
+                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2 col-span-2 w-max mx-auto">
+                         <SiFigma className="w-4 h-4" /> Figma (soon)
+                       </span>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Core Capabilities Section (Moved Down) */}
+      <section className="relative z-10 bg-background py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -467,7 +520,7 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-             <h2 className="text-3xl font-bold text-foreground mb-4">What you can do with Umans AI coding agents</h2>
+             <h2 className="text-3xl font-bold text-foreground mb-4">What you can do with the Umans AI coding agent platform</h2>
           </motion.div>
 
           <div className="space-y-24">
@@ -722,75 +775,6 @@ export default function LandingPage() {
               </motion.div>
             </div>
 
-          </div>
-        </div>
-      </section>
-
-      {/* Built for Teams and Enterprises Section */}
-      <section className="relative z-10 bg-background py-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl font-bold text-foreground mb-4">Built for engineering teams and enterprise security needs</h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-             <div className="space-y-8">
-                <p className="text-lg text-muted-foreground leading-relaxed">
-                  We deploy our <span className="text-foreground font-medium">self hosted coding model</span> in your VPC, plug it into Claude Code or Umans so your teams get state-of-the-art coding agents without code leaving your infrastructure.
-                </p>
-                <p className="text-lg text-muted-foreground leading-relaxed">
-                   We connect to GitHub MCP, Notion, and soon Figma/Jira to reduce paperwork and keep your systems aligned.
-                </p>
-                
-                <div className="pt-2">
-                   <a href="mailto:contact@umans.ai" className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all">
-                      Contact us for enterprise
-                   </a>
-                </div>
-             </div>
-
-             <div className="bg-muted/20 rounded-2xl p-8 border border-border/50 flex flex-col items-center justify-center gap-8">
-                <div className="flex flex-col gap-3 w-full items-center">
-                    <div className="bg-background border border-border px-6 py-4 rounded-xl shadow-md font-medium text-lg flex items-center gap-3 w-full justify-center">
-                       <Shield className="w-6 h-6 text-primary" />
-                       Umans Model in your VPC
-                    </div>
-                    <div className="h-4 w-px bg-border/50"></div>
-                     <div className="bg-background border border-border px-4 py-2 rounded-lg shadow-sm font-medium text-sm flex items-center gap-2 text-muted-foreground">
-                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                       Connected to Claude Code & Umans
-                    </div>
-                </div>
-                
-                <div className="w-px h-8 bg-border/50"></div>
-                
-                <div className="text-center space-y-4 w-full">
-                   <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Connected Tools</div>
-                   <div className="grid grid-cols-2 gap-3">
-                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
-                         <SiGithub className="w-4 h-4" /> GitHub MCP
-                       </span>
-                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium flex items-center justify-center gap-2">
-                         <SiNotion className="w-4 h-4" /> Notion
-                       </span>
-                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
-                         <SiSlack className="w-4 h-4" /> Slack
-                       </span>
-                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2">
-                         <SiJira className="w-4 h-4" /> Jira (soon)
-                       </span>
-                       <span className="px-3 py-2 bg-background border border-border rounded-md text-sm font-medium opacity-70 flex items-center justify-center gap-2 col-span-2 w-max mx-auto">
-                         <SiFigma className="w-4 h-4" /> Figma (soon)
-                       </span>
-                   </div>
-                </div>
-             </div>
           </div>
         </div>
       </section>
