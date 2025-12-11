@@ -12,13 +12,13 @@ import {
   Check, 
   Terminal, 
   Code, 
-  GitBranch, 
-  Layout, 
+  Layout,
   Globe, 
   Shield, 
-  MessageCircle 
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
-import { IconUmansLogo } from '@/components/icons';
+import { SiNotion, SiGithub, SiSlack, SiLinear } from 'react-icons/si';
 
 export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -35,6 +35,10 @@ export default function LandingPage() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [checkoutLoading, setCheckoutLoading] = useState<null | 'solo' | 'pro'>(null);
@@ -206,7 +210,7 @@ export default function LandingPage() {
                 href="mailto:contact@umans.ai"
                 className="rounded-md bg-secondary/80 px-8 py-3 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary text-center backdrop-blur-sm"
               >
-                Talk to us about your team
+                Teams & Enterprise
               </a>
             </div>
 
@@ -257,16 +261,29 @@ export default function LandingPage() {
                     <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0">
                       <Bot className="w-4 h-4 text-indigo-500" />
                     </div>
-                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-lg p-3 text-sm">
-                      <p className="mb-2">I'll create an agent to handle this. It will:</p>
-                      <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
-                        <li>Scan <code>payment_service.py</code></li>
-                        <li>Run existing tests</li>
-                        <li>Refactor validation methods</li>
-                        <li>Open a PR</li>
+                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-lg p-3 text-sm w-full">
+                      <p className="mb-2 font-medium">I'll handle this refactor.</p>
+                      <ul className="space-y-2 text-xs text-muted-foreground mb-3">
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Scan <code>payment_service.py</code>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Run relevant tests
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Refactor validation logic
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                           <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                           Open a PR with changes
+                        </li>
                       </ul>
-                      <div className="mt-3">
-                         <span className="text-xs bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded">Agent Active</span>
+                      <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-1.5 rounded border border-indigo-500/20">
+                         <Loader2 className="w-3 h-3 animate-spin" />
+                         Launching remote agent...
                       </div>
                     </div>
                   </div>
@@ -274,45 +291,49 @@ export default function LandingPage() {
                     <div className="h-10 rounded-md bg-muted/30 border border-border" />
                   </div>
                 </div>
-                {/* PR/Code Panel */}
-                <div className="col-span-7 bg-background p-6">
-                  <div className="rounded-lg border border-border bg-card shadow-sm p-4 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <GitBranch className="w-4 h-4 text-green-500" />
-                        <span className="text-sm font-medium">PR #124: Refactor Payment Validation</span>
+                {/* Agent Log Panel */}
+                <div className="col-span-7 bg-[#1e1e1e] p-0 font-mono text-xs overflow-hidden flex flex-col">
+                   <div className="p-2 border-b border-white/10 bg-white/5 flex items-center justify-between text-white/50">
+                      <span>agent-log.txt</span>
+                      <div className="flex gap-2">
+                         <div className="w-2 h-2 rounded-full bg-white/20" />
+                         <div className="w-2 h-2 rounded-full bg-white/20" />
                       </div>
-                      <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full">Open</span>
-                    </div>
-                    <div className="space-y-2">
-                       <div className="h-2 w-3/4 rounded bg-muted/50" />
-                       <div className="h-2 w-1/2 rounded bg-muted/50" />
-                    </div>
-                  </div>
-                  <div className="space-y-3 font-mono text-xs">
-                    <div className="flex gap-2">
-                       <span className="text-muted-foreground">1</span>
-                       <span className="text-blue-500">class</span>
-                       <span className="text-yellow-500">PaymentValidator</span>:
-                    </div>
-                    <div className="flex gap-2 pl-4">
-                       <span className="text-muted-foreground">2</span>
-                       <span className="text-blue-500">def</span>
-                       <span className="text-yellow-500">validate_transaction</span>(self, tx):
-                    </div>
-                    <div className="flex gap-2 pl-8">
-                       <span className="text-muted-foreground">3</span>
-                       <span className="text-muted-foreground"># Validates transaction integrity</span>
-                    </div>
-                    <div className="flex gap-2 pl-8">
-                       <span className="text-muted-foreground">4</span>
-                       <span className="text-purple-500">if not</span> tx.is_valid():
-                    </div>
-                     <div className="flex gap-2 pl-12">
-                       <span className="text-muted-foreground">5</span>
-                       <span className="text-red-500">raise</span> ValidationError("Invalid tx")
-                    </div>
-                  </div>
+                   </div>
+                   <div className="p-4 space-y-2 text-white/80 overflow-y-auto custom-scrollbar">
+                      <div className="flex gap-2 text-emerald-400">
+                         <span>$</span>
+                         <span className="text-white">agent start --task "refactor payment validation"</span>
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Connected to secure micro-VM (2.1s)
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Reading src/payments/service.py...
+                      </div>
+                      <div className="text-white/50 pl-3">
+                         &gt; Running tests (pytest)...
+                      </div>
+                      <div className="text-emerald-400 pl-3">
+                         ✓ test_validate_payment PASSED (0.4s)
+                      </div>
+                      <div className="text-white/50 pl-3 mt-2">
+                         &gt; Applying diff to service.py...
+                      </div>
+                      
+                      {/* Mini Diff */}
+                      <div className="mt-2 rounded bg-black/30 border border-white/10 p-2 text-[10px] leading-relaxed">
+                         <div className="text-white/40">@@ -45,7 +45,8 @@</div>
+                         <div className="text-red-400/70">- if not self.validate_amount(tx):</div>
+                         <div className="text-red-400/70">-     return False</div>
+                         <div className="text-emerald-400/70">+ if not self.validator.verify(tx):</div>
+                         <div className="text-emerald-400/70">+     raise ValidationError("Invalid tx")</div>
+                      </div>
+
+                      <div className="text-blue-400 pl-3 mt-2 animate-pulse">
+                         &gt; Opening PR #124...
+                      </div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -589,22 +610,28 @@ export default function LandingPage() {
               >
                   {/* Integration Logos/Badges */}
                   <div className="flex flex-col items-center gap-2">
-                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center">
-                        <Globe className="w-6 h-6 text-black" />
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-black">
+                        <SiNotion className="w-7 h-7" />
                      </div>
                      <span className="text-xs font-medium">Notion</span>
                   </div>
                    <div className="flex flex-col items-center gap-2">
-                     <div className="w-12 h-12 bg-black rounded-lg shadow flex items-center justify-center">
-                        <GitBranch className="w-6 h-6 text-white" />
+                     <div className="w-12 h-12 bg-black rounded-lg shadow flex items-center justify-center text-white">
+                        <SiGithub className="w-7 h-7" />
                      </div>
                      <span className="text-xs font-medium">GitHub</span>
                   </div>
                   <div className="flex flex-col items-center gap-2 opacity-50">
-                     <div className="w-12 h-12 bg-blue-500 rounded-lg shadow flex items-center justify-center">
-                        <MessageCircle className="w-6 h-6 text-white" />
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-[#4A154B]">
+                        <SiSlack className="w-7 h-7" />
                      </div>
                      <span className="text-xs font-medium">Slack (Soon)</span>
+                  </div>
+                   <div className="flex flex-col items-center gap-2 opacity-50">
+                     <div className="w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center text-[#5E6AD2]">
+                        <SiLinear className="w-7 h-7" />
+                     </div>
+                     <span className="text-xs font-medium">Linear (Soon)</span>
                   </div>
               </motion.div>
               <motion.div
@@ -830,29 +857,6 @@ export default function LandingPage() {
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* Open Source Strip */}
-      <section className="relative z-10 bg-background border-t border-border py-12">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-              <div className="p-3 bg-muted rounded-full">
-                 <IconUmansLogo className="w-6 h-6" /> 
-              </div>
-              <div>
-                 <h3 className="font-bold text-lg">Umans is open source</h3>
-                 <p className="text-muted-foreground text-sm">Published under AGPL 3 license.</p>
-              </div>
-           </div>
-           <div className="flex items-center gap-4">
-              <a href="https://github.com/umans/umans" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-                 <Code className="w-4 h-4" /> Contribute on GitHub
-              </a>
-               <a href="https://docs.umans.ai" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
-                 <FileText className="w-4 h-4" /> Documentation
-              </a>
-           </div>
         </div>
       </section>
 
