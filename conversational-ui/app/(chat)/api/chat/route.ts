@@ -8,8 +8,6 @@ import {
     deleteChatById,
     getChatById,
     getCurrentUserSpace,
-    getMessagesByChatId,
-    getStreamIdsByChatId,
     saveChat,
     saveMessages,
     updateChatTitleById
@@ -26,11 +24,9 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
-import { Chat } from '@/lib/db/schema';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
 import { setController, deleteController } from '@/lib/stream/controller-registry';
 import { after } from 'next/server';
-import { differenceInSeconds } from 'date-fns';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
 import { ChatMessage } from '@/lib/types';
 import { checkChatEntitlements } from '@/lib/ai/entitlements';
@@ -179,12 +175,13 @@ export async function POST(request: Request) {
     } : undefined;
 
     // Initialize fresh MCP client with user context for this request
-    const clientWrapper = await codeRepositoryMCPClient(userContext);
-    const mcpClient = clientWrapper.client;
-    const mcpTools = await mcpClient.tools();
-
-    // Track MCP client for cleanup
+    // Declare up-front so TypeScript sees the identifier in the callbacks below
+    let mcpClient: Awaited<ReturnType<typeof codeRepositoryMCPClient>>['client'] | null = null;
     let mcpClientClosed = false;
+
+    const clientWrapper = await codeRepositoryMCPClient(userContext);
+    mcpClient = clientWrapper.client;
+    const mcpTools = await mcpClient.tools();
 
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
@@ -332,7 +329,7 @@ export async function POST(request: Request) {
           } finally {
             deleteController(streamId);
             // Close MCP client to prevent connection leak
-            if (!mcpClientClosed) {
+            if (!mcpClientClosed && mcpClient) {
               try {
                 await mcpClient.close();
                 mcpClientClosed = true;
@@ -346,7 +343,7 @@ export async function POST(request: Request) {
             console.error('Error during streaming:', error);
             deleteController(streamId);
             // Close MCP client to prevent connection leak on error
-            if (!mcpClientClosed) {
+            if (!mcpClientClosed && mcpClient) {
               mcpClient.close()?.catch((err: Error) => console.error('Failed to close MCP client on error:', err));
               mcpClientClosed = true;
             }
