@@ -177,11 +177,14 @@ export async function POST(request: Request) {
         userId: session.user.id,
         spaceId: currentSpace.id
     } : undefined;
-    
+
     // Initialize fresh MCP client with user context for this request
     const clientWrapper = await codeRepositoryMCPClient(userContext);
     const mcpClient = clientWrapper.client;
     const mcpTools = await mcpClient.tools();
+
+    // Track MCP client for cleanup
+    let mcpClientClosed = false;
 
     const stream = createUIMessageStream({
         execute: async ({ writer: dataStream }) => {
@@ -328,11 +331,25 @@ export async function POST(request: Request) {
             console.error('Failed to save chat');
           } finally {
             deleteController(streamId);
+            // Close MCP client to prevent connection leak
+            if (!mcpClientClosed) {
+              try {
+                await mcpClient.close();
+                mcpClientClosed = true;
+              } catch (error) {
+                console.error('Failed to close MCP client:', error);
+              }
+            }
           }
       },
         onError: (error) => {
             console.error('Error during streaming:', error);
             deleteController(streamId);
+            // Close MCP client to prevent connection leak on error
+            if (!mcpClientClosed) {
+              mcpClient.close()?.catch((err: Error) => console.error('Failed to close MCP client on error:', err));
+              mcpClientClosed = true;
+            }
             return 'Oops, an error occured!';
         },
     });
