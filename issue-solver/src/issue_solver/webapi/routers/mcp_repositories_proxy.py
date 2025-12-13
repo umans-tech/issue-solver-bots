@@ -1,6 +1,7 @@
 """GitHub MCP Proxy Router for Issue Solver."""
 
 import logging
+import json
 from typing import Annotated, Any
 
 import httpx
@@ -134,6 +135,8 @@ async def proxy_github_mcp(
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "User-Agent": "Issue-Solver-MCP-Proxy/1.0",
+        # Request JSON while allowing SSE fallback per GitHub MCP requirements.
+        "Accept": "application/json, text/event-stream",
     }
 
     if incoming_session_id:
@@ -168,6 +171,13 @@ async def github_mcp_health() -> dict[str, str]:
 
 async def format_response(response: Response) -> dict[str, Any]:
     try:
+        content_type = response.headers.get("content-type", "")
+        if content_type.startswith("text/event-stream"):
+            # GitHub MCP may emit SSE; extract the first data payload and parse it.
+            for line in response.text.splitlines():
+                if line.startswith("data:"):
+                    return json.loads(line.removeprefix("data:").strip())
+            # If no data line is found, fall back to standard parsing.
         if response.text.strip():
             result = response.json()
         else:
