@@ -24,11 +24,15 @@ chown umans:umans /home/umans/.profile /home/umans/.bashrc
 # 4) Install uv for user "umans"
 runuser -l umans -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 
-# 5) Install the PyPI package "issue-solver" for user "umans" via uv tool
-#    This creates an isolated venv and puts entry points in ~/.local/bin
-runuser -l umans -c 'uv tool install issue-solver'
+# 5) Ensure a Python >=3.12 runtime is available for the cudu CLI
+#    Debian 12 ships Python 3.11 by default, so we ask uv to fetch 3.12.
+runuser -l umans -c 'uv python install 3.12'
 
-# 6) Install claude code cli
+# 6) Install the PyPI package "issue-solver" for user "umans" via uv tool
+#    Explicitly pin the Python version so dependency resolution succeeds.
+runuser -l umans -c 'uv tool install --python 3.12 issue-solver'
+
+# 7) Install claude code cli
 runuser -l umans -c 'curl -LsSf https://claude.ai/install.sh | bash'
 
 echo "✅ cudu cli powered by Umans AI is now installed for user 'umans'. Enjoy! ❤️"
