@@ -633,6 +633,7 @@ class GitClient:
         process_id: str,
         repo_path: Path,
         issue: IssueInfo,
+        git_settings: GitSettings | None = None,
     ) -> None:
         new_branch_name = name_new_branch_for_issue(issue, process_id)
         repo = Repo(repo_path)
@@ -640,10 +641,27 @@ class GitClient:
             repo.git.stash(
                 "push", "-m", f"auto-stash-before-switching-to-{new_branch_name}"
             )
+        cls._update_to_latest_remote_state(git_settings, repo, repo_path)
         if new_branch_name in repo.branches:
             repo.git.checkout(new_branch_name)
+            repo.git.pull("--rebase")
         else:
             repo.git.checkout("-b", new_branch_name)
+
+    @classmethod
+    def _update_to_latest_remote_state(
+        cls, git_settings: GitSettings | None, repo: Repo, repo_path: Path
+    ):
+        default_branch = cls._default_branch(
+            git_settings.repository_url
+            if git_settings and git_settings.repository_url
+            else repo.remotes.origin.url,
+            git_settings.access_token if git_settings else None,
+            repo_path,
+        )
+        repo.git.fetch("--prune")
+        repo.git.checkout(default_branch)
+        repo.git.pull("--rebase")
 
 
 def name_new_branch_for_issue(issue: IssueInfo, process_id: str) -> str:
