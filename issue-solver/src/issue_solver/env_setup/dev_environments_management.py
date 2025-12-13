@@ -231,6 +231,9 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+# keep cudu CLI fresh (idempotent; inexpensive when already up to date)
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
