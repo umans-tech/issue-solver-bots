@@ -34,7 +34,7 @@ import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
 import { createResumableStreamContext, type ResumableStreamContext } from 'resumable-stream';
-import { deleteController, setController } from '@/lib/stream/controller-registry';
+import { deleteController, setController, pruneStaleControllers } from '@/lib/stream/controller-registry';
 import { after } from 'next/server';
 import { codeRepositoryMCPClient } from "@/lib/ai/tools/github_mcp";
 import { notionMCPClient } from '@/lib/ai/tools/notion_mcp';
@@ -93,6 +93,8 @@ function findLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export async function POST(request: Request) {
+    pruneStaleControllers();
+
     const {
         id,
         messages,

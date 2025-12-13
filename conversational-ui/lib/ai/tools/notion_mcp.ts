@@ -20,6 +20,15 @@ type CachedEntry = MCPWrapper & { fetchedAt: number };
 
 const notionClientCache = new Map<string, CachedEntry>();
 
+function pruneStaleCache() {
+  const now = Date.now();
+  for (const [key, entry] of Array.from(notionClientCache.entries())) {
+    if (now - entry.fetchedAt >= CACHE_TTL_MS) {
+      notionClientCache.delete(key);
+    }
+  }
+}
+
 const noMCPClient = (error: unknown): MCPWrapper => ({
   client: {
     tools: async () => ({} as any),
@@ -33,6 +42,8 @@ const noMCPClient = (error: unknown): MCPWrapper => ({
 });
 
 export async function notionMCPClient(userContext?: UserContext): Promise<MCPWrapper> {
+  pruneStaleCache();
+
   const cacheKey = userContext?.spaceId
     ? `${userContext.spaceId}:${userContext?.userId ?? 'anonymous'}`
     : null;
