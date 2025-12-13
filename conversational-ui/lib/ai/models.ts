@@ -17,7 +17,7 @@ const anthropicBeta = createAnthropic({
 export const myProvider = customProvider({
     languageModels: {
         'chat-model-small-codex': openaiProvider.responses('gpt-5.1-codex-mini'),
-        'chat-model-large': openaiProvider.responses('gpt-5.1'),
+        'chat-model-large': openaiProvider.responses('gpt-5.2'),
         'chat-model-large-codex': openaiProvider.responses('gpt-5.1-codex'),
         'chat-model-gemini': google('gemini-3-pro-preview'),
         'coding-model-light': anthropicBeta('claude-haiku-4-5-20251001'),
@@ -54,7 +54,7 @@ export const chatModels: Array<ChatModel> = [
         name: 'Analysis',
         description: 'Deep analysis for complex, multi-step business problems',
         provider: 'openai',
-        providerDisplayName: 'GPT-5.1',
+        providerDisplayName: 'GPT-5.2',
     },
     {
         id: 'chat-model-large-codex',
