@@ -51,7 +51,6 @@ export async function fetchWithErrorHandlers(
         // stringify structured error object so callers can parse extra fields like retryAt
         const cause = (body && (body.cause || body.message)) ?? '';
         const err = new Error(cause || JSON.stringify(body));
-        // @ts-ignore attach raw body for consumers
         (err as any).payload = body;
         throw err;
       } else {

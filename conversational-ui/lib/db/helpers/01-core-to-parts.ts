@@ -163,14 +163,14 @@
 //               id: (userMessage as any).id,
 //               role: 'user',
 //               parts: [{ type: 'text', text: String((userMessage as any).content ?? '') }],
-//               // @ts-ignore createdAt exists on deprecated shape
+//               // @ts-expect-error createdAt exists on deprecated shape
 //               createdAt: (userMessage as any).createdAt,
 //             } as unknown as UIMessage,
 //             ...assistantMessages.map((am) => ({
 //               id: (am as any).id,
 //               role: 'assistant',
 //               parts: (am as any).parts ?? [],
-//               // @ts-ignore createdAt exists on deprecated shape
+//               // @ts-expect-error createdAt exists on deprecated shape
 //               createdAt: (am as any).createdAt ?? firstAssistantMessage?.createdAt ?? new Date(),
 //             } as unknown as UIMessage)),
 //           ];
@@ -181,10 +181,10 @@
 //                 return {
 //                   id: message.id,
 //                   chatId: chat.id,
-//                   // @ts-ignore migration from deprecated content shape
+//                   // @ts-expect-error migration from deprecated content shape
 //                   parts: [{ type: 'text', text: String((message as any).content ?? '') }],
 //                   role: message.role,
-//                   // @ts-ignore migrating from deprecated shape
+//                   // @ts-expect-error migrating from deprecated shape
 //                   createdAt: (message as any).createdAt,
 //                   attachments: [],
 //                 } as NewMessageInsert;
@@ -198,7 +198,7 @@
 //                   chatId: chat.id,
 //                   parts: cleanParts,
 //                   role: message.role,
-//                   // @ts-ignore migrating from deprecated shape
+//                   // @ts-expect-error migrating from deprecated shape
 //                   createdAt: (message as any).createdAt,
 //                   attachments: [],
 //                 } as NewMessageInsert;

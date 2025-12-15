@@ -8,8 +8,6 @@ import { SessionProvider } from 'next-auth/react';
 import { auth } from '../(auth)/auth';
 import Script from 'next/script';
 
-export const experimental_ppr = true;
-
 export default async function DocsLayout({
   children,
 }: {
@@ -17,8 +15,6 @@ export default async function DocsLayout({
 }) {
   const [session, cookieStore] = await Promise.all([auth(), cookies()]);
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
-  const theme = cookieStore.get('theme')?.value || 'system';
-
   // Ensure the user has a default space if logged in
   if (session?.user?.id) {
     await ensureDefaultSpace(session.user.id);

@@ -27,7 +27,6 @@ async function loadManifest(
     const res = await s3Client.send(
       new GetObjectCommand({ Bucket: bucket, Key: key }),
     );
-    // @ts-ignore - aws sdk stream type
     const bodyString = await streamToString(res.Body);
     const parsed = JSON.parse(bodyString);
     return parsed && typeof parsed === 'object' ? parsed : {};

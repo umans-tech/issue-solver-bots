@@ -1,0 +1,8 @@
+{
+  "extends": "next",
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    // Allow ' and " in JSX text. Still forbid the ones that tend to create real JSX/HTML confusion.
+    "react/no-unescaped-entities": ["error", { "forbid": [">", "}"] }]
+  }
+}

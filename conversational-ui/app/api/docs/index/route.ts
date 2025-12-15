@@ -43,7 +43,6 @@ export async function GET(request: Request) {
     const key = `base/${kbId}/docs/${commitSha}/index.md`;
     const cmd = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
     const res = await s3Client.send(cmd);
-    // @ts-ignore - aws sdk stream type
     const bodyString = await streamToString(res.Body);
 
     return NextResponse.json({ content: bodyString });

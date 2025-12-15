@@ -66,7 +66,6 @@ export async function GET(request: Request) {
       const get = await s3Client.send(
         new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key }),
       );
-      // @ts-ignore
       const text = await streamToString(get.Body);
       const lowerText = text.toLowerCase();
       const queryLower = q.toLowerCase();

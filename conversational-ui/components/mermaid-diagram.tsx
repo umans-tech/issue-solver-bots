@@ -175,12 +175,9 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
           </div>
         )}
         {isCodeView && (
-          <CodeBlock
-            node={null}
-            inline={false}
-            className="language-mermaid"
-            children={code}
-          />
+          <CodeBlock node={null} inline={false} className="language-mermaid">
+            {code}
+          </CodeBlock>
         )}
       </div>
     );
@@ -234,12 +231,9 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         }}
       >
         {isCodeView ? (
-          <CodeBlock
-            node={null}
-            inline={false}
-            className="language-mermaid"
-            children={code}
-          />
+          <CodeBlock node={null} inline={false} className="language-mermaid">
+            {code}
+          </CodeBlock>
         ) : isLoading ? (
           <div className="w-full p-8 flex items-center justify-center gap-2 text-muted-foreground bg-muted/30 rounded-lg">
             <div className="animate-spin">

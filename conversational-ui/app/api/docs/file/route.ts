@@ -44,7 +44,6 @@ export async function GET(request: Request) {
     const key = `base/${kbId}/docs/${commitSha}/${path}`;
     const cmd = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
     const res = await s3Client.send(cmd);
-    // @ts-ignore
     const bodyString = await streamToString(res.Body);
 
     // Extract first H1 as title
