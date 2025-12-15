@@ -57,6 +57,37 @@ output "redis_connection_string" {
   sensitive   = true
 }
 
+# --- Blog static site (moved from deploy layer) ---
+output "blog_domain" {
+  value       = local.blog_domain
+  description = "Blog domain name (e.g., blog.umans.ai or blog.pr-xxx.umans.ai)"
+}
+
+output "blog_url" {
+  value       = "https://${local.blog_domain}"
+  description = "Public URL of the blog CloudFront distribution"
+}
+
+output "blog_bucket_name" {
+  value       = aws_s3_bucket.blog_site.bucket
+  description = "S3 bucket that hosts the static blog"
+}
+
+output "blog_distribution_id" {
+  value       = aws_cloudfront_distribution.blog.id
+  description = "CloudFront distribution ID for the blog (used for invalidations)"
+}
+
+output "blog_oac_id" {
+  value       = aws_cloudfront_origin_access_control.blog.id
+  description = "Origin Access Control ID attached to the blog bucket"
+}
+
+output "blog_certificate_arn" {
+  value       = aws_acm_certificate.blog.arn
+  description = "ACM certificate ARN (us-east-1) for the blog domain"
+}
+
 output "blob_bucket_name" {
   value = aws_s3_bucket.knowledge_blob_storage.bucket
 }
