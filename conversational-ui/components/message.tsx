@@ -666,14 +666,22 @@ const PurePreviewMessage = ({
                   if (isNotionMCPTool(toolName)) {
                     const args = input;
                     return (
-                      <NotionMCPAnimation toolName={toolName} args={args} />
+                      <NotionMCPAnimation
+                        key={toolCallId}
+                        toolName={toolName}
+                        args={args}
+                      />
                     );
                   }
 
                   if (isGitHubMCPTool(toolName)) {
                     const args = input;
                     return (
-                      <GitHubMCPAnimation toolName={toolName} args={args} />
+                      <GitHubMCPAnimation
+                        key={toolCallId}
+                        toolName={toolName}
+                        args={args}
+                      />
                     );
                   }
 

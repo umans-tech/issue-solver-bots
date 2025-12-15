@@ -815,7 +815,7 @@ export function RepoConnectionDialog({
         if (data.errorType && data.errorMessage) {
           // Create error object with type information
           const errorObj = new Error(data.errorMessage);
-          // @ts-ignore - add custom properties
+          // @ts-expect-error - add custom properties
           errorObj.type = data.errorType;
           throw errorObj;
         }
@@ -888,16 +888,15 @@ export function RepoConnectionDialog({
       console.error('Error in repository connection:', err);
 
       // Check if we have a typed error from our API
-      // @ts-ignore - check for custom properties
+      // @ts-expect-error - check for custom properties
       if (err instanceof Error && err.type) {
         setRepoDetails({
-          // @ts-ignore - we know these properties exist
           url: repoUrl,
           status: 'failed',
           knowledge_base_id: '',
           process_id: '',
           error: true,
-          // @ts-ignore - we know these properties exist
+          // @ts-expect-error - we know these properties exist
           errorType: err.type,
           errorMessage: err.message,
         });

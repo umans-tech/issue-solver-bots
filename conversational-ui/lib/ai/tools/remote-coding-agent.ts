@@ -31,7 +31,7 @@ export const remoteCodingAgent = ({ session }: RemoteCodingAgentProps) =>
     execute: async ({ issue }) => {
       try {
         const knowledgeBaseId =
-          // @ts-ignore - Accessing properties that TypeScript doesn't know about
+          // @ts-expect-error - Accessing properties that TypeScript doesn't know about
           session.knowledgeBaseId ||
           session?.user?.selectedSpace?.knowledgeBaseId;
 

@@ -248,7 +248,7 @@ export async function POST(request: Request) {
           'webSearch',
           'remoteCodingAgent',
           'fetchWebpage',
-          // @ts-ignore
+          // @ts-expect-error
           ...activeTools,
         ],
         experimental_transform: smoothStream({ chunking: 'word' }),
@@ -360,9 +360,9 @@ export async function POST(request: Request) {
               messageId: assistantId,
               provider: chatModelProvider,
               model: chatModelName,
-              // @ts-ignore
+              // @ts-expect-error
               rawUsageData: metadata.usage,
-              // @ts-ignore
+              // @ts-expect-error
               providerMetadata: metadata.providerMetadata,
             });
           }
