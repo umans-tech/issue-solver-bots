@@ -6,29 +6,26 @@ export async function PUT(request: Request) {
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the knowledge base ID from the user's session
     const knowledgeBaseId = session?.user?.selectedSpace?.knowledgeBaseId;
-    
+
     if (!knowledgeBaseId) {
       return NextResponse.json(
         { error: 'No repository connected' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Parse the request body
     const { accessToken } = await request.json();
-    
+
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Access token is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +34,7 @@ export async function PUT(request: Request) {
     if (!cuduEndpoint) {
       return NextResponse.json(
         { error: 'CUDU API endpoint is not configured' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -57,10 +54,10 @@ export async function PUT(request: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-          return NextResponse.json(
-      { error: data.detail || 'Failed to update token' },
-      { status: response.status }
-    );
+      return NextResponse.json(
+        { error: data.detail || 'Failed to update token' },
+        { status: response.status },
+      );
     }
 
     return NextResponse.json(data);
@@ -68,7 +65,7 @@ export async function PUT(request: Request) {
     console.error('Token update error:', error);
     return NextResponse.json(
       { error: 'Failed to update token' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

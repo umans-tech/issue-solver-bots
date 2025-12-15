@@ -1,20 +1,61 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import {ChevronDown, Copy, Download, FileText, Settings, Sparkles, Activity, MoreVertical, RotateCcw, Wand2, ShieldCheck, ShieldOff} from 'lucide-react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
+import {
+  Activity,
+  ChevronDown,
+  Copy,
+  Download,
+  FileText,
+  MoreVertical,
+  RotateCcw,
+  Settings,
+  ShieldCheck,
+  ShieldOff,
+  Sparkles,
+  Wand2,
+} from 'lucide-react';
 import { SharedHeader } from '@/components/shared-header';
 import { Markdown } from '@/components/markdown';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { SearchIcon, CopyIcon } from '@/components/icons';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CopyIcon, SearchIcon } from '@/components/icons';
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { DocPromptsPanel } from '@/components/doc-prompts-panel';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +91,6 @@ type DocFolderNode = {
   files: DocFileEntry[];
 };
 
-
 export default function DocsPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -73,27 +113,47 @@ export default function DocsPage() {
   const [activeProcessId, setActiveProcessId] = useState<string | null>(null);
   const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
-  const [contentStatus, setContentStatus] = useState<'idle' | 'loading' | 'ready' | 'missing'>('idle');
+  const [contentStatus, setContentStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'missing'
+  >('idle');
   const [versionsLoading, setVersionsLoading] = useState(true);
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState<{ path: string; snippet: string; line?: number; occurrence?: number; offset?: number }[]>([]);
+  const [results, setResults] = useState<
+    {
+      path: string;
+      snippet: string;
+      line?: number;
+      occurrence?: number;
+      offset?: number;
+    }[]
+  >([]);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
   const [, startTransition] = useTransition();
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>([]);
+  const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>(
+    [],
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const resultsContainerRef = useRef<HTMLDivElement | null>(null);
-  const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(null);
+  const highlightTermRef = useRef<{ term: string; occurrence?: number } | null>(
+    null,
+  );
   const lastCommitRef = useRef<string | undefined>(commitSha);
   const contentCacheRef = useRef<Map<string, string>>(new Map());
-  const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(new Map());
+  const pendingFetchesRef = useRef<Map<string, Promise<string | null>>>(
+    new Map(),
+  );
   const [isAutoDocOpen, setIsAutoDocOpen] = useState(false);
   const openAutoDocSettings = useCallback(() => setIsAutoDocOpen(true), []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [activeApproval, setActiveApproval] = useState<{ approved_by_id?: string; approved_by_name?: string; approved_at?: string } | null>(null);
+  const [activeApproval, setActiveApproval] = useState<{
+    approved_by_id?: string;
+    approved_by_name?: string;
+    approved_at?: string;
+  } | null>(null);
   const promptIdForActiveDoc = useMemo(() => {
     if (!activePath) return null;
     const segments = activePath.split('/').filter(Boolean);
@@ -101,61 +161,86 @@ export default function DocsPage() {
     return last ?? null;
   }, [activePath]);
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
-  const pathParam = pathSegments.length > 0 ? pathSegments.map(segment => decodeURIComponent(segment)).join('/') : null;
+  const pathParam =
+    pathSegments.length > 0
+      ? pathSegments.map((segment) => decodeURIComponent(segment)).join('/')
+      : null;
   const versionParam = searchParams?.get('v')?.trim() ?? null;
-  const normalizedVersionParam = versionParam ? versionParam.toLowerCase() : null;
-  const getCacheKey = useCallback((commit: string | undefined, pathValue: string | null) => (commit && pathValue ? `${commit}:${pathValue}` : null), []);
-  const shortCommit = useMemo(() => (commitSha ? commitSha.slice(0, 7) : null), [commitSha]);
+  const normalizedVersionParam = versionParam
+    ? versionParam.toLowerCase()
+    : null;
+  const getCacheKey = useCallback(
+    (commit: string | undefined, pathValue: string | null) =>
+      commit && pathValue ? `${commit}:${pathValue}` : null,
+    [],
+  );
+  const shortCommit = useMemo(
+    () => (commitSha ? commitSha.slice(0, 7) : null),
+    [commitSha],
+  );
   const downloadFileName = useMemo(() => {
     if (!activePath) return 'document.md';
-    const segments = activePath.split('/').filter((segment) => segment.length > 0);
+    const segments = activePath
+      .split('/')
+      .filter((segment) => segment.length > 0);
     const lastSegment = segments[segments.length - 1] ?? 'document';
     return /\.md$/i.test(lastSegment) ? lastSegment : `${lastSegment}.md`;
   }, [activePath]);
-  const highlightInContent = useCallback(({ term, occurrence }: { term: string; occurrence?: number }) => {
-    const normalized = term.trim();
-    if (!normalized) return;
+  const highlightInContent = useCallback(
+    ({ term, occurrence }: { term: string; occurrence?: number }) => {
+      const normalized = term.trim();
+      if (!normalized) return;
 
-    const container = contentRef.current;
-    if (!container) return;
+      const container = contentRef.current;
+      if (!container) return;
 
-    container.querySelectorAll('.doc-flash').forEach((el) => el.classList.remove('doc-flash'));
+      container
+        .querySelectorAll('.doc-flash')
+        .forEach((el) => el.classList.remove('doc-flash'));
 
-    requestAnimationFrame(() => {
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-      const searchTerm = normalized.toLowerCase();
-      const targetOccurrence = occurrence ?? 0;
-      let matchIndex = 0;
-      let node: Node | null;
+      requestAnimationFrame(() => {
+        const walker = document.createTreeWalker(
+          container,
+          NodeFilter.SHOW_TEXT,
+        );
+        const searchTerm = normalized.toLowerCase();
+        const targetOccurrence = occurrence ?? 0;
+        let matchIndex = 0;
+        let node: Node | null;
 
-      while ((node = walker.nextNode())) {
-        const textNode = node as Text;
-        const nodeValue = textNode?.nodeValue;
-        if (!nodeValue) continue;
+        while ((node = walker.nextNode())) {
+          const textNode = node as Text;
+          const nodeValue = textNode?.nodeValue;
+          if (!nodeValue) continue;
 
-        const lowerValue = nodeValue.toLowerCase();
-        let fromIndex = 0;
+          const lowerValue = nodeValue.toLowerCase();
+          let fromIndex = 0;
 
-        while (true) {
-          const foundIndex = lowerValue.indexOf(searchTerm, fromIndex);
-          if (foundIndex === -1) break;
+          while (true) {
+            const foundIndex = lowerValue.indexOf(searchTerm, fromIndex);
+            if (foundIndex === -1) break;
 
-          if (matchIndex === targetOccurrence) {
-            const element = textNode.parentElement as HTMLElement | null;
-            if (!element) return;
+            if (matchIndex === targetOccurrence) {
+              const element = textNode.parentElement as HTMLElement | null;
+              if (!element) return;
 
-            element.classList.add('doc-flash');
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            window.setTimeout(() => element.classList.remove('doc-flash'), 1200);
-            return;
+              element.classList.add('doc-flash');
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              window.setTimeout(
+                () => element.classList.remove('doc-flash'),
+                1200,
+              );
+              return;
+            }
+
+            matchIndex += 1;
+            fromIndex = foundIndex + searchTerm.length;
           }
-
-          matchIndex += 1;
-          fromIndex = foundIndex + searchTerm.length;
         }
-      }
-    });
-  }, [contentRef]);
+      });
+    },
+    [contentRef],
+  );
 
   useEffect(() => {
     setActivePathState(pathParam ?? null);
@@ -168,71 +253,102 @@ export default function DocsPage() {
     router.replace(destination, { scroll: false });
   }, [router, spaceId, sessionSpaceKbId]);
 
-  const encodePath = useCallback((value: string) => value.split('/').map(segment => encodeURIComponent(segment)).join('/'), []);
+  const encodePath = useCallback(
+    (value: string) =>
+      value
+        .split('/')
+        .map((segment) => encodeURIComponent(segment))
+        .join('/'),
+    [],
+  );
 
-  const setActivePath = useCallback((next: string | null, options?: { replace?: boolean; versionOverride?: string | null }) => {
-    setActivePathState(prev => (prev === next ? prev : next));
-    const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
-    const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
-    const nextPath = next ? `${baseRoot}/${encodePath(next)}` : baseRoot;
-    const versionToken = options?.versionOverride ?? shortCommit;
-    const url = versionToken ? `${nextPath}?v=${encodeURIComponent(versionToken)}` : nextPath;
-    if (options?.replace) {
-      router.replace(url, { scroll: false });
-    } else {
-      router.push(url, { scroll: false });
-    }
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(null, '', url);
-    }
-  }, [router, encodePath, shortCommit, spaceId]);
-
-  const fetchDoc = useCallback((pathValue: string) => {
-    if (!kbId || !commitSha) return Promise.resolve<string | null>(null);
-    const key = getCacheKey(commitSha, pathValue);
-    if (!key) return Promise.resolve<string | null>(null);
-    if (contentCacheRef.current.has(key)) {
-      return Promise.resolve(contentCacheRef.current.get(key) ?? '');
-    }
-    const existing = pendingFetchesRef.current.get(key);
-    if (existing) {
-      return existing;
-    }
-    const request = (async () => {
-      try {
-        const res = await fetch(`/api/docs/file?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(pathValue)}`, { cache: 'no-store' });
-        if (!res.ok) {
-          return null;
-        }
-        const data = await res.json();
-        const nextContent = typeof data?.content === 'string' ? data.content : '';
-        contentCacheRef.current.set(key, nextContent);
-        return nextContent;
-      } catch {
-        return null;
-      } finally {
-        pendingFetchesRef.current.delete(key);
+  const setActivePath = useCallback(
+    (
+      next: string | null,
+      options?: { replace?: boolean; versionOverride?: string | null },
+    ) => {
+      setActivePathState((prev) => (prev === next ? prev : next));
+      const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
+      const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
+      const nextPath = next ? `${baseRoot}/${encodePath(next)}` : baseRoot;
+      const versionToken = options?.versionOverride ?? shortCommit;
+      const url = versionToken
+        ? `${nextPath}?v=${encodeURIComponent(versionToken)}`
+        : nextPath;
+      if (options?.replace) {
+        router.replace(url, { scroll: false });
+      } else {
+        router.push(url, { scroll: false });
       }
-    })();
-    pendingFetchesRef.current.set(key, request);
-    return request;
-  }, [commitSha, getCacheKey, kbId]);
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', url);
+      }
+    },
+    [router, encodePath, shortCommit, spaceId],
+  );
 
-  const prefetchDoc = useCallback((pathValue: string | null) => {
-    if (!pathValue) return;
-    void fetchDoc(pathValue);
-  }, [fetchDoc]);
+  const fetchDoc = useCallback(
+    (pathValue: string) => {
+      if (!kbId || !commitSha) return Promise.resolve<string | null>(null);
+      const key = getCacheKey(commitSha, pathValue);
+      if (!key) return Promise.resolve<string | null>(null);
+      if (contentCacheRef.current.has(key)) {
+        return Promise.resolve(contentCacheRef.current.get(key) ?? '');
+      }
+      const existing = pendingFetchesRef.current.get(key);
+      if (existing) {
+        return existing;
+      }
+      const request = (async () => {
+        try {
+          const res = await fetch(
+            `/api/docs/file?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(pathValue)}`,
+            { cache: 'no-store' },
+          );
+          if (!res.ok) {
+            return null;
+          }
+          const data = await res.json();
+          const nextContent =
+            typeof data?.content === 'string' ? data.content : '';
+          contentCacheRef.current.set(key, nextContent);
+          return nextContent;
+        } catch {
+          return null;
+        } finally {
+          pendingFetchesRef.current.delete(key);
+        }
+      })();
+      pendingFetchesRef.current.set(key, request);
+      return request;
+    },
+    [commitSha, getCacheKey, kbId],
+  );
+
+  const prefetchDoc = useCallback(
+    (pathValue: string | null) => {
+      if (!pathValue) return;
+      void fetchDoc(pathValue);
+    },
+    [fetchDoc],
+  );
 
   useEffect(() => {
     contentCacheRef.current.clear();
     pendingFetchesRef.current.clear();
   }, [commitSha, kbId]);
 
-  const navigateToPath = useCallback((next: string | null, options?: { replace?: boolean; versionOverride?: string | null }) => {
-    startTransition(() => {
-      setActivePath(next, options);
-    });
-  }, [setActivePath, startTransition]);
+  const navigateToPath = useCallback(
+    (
+      next: string | null,
+      options?: { replace?: boolean; versionOverride?: string | null },
+    ) => {
+      startTransition(() => {
+        setActivePath(next, options);
+      });
+    },
+    [setActivePath, startTransition],
+  );
 
   const triggerManualAutoDoc = useCallback(
     async (mode: 'update' | 'complete') => {
@@ -250,7 +366,9 @@ export default function DocsPage() {
         });
         const payload = await res.json();
         if (!res.ok) {
-          throw new Error(payload?.detail || payload?.error || 'Failed to trigger generation');
+          throw new Error(
+            payload?.detail || payload?.error || 'Failed to trigger generation',
+          );
         }
         const processId = payload?.process_id;
         toast.success('Doc generation started', {
@@ -271,7 +389,9 @@ export default function DocsPage() {
           duration: 3500,
         });
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to start auto-doc');
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to start auto-doc',
+        );
       } finally {
         setIsGenerating(false);
       }
@@ -294,14 +414,17 @@ export default function DocsPage() {
           throw new Error(data?.error || 'Failed to update approval');
         }
         const meta = data?.metadata || {};
-        setFileList((prev) => prev.map((entry) => {
-          if (entry.path !== activePath) return entry;
-          if (action === 'revoke') {
-            const { approved_by_id, approved_by_name, approved_at, ...rest } = entry;
-            return { ...rest } as DocFileEntry;
-          }
-          return { ...entry, ...meta } as DocFileEntry;
-        }));
+        setFileList((prev) =>
+          prev.map((entry) => {
+            if (entry.path !== activePath) return entry;
+            if (action === 'revoke') {
+              const { approved_by_id, approved_by_name, approved_at, ...rest } =
+                entry;
+              return { ...rest } as DocFileEntry;
+            }
+            return { ...entry, ...meta } as DocFileEntry;
+          }),
+        );
         if (action === 'revoke') {
           setActiveApproval(null);
         } else {
@@ -311,9 +434,13 @@ export default function DocsPage() {
             approved_at: meta.approved_at,
           });
         }
-        toast.success(action === 'approve' ? 'Document approved' : 'Approval revoked');
+        toast.success(
+          action === 'approve' ? 'Document approved' : 'Approval revoked',
+        );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to update approval');
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to update approval',
+        );
       } finally {
         setIsApproving(false);
       }
@@ -321,15 +448,24 @@ export default function DocsPage() {
     [kbId, commitSha, activePath, toast],
   );
 
-
   const docTree = useMemo(() => {
-    const formatSegment = (segment: string) => segment
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const formatSegment = (segment: string) =>
+      segment
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, (char) => char.toUpperCase());
 
-    const root: DocFolderNode = { id: '', name: '', label: '', children: [], files: [] };
+    const root: DocFolderNode = {
+      id: '',
+      name: '',
+      label: '',
+      children: [],
+      files: [],
+    };
 
-    const ensureChild = (parent: DocFolderNode, segment: string): DocFolderNode => {
+    const ensureChild = (
+      parent: DocFolderNode,
+      segment: string,
+    ): DocFolderNode => {
       let child = parent.children.find((node) => node.name === segment);
       if (!child) {
         const id = parent.id ? `${parent.id}/${segment}` : segment;
@@ -353,7 +489,12 @@ export default function DocsPage() {
       parts.forEach((segment, index) => {
         const isFile = index === parts.length - 1;
         if (isFile) {
-          cursor.files.push({ path, title: titleMap[path] || segment, origin, process_id });
+          cursor.files.push({
+            path,
+            title: titleMap[path] || segment,
+            origin,
+            process_id,
+          });
           return;
         }
         cursor = ensureChild(cursor, segment);
@@ -361,7 +502,9 @@ export default function DocsPage() {
     }
 
     const sortNode = (node: DocFolderNode) => {
-      node.children.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+      node.children.sort((a, b) =>
+        a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
+      );
       node.children.forEach(sortNode);
       node.files.sort((a, b) => {
         const aName = a.path.split('/').pop() ?? a.path;
@@ -371,7 +514,9 @@ export default function DocsPage() {
         if (aIsIndex !== bIsIndex) {
           return aIsIndex ? -1 : 1;
         }
-        return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+        return a.title.localeCompare(b.title, undefined, {
+          sensitivity: 'base',
+        });
       });
     };
 
@@ -390,19 +535,26 @@ export default function DocsPage() {
     const applyVersions = (available: string[]) => {
       setVersions(available);
       const matchedFromQuery = normalizedVersionParam
-        ? available.find((sha: string) => sha.toLowerCase().startsWith(normalizedVersionParam))
+        ? available.find((sha: string) =>
+            sha.toLowerCase().startsWith(normalizedVersionParam),
+          )
         : undefined;
       setCommitSha((prev) => {
         if (matchedFromQuery) return matchedFromQuery;
         if (prev && available.includes(prev)) return prev;
-        return available.length > 0 ? available[available.length - 1] : undefined;
+        return available.length > 0
+          ? available[available.length - 1]
+          : undefined;
       });
     };
 
     setVersionsLoading(true);
     (async () => {
       try {
-        const res = await fetch(`/api/docs/versions?kbId=${encodeURIComponent(kbId)}`, { cache: 'no-store' });
+        const res = await fetch(
+          `/api/docs/versions?kbId=${encodeURIComponent(kbId)}`,
+          { cache: 'no-store' },
+        );
         const data = await res.json();
         if (Array.isArray(data.versions)) {
           applyVersions(data.versions);
@@ -422,7 +574,10 @@ export default function DocsPage() {
     setIsIndexLoading(true);
     (async () => {
       try {
-        const idx = await fetch(`/api/docs/index?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
+        const idx = await fetch(
+          `/api/docs/index?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`,
+          { cache: 'no-store' },
+        );
         const idxJson = await idx.json();
         if (!cancelled) {
           setIndexMd(idxJson?.content || '');
@@ -433,30 +588,49 @@ export default function DocsPage() {
         }
       }
       try {
-        const r = await fetch(`/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`, { cache: 'no-store' });
+        const r = await fetch(
+          `/api/docs/list?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}`,
+          { cache: 'no-store' },
+        );
         const j = await r.json();
         const files = Array.isArray(j.files) ? j.files : [];
-        const metadataMap: Record<string, { origin?: string; process_id?: string; approved_by_id?: string; approved_by_name?: string; approved_at?: string }> = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
+        const metadataMap: Record<
+          string,
+          {
+            origin?: string;
+            process_id?: string;
+            approved_by_id?: string;
+            approved_by_name?: string;
+            approved_at?: string;
+          }
+        > = j.metadata && typeof j.metadata === 'object' ? j.metadata : {};
         if (!cancelled) {
-          setFileList(files.map((path: string) => ({ 
-            path, 
-            origin: metadataMap[path]?.origin,
-            process_id: metadataMap[path]?.process_id,
-            approved_by_id: metadataMap[path]?.approved_by_id,
-            approved_by_name: metadataMap[path]?.approved_by_name,
-            approved_at: metadataMap[path]?.approved_at,
-          })));
+          setFileList(
+            files.map((path: string) => ({
+              path,
+              origin: metadataMap[path]?.origin,
+              process_id: metadataMap[path]?.process_id,
+              approved_by_id: metadataMap[path]?.approved_by_id,
+              approved_by_name: metadataMap[path]?.approved_by_name,
+              approved_at: metadataMap[path]?.approved_at,
+            })),
+          );
         }
         // lazily resolve titles for index entries
-        const entries = await Promise.all(files.map(async (f: string) => {
-          try {
-            const tr = await fetch(`/api/docs/title?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(f)}`, { cache: 'no-store' });
-            const tj = await tr.json();
-            return [f, tj?.title || f] as const;
-          } catch {
-            return [f, f] as const;
-          }
-        }));
+        const entries = await Promise.all(
+          files.map(async (f: string) => {
+            try {
+              const tr = await fetch(
+                `/api/docs/title?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&path=${encodeURIComponent(f)}`,
+                { cache: 'no-store' },
+              );
+              const tj = await tr.json();
+              return [f, tj?.title || f] as const;
+            } catch {
+              return [f, f] as const;
+            }
+          }),
+        );
         if (!cancelled) {
           const map: Record<string, string> = {};
           for (const [k, v] of entries) map[k] = v;
@@ -485,14 +659,18 @@ export default function DocsPage() {
       setActiveApproval(null);
       return;
     }
-    const entry = fileList.find(f => f.path === activePath);
+    const entry = fileList.find((f) => f.path === activePath);
     setActiveProcessId(entry?.process_id ?? null);
     setActiveOrigin(entry?.origin ?? null);
-    setActiveApproval(entry ? {
-      approved_by_id: entry.approved_by_id,
-      approved_by_name: entry.approved_by_name,
-      approved_at: entry.approved_at,
-    } : null);
+    setActiveApproval(
+      entry
+        ? {
+            approved_by_id: entry.approved_by_id,
+            approved_by_name: entry.approved_by_name,
+            approved_at: entry.approved_at,
+          }
+        : null,
+    );
   }, [activePath, fileList]);
 
   useEffect(() => {
@@ -550,7 +728,8 @@ export default function DocsPage() {
   }, [fileList, pathParam, activePath, navigateToPath, prefetchDoc]);
 
   const approvalSummary = useMemo(() => {
-    if (!activeApproval?.approved_at || !activeApproval?.approved_by_name) return null;
+    if (!activeApproval?.approved_at || !activeApproval?.approved_by_name)
+      return null;
     const date = new Date(activeApproval.approved_at);
     const isValid = !Number.isNaN(date.getTime());
     const when = isValid ? date.toLocaleString() : activeApproval.approved_at;
@@ -568,30 +747,36 @@ export default function DocsPage() {
     let observer: MutationObserver | null = null;
 
     const buildTocFromDom = () => {
-      const headingElements = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3'));
+      const headingElements = Array.from(
+        container.querySelectorAll<HTMLElement>('h1, h2, h3'),
+      );
       if (headingElements.length === 0) {
         return false;
       }
       const slugCounts = new Map<string, number>();
-      const headings = headingElements.map((el) => {
-        const text = el.textContent?.trim() ?? '';
-        if (!text) return null;
+      const headings = headingElements
+        .map((el) => {
+          const text = el.textContent?.trim() ?? '';
+          if (!text) return null;
 
-        const base = slugify(text);
-        if (!base) return null;
+          const base = slugify(text);
+          if (!base) return null;
 
-        const existing = slugCounts.get(base) ?? 0;
-        slugCounts.set(base, existing + 1);
-        const id = existing === 0 ? base : `${base}-${existing + 1}`;
-        el.id = id;
-        el.tabIndex = -1;
+          const existing = slugCounts.get(base) ?? 0;
+          slugCounts.set(base, existing + 1);
+          const id = existing === 0 ? base : `${base}-${existing + 1}`;
+          el.id = id;
+          el.tabIndex = -1;
 
-        return {
-          id,
-          text,
-          level: Number(el.tagName.replace('H', '')),
-        };
-      }).filter((item): item is { id: string; text: string; level: number } => !!item);
+          return {
+            id,
+            text,
+            level: Number(el.tagName.replace('H', '')),
+          };
+        })
+        .filter(
+          (item): item is { id: string; text: string; level: number } => !!item,
+        );
 
       setToc(headings);
 
@@ -659,13 +844,16 @@ export default function DocsPage() {
   }, [content, activePath]);
 
   // Provide a link click handler to Markdown so relative links work inside content and index
-  const handleMarkdownLink = useCallback((href: string) => {
-    const normalized = href.replace(/^\.\//, '').replace(/^\//, '');
-    prefetchDoc(normalized);
-    navigateToPath(normalized);
-    setResults([]);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigateToPath, prefetchDoc, setResults]);
+  const handleMarkdownLink = useCallback(
+    (href: string) => {
+      const normalized = href.replace(/^\.\//, '').replace(/^\//, '');
+      prefetchDoc(normalized);
+      navigateToPath(normalized);
+      setResults([]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [navigateToPath, prefetchDoc, setResults],
+  );
 
   const handleCopyMarkdown = useCallback(async () => {
     if (!content) return;
@@ -683,7 +871,11 @@ export default function DocsPage() {
 
     // Legacy execCommand fallback avoids the deprecated type by redefining the surface locally.
     type LegacyDocument = Document & {
-      execCommand?: (commandId: string, showUI?: boolean, value?: string) => boolean;
+      execCommand?: (
+        commandId: string,
+        showUI?: boolean,
+        value?: string,
+      ) => boolean;
     };
 
     const textarea = document.createElement('textarea');
@@ -704,7 +896,8 @@ export default function DocsPage() {
 
   const handleDownloadMarkdown = useCallback(() => {
     if (!content) return;
-    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    if (typeof document === 'undefined' || typeof window === 'undefined')
+      return;
 
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -717,12 +910,14 @@ export default function DocsPage() {
     URL.revokeObjectURL(url);
   }, [content, downloadFileName]);
 
-
   const doSearch = async () => {
     if (!kbId || !commitSha || !q.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`/api/docs/search?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&q=${encodeURIComponent(q)}`, { cache: 'no-store' });
+      const res = await fetch(
+        `/api/docs/search?kbId=${encodeURIComponent(kbId)}&commitSha=${encodeURIComponent(commitSha)}&q=${encodeURIComponent(q)}`,
+        { cache: 'no-store' },
+      );
       const data = await res.json();
       setResults(data?.results || []);
     } finally {
@@ -740,21 +935,31 @@ export default function DocsPage() {
     }
   }, []);
 
-  const handleResultActivate = useCallback((path: string, occurrence?: number) => {
-    const term = q.trim();
-    if (term) {
-      const highlightPayload = { term, occurrence } as const;
-      highlightTermRef.current = highlightPayload;
-      if (path === activePath) {
-        highlightInContent(highlightPayload);
-        resetSearchState();
-        return;
+  const handleResultActivate = useCallback(
+    (path: string, occurrence?: number) => {
+      const term = q.trim();
+      if (term) {
+        const highlightPayload = { term, occurrence } as const;
+        highlightTermRef.current = highlightPayload;
+        if (path === activePath) {
+          highlightInContent(highlightPayload);
+          resetSearchState();
+          return;
+        }
       }
-    }
-    prefetchDoc(path);
-    navigateToPath(path);
-    resetSearchState();
-  }, [activePath, highlightInContent, navigateToPath, prefetchDoc, q, resetSearchState]);
+      prefetchDoc(path);
+      navigateToPath(path);
+      resetSearchState();
+    },
+    [
+      activePath,
+      highlightInContent,
+      navigateToPath,
+      prefetchDoc,
+      q,
+      resetSearchState,
+    ],
+  );
 
   // Debounced live search after 3 chars
   useEffect(() => {
@@ -818,9 +1023,12 @@ export default function DocsPage() {
   }, [isSearchOpen]);
 
   const hasVersions = versions.length > 0;
-  const latestCommitSha = hasVersions ? versions[versions.length - 1] : undefined;
+  const latestCommitSha = hasVersions
+    ? versions[versions.length - 1]
+    : undefined;
   const orderedVersions = hasVersions ? [...versions].reverse() : [];
-  const isLatestCommit = !!commitSha && !!latestCommitSha && commitSha === latestCommitSha;
+  const isLatestCommit =
+    !!commitSha && !!latestCommitSha && commitSha === latestCommitSha;
   const truncatedCommitSha = commitSha ? commitSha.slice(0, 7) : '';
   const showVersionSelector = !!kbId && (hasVersions || !!commitSha);
 
@@ -833,30 +1041,48 @@ export default function DocsPage() {
       .replace(/-+/g, '-');
   };
 
-  const handleTocNavigate = useCallback((id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
+  const handleTocNavigate = useCallback(
+    (id: string) => {
+      const el = document.getElementById(id);
+      if (!el) return;
 
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const isFocusable = 'focus' in el;
-    if (isFocusable) {
-      (el as HTMLElement).focus({ preventScroll: true });
-    }
-    if (typeof window !== 'undefined') {
-      const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
-      const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
-      const docPath = activePath ? `${baseRoot}/${encodePath(activePath)}` : baseRoot;
-      const versionToken = shortCommit ? `?v=${encodeURIComponent(shortCommit)}` : '';
-      window.history.replaceState(null, '', `${docPath}${versionToken}#${id}`);
-    }
-  }, [activePath, encodePath, shortCommit, spaceId]);
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const isFocusable = 'focus' in el;
+      if (isFocusable) {
+        (el as HTMLElement).focus({ preventScroll: true });
+      }
+      if (typeof window !== 'undefined') {
+        const encodedSpace = spaceId ? encodeURIComponent(spaceId) : '';
+        const baseRoot = encodedSpace ? `/docs/${encodedSpace}` : '/docs';
+        const docPath = activePath
+          ? `${baseRoot}/${encodePath(activePath)}`
+          : baseRoot;
+        const versionToken = shortCommit
+          ? `?v=${encodeURIComponent(shortCommit)}`
+          : '';
+        window.history.replaceState(
+          null,
+          '',
+          `${docPath}${versionToken}#${id}`,
+        );
+      }
+    },
+    [activePath, encodePath, shortCommit, spaceId],
+  );
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
     const handleClick = (event: MouseEvent) => {
       if (event.defaultPrevented) return;
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
 
       const target = event.target as HTMLElement | null;
       if (!target) return;
@@ -871,11 +1097,13 @@ export default function DocsPage() {
       if (!href) return;
 
       const anchorElement = anchor as HTMLAnchorElement;
-      const anchorHash = anchorElement.hash || (href.startsWith('#') ? href : null);
+      const anchorHash =
+        anchorElement.hash || (href.startsWith('#') ? href : null);
       if (
         anchorHash &&
         typeof window !== 'undefined' &&
-        (!anchorElement.origin || anchorElement.origin === window.location.origin)
+        (!anchorElement.origin ||
+          anchorElement.origin === window.location.origin)
       ) {
         const targetId = (() => {
           const raw = anchorHash.replace(/^#/, '');
@@ -927,7 +1155,6 @@ export default function DocsPage() {
     pendingFetchesRef.current.clear();
   }, [kbId, currentCommit]);
 
-
   const versionSelector = showVersionSelector ? (
     <div className="flex items-center gap-1.5">
       <Select
@@ -937,7 +1164,13 @@ export default function DocsPage() {
       >
         <SelectTrigger
           className="h-9 min-w-[150px] px-3 py-1.5"
-          title={commitSha ? (isLatestCommit ? `Latest (${commitSha})` : commitSha) : undefined}
+          title={
+            commitSha
+              ? isLatestCommit
+                ? `Latest (${commitSha})`
+                : commitSha
+              : undefined
+          }
         >
           {commitSha ? (
             <div className="flex items-baseline gap-2">
@@ -951,7 +1184,9 @@ export default function DocsPage() {
               )}
             </div>
           ) : (
-            <SelectValue placeholder={hasVersions ? 'Select version' : 'No versions'} />
+            <SelectValue
+              placeholder={hasVersions ? 'Select version' : 'No versions'}
+            />
           )}
         </SelectTrigger>
         {hasVersions && (
@@ -995,33 +1230,36 @@ export default function DocsPage() {
 
   const trimmedQuery = q.trim();
   const hasSearchQuery = trimmedQuery.length >= 3;
-  const showContent = contentStatus === 'ready' || (contentStatus === 'loading' && !!content);
+  const showContent =
+    contentStatus === 'ready' || (contentStatus === 'loading' && !!content);
   const showInlineLoader = contentStatus === 'loading' && !!content;
   const showContentActions = showContent && !!content;
   const isApproved = !!activeApproval?.approved_by_id;
 
   const displayedItems = hasSearchQuery
     ? results.map((r) => ({
-      key: `${r.path}-${r.offset ?? r.occurrence ?? r.line ?? 0}`,
-      path: r.path,
-      title: titleMap[r.path] || r.path,
-      snippet: r.snippet || r.path,
-      occurrence: r.occurrence,
-    }))
+        key: `${r.path}-${r.offset ?? r.occurrence ?? r.line ?? 0}`,
+        path: r.path,
+        title: titleMap[r.path] || r.path,
+        snippet: r.snippet || r.path,
+        occurrence: r.occurrence,
+      }))
     : fileList.slice(0, 10).map(({ path, origin }) => ({
-      key: path,
-      path,
-      title: titleMap[path] || path,
-      snippet: origin === 'auto' ? 'Auto documentation' : path,
-      occurrence: undefined,
-    }));
+        key: path,
+        path,
+        title: titleMap[path] || path,
+        snippet: origin === 'auto' ? 'Auto documentation' : path,
+        occurrence: undefined,
+      }));
 
   const scrollResultIntoView = useCallback((index: number) => {
     if (index < 0) return;
     requestAnimationFrame(() => {
       const container = resultsContainerRef.current;
       if (!container) return;
-      const target = container.querySelector<HTMLButtonElement>(`[data-result-index="${index}"]`);
+      const target = container.querySelector<HTMLButtonElement>(
+        `[data-result-index="${index}"]`,
+      );
       if (!target) return;
       target.scrollIntoView({ block: 'nearest' });
     });
@@ -1029,7 +1267,9 @@ export default function DocsPage() {
 
   useEffect(() => {
     if (!isSearchOpen) return;
-    scrollResultIntoView(Math.min(selectedIdx, Math.max(displayedItems.length - 1, 0)));
+    scrollResultIntoView(
+      Math.min(selectedIdx, Math.max(displayedItems.length - 1, 0)),
+    );
   }, [displayedItems.length, isSearchOpen, scrollResultIntoView, selectedIdx]);
 
   const renderFileEntry = (entry: DocFileEntry) => (
@@ -1056,12 +1296,16 @@ export default function DocsPage() {
             </TooltipTrigger>
             <TooltipContent side="right">
               {entry.approved_by_name}
-              {entry.approved_at ? ` • ${new Date(entry.approved_at).toLocaleString()}` : ''}
+              {entry.approved_at
+                ? ` • ${new Date(entry.approved_at).toLocaleString()}`
+                : ''}
             </TooltipContent>
           </Tooltip>
         )}
       </span>
-      <span className="text-[11px] text-muted-foreground/70 leading-tight">{entry.path}</span>
+      <span className="text-[11px] text-muted-foreground/70 leading-tight">
+        {entry.path}
+      </span>
     </button>
   );
 
@@ -1091,26 +1335,34 @@ export default function DocsPage() {
 
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
-        <SharedHeader rightExtra={
-            <div className="hidden md:flex items-center gap-3">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" onClick={openAutoDocSettings} disabled={!kbId}>
-                            <Settings className="h-4 w-4"/>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        Docs setup
-                    </TooltipContent>
-                </Tooltip>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Version</span>
-                    {versionSelector}
-                </div>
+      <SharedHeader
+        rightExtra={
+          <div className="hidden md:flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={openAutoDocSettings}
+                  disabled={!kbId}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Docs setup</TooltipContent>
+            </Tooltip>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Version</span>
+              {versionSelector}
             </div>
-        }>
+          </div>
+        }
+      >
         <div className="flex flex-1 items-center gap-3 px-2 md:px-4">
-          <span className="text-lg lg:text-xl font-semibold text-foreground truncate">Docs</span>
+          <span className="text-lg lg:text-xl font-semibold text-foreground truncate">
+            Docs
+          </span>
           <button
             type="button"
             onClick={() => setIsSearchOpen(true)}
@@ -1118,7 +1370,9 @@ export default function DocsPage() {
           >
             <SearchIcon size={16} className="text-muted-foreground" />
             <span className="flex-1 truncate text-left">Search docs</span>
-            <span className="text-xs font-medium text-muted-foreground/80">⌘K</span>
+            <span className="text-xs font-medium text-muted-foreground/80">
+              ⌘K
+            </span>
           </button>
           <Button
             type="button"
@@ -1146,7 +1400,9 @@ export default function DocsPage() {
       <div className="flex-1 overflow-auto">
         <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6">
           {!kbId ? (
-            <div className="border rounded-md p-6 text-center text-muted-foreground">No knowledge base configured for this space.</div>
+            <div className="border rounded-md p-6 text-center text-muted-foreground">
+              No knowledge base configured for this space.
+            </div>
           ) : showEmptyState ? (
             <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,260px)] lg:items-start">
               <Card className="border-dashed border-muted">
@@ -1156,9 +1412,14 @@ export default function DocsPage() {
                   </div>
                   <CardTitle className="text-lg">No docs yet</CardTitle>
                   <CardDescription className="max-w-md">
-                    Configure prompts now so the next sync knows which docs to write.
+                    Configure prompts now so the next sync knows which docs to
+                    write.
                   </CardDescription>
-                  <Button type="button" className="mt-2" onClick={openAutoDocSettings}>
+                  <Button
+                    type="button"
+                    className="mt-2"
+                    onClick={openAutoDocSettings}
+                  >
                     Generate docs
                   </Button>
                 </CardHeader>
@@ -1175,7 +1436,9 @@ export default function DocsPage() {
                       ))}
                     </div>
                   ) : !hasDocs ? (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">No files found.</div>
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      No files found.
+                    </div>
                   ) : (
                     <>
                       {docTree.files.length > 0 && (
@@ -1189,167 +1452,199 @@ export default function DocsPage() {
                 </div>
               </aside>
 
-               <main className="min-w-0 relative">
-                 {(showInlineLoader || showContentActions) && (
-                   <div className="absolute right-0 top-0 z-20 flex flex-col items-end gap-2">
-                        {showInlineLoader && (
-                          <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
-                            Loading latest…
-                          </div>
+              <main className="min-w-0 relative">
+                {(showInlineLoader || showContentActions) && (
+                  <div className="absolute right-0 top-0 z-20 flex flex-col items-end gap-2">
+                    {showInlineLoader && (
+                      <div className="rounded-md bg-muted/70 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+                        Loading latest…
+                      </div>
+                    )}
+                    {showContentActions && (
+                      <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
+                        {activeOrigin === 'auto' && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant={isApproved ? 'secondary' : 'outline'}
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
+                                onClick={() =>
+                                  toggleApproval(
+                                    isApproved ? 'revoke' : 'approve',
+                                  )
+                                }
+                                disabled={isApproving || !kbId || !commitSha}
+                                aria-label={
+                                  isApproved
+                                    ? 'Revoke approval'
+                                    : 'Approve document'
+                                }
+                              >
+                                {isApproved ? (
+                                  <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-500" />
+                                ) : (
+                                  <ShieldOff className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                              {isApproved
+                                ? approvalSummary || 'Approved'
+                                : 'Add a human approval seal'}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
-                        {showContentActions && (
-                          <div className="flex items-center gap-1 rounded-md border border-border/70 bg-background/95 p-1 shadow-sm dark:bg-background/90">
-                            {activeOrigin === 'auto' && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground"
+                              onClick={handleCopyMarkdown}
+                              aria-label="Copy markdown"
+                            >
+                              <Copy className="h-4 w-4" />
+                              <span className="sr-only">Copy markdown</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            Copy markdown
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground"
+                              onClick={handleDownloadMarkdown}
+                              aria-label="Download markdown"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="sr-only">Download markdown</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            Download markdown
+                          </TooltipContent>
+                        </Tooltip>
+                        {activeOrigin === 'auto' && (
+                          <DropdownMenu>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
                                   <Button
                                     type="button"
-                                    variant={isApproved ? 'secondary' : 'outline'}
+                                    variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-muted-foreground"
-                                    onClick={() => toggleApproval(isApproved ? 'revoke' : 'approve')}
-                                    disabled={isApproving || !kbId || !commitSha}
-                                    aria-label={isApproved ? 'Revoke approval' : 'Approve document'}
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                    aria-label="Auto docs actions"
                                   >
-                                    {isApproved ? <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-500" /> : <ShieldOff className="h-4 w-4" />}
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">
+                                      Auto docs actions
+                                    </span>
                                   </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                  {isApproved
-                                    ? approvalSummary || 'Approved'
-                                    : 'Add a human approval seal'}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleCopyMarkdown}
-                                  aria-label="Copy markdown"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                  <span className="sr-only">Copy markdown</span>
-                                </Button>
+                                </DropdownMenuTrigger>
                               </TooltipTrigger>
-                              <TooltipContent side="bottom">Copy markdown</TooltipContent>
+                              <TooltipContent side="bottom">
+                                Auto-doc actions
+                              </TooltipContent>
                             </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
-                                  onClick={handleDownloadMarkdown}
-                                  aria-label="Download markdown"
+                            <DropdownMenuContent align="end" sideOffset={4}>
+                              {activeProcessId && (
+                                <DropdownMenuItem
+                                  className="gap-2 text-sm"
+                                  onClick={() =>
+                                    window.open(
+                                      `/tasks/${activeProcessId}`,
+                                      '_blank',
+                                      'noopener,noreferrer',
+                                    )
+                                  }
                                 >
-                                  <Download className="h-4 w-4" />
-                                  <span className="sr-only">Download markdown</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">Download markdown</TooltipContent>
-                            </Tooltip>
-                            {activeOrigin === 'auto' && (
-                              <DropdownMenu>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                        aria-label="Auto docs actions"
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                        <span className="sr-only">Auto docs actions</span>
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom">Auto-doc actions</TooltipContent>
-                                </Tooltip>
-                                <DropdownMenuContent align="end" sideOffset={4}>
-                                  {activeProcessId && (
-                                    <DropdownMenuItem
-                                      className="gap-2 text-sm"
-                                      onClick={() =>
-                                        window.open(`/tasks/${activeProcessId}`, '_blank', 'noopener,noreferrer')
-                                      }
-                                    >
-                                      <Activity className="h-4 w-4" />
-                                      View generation details
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem
-                                    className="gap-2 text-sm"
-                                    onClick={() => triggerManualAutoDoc('complete')}
-                                    disabled={!promptIdForActiveDoc || isGenerating}
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                    Re-generate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="gap-2 text-sm"
-                                    onClick={() => triggerManualAutoDoc('update')}
-                                    disabled={!promptIdForActiveDoc || isGenerating}
-                                  >
-                                    <Wand2 className="h-4 w-4" />
-                                    Update existing doc
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
+                                  <Activity className="h-4 w-4" />
+                                  View generation details
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="gap-2 text-sm"
+                                onClick={() => triggerManualAutoDoc('complete')}
+                                disabled={!promptIdForActiveDoc || isGenerating}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                Re-generate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="gap-2 text-sm"
+                                onClick={() => triggerManualAutoDoc('update')}
+                                disabled={!promptIdForActiveDoc || isGenerating}
+                              >
+                                <Wand2 className="h-4 w-4" />
+                                Update existing doc
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     )}
-                 <div className="mx-auto max-w-7xl px-2 sm:px-4 pt-4" ref={contentRef}>
-                   {showLoadingShell ? (
-                     <div className="space-y-4">
-                       <Skeleton className="h-8 w-1/2" />
-                       <Skeleton className="h-4 w-full" />
-                       <Skeleton className="h-4 w-5/6" />
-                       <Skeleton className="h-4 w-2/3" />
-                       <Skeleton className="h-4 w-full" />
-                       <Skeleton className="h-4 w-3/4" />
-                     </div>
-                   ) : activePath ? (
-                     contentStatus === 'missing' ? (
-                       <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
-                         We couldn't find this document in the selected version. Try another version or pick a different doc.
-                       </div>
-                     ) : showContent ? (
-                       <div className="max-w-none prose prose-neutral dark:prose-invert">
-                         {isApproved && (
-                           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100">
-                             <ShieldCheck className="h-3.5 w-3.5" />
-                             <span>{approvalSummary || 'Approved'}</span>
-                           </div>
-                         )}
-                         <Markdown>{content}</Markdown>
-                       </div>
-                     ) : (
-                       <div className="space-y-4">
-                         <Skeleton className="h-8 w-1/2" />
-                         <Skeleton className="h-4 w-full" />
-                         <Skeleton className="h-4 w-5/6" />
-                         <Skeleton className="h-4 w-2/3" />
-                         <Skeleton className="h-4 w-full" />
-                         <Skeleton className="h-4 w-3/4" />
-                       </div>
-                     )
-                   ) : (
-                     <div className="text-sm text-muted-foreground">Select a document from the index.</div>
-                   )}
-                 </div>
-               </main>
+                  </div>
+                )}
+                <div
+                  className="mx-auto max-w-7xl px-2 sm:px-4 pt-4"
+                  ref={contentRef}
+                >
+                  {showLoadingShell ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-8 w-1/2" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  ) : activePath ? (
+                    contentStatus === 'missing' ? (
+                      <div className="rounded-md border border-dashed border-border/80 bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+                        We couldn't find this document in the selected version.
+                        Try another version or pick a different doc.
+                      </div>
+                    ) : showContent ? (
+                      <div className="max-w-none prose prose-neutral dark:prose-invert">
+                        {isApproved && (
+                          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>{approvalSummary || 'Approved'}</span>
+                          </div>
+                        )}
+                        <Markdown>{content}</Markdown>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-1/2" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Select a document from the index.
+                    </div>
+                  )}
+                </div>
+              </main>
 
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit text-xs">
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">On this page</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                  On this page
+                </div>
                 <div className="mt-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 space-y-[2px] pt-1">
                   {showLoadingShell || isContentLoading ? (
                     <div className="space-y-2">
@@ -1360,7 +1655,12 @@ export default function DocsPage() {
                     </div>
                   ) : toc.length > 0 ? (
                     toc.map((item) => {
-                      const indent = item.level >= 3 ? 'pl-5' : item.level === 2 ? 'pl-3' : '';
+                      const indent =
+                        item.level >= 3
+                          ? 'pl-5'
+                          : item.level === 2
+                            ? 'pl-3'
+                            : '';
                       return (
                         <div key={item.id} className={indent}>
                           <button
@@ -1368,7 +1668,9 @@ export default function DocsPage() {
                             onClick={() => handleTocNavigate(item.id)}
                             className="group relative flex w-full items-start rounded-md px-2 py-[5px] text-left text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
                           >
-                            <span className="block text-[12px] leading-5 whitespace-normal break-words">{item.text}</span>
+                            <span className="block text-[12px] leading-5 whitespace-normal break-words">
+                              {item.text}
+                            </span>
                             <span className="pointer-events-none absolute left-full top-1/2 z-10 hidden min-w-[260px] -translate-y-1/2 translate-x-3 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-[11px] text-foreground shadow-sm group-hover:flex dark:bg-background/90">
                               {item.text}
                             </span>
@@ -1377,7 +1679,9 @@ export default function DocsPage() {
                       );
                     })
                   ) : (
-                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">No headings yet.</div>
+                    <div className="rounded-md bg-muted/40 px-3 py-4 text-xs text-muted-foreground">
+                      No headings yet.
+                    </div>
                   )}
                 </div>
               </aside>
@@ -1406,29 +1710,42 @@ export default function DocsPage() {
                   setQ(event.target.value);
                   setSelectedIdx(0);
                 }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        if (trimmedQuery.length < 3 && results.length === 0 && displayedItems.length === 0) {
-                          void doSearch();
-                          return;
-                        }
-                        const target = displayedItems[Math.min(selectedIdx, Math.max(0, displayedItems.length - 1))];
-                        if (target) {
-                          handleResultActivate(target.path, target.occurrence);
-                        }
-                      } else if (event.key === 'ArrowDown') {
-                        event.preventDefault();
-                        const nextIndex = Math.min(selectedIdx + 1, Math.max(0, displayedItems.length - 1));
-                        setSelectedIdx(nextIndex);
-                        scrollResultIntoView(nextIndex);
-                      } else if (event.key === 'ArrowUp') {
-                        event.preventDefault();
-                        const nextIndex = Math.max(selectedIdx - 1, 0);
-                        setSelectedIdx(nextIndex);
-                        scrollResultIntoView(nextIndex);
-                      }
-                    }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (
+                      trimmedQuery.length < 3 &&
+                      results.length === 0 &&
+                      displayedItems.length === 0
+                    ) {
+                      void doSearch();
+                      return;
+                    }
+                    const target =
+                      displayedItems[
+                        Math.min(
+                          selectedIdx,
+                          Math.max(0, displayedItems.length - 1),
+                        )
+                      ];
+                    if (target) {
+                      handleResultActivate(target.path, target.occurrence);
+                    }
+                  } else if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    const nextIndex = Math.min(
+                      selectedIdx + 1,
+                      Math.max(0, displayedItems.length - 1),
+                    );
+                    setSelectedIdx(nextIndex);
+                    scrollResultIntoView(nextIndex);
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    const nextIndex = Math.max(selectedIdx - 1, 0);
+                    setSelectedIdx(nextIndex);
+                    scrollResultIntoView(nextIndex);
+                  }
+                }}
                 className="h-11 border-0 bg-transparent px-0 text-base focus-visible:ring-0"
                 autoFocus
               />
@@ -1444,13 +1761,17 @@ export default function DocsPage() {
               className="max-h-[320px] overflow-y-auto py-2"
             >
               {searching ? (
-                <div className="px-4 py-6 text-sm text-muted-foreground">Searching…</div>
+                <div className="px-4 py-6 text-sm text-muted-foreground">
+                  Searching…
+                </div>
               ) : displayedItems.length > 0 ? (
                 displayedItems.map((item, index) => (
                   <button
                     key={item.key}
                     type="button"
-                    onClick={() => handleResultActivate(item.path, item.occurrence)}
+                    onClick={() =>
+                      handleResultActivate(item.path, item.occurrence)
+                    }
                     onMouseEnter={() => {
                       setSelectedIdx(index);
                       scrollResultIntoView(index);
@@ -1460,9 +1781,13 @@ export default function DocsPage() {
                     data-result-index={index}
                     className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${index === selectedIdx ? 'bg-muted text-foreground' : 'text-muted-foreground'}`}
                   >
-                    <span className="text-sm font-medium text-foreground">{item.title}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {item.title}
+                    </span>
                     {item.snippet && (
-                      <span className="text-xs text-muted-foreground/80 truncate">{item.snippet}</span>
+                      <span className="text-xs text-muted-foreground/80 truncate">
+                        {item.snippet}
+                      </span>
                     )}
                   </button>
                 ))
@@ -1484,7 +1809,10 @@ export default function DocsPage() {
         </div>
       )}
       <Sheet open={isAutoDocOpen} onOpenChange={setIsAutoDocOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto"
+        >
           <SheetHeader>
             <SheetTitle className="sr-only">Docs setup</SheetTitle>
           </SheetHeader>

@@ -3,7 +3,11 @@ import { notFound } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { getChatById, getMessagesByChatId, getStreamIdsByChatId } from '@/lib/db/queries';
+import {
+  getChatById,
+  getMessagesByChatId,
+  getStreamIdsByChatId,
+} from '@/lib/db/queries';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
 import { convertToUIMessages } from '@/lib/utils';
@@ -47,32 +51,32 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   if (!chatModelFromCookie) {
     return (
       <>
-      <Chat
-        key={`${id}-${messagesFromDb.length}`}
-        id={chat.id}
-        initialMessages={uiMessages}
-        selectedChatModel={DEFAULT_CHAT_MODEL}
-        selectedVisibilityType={chat.visibility}
-        isReadonly={session?.user?.id !== chat.userId}
-        autoResume={shouldAutoResume}
-      />
-      <DataStreamHandler />
+        <Chat
+          key={`${id}-${messagesFromDb.length}`}
+          id={chat.id}
+          initialMessages={uiMessages}
+          selectedChatModel={DEFAULT_CHAT_MODEL}
+          selectedVisibilityType={chat.visibility}
+          isReadonly={session?.user?.id !== chat.userId}
+          autoResume={shouldAutoResume}
+        />
+        <DataStreamHandler />
       </>
     );
   }
 
   return (
     <>
-    <Chat
-      key={`${id}-${messagesFromDb.length}`}
-      id={chat.id}
-      initialMessages={uiMessages}
-      selectedChatModel={chatModelFromCookie.value}
-      selectedVisibilityType={chat.visibility}
-      isReadonly={session?.user?.id !== chat.userId}
-      autoResume={shouldAutoResume}
-    />
-    <DataStreamHandler />
+      <Chat
+        key={`${id}-${messagesFromDb.length}`}
+        id={chat.id}
+        initialMessages={uiMessages}
+        selectedChatModel={chatModelFromCookie.value}
+        selectedVisibilityType={chat.visibility}
+        isReadonly={session?.user?.id !== chat.userId}
+        autoResume={shouldAutoResume}
+      />
+      <DataStreamHandler />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { Vote } from '@/lib/db/schema';
@@ -13,7 +13,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
-import { WebSearch, WebSearchAnimation, getCombinedWebSearchResults, hasMultipleWebSearchesCalls } from './web-search';
+import { WebSearch, WebSearchAnimation } from './web-search';
 import { FetchWebpage, FetchWebpageAnimation } from './fetch-webpage';
 import equal from 'fast-deep-equal';
 import { cn } from '@/lib/utils';
@@ -22,20 +22,34 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { UseChatHelpers } from '@ai-sdk/react';
 import { useLocalStorage } from 'usehooks-ts';
-import Link from 'next/link';
-import { Sources, getFileExtension, getLanguageIcon } from './sources';
-import { CodeIcon } from './icons';
-import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
-import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
-import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool, extractGitHubSources } from './github-mcp';
-import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool, extractNotionSources } from './notion-mcp';
+import { Sources } from './sources';
+import {
+  RemoteCodingAgentAnimation,
+  RemoteCodingStream,
+} from './remote-coding-agent';
+import {
+  CodebaseSearchPreview,
+  CodebaseSearchResult,
+} from './codebase-assistant';
+import {
+  extractGitHubSources,
+  GitHubMCPAnimation,
+  GitHubMCPResult,
+  isGitHubMCPTool,
+} from './github-mcp';
+import {
+  extractNotionSources,
+  isNotionMCPTool,
+  NotionMCPAnimation,
+  NotionMCPResult,
+} from './notion-mcp';
 import { chatModels } from '@/lib/ai/models';
 import { TodoDisplay } from './todo-display';
-import { ChatMessage, ChatTools } from '@/lib/types';
+import type { ChatMessage, ChatTools } from '@/lib/types';
 import { useDataStream } from '@/components/data-stream-provider';
-import { ToolUIPart, getToolName } from 'ai';
+import { getToolName, type ToolUIPart } from 'ai';
 
 // Component to display search animation
 const SearchingAnimation = () => (
@@ -45,7 +59,6 @@ const SearchingAnimation = () => (
     </div>
   </div>
 );
-
 
 const PurePreviewMessage = ({
   chatId,
@@ -81,7 +94,13 @@ const PurePreviewMessage = ({
 
   // Collect and dedupe sources from message parts for consolidated rendering
   const allSources = useMemo(() => {
-    type SourceItem = { id: string; url: string; title?: string; sourceType: 'url'; providerMetadata?: any };
+    type SourceItem = {
+      id: string;
+      url: string;
+      title?: string;
+      sourceType: 'url';
+      providerMetadata?: any;
+    };
     const collected: SourceItem[] = [];
     const seen = new Set<string>();
 
@@ -96,7 +115,12 @@ const PurePreviewMessage = ({
       }
     };
 
-    const addSource = (url?: string | null, title?: string, metadata?: any, idHint?: string) => {
+    const addSource = (
+      url?: string | null,
+      title?: string,
+      metadata?: any,
+      idHint?: string,
+    ) => {
       if (!url) return;
       const key = normalize(url);
       if (seen.has(key)) return;
@@ -112,10 +136,20 @@ const PurePreviewMessage = ({
 
     for (const part of message.parts) {
       if (part.type === 'source-url') {
-        addSource(part.url, part.title, (part as any).providerMetadata, part.sourceId);
+        addSource(
+          part.url,
+          part.title,
+          (part as any).providerMetadata,
+          part.sourceId,
+        );
       } else if (part.type === 'source-document') {
         const url = (part as any).filename || `document:${part.sourceId}`;
-        addSource(url, part.title, (part as any).providerMetadata, part.sourceId);
+        addSource(
+          url,
+          part.title,
+          (part as any).providerMetadata,
+          part.sourceId,
+        );
       }
     }
 
@@ -127,12 +161,19 @@ const PurePreviewMessage = ({
       if (typeof toolNameRaw !== 'string') return;
 
       if (isGitHubMCPTool(toolNameRaw)) {
-        const githubSources = extractGitHubSources(toolNameRaw, toolOutput, toolInput);
-        githubSources.forEach(({ url: githubUrl, title: githubTitle, id: githubId, ...rest }) => {
-          if (!githubUrl) return;
-          const metadata = (rest as { providerMetadata?: any })?.providerMetadata;
-          addSource(githubUrl, githubTitle, metadata, githubId);
-        });
+        const githubSources = extractGitHubSources(
+          toolNameRaw,
+          toolOutput,
+          toolInput,
+        );
+        githubSources.forEach(
+          ({ url: githubUrl, title: githubTitle, id: githubId, ...rest }) => {
+            if (!githubUrl) return;
+            const metadata = (rest as { providerMetadata?: any })
+              ?.providerMetadata;
+            addSource(githubUrl, githubTitle, metadata, githubId);
+          },
+        );
       }
 
       if (isNotionMCPTool(toolNameRaw)) {
@@ -140,14 +181,30 @@ const PurePreviewMessage = ({
           toolOutput,
           (toolInput as Record<string, unknown> | undefined) ?? undefined,
         );
-        notionSources.forEach(({ url: notionUrl, title: notionTitle, id: notionId, providerMetadata }) => {
-          if (!notionUrl) return;
-          addSource(notionUrl, notionTitle, providerMetadata ?? { notion: {} }, notionId);
-        });
+        notionSources.forEach(
+          ({
+            url: notionUrl,
+            title: notionTitle,
+            id: notionId,
+            providerMetadata,
+          }) => {
+            if (!notionUrl) return;
+            addSource(
+              notionUrl,
+              notionTitle,
+              providerMetadata ?? { notion: {} },
+              notionId,
+            );
+          },
+        );
       }
     };
 
-    const finishedDynamicStates = new Set(['output-available', 'result', 'finished']);
+    const finishedDynamicStates = new Set([
+      'output-available',
+      'result',
+      'finished',
+    ]);
 
     for (const part of message.parts) {
       if (part.type === 'dynamic-tool') {
@@ -177,42 +234,63 @@ const PurePreviewMessage = ({
 
   // Combine reasoning parts and associated tool calls in chronological order
   const { combinedReasoningData, nonReasoningParts } = useMemo(() => {
-    if (!message.parts) return { combinedReasoningData: { chronologicalItems: [] }, nonReasoningParts: [] };
+    if (!message.parts)
+      return {
+        combinedReasoningData: { chronologicalItems: [] },
+        nonReasoningParts: [],
+      };
 
     // Find indices of reasoning parts
     const reasoningIndices = message.parts
       .map((part, index) => ({ part, index }))
       .filter(({ part }) => part.type === 'reasoning')
       .map(({ index }) => index);
-    
+
     if (reasoningIndices.length === 0) {
-      return { combinedReasoningData: { chronologicalItems: [] }, nonReasoningParts: message.parts.map((part, index) => ({ part, index })) };
+      return {
+        combinedReasoningData: { chronologicalItems: [] },
+        nonReasoningParts: message.parts.map((part, index) => ({
+          part,
+          index,
+        })),
+      };
     }
-    
+
     // Find tool calls that happen during reasoning (between first reasoning and last reasoning + 1)
     const firstReasoningIndex = reasoningIndices[0];
     const lastReasoningIndex = reasoningIndices[reasoningIndices.length - 1];
-    
+
     // Get all parts that belong to reasoning (reasoning parts + tool calls between them)
     const reasoningRelatedParts = message.parts
       .slice(firstReasoningIndex, lastReasoningIndex + 1)
       .map((part, relativeIndex) => ({
         part,
         index: firstReasoningIndex + relativeIndex,
-        type: part.type === 'reasoning' ? 'reasoning' as const : part.type.startsWith('tool-') ? 'tool' as const : 'other' as const
+        type:
+          part.type === 'reasoning'
+            ? ('reasoning' as const)
+            : part.type.startsWith('tool-')
+              ? ('tool' as const)
+              : ('other' as const),
       }))
-      .filter(({ type }) => type === 'reasoning' || type === 'tool') as Array<{ part: any; index: number; type: 'reasoning' | 'tool' }>;
+      .filter(({ type }) => type === 'reasoning' || type === 'tool') as Array<{
+      part: any;
+      index: number;
+      type: 'reasoning' | 'tool';
+    }>;
 
     // Get non-reasoning parts (excluding tool calls that are part of reasoning)
-    const reasoningRelatedIndices = new Set(reasoningRelatedParts.map(({ index }) => index));
+    const reasoningRelatedIndices = new Set(
+      reasoningRelatedParts.map(({ index }) => index),
+    );
 
     const nonReasoning = message.parts
       .map((part, index) => ({ part, index }))
       .filter(({ index }) => !reasoningRelatedIndices.has(index));
-    
+
     return {
       combinedReasoningData: {
-        chronologicalItems: reasoningRelatedParts
+        chronologicalItems: reasoningRelatedParts,
       },
       nonReasoningParts: nonReasoning,
     };
@@ -222,25 +300,40 @@ const PurePreviewMessage = ({
   // Use the most up-to-date selection during streaming to avoid stale UI from previous model
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
   const effectiveModelId = isLoading ? storedModelId : selectedChatModel;
-  const modelInfo = chatModels.find(model => model.id === effectiveModelId);
+  const modelInfo = chatModels.find((model) => model.id === effectiveModelId);
   const supportsReasoning = modelInfo?.provider === 'openai';
 
   // Check if we should show reasoning placeholder
-  const shouldShowReasoningPlaceholder = isLoading && message.role === 'assistant' && supportsReasoning && !message.parts?.some(part => part.type === 'reasoning');
-  
+  const shouldShowReasoningPlaceholder =
+    isLoading &&
+    message.role === 'assistant' &&
+    supportsReasoning &&
+    !message.parts?.some((part) => part.type === 'reasoning');
+
   // Detect if reasoning is still streaming
-  const hasReasoningParts = message.parts?.some(part => part.type === 'reasoning') || false;
-  const hasTextParts = message.parts?.some(part => part.type === 'text') || false;
-  
+  const hasReasoningParts =
+    message.parts?.some((part) => part.type === 'reasoning') || false;
+  const hasTextParts =
+    message.parts?.some((part) => part.type === 'text') || false;
+
   // Find the last reasoning part and check if there are any text parts after it
-  const reasoningIndices = message.parts?.map((part, index) => ({ part, index })).filter(({ part }) => part.type === 'reasoning').map(({ index }) => index) || [];
-  const lastReasoningIndex = reasoningIndices.length > 0 ? Math.max(...reasoningIndices) : -1;
-  const hasTextAfterReasoning = message.parts?.some((part, index) => part.type === 'text' && index > lastReasoningIndex) || false;
+  const reasoningIndices =
+    message.parts
+      ?.map((part, index) => ({ part, index }))
+      .filter(({ part }) => part.type === 'reasoning')
+      .map(({ index }) => index) || [];
+  const lastReasoningIndex =
+    reasoningIndices.length > 0 ? Math.max(...reasoningIndices) : -1;
+  const hasTextAfterReasoning =
+    message.parts?.some(
+      (part, index) => part.type === 'text' && index > lastReasoningIndex,
+    ) || false;
 
   // Reasoning is considered streaming if:
   // 1. Message is loading AND has reasoning parts AND
   // 2. Either there are no text parts after the last reasoning part
-  const reasoningIsStreaming = isLoading && hasReasoningParts && !hasTextAfterReasoning;
+  const reasoningIsStreaming =
+    isLoading && hasReasoningParts && !hasTextAfterReasoning;
 
   return (
     <AnimatePresence>
@@ -259,9 +352,10 @@ const PurePreviewMessage = ({
             },
           )}
         >
-          <div 
-            className={cn("flex flex-col gap-1 w-full relative", {
-              'min-h-[65vh]': message.role === 'assistant' && requiresScrollPadding,
+          <div
+            className={cn('flex flex-col gap-1 w-full relative', {
+              'min-h-[65vh]':
+                message.role === 'assistant' && requiresScrollPadding,
             })}
           >
             {attachmentsFromMessage.length > 0 && (
@@ -280,12 +374,15 @@ const PurePreviewMessage = ({
             )}
 
             {/* Show single combined reasoning component */}
-            {(shouldShowReasoningPlaceholder || combinedReasoningData.chronologicalItems.length > 0) && (
+            {(shouldShowReasoningPlaceholder ||
+              combinedReasoningData.chronologicalItems.length > 0) && (
               <MessageReasoning
                 key={`${message.id}-reasoning-combined`}
                 isLoading={shouldShowReasoningPlaceholder}
                 chronologicalItems={combinedReasoningData.chronologicalItems}
-                isStreaming={shouldShowReasoningPlaceholder || reasoningIsStreaming}
+                isStreaming={
+                  shouldShowReasoningPlaceholder || reasoningIsStreaming
+                }
               />
             )}
 
@@ -312,29 +409,39 @@ const PurePreviewMessage = ({
                       >
                         <Markdown>{part.text}</Markdown>
                       </div>
-                      
+
                       {/* For unsaved messages, replace action buttons with clear notice */}
-                      {message.role === 'user' && (message as any).unsaved === true ? (
+                      {message.role === 'user' &&
+                      (message as any).unsaved === true ? (
                         <div className="flex justify-end">
                           <div className="text-[11px] rounded-md bg-amber-100/90 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 border border-amber-300/60 px-2 py-1">
-                            This message wasn’t saved. <button className="underline inline-flex items-center" onClick={async () => {
-                              const textFromParts = message.parts
-                                ?.filter((p) => p.type === 'text')
-                                .map((p) => p.text)
-                                .join('\n')
-                                .trim();
-                              if (!textFromParts) {
-                                toast.error("There's no text to copy!");
-                                return;
-                              }
-                              await navigator.clipboard.writeText(textFromParts);
-                              toast.success('Copied to clipboard!');
-                            }}>Copy <Copy className="h-3 w-3 ml-1" /></button>
+                            This message wasn’t saved.{' '}
+                            <button
+                              className="underline inline-flex items-center"
+                              onClick={async () => {
+                                const textFromParts = message.parts
+                                  ?.filter((p) => p.type === 'text')
+                                  .map((p) => p.text)
+                                  .join('\n')
+                                  .trim();
+                                if (!textFromParts) {
+                                  toast.error("There's no text to copy!");
+                                  return;
+                                }
+                                await navigator.clipboard.writeText(
+                                  textFromParts,
+                                );
+                                toast.success('Copied to clipboard!');
+                              }}
+                            >
+                              Copy <Copy className="h-3 w-3 ml-1" />
+                            </button>
                           </div>
                         </div>
                       ) : (
                         // Normal actions
-                        message.role === 'user' && !isReadonly && (
+                        message.role === 'user' &&
+                        !isReadonly && (
                           <div className="flex justify-end gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -351,7 +458,7 @@ const PurePreviewMessage = ({
                               </TooltipTrigger>
                               <TooltipContent>Edit message</TooltipContent>
                             </Tooltip>
-                            
+
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -369,7 +476,9 @@ const PurePreviewMessage = ({
                                       return;
                                     }
 
-                                    await navigator.clipboard.writeText(textFromParts);
+                                    await navigator.clipboard.writeText(
+                                      textFromParts,
+                                    );
                                     toast.success('Copied to clipboard!');
                                   }}
                                 >
@@ -416,25 +525,50 @@ const PurePreviewMessage = ({
                 if (!toolName || !state) return null;
 
                 // Normalize possible state names from different emitters
-                const isAnimating = state === 'input-available' || state === 'input-streaming' || state === 'call' || state === 'partial-call';
-                const isResult = state === 'output-available' || state === 'result' || state === 'finished';
+                const isAnimating =
+                  state === 'input-available' ||
+                  state === 'input-streaming' ||
+                  state === 'call' ||
+                  state === 'partial-call';
+                const isResult =
+                  state === 'output-available' ||
+                  state === 'result' ||
+                  state === 'finished';
 
                 const notionTool = isNotionMCPTool(toolName);
                 const githubTool = isGitHubMCPTool(toolName);
                 if (notionTool || githubTool) {
                   if (isAnimating) {
                     return notionTool ? (
-                      <NotionMCPAnimation key={toolCallId} toolName={toolName} args={input} />
+                      <NotionMCPAnimation
+                        key={toolCallId}
+                        toolName={toolName}
+                        args={input}
+                      />
                     ) : (
-                      <GitHubMCPAnimation key={toolCallId} toolName={toolName} args={input} />
+                      <GitHubMCPAnimation
+                        key={toolCallId}
+                        toolName={toolName}
+                        args={input}
+                      />
                     );
                   }
 
                   if (isResult) {
                     return notionTool ? (
-                      <NotionMCPResult key={toolCallId} toolName={toolName} result={output} args={input} />
+                      <NotionMCPResult
+                        key={toolCallId}
+                        toolName={toolName}
+                        result={output}
+                        args={input}
+                      />
                     ) : (
-                      <GitHubMCPResult key={toolCallId} toolName={toolName} result={output} args={input} />
+                      <GitHubMCPResult
+                        key={toolCallId}
+                        toolName={toolName}
+                        result={output}
+                        args={input}
+                      />
                     );
                   }
                 }
@@ -444,10 +578,10 @@ const PurePreviewMessage = ({
 
               if (type.startsWith('tool-')) {
                 const toolName = type.split('-')[1];
-                const { toolCallId, state, input } = part as ToolUIPart<ChatTools>;
-                
-                if (state === 'input-available') {
+                const { toolCallId, state, input } =
+                  part as ToolUIPart<ChatTools>;
 
+                if (state === 'input-available') {
                   // Special handling for TodoWrite - render directly without wrapper
                   if (toolName === 'TodoWrite' && (input as any)?.todos) {
                     return (
@@ -480,7 +614,9 @@ const PurePreviewMessage = ({
                       ) : toolName === 'requestSuggestions' ? (
                         <DocumentToolCall
                           type="request-suggestions"
-                          args={input as ChatTools['requestSuggestions']['input']}
+                          args={
+                            input as ChatTools['requestSuggestions']['input']
+                          }
                           isReadonly={isReadonly}
                         />
                       ) : toolName === 'codebaseSearch' ? (
@@ -494,7 +630,11 @@ const PurePreviewMessage = ({
                       ) : toolName === 'remoteCodingAgent' ? (
                         <RemoteCodingAgentAnimation />
                       ) : toolName === 'fetchWebpage' ? (
-                        <FetchWebpageAnimation url={(input as ChatTools['fetchWebpage']['input'])?.url} />
+                        <FetchWebpageAnimation
+                          url={
+                            (input as ChatTools['fetchWebpage']['input'])?.url
+                          }
+                        />
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPAnimation toolName={toolName} args={input} />
                       ) : isGitHubMCPTool(toolName) ? (
@@ -505,9 +645,10 @@ const PurePreviewMessage = ({
                 }
 
                 if (state === 'input-streaming') {
-
                   if (toolName === 'remoteCodingAgent') {
-                    const args = input as Partial<ChatTools['remoteCodingAgent']['input']> | undefined;
+                    const args = input as
+                      | Partial<ChatTools['remoteCodingAgent']['input']>
+                      | undefined;
                     const issueTitle = args?.issue?.title ?? '';
                     const issueDescription = args?.issue?.description ?? '';
 
@@ -524,12 +665,16 @@ const PurePreviewMessage = ({
 
                   if (isNotionMCPTool(toolName)) {
                     const args = input;
-                    return <NotionMCPAnimation toolName={toolName} args={args} />;
+                    return (
+                      <NotionMCPAnimation toolName={toolName} args={args} />
+                    );
                   }
 
                   if (isGitHubMCPTool(toolName)) {
                     const args = input;
-                    return <GitHubMCPAnimation toolName={toolName} args={args} />;
+                    return (
+                      <GitHubMCPAnimation toolName={toolName} args={args} />
+                    );
                   }
 
                   return null;
@@ -541,7 +686,11 @@ const PurePreviewMessage = ({
                   const result = toolPart.output;
 
                   // Debug logging for all tool results
-                  console.log(`[Tool Result] ${toolName}:`, { result, args, state });
+                  console.log(`[Tool Result] ${toolName}:`, {
+                    result,
+                    args,
+                    state,
+                  });
 
                   // Special handling for TodoWrite - don't show results, already rendered in call state
                   if (toolName === 'TodoWrite') {
@@ -556,7 +705,10 @@ const PurePreviewMessage = ({
                           <CodebaseSearchResult
                             state={state}
                             result={result}
-                            query={(args as ChatTools['codebaseSearch']['input']).query}
+                            query={
+                              (args as ChatTools['codebaseSearch']['input'])
+                                .query
+                            }
                           />
                         )}
                       </div>
@@ -565,13 +717,14 @@ const PurePreviewMessage = ({
 
                   // Show web search results
                   if (toolName === 'webSearch') {
-
                     return (
                       <div key={toolCallId}>
                         {result && (
                           <WebSearch
                             result={result}
-                            query={(args as ChatTools['webSearch']['input']).query}
+                            query={
+                              (args as ChatTools['webSearch']['input']).query
+                            }
                           />
                         )}
                       </div>
@@ -600,28 +753,37 @@ const PurePreviewMessage = ({
                           isReadonly={isReadonly}
                         />
                       ) : toolName === 'codebaseAssistant' ? (
-                          <div>
-                          </div>
+                        <div />
                       ) : toolName === 'remoteCodingAgent' ? (
                         <div>
                           <RemoteCodingStream
                             toolCallId={toolCallId}
-                            issueTitle={(args as ChatTools['remoteCodingAgent']['input']).issue?.title ?? ''}
-                            issueDescription={(args as ChatTools['remoteCodingAgent']['input']).issue?.description ?? ''}
+                            issueTitle={
+                              (args as ChatTools['remoteCodingAgent']['input'])
+                                .issue?.title ?? ''
+                            }
+                            issueDescription={
+                              (args as ChatTools['remoteCodingAgent']['input'])
+                                .issue?.description ?? ''
+                            }
                             isStreaming={false}
                             result={result}
-                        />
+                          />
                         </div>
                       ) : toolName === 'webSearch' ? (
                         <WebSearch
                           result={result}
-                          query={(args as ChatTools['webSearch']['input']).query}
+                          query={
+                            (args as ChatTools['webSearch']['input']).query
+                          }
                         />
                       ) : toolName === 'codebaseSearch' ? (
                         <CodebaseSearchResult
                           state={state}
                           result={result}
-                          query={(args as ChatTools['codebaseSearch']['input']).query}
+                          query={
+                            (args as ChatTools['codebaseSearch']['input']).query
+                          }
                         />
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpage
@@ -629,9 +791,17 @@ const PurePreviewMessage = ({
                           url={(args as ChatTools['fetchWebpage']['input']).url}
                         />
                       ) : isNotionMCPTool(toolName) ? (
-                        <NotionMCPResult toolName={toolName} result={result} args={args} />
+                        <NotionMCPResult
+                          toolName={toolName}
+                          result={result}
+                          args={args}
+                        />
                       ) : isGitHubMCPTool(toolName) ? (
-                        <GitHubMCPResult toolName={toolName} result={result} args={args} />
+                        <GitHubMCPResult
+                          toolName={toolName}
+                          result={result}
+                          args={args}
+                        />
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}
@@ -648,16 +818,16 @@ const PurePreviewMessage = ({
               <Sources sources={allSources as any} />
             )}
 
-                {!isReadonly && message.role === 'assistant' && (
-                    <MessageActions
-                      key={`action-${message.id}-tools`}
-                      chatId={chatId}
-                      message={message}
-                      vote={vote}
-                      isLoading={isLoading}
-                      isReadonly={isReadonly}
-                    />
-                )}
+            {!isReadonly && message.role === 'assistant' && (
+              <MessageActions
+                key={`action-${message.id}-tools`}
+                chatId={chatId}
+                message={message}
+                vote={vote}
+                isLoading={isLoading}
+                isReadonly={isReadonly}
+              />
+            )}
           </div>
         </div>
       </motion.div>
@@ -670,7 +840,8 @@ export const PreviewMessage = memo(
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.message.id !== nextProps.message.id) return false;
-    if (prevProps.requiresScrollPadding !== nextProps.requiresScrollPadding) return false;
+    if (prevProps.requiresScrollPadding !== nextProps.requiresScrollPadding)
+      return false;
     if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
 

@@ -11,4 +11,3 @@ export function getController(streamId: string) {
 export function deleteController(streamId: string) {
   controllers.delete(streamId);
 }
-

@@ -7,17 +7,14 @@ export async function GET() {
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log('Fetching spaces for user:', session.user.id);
-    
+
     // Get all spaces for the user
     const spaces = await getSpacesForUser(session.user.id);
-    
+
     console.log('Found spaces:', spaces);
 
     // Return the spaces
@@ -26,7 +23,7 @@ export async function GET() {
     console.error('Error fetching spaces:', error);
     return NextResponse.json(
       { error: 'Failed to fetch spaces' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

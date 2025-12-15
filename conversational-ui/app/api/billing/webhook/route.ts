@@ -28,15 +28,21 @@ export async function POST(req: Request) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const s = event.data.object as any;
-      const userId: string | undefined = s.client_reference_id || s.metadata?.userId;
-      const stripeCustomerId: string | undefined = s.customer as string | undefined;
+      const userId: string | undefined =
+        s.client_reference_id || s.metadata?.userId;
+      const stripeCustomerId: string | undefined = s.customer as
+        | string
+        | undefined;
       const plan = s.metadata?.plan as string | undefined;
       if (userId) {
-        await db.update(user).set({
-          stripeCustomerId: stripeCustomerId ?? undefined,
-          plan: (plan as any) || 'free',
-          subscriptionStatus: 'active',
-        }).where(eq(user.id, userId));
+        await db
+          .update(user)
+          .set({
+            stripeCustomerId: stripeCustomerId ?? undefined,
+            plan: (plan as any) || 'free',
+            subscriptionStatus: 'active',
+          })
+          .where(eq(user.id, userId));
       }
       break;
     }
@@ -46,14 +52,18 @@ export async function POST(req: Request) {
       const stripeCustomerId = sub.customer as string;
       const status = sub.status as string;
       // We need to locate user by customer id
-      await db.update(user).set({ subscriptionStatus: status })
+      await db
+        .update(user)
+        .set({ subscriptionStatus: status })
         .where(eq(user.stripeCustomerId, stripeCustomerId));
       break;
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object as any;
       const stripeCustomerId = sub.customer as string;
-      await db.update(user).set({ plan: 'free', subscriptionStatus: 'canceled' })
+      await db
+        .update(user)
+        .set({ plan: 'free', subscriptionStatus: 'canceled' })
         .where(eq(user.stripeCustomerId, stripeCustomerId));
       break;
     }
@@ -64,6 +74,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ received: true });
 }
-
-
-

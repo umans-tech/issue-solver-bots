@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import {
+  Activity,
   AlertTriangle,
   ArrowUp,
   BookOpen,
@@ -14,12 +15,17 @@ import {
   Database,
   ExternalLink,
   GitBranch,
-  Activity,
   XCircle,
   Zap,
 } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -119,7 +125,9 @@ const getProcessTypeWithIcon = (processType?: string, type?: string) => {
     default:
       return {
         icon: <Activity className="h-4 w-4" />,
-        label: processTypeValue.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        label: processTypeValue
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase()),
         color: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
       };
   }
@@ -135,7 +143,8 @@ const GROUP_PRIORITY = new Map<string, number>([
 
 const LOADING_SKELETON_KEYS = ['one', 'two', 'three', 'four', 'five', 'six'];
 
-const getGroupPriority = (groupType: string) => GROUP_PRIORITY.get(groupType.toLowerCase()) ?? 10;
+const getGroupPriority = (groupType: string) =>
+  GROUP_PRIORITY.get(groupType.toLowerCase()) ?? 10;
 
 const getStatusBadgeWithIcon = (status?: string) => {
   if (!status) {
@@ -219,9 +228,15 @@ const getRelativeTime = (dateString?: string) => {
 };
 
 const getTaskTitle = (process: ProcessData) => {
-  if ((process.type === 'issue_resolution' || process.processType === 'issue_resolution') && process.events) {
+  if (
+    (process.type === 'issue_resolution' ||
+      process.processType === 'issue_resolution') &&
+    process.events
+  ) {
     const issueRequestedEvent = process.events.find(
-      (event) => event.type === 'issue_resolution_requested' || event.type === 'IssueResolutionRequested',
+      (event) =>
+        event.type === 'issue_resolution_requested' ||
+        event.type === 'IssueResolutionRequested',
     );
 
     if (issueRequestedEvent?.data?.issue?.title) {
@@ -248,7 +263,9 @@ const getTaskTitle = (process: ProcessData) => {
 
 const getPRInfo = (process: ProcessData) => {
   if (!process.events) return null;
-  const completedEvent = process.events.find((event) => event.type === 'issue_resolution_completed');
+  const completedEvent = process.events.find(
+    (event) => event.type === 'issue_resolution_completed',
+  );
   if (completedEvent?.pr_url && completedEvent?.pr_number) {
     return { url: completedEvent.pr_url, number: completedEvent.pr_number };
   }
@@ -297,10 +314,15 @@ export default function TasksPage() {
 
     const fetchProcesses = async () => {
       try {
-        const queryParams = new URLSearchParams({ knowledge_base_id: knowledgeBaseId });
-        const response = await fetch(`/api/processes?${queryParams.toString()}`, {
-          signal: controller.signal,
+        const queryParams = new URLSearchParams({
+          knowledge_base_id: knowledgeBaseId,
         });
+        const response = await fetch(
+          `/api/processes?${queryParams.toString()}`,
+          {
+            signal: controller.signal,
+          },
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to fetch processes: ${response.statusText}`);
@@ -341,7 +363,9 @@ export default function TasksPage() {
   }, [typeFilter, processTypes]);
 
   const sortedProcesses = useMemo(() => {
-    return [...processes].sort((a, b) => getProcessActivityTimestamp(b) - getProcessActivityTimestamp(a));
+    return [...processes].sort(
+      (a, b) => getProcessActivityTimestamp(b) - getProcessActivityTimestamp(a),
+    );
   }, [processes]);
 
   const filteredProcesses = useMemo(() => {
@@ -356,7 +380,9 @@ export default function TasksPage() {
         (process.description || '').toLowerCase().includes(trimmedSearch) ||
         computedTitle.includes(trimmedSearch);
 
-      const matchesStatus = statusFilter === 'all' || process.status?.toLowerCase() === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        process.status?.toLowerCase() === statusFilter;
       const matchesType =
         typeFilter === 'all' ||
         process.processType?.toLowerCase() === typeFilter.toLowerCase() ||
@@ -370,7 +396,11 @@ export default function TasksPage() {
     const groups = new Map<string, ProcessData[]>();
 
     filteredProcesses.forEach((process) => {
-      const key = (process.processType || process.type || 'unknown').toLowerCase();
+      const key = (
+        process.processType ||
+        process.type ||
+        'unknown'
+      ).toLowerCase();
       const existing = groups.get(key);
 
       if (existing) {
@@ -385,7 +415,9 @@ export default function TasksPage() {
       .map(([key, items]) => ({
         key,
         items: [...items].sort(
-          (first, second) => getProcessActivityTimestamp(second) - getProcessActivityTimestamp(first),
+          (first, second) =>
+            getProcessActivityTimestamp(second) -
+            getProcessActivityTimestamp(first),
         ),
         header: getProcessTypeWithIcon(key),
       }))
@@ -408,7 +440,9 @@ export default function TasksPage() {
   const handleGroupJump = useCallback((groupId: string) => {
     const container = containerRef.current;
     if (!container) return;
-    const target = container.querySelector<HTMLDivElement>(`[data-group-id="${groupId}"]`);
+    const target = container.querySelector<HTMLDivElement>(
+      `[data-group-id="${groupId}"]`,
+    );
     if (!target) return;
 
     const offsetTop = target.offsetTop;
@@ -440,7 +474,9 @@ export default function TasksPage() {
   }, []);
 
   const renderEmptyState = () => {
-    const hasFilters = Boolean(searchTerm || statusFilter !== 'all' || typeFilter !== 'all');
+    const hasFilters = Boolean(
+      searchTerm || statusFilter !== 'all' || typeFilter !== 'all',
+    );
     return (
       <Card className="border-dashed border-muted">
         <CardHeader className="flex flex-col items-center text-center gap-2">
@@ -516,7 +552,9 @@ export default function TasksPage() {
           ) : error ? (
             <Card className="border-red-200">
               <CardHeader>
-                <CardTitle className="text-red-500">Error loading tasks</CardTitle>
+                <CardTitle className="text-red-500">
+                  Error loading tasks
+                </CardTitle>
                 <CardDescription>{error}</CardDescription>
               </CardHeader>
             </Card>
@@ -538,11 +576,16 @@ export default function TasksPage() {
                       className="space-y-4"
                     >
                       <div className="flex items-center gap-3 pb-2 border-b border-border">
-                        <div className={`p-2 rounded-md ${header.color}`}>{header.icon}</div>
+                        <div className={`p-2 rounded-md ${header.color}`}>
+                          {header.icon}
+                        </div>
                         <div>
-                          <h2 className="text-xl font-semibold">{header.label}</h2>
+                          <h2 className="text-xl font-semibold">
+                            {header.label}
+                          </h2>
                           <p className="text-sm text-muted-foreground">
-                            {items.length} {items.length === 1 ? 'task' : 'tasks'}
+                            {items.length}{' '}
+                            {items.length === 1 ? 'task' : 'tasks'}
                           </p>
                         </div>
                       </div>
@@ -553,8 +596,8 @@ export default function TasksPage() {
                           if (key === 'docs_generation') {
                             const runGroups = new Map<string, ProcessData[]>();
                             const standalone: ProcessData[] = [];
-                            
-                            items.forEach(process => {
+
+                            items.forEach((process) => {
                               if (process.run_id) {
                                 const existing = runGroups.get(process.run_id);
                                 if (existing) {
@@ -566,117 +609,17 @@ export default function TasksPage() {
                                 standalone.push(process);
                               }
                             });
-                            
-                            const renderProcess = (process: ProcessData, index: number) => {
-                              const { badge, color: statusColor } = getStatusBadgeWithIcon(process.status);
-                              const typeMeta = getProcessTypeWithIcon(process.processType, process.type);
-                              const prInfo = getPRInfo(process);
-                              const timelineMeta = getTimelineMeta(process);
 
-                              return (
-                                <motion.div
-                                  key={process.id}
-                                  initial={{ opacity: 0, y: 12 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.25, delay: index * 0.05 }}
-                                >
-                                  <Link href={`/tasks/${process.id}`}>
-                                    <Card className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor}`}>
-                                  <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start gap-3 mb-2">
-                                      <div className="min-w-0 flex-1">
-                                        <CardTitle className="text-base font-semibold leading-tight line-clamp-2">
-                                          {getTaskTitle(process)}
-                                        </CardTitle>
-                                        <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                          <span className="font-mono">{process.id.slice(0, 8)}...</span>
-                                        </CardDescription>
-                                      </div>
-                                      <div className="flex flex-col items-end gap-1">
-                                        {badge}
-                                        {prInfo && (
-                                          <button
-                                            type="button"
-                                            onClick={(event) => {
-                                              event.preventDefault();
-                                              event.stopPropagation();
-                                              window.open(prInfo.url, '_blank', 'noopener,noreferrer');
-                                            }}
-                                            className="text-[0.7rem] text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
-                                          >
-                                            <ExternalLink className="h-3 w-3" />
-                                            PR #{prInfo.number}
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Badge variant="outline" className={`${typeMeta.color} flex items-center gap-1`}>
-                                        {typeMeta.icon}
-                                        <span className="text-xs">{typeMeta.label}</span>
-                                      </Badge>
-                                      {timelineMeta && (
-                                        <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <Clock className="h-3 w-3" />
-                                          <span>{timelineMeta.label} {getRelativeTime(timelineMeta.value)}</span>
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </CardHeader>
-
-                                  <CardContent className="pt-0 space-y-3">
-                                    {process.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-2">
-                                        {process.description}
-                                      </p>
-                                    )}
-
-                                  </CardContent>
-                                </Card>
-                              </Link>
-                            </motion.div>
+                            const renderProcess = (
+                              process: ProcessData,
+                              index: number,
+                            ) => {
+                              const { badge, color: statusColor } =
+                                getStatusBadgeWithIcon(process.status);
+                              const typeMeta = getProcessTypeWithIcon(
+                                process.processType,
+                                process.type,
                               );
-                            };
-                            
-                            let renderIndex = 0;
-                            const elements: React.ReactElement[] = [];
-                            
-                            // Render grouped processes
-                            Array.from(runGroups.entries()).forEach(([runId, processes]) => {
-                              if (processes.length > 1) {
-                                // Add simple group label for first item
-                                processes.forEach((p, idx) => {
-                                  const isFirst = idx === 0;
-                                  elements.push(
-                                    <div key={p.id} className="relative">
-                                      {isFirst && (
-                                        <div className="absolute -top-8 left-0 flex items-center gap-2 text-xs text-muted-foreground">
-                                          <BookOpen className="h-3 w-3" />
-                                          <span>Run {runId.slice(0, 8)} • {processes.length} prompts</span>
-                                        </div>
-                                      )}
-                                      {renderProcess(p, renderIndex++)}
-                                    </div>
-                                  );
-                                });
-                              } else {
-                                // Single process in run, render normally
-                                elements.push(renderProcess(processes[0], renderIndex++));
-                              }
-                            });
-                            
-                            // Render standalone processes
-                            standalone.forEach(p => {
-                              elements.push(renderProcess(p, renderIndex++));
-                            });
-                            
-                            return elements;
-                          } else {
-                            // Non-docs_generation types: render normally
-                            return items.map((process, index) => {
-                              const { badge, color: statusColor } = getStatusBadgeWithIcon(process.status);
-                              const typeMeta = getProcessTypeWithIcon(process.processType, process.type);
                               const prInfo = getPRInfo(process);
                               const timelineMeta = getTimelineMeta(process);
 
@@ -685,10 +628,15 @@ export default function TasksPage() {
                                   key={process.id}
                                   initial={{ opacity: 0, y: 12 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.25, delay: index * 0.05 }}
+                                  transition={{
+                                    duration: 0.25,
+                                    delay: index * 0.05,
+                                  }}
                                 >
                                   <Link href={`/tasks/${process.id}`}>
-                                    <Card className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor}`}>
+                                    <Card
+                                      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor}`}
+                                    >
                                       <CardHeader className="pb-3">
                                         <div className="flex justify-between items-start gap-3 mb-2">
                                           <div className="min-w-0 flex-1">
@@ -696,7 +644,9 @@ export default function TasksPage() {
                                               {getTaskTitle(process)}
                                             </CardTitle>
                                             <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                              <span className="font-mono">{process.id.slice(0, 8)}...</span>
+                                              <span className="font-mono">
+                                                {process.id.slice(0, 8)}...
+                                              </span>
                                             </CardDescription>
                                           </div>
                                           <div className="flex flex-col items-end gap-1">
@@ -707,7 +657,152 @@ export default function TasksPage() {
                                                 onClick={(event) => {
                                                   event.preventDefault();
                                                   event.stopPropagation();
-                                                  window.open(prInfo.url, '_blank', 'noopener,noreferrer');
+                                                  window.open(
+                                                    prInfo.url,
+                                                    '_blank',
+                                                    'noopener,noreferrer',
+                                                  );
+                                                }}
+                                                className="text-[0.7rem] text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                                              >
+                                                <ExternalLink className="h-3 w-3" />
+                                                PR #{prInfo.number}
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <Badge
+                                            variant="outline"
+                                            className={`${typeMeta.color} flex items-center gap-1`}
+                                          >
+                                            {typeMeta.icon}
+                                            <span className="text-xs">
+                                              {typeMeta.label}
+                                            </span>
+                                          </Badge>
+                                          {timelineMeta && (
+                                            <Badge
+                                              variant="outline"
+                                              className="flex items-center gap-1 text-xs text-muted-foreground"
+                                            >
+                                              <Clock className="h-3 w-3" />
+                                              <span>
+                                                {timelineMeta.label}{' '}
+                                                {getRelativeTime(
+                                                  timelineMeta.value,
+                                                )}
+                                              </span>
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </CardHeader>
+
+                                      <CardContent className="pt-0 space-y-3">
+                                        {process.description && (
+                                          <p className="text-sm text-muted-foreground line-clamp-2">
+                                            {process.description}
+                                          </p>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  </Link>
+                                </motion.div>
+                              );
+                            };
+
+                            let renderIndex = 0;
+                            const elements: React.ReactElement[] = [];
+
+                            // Render grouped processes
+                            Array.from(runGroups.entries()).forEach(
+                              ([runId, processes]) => {
+                                if (processes.length > 1) {
+                                  // Add simple group label for first item
+                                  processes.forEach((p, idx) => {
+                                    const isFirst = idx === 0;
+                                    elements.push(
+                                      <div key={p.id} className="relative">
+                                        {isFirst && (
+                                          <div className="absolute -top-8 left-0 flex items-center gap-2 text-xs text-muted-foreground">
+                                            <BookOpen className="h-3 w-3" />
+                                            <span>
+                                              Run {runId.slice(0, 8)} •{' '}
+                                              {processes.length} prompts
+                                            </span>
+                                          </div>
+                                        )}
+                                        {renderProcess(p, renderIndex++)}
+                                      </div>,
+                                    );
+                                  });
+                                } else {
+                                  // Single process in run, render normally
+                                  elements.push(
+                                    renderProcess(processes[0], renderIndex++),
+                                  );
+                                }
+                              },
+                            );
+
+                            // Render standalone processes
+                            standalone.forEach((p) => {
+                              elements.push(renderProcess(p, renderIndex++));
+                            });
+
+                            return elements;
+                          } else {
+                            // Non-docs_generation types: render normally
+                            return items.map((process, index) => {
+                              const { badge, color: statusColor } =
+                                getStatusBadgeWithIcon(process.status);
+                              const typeMeta = getProcessTypeWithIcon(
+                                process.processType,
+                                process.type,
+                              );
+                              const prInfo = getPRInfo(process);
+                              const timelineMeta = getTimelineMeta(process);
+
+                              return (
+                                <motion.div
+                                  key={process.id}
+                                  initial={{ opacity: 0, y: 12 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{
+                                    duration: 0.25,
+                                    delay: index * 0.05,
+                                  }}
+                                >
+                                  <Link href={`/tasks/${process.id}`}>
+                                    <Card
+                                      className={`cursor-pointer transition-all duration-200 hover:shadow-md ${statusColor}`}
+                                    >
+                                      <CardHeader className="pb-3">
+                                        <div className="flex justify-between items-start gap-3 mb-2">
+                                          <div className="min-w-0 flex-1">
+                                            <CardTitle className="text-base font-semibold leading-tight line-clamp-2">
+                                              {getTaskTitle(process)}
+                                            </CardTitle>
+                                            <CardDescription className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                              <span className="font-mono">
+                                                {process.id.slice(0, 8)}...
+                                              </span>
+                                            </CardDescription>
+                                          </div>
+                                          <div className="flex flex-col items-end gap-1">
+                                            {badge}
+                                            {prInfo && (
+                                              <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                  event.preventDefault();
+                                                  event.stopPropagation();
+                                                  window.open(
+                                                    prInfo.url,
+                                                    '_blank',
+                                                    'noopener,noreferrer',
+                                                  );
                                                 }}
                                                 className="text-[0.7rem] text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
                                               >
@@ -719,14 +814,27 @@ export default function TasksPage() {
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <Badge variant="outline" className={`${typeMeta.color} flex items-center gap-1`}>
+                                          <Badge
+                                            variant="outline"
+                                            className={`${typeMeta.color} flex items-center gap-1`}
+                                          >
                                             {typeMeta.icon}
-                                            <span className="text-xs">{typeMeta.label}</span>
+                                            <span className="text-xs">
+                                              {typeMeta.label}
+                                            </span>
                                           </Badge>
                                           {timelineMeta && (
-                                            <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
+                                            <Badge
+                                              variant="outline"
+                                              className="flex items-center gap-1 text-xs text-muted-foreground"
+                                            >
                                               <Clock className="h-3 w-3" />
-                                              <span>{timelineMeta.label} {getRelativeTime(timelineMeta.value)}</span>
+                                              <span>
+                                                {timelineMeta.label}{' '}
+                                                {getRelativeTime(
+                                                  timelineMeta.value,
+                                                )}
+                                              </span>
                                             </Badge>
                                           )}
                                         </div>
@@ -755,7 +863,9 @@ export default function TasksPage() {
               <aside className="hidden lg:block lg:sticky lg:top-24 h-fit">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm font-semibold">Jump to category</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      Jump to category
+                    </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground">
                       Quick navigation for long task lists
                     </CardDescription>
@@ -770,7 +880,9 @@ export default function TasksPage() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate">{item.label}</span>
-                          <span className="text-xs text-muted-foreground">{item.count}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.count}
+                          </span>
                         </div>
                       </button>
                     ))}

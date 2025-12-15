@@ -2,12 +2,12 @@ import { PreviewMessage, ThinkingMessage } from './message';
 
 import { Overview } from './overview';
 import { memo } from 'react';
-import { Vote } from '@/lib/db/schema';
+import type { Vote } from '@/lib/db/schema';
 import equal from 'fast-deep-equal';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { UseChatHelpers } from '@ai-sdk/react';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
-import { ChatMessage } from '@/lib/types';
+import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 
 interface MessagesProps {

@@ -7,10 +7,10 @@ import type { InferUITool, UIMessage } from 'ai';
 
 import type { ArtifactKind } from '@/components/artifact';
 import type { Suggestion } from './db/schema';
-import { codebaseSearch } from './ai/tools/codebase-search';
-import { webSearch } from './ai/tools/web-search';
-import { remoteCodingAgent } from './ai/tools/remote-coding-agent';
-import { fetchWebpage } from './ai/tools/fetch-webpage';
+import type { codebaseSearch } from './ai/tools/codebase-search';
+import type { webSearch } from './ai/tools/web-search';
+import type { remoteCodingAgent } from './ai/tools/remote-coding-agent';
+import type { fetchWebpage } from './ai/tools/fetch-webpage';
 
 export type DataPart = { type: 'append-message'; message: string };
 

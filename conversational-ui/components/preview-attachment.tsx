@@ -43,9 +43,9 @@ export const PreviewAttachment = ({
         )}
       </div>
       <div className="text-xs text-zinc-500 max-w-16 truncate">{name}</div>
-      
+
       {isFullPage && contentType?.startsWith('image') && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center"
           onClick={() => setIsFullPage(false)}
         >

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { CheckCircleFillIcon, AlertCircle } from '@/components/icons';
+import { AlertCircle, CheckCircleFillIcon } from '@/components/icons';
 
 function closeWindowFallback() {
   if (window.opener) {
@@ -70,7 +69,9 @@ function NotionCallbackContent() {
         <IconComponent size={42} className={iconClass} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">{description}</p>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+            {description}
+          </p>
           {status === 'success' && workspaceId && (
             <p className="mt-3 text-xs text-muted-foreground">
               Workspace ID: <span className="font-mono">{workspaceId}</span>

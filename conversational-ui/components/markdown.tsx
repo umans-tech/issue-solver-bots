@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import React, { memo } from 'react';
-import { type Components } from 'react-markdown';
+import type { Components } from 'react-markdown';
 import { Streamdown } from 'streamdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './code-block';
@@ -15,28 +15,24 @@ const components: Partial<Components> = {
     // Handle Mermaid diagrams
     if (language === 'mermaid') {
       return (
-        <MermaidDiagram
-          code={codeContent}
-          className="w-full overflow-x-auto"
-        />
+        <MermaidDiagram code={codeContent} className="w-full overflow-x-auto" />
       );
     }
 
     // Handle regular code blocks
     return (
-      <CodeBlock
-        node={node}
-        inline={inline}
-        className={className}
-        {...props}
-      >
+      <CodeBlock node={node} inline={inline} className={className} {...props}>
         {children}
       </CodeBlock>
     );
   },
   pre: ({ children }) => <>{children}</>,
   p: ({ children, ...props }) => {
-    return <div className="w-full overflow-hidden" {...props}>{children}</div>;
+    return (
+      <div className="w-full overflow-hidden" {...props}>
+        {children}
+      </div>
+    );
   },
   ol: ({ node, children, ...props }) => {
     return (
@@ -126,9 +122,10 @@ const components: Partial<Components> = {
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
-  const defaultOrigin = typeof window === 'undefined'
-    ? undefined
-    : `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  const defaultOrigin =
+    typeof window === 'undefined'
+      ? undefined
+      : `${window.location.origin}${window.location.pathname}${window.location.search}`;
   return (
     <div className="w-full overflow-hidden">
       <Streamdown

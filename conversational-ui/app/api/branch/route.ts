@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 import { generateUUID } from '@/lib/utils';
-import { saveChat, getMessagesByChatId, saveMessages, getChatById, getCurrentUserSpace } from '@/lib/db/queries';
+import {
+  getChatById,
+  getCurrentUserSpace,
+  getMessagesByChatId,
+  saveChat,
+  saveMessages,
+} from '@/lib/db/queries';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,11 +17,11 @@ export async function POST(req: NextRequest) {
     }
 
     const { sourceChatId, messageId } = await req.json();
-    
+
     if (!sourceChatId || !messageId) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -24,26 +30,23 @@ export async function POST(req: NextRequest) {
     if (!sourceChat) {
       return NextResponse.json(
         { error: 'Source chat not found' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Get all messages from the source chat
     const sourceMessages = await getMessagesByChatId({ id: sourceChatId });
-    
+
     // Find the index of the message to branch from
-    const branchIndex = sourceMessages.findIndex(msg => msg.id === messageId);
-    
+    const branchIndex = sourceMessages.findIndex((msg) => msg.id === messageId);
+
     if (branchIndex === -1) {
-      return NextResponse.json(
-        { error: 'Message not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
-    
+
     // Create a new chat with the title based on the source chat's title
     const newChatId = generateUUID();
-    
+
     // Get current user's selected space
     const currentSpace = await getCurrentUserSpace(session.user.id);
     if (!currentSpace) {
@@ -56,12 +59,12 @@ export async function POST(req: NextRequest) {
       title: `Branch from: ${sourceChat.title}`,
       spaceId: currentSpace.id,
     });
-    
+
     // Copy messages up to the branch point
     const messagesToCopy = sourceMessages.slice(0, branchIndex + 1);
-    
+
     // Prepare messages for the new chat
-    const newMessages = messagesToCopy.map(msg => ({
+    const newMessages = messagesToCopy.map((msg) => ({
       id: generateUUID(),
       chatId: newChatId,
       role: msg.role,
@@ -69,19 +72,19 @@ export async function POST(req: NextRequest) {
       attachments: msg.attachments,
       createdAt: new Date(),
     }));
-    
+
     // Save the copied messages to the new chat
     await saveMessages({ messages: newMessages });
-    
-    return NextResponse.json({ 
-      success: true, 
-      newChatId 
+
+    return NextResponse.json({
+      success: true,
+      newChatId,
     });
   } catch (error) {
     console.error('Error branching conversation:', error);
     return NextResponse.json(
       { error: 'Failed to branch conversation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

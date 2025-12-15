@@ -9,8 +9,6 @@ import type { Document } from '../db/schema';
 import { saveDocument } from '../db/queries';
 import type { ChatMessage } from '../types';
 
-
-
 export interface SaveDocumentProps {
   id: string;
   title: string;

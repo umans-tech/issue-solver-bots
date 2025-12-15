@@ -16,11 +16,13 @@ const partSchema = z.union([textPartSchema, filePartSchema]);
 
 export const postRequestBodySchema = z.object({
   id: z.string().uuid(),
-  messages: z.array(z.object({
-    id: z.string().uuid(),
-    role: z.enum(['user']),
-    parts: z.array(partSchema),
-  })),
+  messages: z.array(
+    z.object({
+      id: z.string().uuid(),
+      role: z.enum(['user']),
+      parts: z.array(partSchema),
+    }),
+  ),
   selectedChatModel: z.string(),
   knowledgeBaseId: z.string().uuid().optional(),
 });

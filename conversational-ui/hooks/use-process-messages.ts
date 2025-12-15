@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Hook to poll process messages at regular intervals for real-time updates
@@ -10,15 +10,15 @@ import { useState, useEffect, useRef } from 'react';
  */
 export function useProcessMessages(
   processId?: string | null | undefined,
-  pollInterval: number = 3000,
-  enabled: boolean = true,
-  onProcessDataUpdate?: (processData: any) => void
+  pollInterval = 3000,
+  enabled = true,
+  onProcessDataUpdate?: (processData: any) => void,
 ) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
-  
+
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
   const lastPollTimeRef = useRef<number>(0);
@@ -42,7 +42,7 @@ export function useProcessMessages(
 
     // Skip if already polling or if we polled very recently (debounce)
     const now = Date.now();
-    if (isPollingRef.current || (now - lastPollTimeRef.current) < 1000) {
+    if (isPollingRef.current || now - lastPollTimeRef.current < 1000) {
       return;
     }
 
@@ -50,7 +50,9 @@ export function useProcessMessages(
     if (currentStatusRef.current && isTerminalState(currentStatusRef.current)) {
       clearIntervalIfExists();
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Process ${processId} is in terminal state: ${currentStatusRef.current}. Stopping message polling.`);
+        console.log(
+          `Process ${processId} is in terminal state: ${currentStatusRef.current}. Stopping message polling.`,
+        );
       }
       return;
     }
@@ -64,64 +66,72 @@ export function useProcessMessages(
       }
 
       const response = await fetch(`/api/processes/${processId}/messages`);
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch messages: ${response.status} ${response.statusText}`,
+        );
       }
 
       const newMessages = await response.json();
-      
+
       // Sort messages by turn for consistent ordering
-      const sortedMessages = newMessages.sort((a: any, b: any) => (a.turn || 0) - (b.turn || 0));
-      
+      const sortedMessages = newMessages.sort(
+        (a: any, b: any) => (a.turn || 0) - (b.turn || 0),
+      );
+
       // Only update state if messages have actually changed
       const currentMessageCount = sortedMessages.length;
       const lastMessageCount = lastMessageCountRef.current;
-      
+
       if (currentMessageCount !== lastMessageCount || initialLoad) {
         setMessages(sortedMessages);
         lastMessageCountRef.current = currentMessageCount;
-        
+
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Messages updated: ${lastMessageCount} -> ${currentMessageCount} messages`);
+          console.log(
+            `Messages updated: ${lastMessageCount} -> ${currentMessageCount} messages`,
+          );
         }
       }
-      
+
       setError(null);
       errorCountRef.current = 0;
-      
+
       if (initialLoad) {
         setInitialLoad(false);
         setLoading(false);
       }
 
       // Occasionally check process status (every 4th poll, roughly every 12 seconds)
-      const shouldCheckStatus = (now - lastStatusCheckRef.current) > 12000;
+      const shouldCheckStatus = now - lastStatusCheckRef.current > 12000;
       if (shouldCheckStatus) {
         try {
           const statusResponse = await fetch(`/api/processes/${processId}`);
           if (statusResponse.ok) {
             const processData = await statusResponse.json();
             const newStatus = processData.status;
-            
+
             if (newStatus && newStatus !== currentStatusRef.current) {
               currentStatusRef.current = newStatus;
               lastStatusCheckRef.current = now;
-              
+
               // Notify parent component of process data update
               if (onProcessDataUpdate) {
                 onProcessDataUpdate(processData);
               }
-              
+
               if (process.env.NODE_ENV === 'development') {
                 console.log(`Process status updated: ${newStatus}`);
               }
-              
+
               // Stop polling if terminal state reached
               if (isTerminalState(newStatus)) {
                 clearIntervalIfExists();
                 if (process.env.NODE_ENV === 'development') {
-                  console.log(`Process ${processId} reached terminal state: ${newStatus}. Stopping polling.`);
+                  console.log(
+                    `Process ${processId} reached terminal state: ${newStatus}. Stopping polling.`,
+                  );
                 }
               }
             }
@@ -133,19 +143,19 @@ export function useProcessMessages(
           }
         }
       }
-      
     } catch (err) {
       console.error('Error fetching process messages:', err);
-      
+
       errorCountRef.current += 1;
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch messages';
       setError(errorMessage);
-      
+
       if (initialLoad) {
         setLoading(false);
         setInitialLoad(false);
       }
-      
+
       // Exponential backoff for errors
       if (errorCountRef.current >= 3) {
         clearIntervalIfExists();
@@ -212,7 +222,9 @@ export function useProcessMessages(
     loading,
     error,
     currentStatus: currentStatusRef.current,
-    isTerminal: currentStatusRef.current ? isTerminalState(currentStatusRef.current) : false,
+    isTerminal: currentStatusRef.current
+      ? isTerminalState(currentStatusRef.current)
+      : false,
     refetch: fetchMessages,
   };
 }

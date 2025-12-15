@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState, useEffect } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -51,12 +51,12 @@ export function ChatRenameDialog({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       toast.error('Please enter a title');
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
@@ -120,4 +120,4 @@ export function ChatRenameDialog({
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}

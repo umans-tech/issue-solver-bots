@@ -6,8 +6,8 @@ import { memo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { RepoConnectionDialog } from './repo-connection-dialog';
 import { Plug } from 'lucide-react';
-import { UseChatHelpers } from '@ai-sdk/react';
-import { ChatMessage } from '@/lib/types';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { ChatMessage } from '@/lib/types';
 
 interface SuggestedActionsProps {
   chatId: string;
@@ -25,7 +25,8 @@ function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
     {
       title: 'Onboard',
       label: 'New Team Member',
-      action: 'Help me understand the current project structure and key components for onboarding',
+      action:
+        'Help me understand the current project structure and key components for onboarding',
     },
     {
       title: 'Specify',

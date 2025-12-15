@@ -8,9 +8,9 @@ import { IconMoon, IconSun } from '@/components/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export const ThemeToggle = ({
-  variant = "ghost"
+  variant = 'ghost',
 }: {
-  variant?: React.ComponentProps<typeof Button>["variant"]
+  variant?: React.ComponentProps<typeof Button>['variant'];
 }) => {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);

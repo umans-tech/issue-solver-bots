@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useProcessMessages } from '../../../hooks/use-process-messages';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Skeleton } from '../../../components/ui/skeleton';
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -16,46 +22,45 @@ import { useScrollToBottom } from '../../../hooks/use-scroll-to-bottom';
 import { SharedHeader } from '../../../components/shared-header';
 import { ProcessTimelineView } from '../../../components/process-timeline-view';
 import { Button } from '../../../components/ui/button';
-import { Copy } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowDown,
+  BookOpen,
+  Bot,
+  Check,
+  ChevronDown,
+  Clock as ClockIcon,
+  Code,
+  Copy,
+  Edit3,
+  ExternalLink,
+  FileText,
+  Globe,
+  Info,
+  Keyboard,
+  Loader2,
+  PenTool,
+  Search,
+  Settings,
+  Terminal,
+  User,
+  Wrench,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Markdown } from '../../../components/markdown';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import { DiffView } from '../../../components/diffview';
 import { TodoDisplay } from '../../../components/todo-display';
-import { 
+import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '../../../components/ui/alert-dialog';
-import { 
-  Check, 
-  Code, 
-  ExternalLink, 
-  AlertCircle, 
-  Loader2,
-  ChevronDown,
-  Settings,
-  User,
-  Bot,
-  Wrench,
-  Terminal,
-  Search,
-  Globe,
-  FileText,
-  Edit3,
-  PenTool,
-  BookOpen,
-  Info,
-  Activity,
-  ArrowDown,
-  Keyboard,
-  Clock as ClockIcon
-} from 'lucide-react';
 
 interface ProcessData {
   id: string;
@@ -115,8 +120,12 @@ export default function TaskPage() {
   const summaryRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const [isSummaryVisible, setIsSummaryVisible] = useState(true);
-  const completionEvent = processData?.events?.find((event) => event.type === 'issue_resolution_completed');
-  const docCompletionEvent = processData?.events?.find((event) => event.type === 'documentation_generation_completed');
+  const completionEvent = processData?.events?.find(
+    (event) => event.type === 'issue_resolution_completed',
+  );
+  const docCompletionEvent = processData?.events?.find(
+    (event) => event.type === 'documentation_generation_completed',
+  );
   const headerTimeline = processData ? getTimelineMeta(processData) : null;
 
   // Reuse chat scroll-to-bottom behavior
@@ -128,17 +137,20 @@ export default function TaskPage() {
     onViewportEnter,
     onViewportLeave,
   } = useScrollToBottom();
-  
+
   // Use the polling hook for real-time message updates with status tracking
-  const { 
-    messages, 
-    loading: messagesLoading, 
+  const {
+    messages,
+    loading: messagesLoading,
     error: messagesError,
     currentStatus,
-    isTerminal
+    isTerminal,
   } = useProcessMessages(processId, 3000, !!processId, (newProcessData) => {
     // Update the entire process data when detected by message polling
-    if (processData && JSON.stringify(processData) !== JSON.stringify(newProcessData)) {
+    if (
+      processData &&
+      JSON.stringify(processData) !== JSON.stringify(newProcessData)
+    ) {
       setProcessData(newProcessData);
     }
   });
@@ -163,17 +175,19 @@ export default function TaskPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        
+
         // Fetch process data
         const processResponse = await fetch(`/api/processes/${processId}`);
         if (!processResponse.ok) {
           const errorText = await processResponse.text();
           console.error('Process API error:', errorText);
-          throw new Error(`Failed to fetch process data: ${processResponse.status} ${processResponse.statusText}`);
+          throw new Error(
+            `Failed to fetch process data: ${processResponse.status} ${processResponse.statusText}`,
+          );
         }
         const processData = await processResponse.json();
         setProcessData(processData);
-        
+
         // Fetch repository information for any task that might have repository data
         try {
           const repoResponse = await fetch('/api/repo');
@@ -187,11 +201,13 @@ export default function TaskPage() {
         }
 
         // Note: Process messages are now handled by the useProcessMessages hook
-        
+
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load task data');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load task data',
+        );
       } finally {
         setLoading(false);
       }
@@ -251,39 +267,42 @@ export default function TaskPage() {
   // Function to format task type into a readable title
   const getTaskTitle = (data: ProcessData) => {
     // For issue resolution tasks, use the actual issue title
-    if (data.type === 'issue_resolution' || data.processType === 'issue_resolution') {
+    if (
+      data.type === 'issue_resolution' ||
+      data.processType === 'issue_resolution'
+    ) {
       const issueInfo = getIssueInfo();
       if (issueInfo?.title) {
         return issueInfo.title;
       }
     }
-    
+
     // Use type field if available
     if (data.type) {
       // Convert snake_case to Title Case
       const formattedType = data.type
         .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      
+
       return `${formattedType} Task`;
     }
-    
+
     // Fallback to processType if available
     if (data.processType) {
       const formattedType = data.processType
         .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      
+
       return `${formattedType} Task`;
     }
-    
+
     // If title is available, use that
     if (data.title) {
       return data.title;
     }
-    
+
     // Last resort, use Task ID
     return `Task ${data.id}`;
   };
@@ -291,7 +310,7 @@ export default function TaskPage() {
   // Function to determine badge color based on status
   const getStatusBadge = (status?: string) => {
     if (!status) return <Badge variant="outline">Unknown</Badge>;
-    
+
     switch (status.toLowerCase()) {
       case 'completed':
       case 'success':
@@ -332,13 +351,19 @@ export default function TaskPage() {
 
   // Get failure details from events
   const getFailureDetails = () => {
-    if (!processData?.events) return { reason: 'Unknown reason', errorMessage: 'No error details available' };
-    
-    const failedEvent = processData.events.find(event => event.type === 'issue_resolution_failed');
-    
+    if (!processData?.events)
+      return {
+        reason: 'Unknown reason',
+        errorMessage: 'No error details available',
+      };
+
+    const failedEvent = processData.events.find(
+      (event) => event.type === 'issue_resolution_failed',
+    );
+
     return {
       reason: failedEvent?.reason || 'Unknown reason',
-      errorMessage: failedEvent?.error_message || 'No error details available'
+      errorMessage: failedEvent?.error_message || 'No error details available',
     };
   };
 
@@ -355,8 +380,16 @@ export default function TaskPage() {
   };
 
   function getTimelineMeta(process: ProcessData) {
-    const created = process.createdAt || process.events?.find((event) => event.type?.toLowerCase().includes('requested'))?.occurred_at;
-    const updated = process.updatedAt || process.events?.find((event) => event.type?.toLowerCase().includes('completed'))?.occurred_at;
+    const created =
+      process.createdAt ||
+      process.events?.find((event) =>
+        event.type?.toLowerCase().includes('requested'),
+      )?.occurred_at;
+    const updated =
+      process.updatedAt ||
+      process.events?.find((event) =>
+        event.type?.toLowerCase().includes('completed'),
+      )?.occurred_at;
     const earliestEvent = process.events
       ?.map((event) => event.occurred_at)
       .filter((value): value is string => Boolean(value))
@@ -374,32 +407,40 @@ export default function TaskPage() {
   // Get issue information from events
   const getIssueInfo = () => {
     if (!processData?.events) return null;
-    
-    const issueRequestedEvent = processData.events.find(event => 
-      event.type === 'issue_resolution_requested'
+
+    const issueRequestedEvent = processData.events.find(
+      (event) => event.type === 'issue_resolution_requested',
     );
-    
+
     return issueRequestedEvent?.issue || null;
   };
 
   // Get repository information from events
   const getRepoInfoFromEvents = () => {
     if (!processData?.events) return null;
-    
-    const repoConnectedEvent = processData.events.find(event => 
-      event.type === 'repository_connected'
+
+    const repoConnectedEvent = processData.events.find(
+      (event) => event.type === 'repository_connected',
     );
-    
+
     const repoIndexedEvent = processData.events
-      .filter(event => event.type === 'repository_indexed')
-      .sort((a, b) => new Date(b.occurred_at || '').getTime() - new Date(a.occurred_at || '').getTime())[0];
-    
+      .filter((event) => event.type === 'repository_indexed')
+      .sort(
+        (a, b) =>
+          new Date(b.occurred_at || '').getTime() -
+          new Date(a.occurred_at || '').getTime(),
+      )[0];
+
     const indexationRequestedEvent = processData.events
-      .filter(event => event.type === 'repository_indexation_requested')
-      .sort((a, b) => new Date(b.occurred_at || '').getTime() - new Date(a.occurred_at || '').getTime())[0];
-    
+      .filter((event) => event.type === 'repository_indexation_requested')
+      .sort(
+        (a, b) =>
+          new Date(b.occurred_at || '').getTime() -
+          new Date(a.occurred_at || '').getTime(),
+      )[0];
+
     if (!repoConnectedEvent) return null;
-    
+
     return {
       url: repoConnectedEvent.url,
       knowledge_base_id: repoConnectedEvent.knowledge_base_id,
@@ -408,17 +449,22 @@ export default function TaskPage() {
       // Timing information
       connected_at: repoConnectedEvent.occurred_at,
       indexation_started_at: indexationRequestedEvent?.occurred_at,
-      indexation_completed_at: repoIndexedEvent?.occurred_at
+      indexation_completed_at: repoIndexedEvent?.occurred_at,
     };
   };
 
   // Check if this is a repository integration task
   const isRepositoryTask = () => {
     if (!processData?.events) return false;
-    
+
     // Check if any repository-related events exist
-    const repoEvents = ['repository_connected', 'repository_indexation_requested', 'repository_indexed', 'repository_integration_failed'];
-    return processData.events.some(event => repoEvents.includes(event.type));
+    const repoEvents = [
+      'repository_connected',
+      'repository_indexation_requested',
+      'repository_indexed',
+      'repository_integration_failed',
+    ];
+    return processData.events.some((event) => repoEvents.includes(event.type));
   };
 
   // Get message type icon and color
@@ -426,79 +472,89 @@ export default function TaskPage() {
     const messageType = message.type;
     const role = message.payload?.role;
     const payload = message.payload;
-    
+
     // Handle different message types based on cudu API structure
     if (messageType === 'SystemMessage' || role === 'system') {
       return {
         icon: <Settings className="h-4 w-4" />,
         color: 'text-muted-foreground',
         bgColor: 'bg-muted/10',
-        label: 'System'
+        label: 'System',
       };
     }
-    
+
     // Check for tool calls (ToolUseBlock with id, name, input) - these will be grouped with results
-    if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
-        block?.id && block?.name && block?.input)) {
+    if (
+      Array.isArray(payload?.content) &&
+      payload.content.some(
+        (block: any) => block?.id && block?.name && block?.input,
+      )
+    ) {
       return {
         icon: <Wrench className="h-4 w-4" />,
         color: 'text-blue-600',
         bgColor: 'bg-blue-600/10',
-        label: 'Tool Call' // This will be bypassed by special rendering logic
+        label: 'Tool Call', // This will be bypassed by special rendering logic
       };
     }
-    
+
     // Check for tool results (ToolResultBlock with tool_use_id) - skip these as they'll be grouped with calls
-    if (Array.isArray(payload?.content) && payload.content.some((block: any) => 
-        block?.tool_use_id)) {
+    if (
+      Array.isArray(payload?.content) &&
+      payload.content.some((block: any) => block?.tool_use_id)
+    ) {
       // Skip rendering separate label for tool results since they'll be shown with their tool calls
       return null;
     }
-    
+
     // Check for result messages (ResultMessage type)
     if (messageType === 'ResultMessage' && payload?.result) {
       return {
         icon: <Wrench className="h-4 w-4" />,
         color: 'text-green-600',
         bgColor: 'bg-green-600/10',
-        label: 'Tool Output'
+        label: 'Tool Output',
       };
     }
-    
+
     // Check for user messages
     if (messageType === 'UserMessage' || role === 'user') {
       return {
         icon: <User className="h-4 w-4" />,
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10',
-        label: 'User'
+        label: 'User',
       };
     }
-    
+
     // Check for assistant messages (TextBlock with text field)
-    if ((messageType === 'AssistantMessage' || role === 'assistant') && 
-        (payload?.text || (Array.isArray(payload?.content) && payload.content.some((block: any) => block?.text)))) {
+    if (
+      (messageType === 'AssistantMessage' || role === 'assistant') &&
+      (payload?.text ||
+        (Array.isArray(payload?.content) &&
+          payload.content.some((block: any) => block?.text)))
+    ) {
       return {
         icon: <Bot className="h-4 w-4" />,
         color: 'text-primary',
         bgColor: 'bg-primary/10',
-        label: 'Assistant'
+        label: 'Assistant',
       };
     }
-    
+
     // Default fallback for unrecognized types
     return {
       icon: <Wrench className="h-4 w-4" />,
       color: 'text-muted-foreground',
       bgColor: 'bg-muted/10',
-      label: `Unknown (${messageType || 'No Type'})`
+      label: `Unknown (${messageType || 'No Type'})`,
     };
   };
 
   // Get tool icon based on tool name
   const getToolIcon = (toolName: string) => {
     const lowerTool = toolName.toLowerCase();
-    
+
     if (lowerTool.includes('bash') || lowerTool.includes('terminal')) {
       return <Terminal className="h-3 w-3" />;
     } else if (lowerTool.includes('search') || lowerTool.includes('grep')) {
@@ -511,7 +567,11 @@ export default function TaskPage() {
       return <Edit3 className="h-3 w-3" />;
     } else if (lowerTool.includes('todo')) {
       return <PenTool className="h-3 w-3" />;
-    } else if (lowerTool.includes('file') || lowerTool.includes('glob') || lowerTool.includes('ls')) {
+    } else if (
+      lowerTool.includes('file') ||
+      lowerTool.includes('glob') ||
+      lowerTool.includes('ls')
+    ) {
       return <FileText className="h-3 w-3" />;
     } else {
       return <Wrench className="h-3 w-3" />;
@@ -519,7 +579,11 @@ export default function TaskPage() {
   };
 
   // Terminal output component for tool results
-  const TerminalOutput = ({ content, isError, toolName }: { content: string; isError: boolean; toolName?: string }) => {
+  const TerminalOutput = ({
+    content,
+    isError,
+    toolName,
+  }: { content: string; isError: boolean; toolName?: string }) => {
     const handleCopy = () => {
       navigator.clipboard.writeText(content);
       toast.success('Copied to clipboard!');
@@ -531,7 +595,9 @@ export default function TaskPage() {
         <div className="flex items-center justify-between px-3 py-2 bg-muted border-b dark:border-zinc-700 border-zinc-200">
           <div className="flex items-center gap-2 text-sm">
             <Terminal className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{toolName || 'Terminal'}</span>
+            <span className="text-muted-foreground">
+              {toolName || 'Terminal'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {isError ? (
@@ -554,7 +620,7 @@ export default function TaskPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* Terminal content */}
         <div className="bg-zinc-900 dark:bg-zinc-950 text-zinc-100 p-4 font-mono text-sm max-h-96 overflow-auto">
           <pre className="whitespace-pre-wrap break-words">{content}</pre>
@@ -564,7 +630,11 @@ export default function TaskPage() {
   };
 
   // Console command component for tool calls
-  const ConsoleCommand = ({ command, description, toolName }: { command: string; description?: string; toolName?: string }) => {
+  const ConsoleCommand = ({
+    command,
+    description,
+    toolName,
+  }: { command: string; description?: string; toolName?: string }) => {
     const handleCopy = () => {
       navigator.clipboard.writeText(command);
       toast.success('Command copied to clipboard!');
@@ -576,7 +646,9 @@ export default function TaskPage() {
         <div className="flex items-center justify-between px-3 py-2 bg-muted border-b dark:border-zinc-700 border-zinc-200">
           <div className="flex items-center gap-2 text-sm">
             <Terminal className="h-4 w-4 text-blue-600" />
-            <span className="text-muted-foreground">{description || toolName || 'Command'}</span>
+            <span className="text-muted-foreground">
+              {description || toolName || 'Command'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs rounded">
@@ -593,7 +665,7 @@ export default function TaskPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* Console content */}
         <div className="bg-zinc-900 dark:bg-zinc-950 text-zinc-100 p-4 font-mono text-sm">
           <div className="flex items-center gap-2">
@@ -606,14 +678,25 @@ export default function TaskPage() {
   };
 
   // GitHub-style diff display component for edit tool calls
-  const DiffDisplay = ({ filePath, oldString, newString, toolName }: { 
-    filePath: string; 
-    oldString: string; 
-    newString: string; 
-    toolName?: string; 
+  const DiffDisplay = ({
+    filePath,
+    oldString,
+    newString,
+    toolName,
+  }: {
+    filePath: string;
+    oldString: string;
+    newString: string;
+    toolName?: string;
   }) => {
     const handleCopyDiff = () => {
-      const diffContent = `--- a/${filePath}\n+++ b/${filePath}\n${oldString.split('\n').map(line => `- ${line}`).join('\n')}\n${newString.split('\n').map(line => `+ ${line}`).join('\n')}`;
+      const diffContent = `--- a/${filePath}\n+++ b/${filePath}\n${oldString
+        .split('\n')
+        .map((line) => `- ${line}`)
+        .join('\n')}\n${newString
+        .split('\n')
+        .map((line) => `+ ${line}`)
+        .join('\n')}`;
       navigator.clipboard.writeText(diffContent);
       toast.success('Diff copied to clipboard!');
     };
@@ -641,20 +724,21 @@ export default function TaskPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* GitHub-style diff content using existing DiffView component */}
         <div className="max-h-96 overflow-auto p-4 bg-background">
-          <DiffView 
-            oldContent={oldString || ''} 
-            newContent={newString || ''} 
-          />
+          <DiffView oldContent={oldString || ''} newContent={newString || ''} />
         </div>
       </div>
     );
   };
 
   // Helper function to find tool result for a given tool call ID across all messages
-  const findToolResultForCall = (toolCallId: string, allMessages: any[], currentMessageIndex: number) => {
+  const findToolResultForCall = (
+    toolCallId: string,
+    allMessages: any[],
+    currentMessageIndex: number,
+  ) => {
     // Look in subsequent messages for the tool result
     for (let i = currentMessageIndex + 1; i < allMessages.length; i++) {
       const message = allMessages[i];
@@ -670,228 +754,264 @@ export default function TaskPage() {
   };
 
   // Render message content with cross-message tool call grouping
-  const renderMessageContent = (message: any, messageIndex: number, allMessages: any[]) => {
+  const renderMessageContent = (
+    message: any,
+    messageIndex: number,
+    allMessages: any[],
+  ) => {
     const payload = message.payload;
     const messageType = message.type;
     const role = message.payload?.role;
-    
+
     if (!payload) return null;
 
     // Handle content blocks
     if (Array.isArray(payload.content)) {
-      return payload.content.map((block: any, index: number) => {
-        const key = `block-${index}`;
-        
-        // Handle tool calls with potential results in later messages
-        if (block.id && block.name && block.input) {
-          const toolResult = findToolResultForCall(block.id, allMessages, messageIndex);
-          
-          // Special handling for TodoWrite - render without wrapper
-          if (block.name === 'TodoWrite' && block.input.todos) {
-            return (
-              <div key={key} className="mb-4">
-                <TodoDisplay 
-                  todos={block.input.todos}
-                  toolName={block.name}
-                />
-              </div>
+      return payload.content
+        .map((block: any, index: number) => {
+          const key = `block-${index}`;
+
+          // Handle tool calls with potential results in later messages
+          if (block.id && block.name && block.input) {
+            const toolResult = findToolResultForCall(
+              block.id,
+              allMessages,
+              messageIndex,
             );
-          }
-          
-          if (toolResult) {
-            // Render grouped tool call with result
-            let resultContent = 'Tool executed successfully';
-            let isError = toolResult.is_error || false;
-            
-            if (toolResult.content) {
-              if (typeof toolResult.content === 'string') {
-                resultContent = toolResult.content;
-              } else {
-                resultContent = JSON.stringify(toolResult.content, null, 2);
-              }
+
+            // Special handling for TodoWrite - render without wrapper
+            if (block.name === 'TodoWrite' && block.input.todos) {
+              return (
+                <div key={key} className="mb-4">
+                  <TodoDisplay
+                    todos={block.input.todos}
+                    toolName={block.name}
+                  />
+                </div>
+              );
             }
-            
-            return (
-              <div key={key} className="border rounded-lg mb-4 overflow-hidden">
-                {/* Tool Call Header */}
-                <div className="bg-gray-50 px-4 py-2 border-b">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-blue-600">🔧 Tool Call</span>
-                    <span className="text-sm font-semibold">{block.name}</span>
+
+            if (toolResult) {
+              // Render grouped tool call with result
+              let resultContent = 'Tool executed successfully';
+              const isError = toolResult.is_error || false;
+
+              if (toolResult.content) {
+                if (typeof toolResult.content === 'string') {
+                  resultContent = toolResult.content;
+                } else {
+                  resultContent = JSON.stringify(toolResult.content, null, 2);
+                }
+              }
+
+              return (
+                <div
+                  key={key}
+                  className="border rounded-lg mb-4 overflow-hidden"
+                >
+                  {/* Tool Call Header */}
+                  <div className="bg-gray-50 px-4 py-2 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-blue-600">
+                        🔧 Tool Call
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {block.name}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tool Call Content */}
+                  <div className="p-4 bg-white">
+                    {/* Special handling for Bash/Terminal commands */}
+                    {block.name.toLowerCase() === 'bash' &&
+                    block.input.command ? (
+                      <ConsoleCommand
+                        command={block.input.command}
+                        description={block.input.description}
+                        toolName={block.name}
+                      />
+                    ) : /* Special handling for Edit tool calls */
+                    block.name.toLowerCase() === 'edit' &&
+                      block.input.file_path &&
+                      (block.input.old_string || block.input.new_string) ? (
+                      <DiffDisplay
+                        filePath={block.input.file_path}
+                        oldString={block.input.old_string || ''}
+                        newString={block.input.new_string || ''}
+                        toolName={block.name}
+                      />
+                    ) : /* Special handling for Todo tool calls */
+                    block.name === 'TodoWrite' && block.input.todos ? (
+                      <TodoDisplay
+                        todos={block.input.todos}
+                        toolName={block.name}
+                      />
+                    ) : (
+                      /* Default handling for other tools */
+                      <div className="bg-muted/20 p-2 rounded text-xs">
+                        <pre className="whitespace-pre-wrap">
+                          {JSON.stringify(block.input, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tool Result */}
+                  <div className="border-t">
+                    <div className="bg-gray-50 px-4 py-2">
+                      <span className="text-sm font-medium text-green-600">
+                        📤 Tool Output
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <TerminalOutput
+                        content={resultContent}
+                        isError={isError}
+                        toolName="Output"
+                      />
+                    </div>
                   </div>
                 </div>
-                
-                {/* Tool Call Content */}
-                <div className="p-4 bg-white">
-                  {/* Special handling for Bash/Terminal commands */}
-                  {block.name.toLowerCase() === 'bash' && block.input.command ? (
-                    <ConsoleCommand 
-                      command={block.input.command}
-                      description={block.input.description}
-                      toolName={block.name}
-                    />
-                  ) : 
-                  /* Special handling for Edit tool calls */
-                  block.name.toLowerCase() === 'edit' && block.input.file_path && 
-                  (block.input.old_string || block.input.new_string) ? (
-                    <DiffDisplay 
-                      filePath={block.input.file_path}
-                      oldString={block.input.old_string || ''}
-                      newString={block.input.new_string || ''}
-                      toolName={block.name}
-                    />
-                  ) :
-                  /* Special handling for Todo tool calls */
-                  block.name === 'TodoWrite' && block.input.todos ? (
-                    <TodoDisplay 
-                      todos={block.input.todos}
-                      toolName={block.name}
-                    />
-                  ) : (
-                    /* Default handling for other tools */
-                    <div className="bg-muted/20 p-2 rounded text-xs">
-                      <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
+              );
+            } else {
+              // Tool call without result (still pending)
+              return (
+                <div
+                  key={key}
+                  className="border rounded-lg mb-4 overflow-hidden"
+                >
+                  <div className="bg-gray-50 px-4 py-2 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-blue-600">
+                        🔧 Tool Call
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {block.name}
+                      </span>
+                      <span className="text-xs text-orange-500 ml-auto">
+                        Pending...
+                      </span>
                     </div>
-                  )}
-                </div>
-                
-                {/* Tool Result */}
-                <div className="border-t">
-                  <div className="bg-gray-50 px-4 py-2">
-                    <span className="text-sm font-medium text-green-600">📤 Tool Output</span>
                   </div>
                   <div className="p-4">
-                    <TerminalOutput 
-                      content={resultContent} 
-                      isError={isError}
-                      toolName="Output"
-                    />
+                    {/* Special handling for Bash/Terminal commands */}
+                    {block.name.toLowerCase() === 'bash' &&
+                    block.input.command ? (
+                      <ConsoleCommand
+                        command={block.input.command}
+                        description={block.input.description}
+                        toolName={block.name}
+                      />
+                    ) : /* Special handling for Edit tool calls */
+                    block.name.toLowerCase() === 'edit' &&
+                      block.input.file_path &&
+                      (block.input.old_string || block.input.new_string) ? (
+                      <DiffDisplay
+                        filePath={block.input.file_path}
+                        oldString={block.input.old_string || ''}
+                        newString={block.input.new_string || ''}
+                        toolName={block.name}
+                      />
+                    ) : /* Special handling for Todo tool calls */
+                    block.name === 'TodoWrite' && block.input.todos ? (
+                      <TodoDisplay
+                        todos={block.input.todos}
+                        toolName={block.name}
+                      />
+                    ) : (
+                      /* Default handling for other tools */
+                      <div className="bg-muted/20 p-2 rounded text-xs">
+                        <pre className="whitespace-pre-wrap">
+                          {JSON.stringify(block.input, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            );
-          } else {
-            // Tool call without result (still pending)
+              );
+            }
+          }
+
+          // Handle text blocks
+          if (block.text) {
             return (
-              <div key={key} className="border rounded-lg mb-4 overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 border-b">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-blue-600">🔧 Tool Call</span>
-                    <span className="text-sm font-semibold">{block.name}</span>
-                    <span className="text-xs text-orange-500 ml-auto">Pending...</span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  {/* Special handling for Bash/Terminal commands */}
-                  {block.name.toLowerCase() === 'bash' && block.input.command ? (
-                    <ConsoleCommand 
-                      command={block.input.command}
-                      description={block.input.description}
-                      toolName={block.name}
-                    />
-                  ) : 
-                  /* Special handling for Edit tool calls */
-                  block.name.toLowerCase() === 'edit' && block.input.file_path && 
-                  (block.input.old_string || block.input.new_string) ? (
-                    <DiffDisplay 
-                      filePath={block.input.file_path}
-                      oldString={block.input.old_string || ''}
-                      newString={block.input.new_string || ''}
-                      toolName={block.name}
-                    />
-                  ) :
-                  /* Special handling for Todo tool calls */
-                  block.name === 'TodoWrite' && block.input.todos ? (
-                    <TodoDisplay 
-                      todos={block.input.todos}
-                      toolName={block.name}
-                    />
-                  ) : (
-                    /* Default handling for other tools */
-                    <div className="bg-muted/20 p-2 rounded text-xs">
-                      <pre className="whitespace-pre-wrap">{JSON.stringify(block.input, null, 2)}</pre>
-                    </div>
-                  )}
-                </div>
+              <div key={key}>
+                <Markdown>{block.text}</Markdown>
               </div>
             );
           }
-        }
-        
-        // Handle text blocks
-        if (block.text) {
-          return (
-            <div key={key}>
-              <Markdown>{block.text}</Markdown>
-            </div>
-          );
-        }
-        
-        // Skip tool results that have already been paired with tool calls
-        if (block.tool_use_id) {
-          // Check if this result was already rendered with its tool call
-          for (let i = 0; i < messageIndex; i++) {
-            const prevMessage = allMessages[i];
-            if (Array.isArray(prevMessage.payload?.content)) {
-              for (const prevBlock of prevMessage.payload.content) {
-                if (prevBlock.id === block.tool_use_id) {
-                  // This result was already rendered with its tool call
-                  return null;
+
+          // Skip tool results that have already been paired with tool calls
+          if (block.tool_use_id) {
+            // Check if this result was already rendered with its tool call
+            for (let i = 0; i < messageIndex; i++) {
+              const prevMessage = allMessages[i];
+              if (Array.isArray(prevMessage.payload?.content)) {
+                for (const prevBlock of prevMessage.payload.content) {
+                  if (prevBlock.id === block.tool_use_id) {
+                    // This result was already rendered with its tool call
+                    return null;
+                  }
                 }
               }
             }
-          }
-          
-          // Orphaned tool result - render it standalone
-          let resultContent = 'Tool executed successfully';
-          let isError = block.is_error || false;
-          
-          if (block.content) {
-            if (typeof block.content === 'string') {
-              resultContent = block.content;
-            } else {
-              resultContent = JSON.stringify(block.content, null, 2);
+
+            // Orphaned tool result - render it standalone
+            let resultContent = 'Tool executed successfully';
+            const isError = block.is_error || false;
+
+            if (block.content) {
+              if (typeof block.content === 'string') {
+                resultContent = block.content;
+              } else {
+                resultContent = JSON.stringify(block.content, null, 2);
+              }
             }
+
+            return (
+              <div key={key} className="border rounded-lg mb-4 overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2">
+                  <span className="text-sm font-medium text-green-600">
+                    📤 Tool Output
+                  </span>
+                  <span className="text-xs text-orange-500 ml-2">
+                    (No matching call found)
+                  </span>
+                </div>
+                <div className="p-4">
+                  <TerminalOutput
+                    content={resultContent}
+                    isError={isError}
+                    toolName="Output"
+                  />
+                </div>
+              </div>
+            );
           }
-          
+
+          // Fallback for unknown block types
           return (
-            <div key={key} className="border rounded-lg mb-4 overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2">
-                <span className="text-sm font-medium text-green-600">📤 Tool Output</span>
-                <span className="text-xs text-orange-500 ml-2">(No matching call found)</span>
-              </div>
-              <div className="p-4">
-                <TerminalOutput 
-                  content={resultContent} 
-                  isError={isError}
-                  toolName="Output"
-                />
-              </div>
+            <div key={key} className="text-sm text-muted-foreground">
+              <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
+                {JSON.stringify(block, null, 2)}
+              </pre>
             </div>
           );
-        }
-        
-        // Fallback for unknown block types
-        return (
-          <div key={key} className="text-sm text-muted-foreground">
-            <pre className="whitespace-pre-wrap text-xs bg-muted/20 p-2 rounded">
-              {JSON.stringify(block, null, 2)}
-            </pre>
-          </div>
-        );
-      }).filter(Boolean); // Remove null entries
+        })
+        .filter(Boolean); // Remove null entries
     }
 
-        // Handle ResultMessage with result field
+    // Handle ResultMessage with result field
     if (messageType === 'ResultMessage' && payload.result) {
       let resultContent = payload.result;
       if (typeof resultContent !== 'string') {
         resultContent = JSON.stringify(resultContent, null, 2);
       }
-      
+
       return (
-        <TerminalOutput 
-          content={resultContent} 
+        <TerminalOutput
+          content={resultContent}
           isError={false}
           toolName="Process Result"
         />
@@ -907,7 +1027,10 @@ export default function TaskPage() {
           {tools.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tools.map((tool: string, index: number) => (
-                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded text-xs">
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-muted/30 rounded text-xs"
+                >
                   {getToolIcon(tool)}
                   {tool}
                 </span>
@@ -920,7 +1043,10 @@ export default function TaskPage() {
 
     // Handle direct text field (for backwards compatibility)
     if (payload.text) {
-      const textContent = typeof payload.text === 'string' ? payload.text : JSON.stringify(payload.text);
+      const textContent =
+        typeof payload.text === 'string'
+          ? payload.text
+          : JSON.stringify(payload.text);
       return (
         <div>
           <Markdown>{textContent}</Markdown>
@@ -948,37 +1074,55 @@ export default function TaskPage() {
   return (
     <div className="flex flex-col min-w-0 h-dvh bg-background">
       <SharedHeader
-        rightExtra={!isSummaryVisible && processData ? (
-          <div className="hidden md:flex items-center gap-2 pl-3 border-l">
-            <button
-              onClick={(e) => { e.preventDefault(); scrollToSummary(); }}
-              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted max-w-[50vw]"
-              title="Scroll to process details"
-            >
-              <span className="truncate font-medium max-w-[24vw]">
-                {getTaskTitle(processData)}
-              </span>
-              {processData.processType && (
-                <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                  {getProcessTypeIcon(processData.processType)}
-                  <span>{processData.processType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
-                </Badge>
-              )}
-              {headerTimeline && (
-                <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <ClockIcon className="h-3 w-3" />
-                  <span>{headerTimeline.label} {getRelativeTime(headerTimeline.value)}</span>
-                </Badge>
-              )}
-              <div className="flex items-center gap-2 scale-90 origin-right">
-                {getStatusBadge(processData.status)}
-                {processData.status?.toLowerCase() === 'in_progress' && (
-                  <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+        rightExtra={
+          !isSummaryVisible && processData ? (
+            <div className="hidden md:flex items-center gap-2 pl-3 border-l">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSummary();
+                }}
+                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted max-w-[50vw]"
+                title="Scroll to process details"
+              >
+                <span className="truncate font-medium max-w-[24vw]">
+                  {getTaskTitle(processData)}
+                </span>
+                {processData.processType && (
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    {getProcessTypeIcon(processData.processType)}
+                    <span>
+                      {processData.processType
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </span>
+                  </Badge>
                 )}
-              </div>
-            </button>
-          </div>
-        ) : null}
+                {headerTimeline && (
+                  <Badge
+                    variant="outline"
+                    className="flex items-center gap-1 text-xs text-muted-foreground"
+                  >
+                    <ClockIcon className="h-3 w-3" />
+                    <span>
+                      {headerTimeline.label}{' '}
+                      {getRelativeTime(headerTimeline.value)}
+                    </span>
+                  </Badge>
+                )}
+                <div className="flex items-center gap-2 scale-90 origin-right">
+                  {getStatusBadge(processData.status)}
+                  {processData.status?.toLowerCase() === 'in_progress' && (
+                    <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                  )}
+                </div>
+              </button>
+            </div>
+          ) : null
+        }
       />
 
       <div className="flex-1 overflow-auto">
@@ -1000,7 +1144,9 @@ export default function TaskPage() {
           ) : error ? (
             <Card className="border-red-200">
               <CardHeader>
-                <CardTitle className="text-red-500">Error Loading Task</CardTitle>
+                <CardTitle className="text-red-500">
+                  Error Loading Task
+                </CardTitle>
                 <CardDescription>{error}</CardDescription>
               </CardHeader>
             </Card>
@@ -1008,168 +1154,227 @@ export default function TaskPage() {
             <>
               {/* Task Summary Card */}
               <div ref={summaryRef}>
-              <Card className="mb-6">
-                <CardHeader ref={headerRef}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-2xl">{getTaskTitle(processData)}</CardTitle>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
-                                <Info className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="flex flex-col gap-1">
-                                <span className="text-xs text-muted-foreground">Process ID</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs">{processData.id}</span>
-                                  <Button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(processData.id);
-                                      toast.success('Process ID copied!');
-                                    }}
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-5 w-5 p-0"
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
+                <Card className="mb-6">
+                  <CardHeader ref={headerRef}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CardTitle className="text-2xl">
+                            {getTaskTitle(processData)}
+                          </CardTitle>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                                  <Info className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-muted-foreground">
+                                    Process ID
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs">
+                                      {processData.id}
+                                    </span>
+                                    <Button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(
+                                          processData.id,
+                                        );
+                                        toast.success('Process ID copied!');
+                                      }}
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                        {processData.processType && (
+                          <Badge
+                            variant="outline"
+                            className="flex items-center gap-1 text-xs"
+                          >
+                            {getProcessTypeIcon(processData.processType)}
+                            <span>
+                              {processData.processType
+                                .replace(/_/g, ' ')
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </span>
+                          </Badge>
+                        )}
+                        {processData.type &&
+                          processData.type !== processData.processType && (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1 text-xs"
+                            >
+                              {getProcessTypeIcon(processData.type)}
+                              <span>
+                                {processData.type
+                                  .replace(/_/g, ' ')
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </span>
+                            </Badge>
+                          )}
+                        {headerTimeline && (
+                          <Badge
+                            variant="outline"
+                            className="flex items-center gap-1 text-xs text-muted-foreground"
+                          >
+                            <ClockIcon className="h-3 w-3" />
+                            <span>
+                              {headerTimeline.label}{' '}
+                              {getRelativeTime(headerTimeline.value)}
+                            </span>
+                          </Badge>
+                        )}
+                        {getStatusBadge(processData.status)}
+                        {processData.status?.toLowerCase() ===
+                          'in_progress' && (
+                          <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                        )}
+                        {completionEvent?.pr_url &&
+                          completionEvent?.pr_number && (
+                            <a
+                              href={completionEvent.pr_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              PR #{completionEvent.pr_number}
+                            </a>
+                          )}
+                        {docCompletionEvent?.knowledge_base_id &&
+                          docCompletionEvent?.generated_documents &&
+                          docCompletionEvent.generated_documents.length > 0 && (
+                            <div className="flex flex-col gap-1">
+                              {docCompletionEvent.generated_documents.map(
+                                (docPath: string, idx: number) => {
+                                  const docUrl = `/docs/${encodeURIComponent(docCompletionEvent.knowledge_base_id!)}/${docPath.split('/').map(encodeURIComponent).join('/')}${docCompletionEvent.code_version ? `?v=${docCompletionEvent.code_version}` : ''}`;
+                                  const docName =
+                                    docPath.split('/').pop() || docPath;
+                                  return (
+                                    <a
+                                      key={idx}
+                                      href={docUrl}
+                                      className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                      {docName}
+                                    </a>
+                                  );
+                                },
+                              )}
+                            </div>
+                          )}
+                        {processData.status?.toLowerCase() === 'failed' && (
+                          <button
+                            onClick={() => setIsErrorDialogOpen(true)}
+                            className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                            View Error Details
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                      {processData.processType && (
-                        <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                          {getProcessTypeIcon(processData.processType)}
-                          <span>{processData.processType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                        </Badge>
-                      )}
-                      {processData.type && processData.type !== processData.processType && (
-                        <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                          {getProcessTypeIcon(processData.type)}
-                          <span>{processData.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                        </Badge>
-                      )}
-                      {headerTimeline && (
-                        <Badge variant="outline" className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ClockIcon className="h-3 w-3" />
-                          <span>{headerTimeline.label} {getRelativeTime(headerTimeline.value)}</span>
-                        </Badge>
-                      )}
-                      {getStatusBadge(processData.status)}
-                      {processData.status?.toLowerCase() === 'in_progress' && (
-                        <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
-                      )}
-                      {completionEvent?.pr_url && completionEvent?.pr_number && (
-                        <a
-                          href={completionEvent.pr_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          PR #{completionEvent.pr_number}
-                        </a>
-                      )}
-                      {docCompletionEvent?.knowledge_base_id && docCompletionEvent?.generated_documents && docCompletionEvent.generated_documents.length > 0 && (
-                        <div className="flex flex-col gap-1">
-                          {docCompletionEvent.generated_documents.map((docPath: string, idx: number) => {
-                            const docUrl = `/docs/${encodeURIComponent(docCompletionEvent.knowledge_base_id!)}/${docPath.split('/').map(encodeURIComponent).join('/')}${docCompletionEvent.code_version ? `?v=${docCompletionEvent.code_version}` : ''}`;
-                            const docName = docPath.split('/').pop() || docPath;
-                            return (
-                              <a
-                                key={idx}
-                                href={docUrl}
-                                className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 transition-colors"
-                              >
-                                <FileText className="h-4 w-4" />
-                                {docName}
-                              </a>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {processData.status?.toLowerCase() === 'failed' && (
-                        <button
-                          onClick={() => setIsErrorDialogOpen(true)}
-                          className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
-                        >
-                          <AlertCircle className="h-4 w-4" />
-                          View Error Details
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {processData.description && (
-                      <div>
-                        <h3 className="font-medium text-sm text-muted-foreground mb-1">Description</h3>
-                        <p>{processData.description}</p>
-                      </div>
-                    )}
-                    
-                    {/* Timeline view instead of simple timestamps */}
-                    {processData.events && processData.events.length > 0 ? (
-                      <ProcessTimelineView events={processData.events} />
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {processData.description && (
                         <div>
-                          <h3 className="font-medium text-sm text-muted-foreground mb-1">Created</h3>
-                          <p>{formatDate(processData.createdAt)}</p>
+                          <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                            Description
+                          </h3>
+                          <p>{processData.description}</p>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-sm text-muted-foreground mb-1">Last Updated</h3>
-                          <p>{formatDate(processData.updatedAt)}</p>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Issue Description (collapsible) - Only show for issue resolution tasks */}
-                    {(processData.type === 'issue_resolution' || processData.processType === 'issue_resolution') && getIssueInfo() && (
-                      <div className="space-y-2">
-                        {/* Description header with toggle */}
-                        <div 
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                        >
-                          <h3 className="font-medium text-sm text-muted-foreground">Description</h3>
-                          <div className={cn("transition-transform", isDescriptionExpanded ? "rotate-180" : "")}>
-                            <ChevronDown size={16} />
+                      {/* Timeline view instead of simple timestamps */}
+                      {processData.events && processData.events.length > 0 ? (
+                        <ProcessTimelineView events={processData.events} />
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                              Created
+                            </h3>
+                            <p>{formatDate(processData.createdAt)}</p>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                              Last Updated
+                            </h3>
+                            <p>{formatDate(processData.updatedAt)}</p>
                           </div>
                         </div>
+                      )}
 
-                        {/* Description content (collapsible) */}
-                        <AnimatePresence initial={false}>
-                          {isDescriptionExpanded && (
-                            <motion.div
-                              key="description-content"
-                              initial="collapsed"
-                              animate="expanded"
-                              exit="collapsed"
-                              variants={descriptionVariants}
-                              transition={{ duration: 0.2, ease: 'easeInOut' }}
-                              style={{ overflow: 'hidden' }}
+                      {/* Issue Description (collapsible) - Only show for issue resolution tasks */}
+                      {(processData.type === 'issue_resolution' ||
+                        processData.processType === 'issue_resolution') &&
+                        getIssueInfo() && (
+                          <div className="space-y-2">
+                            {/* Description header with toggle */}
+                            <div
+                              className="flex items-center gap-2 cursor-pointer"
+                              onClick={() =>
+                                setIsDescriptionExpanded(!isDescriptionExpanded)
+                              }
                             >
-                              <div>
-                                <Markdown>{getIssueInfo()?.description || 'No description provided'}</Markdown>
+                              <h3 className="font-medium text-sm text-muted-foreground">
+                                Description
+                              </h3>
+                              <div
+                                className={cn(
+                                  'transition-transform',
+                                  isDescriptionExpanded ? 'rotate-180' : '',
+                                )}
+                              >
+                                <ChevronDown size={16} />
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                            </div>
+
+                            {/* Description content (collapsible) */}
+                            <AnimatePresence initial={false}>
+                              {isDescriptionExpanded && (
+                                <motion.div
+                                  key="description-content"
+                                  initial="collapsed"
+                                  animate="expanded"
+                                  exit="collapsed"
+                                  variants={descriptionVariants}
+                                  transition={{
+                                    duration: 0.2,
+                                    ease: 'easeInOut',
+                                  }}
+                                  style={{ overflow: 'hidden' }}
+                                >
+                                  <div>
+                                    <Markdown>
+                                      {getIssueInfo()?.description ||
+                                        'No description provided'}
+                                    </Markdown>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Agent Progress Card - Show process messages */}
@@ -1183,10 +1388,24 @@ export default function TaskPage() {
                         <div className="flex items-center gap-2">
                           <Keyboard className="h-4 w-4 text-blue-500 animate-pulse" />
                           <div className="flex items-center gap-1">
-                            <span className="text-xs text-blue-500 animate-pulse">coding</span>
-                            <span className="text-xs text-blue-500 animate-bounce">.</span>
-                            <span className="text-xs text-blue-500 animate-bounce" style={{animationDelay: '0.1s'}}>.</span>
-                            <span className="text-xs text-blue-500 animate-bounce" style={{animationDelay: '0.2s'}}>.</span>
+                            <span className="text-xs text-blue-500 animate-pulse">
+                              coding
+                            </span>
+                            <span className="text-xs text-blue-500 animate-bounce">
+                              .
+                            </span>
+                            <span
+                              className="text-xs text-blue-500 animate-bounce"
+                              style={{ animationDelay: '0.1s' }}
+                            >
+                              .
+                            </span>
+                            <span
+                              className="text-xs text-blue-500 animate-bounce"
+                              style={{ animationDelay: '0.2s' }}
+                            >
+                              .
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1197,55 +1416,81 @@ export default function TaskPage() {
                   </CardHeader>
                   <CardContent className="relative">
                     <div ref={messagesContainerRef} className="space-y-4">
-                      {messages.map((message, index) => {
-                        const messageDetails = getMessageTypeDetails(message);
-                        
-                        // Skip messages that return null (e.g., tool results that will be grouped)
-                        if (!messageDetails) {
-                          return null;
-                        }
-                        
-                        const { icon, color, bgColor, label } = messageDetails;
-                        
-                        // Special handling for tool calls - render grouped display directly
-                        if (Array.isArray(message.payload?.content) && 
-                            message.payload.content.some((block: any) => block?.id && block?.name && block?.input)) {
-                          return (
-                            <div key={message.id || index} className="text-sm">
-                              {renderMessageContent(message, index, messages)}
-                            </div>
-                          );
-                        }
-                        
-                        // Regular message rendering
-                        return (
-                          <div key={message.id || index} className="flex gap-3">
-                            <div className={cn("flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center", bgColor)}>
-                              <div className={color}>
-                                {icon}
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              {label && (
-                                <div className={cn("text-sm font-medium mb-1", color)}>
-                                  {label}
-                                </div>
-                              )}
-                              <div className="text-sm">
+                      {messages
+                        .map((message, index) => {
+                          const messageDetails = getMessageTypeDetails(message);
+
+                          // Skip messages that return null (e.g., tool results that will be grouped)
+                          if (!messageDetails) {
+                            return null;
+                          }
+
+                          const { icon, color, bgColor, label } =
+                            messageDetails;
+
+                          // Special handling for tool calls - render grouped display directly
+                          if (
+                            Array.isArray(message.payload?.content) &&
+                            message.payload.content.some(
+                              (block: any) =>
+                                block?.id && block?.name && block?.input,
+                            )
+                          ) {
+                            return (
+                              <div
+                                key={message.id || index}
+                                className="text-sm"
+                              >
                                 {renderMessageContent(message, index, messages)}
                               </div>
+                            );
+                          }
+
+                          // Regular message rendering
+                          return (
+                            <div
+                              key={message.id || index}
+                              className="flex gap-3"
+                            >
+                              <div
+                                className={cn(
+                                  'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+                                  bgColor,
+                                )}
+                              >
+                                <div className={color}>{icon}</div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {label && (
+                                  <div
+                                    className={cn(
+                                      'text-sm font-medium mb-1',
+                                      color,
+                                    )}
+                                  >
+                                    {label}
+                                  </div>
+                                )}
+                                <div className="text-sm">
+                                  {renderMessageContent(
+                                    message,
+                                    index,
+                                    messages,
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      }).filter(Boolean)}
-                      
+                          );
+                        })
+                        .filter(Boolean)}
+
                       {messagesLoading && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Loader2 className="animate-spin h-4 w-4" />
                           <span className="text-sm">Loading messages...</span>
                         </div>
                       )}
-                      
+
                       {messagesError && (
                         <div className="flex items-center gap-2 text-red-500 text-sm">
                           <AlertCircle className="h-4 w-4" />
@@ -1259,16 +1504,16 @@ export default function TaskPage() {
                         onViewportEnter={onViewportEnter}
                       />
                     </div>
-                    
+
                     {/* Scroll to bottom button */}
                     {!isAtBottom && messages.length > 0 && (
-                      <div 
-                        style={{ 
-                          position: 'fixed', 
-                          bottom: '80px', 
-                          left: '50%', 
-                          transform: 'translateX(-50%)', 
-                          zIndex: 9999 
+                      <div
+                        style={{
+                          position: 'fixed',
+                          bottom: '80px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          zIndex: 9999,
                         }}
                       >
                         <Button
@@ -1288,130 +1533,189 @@ export default function TaskPage() {
               )}
 
               {/* Repository Information Card - Show only for repository integration tasks */}
-              {isRepositoryTask() && (repoInfo?.connected || getRepoInfoFromEvents()) && (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Code className="h-5 w-5" />
-                      Repository Information
-                    </CardTitle>
-                    <CardDescription>
-                      Connected repository and Git information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {(repoInfo?.url || getRepoInfoFromEvents()?.url) && (
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground mb-2">Repository URL</h4>
-                          <div className="flex items-center gap-2">
-                            <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
-                              {repoInfo?.url || getRepoInfoFromEvents()?.url}
-                            </code>
-                            <Button
-                              onClick={() => {
-                                navigator.clipboard.writeText(repoInfo?.url || getRepoInfoFromEvents()?.url || '');
-                                toast.success('Repository URL copied to clipboard!');
-                              }}
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              aria-label="Copy repository URL"
-                            >
-                              <Copy size={16} />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Connection Status and Git Information */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {repoInfo?.status && (
+              {isRepositoryTask() &&
+                (repoInfo?.connected || getRepoInfoFromEvents()) && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="h-5 w-5" />
+                        Repository Information
+                      </CardTitle>
+                      <CardDescription>
+                        Connected repository and Git information
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {(repoInfo?.url || getRepoInfoFromEvents()?.url) && (
                           <div>
-                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Status</h4>
-                            {getStatusBadge(repoInfo.status)}
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                              Repository URL
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                                {repoInfo?.url || getRepoInfoFromEvents()?.url}
+                              </code>
+                              <Button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    repoInfo?.url ||
+                                      getRepoInfoFromEvents()?.url ||
+                                      '',
+                                  );
+                                  toast.success(
+                                    'Repository URL copied to clipboard!',
+                                  );
+                                }}
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                aria-label="Copy repository URL"
+                              >
+                                <Copy size={16} />
+                              </Button>
+                            </div>
                           </div>
                         )}
-                        
-                        {getRepoInfoFromEvents()?.connected_at && (
-                          <div>
-                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Connected Since</h4>
-                            <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.connected_at)}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Git Information */}
-                      {(repoInfo?.branch || getRepoInfoFromEvents()?.branch) && (
+
+                        {/* Connection Status and Git Information */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="font-semibold text-sm text-muted-foreground mb-2">Current Branch</h4>
-                            <code className="bg-muted px-2 py-1 rounded text-sm block">
-                              {repoInfo?.branch || getRepoInfoFromEvents()?.branch}
-                            </code>
-                          </div>
-                          
-                          {(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha) && (
+                          {repoInfo?.status && (
                             <div>
-                              <h4 className="font-semibold text-sm text-muted-foreground mb-2">Latest Commit</h4>
-                              <div className="flex items-center gap-2">
-                                <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
-                                  {(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha)?.substring(0, 8)}...
-                                </code>
-                                <Button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(repoInfo?.commit_sha || getRepoInfoFromEvents()?.commit_sha || '');
-                                    toast.success('Commit SHA copied to clipboard!');
-                                  }}
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0"
-                                  aria-label="Copy commit SHA"
-                                >
-                                  <Copy size={16} />
-                                </Button>
-                              </div>
+                              <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                                Status
+                              </h4>
+                              {getStatusBadge(repoInfo.status)}
+                            </div>
+                          )}
+
+                          {getRepoInfoFromEvents()?.connected_at && (
+                            <div>
+                              <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                                Connected Since
+                              </h4>
+                              <span className="text-sm">
+                                {formatDate(
+                                  getRepoInfoFromEvents()?.connected_at,
+                                )}
+                              </span>
                             </div>
                           )}
                         </div>
-                      )}
-                      
-                      {/* Latest Indexation Information */}
-                      {(getRepoInfoFromEvents()?.indexation_started_at || getRepoInfoFromEvents()?.indexation_completed_at) && (
-                        <div>
-                          <h4 className="font-semibold text-sm text-muted-foreground mb-3">Latest Indexation</h4>
+
+                        {/* Git Information */}
+                        {(repoInfo?.branch ||
+                          getRepoInfoFromEvents()?.branch) && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {getRepoInfoFromEvents()?.indexation_started_at && (
+                            <div>
+                              <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                                Current Branch
+                              </h4>
+                              <code className="bg-muted px-2 py-1 rounded text-sm block">
+                                {repoInfo?.branch ||
+                                  getRepoInfoFromEvents()?.branch}
+                              </code>
+                            </div>
+
+                            {(repoInfo?.commit_sha ||
+                              getRepoInfoFromEvents()?.commit_sha) && (
                               <div>
-                                <h5 className="font-medium text-xs text-muted-foreground mb-1">Started</h5>
-                                <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.indexation_started_at)}</span>
-                              </div>
-                            )}
-                            
-                            {getRepoInfoFromEvents()?.indexation_completed_at && (
-                              <div>
-                                <h5 className="font-medium text-xs text-muted-foreground mb-1">Completed</h5>
-                                <span className="text-sm">{formatDate(getRepoInfoFromEvents()?.indexation_completed_at)}</span>
+                                <h4 className="font-semibold text-sm text-muted-foreground mb-2">
+                                  Latest Commit
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                                    {(
+                                      repoInfo?.commit_sha ||
+                                      getRepoInfoFromEvents()?.commit_sha
+                                    )?.substring(0, 8)}
+                                    ...
+                                  </code>
+                                  <Button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        repoInfo?.commit_sha ||
+                                          getRepoInfoFromEvents()?.commit_sha ||
+                                          '',
+                                      );
+                                      toast.success(
+                                        'Commit SHA copied to clipboard!',
+                                      );
+                                    }}
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    aria-label="Copy commit SHA"
+                                  >
+                                    <Copy size={16} />
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                        )}
+
+                        {/* Latest Indexation Information */}
+                        {(getRepoInfoFromEvents()?.indexation_started_at ||
+                          getRepoInfoFromEvents()?.indexation_completed_at) && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-3">
+                              Latest Indexation
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {getRepoInfoFromEvents()
+                                ?.indexation_started_at && (
+                                <div>
+                                  <h5 className="font-medium text-xs text-muted-foreground mb-1">
+                                    Started
+                                  </h5>
+                                  <span className="text-sm">
+                                    {formatDate(
+                                      getRepoInfoFromEvents()
+                                        ?.indexation_started_at,
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+
+                              {getRepoInfoFromEvents()
+                                ?.indexation_completed_at && (
+                                <div>
+                                  <h5 className="font-medium text-xs text-muted-foreground mb-1">
+                                    Completed
+                                  </h5>
+                                  <span className="text-sm">
+                                    {formatDate(
+                                      getRepoInfoFromEvents()
+                                        ?.indexation_completed_at,
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* Error Dialog */}
-              <AlertDialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+              <AlertDialog
+                open={isErrorDialogOpen}
+                onOpenChange={setIsErrorDialogOpen}
+              >
                 <AlertDialogContent className="max-w-3xl">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-red-500">Error Details</AlertDialogTitle>
+                    <AlertDialogTitle className="text-red-500">
+                      Error Details
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      The issue resolution task failed with the following details:
+                      The issue resolution task failed with the following
+                      details:
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  
+
                   <div className="mt-4 bg-black rounded-md p-4 text-white font-mono text-sm overflow-auto max-h-96 relative">
                     <Button
                       onClick={() => {
@@ -1427,12 +1731,14 @@ export default function TaskPage() {
                     >
                       <Copy size={16} />
                     </Button>
-                    
+
                     <div className="mb-4">
-                      <span className="text-red-400">Failure Reason:</span> 
-                      <span className="text-yellow-300 ml-2">{getFailureDetails().reason}</span>
+                      <span className="text-red-400">Failure Reason:</span>
+                      <span className="text-yellow-300 ml-2">
+                        {getFailureDetails().reason}
+                      </span>
                     </div>
-                    
+
                     <div>
                       <span className="text-red-400">Error Message:</span>
                       <pre className="whitespace-pre-wrap text-green-300 mt-2">
@@ -1440,7 +1746,7 @@ export default function TaskPage() {
                       </pre>
                     </div>
                   </div>
-                  
+
                   <AlertDialogFooter className="mt-4">
                     <AlertDialogCancel>Close</AlertDialogCancel>
                   </AlertDialogFooter>
@@ -1465,7 +1771,9 @@ export default function TaskPage() {
             <Card>
               <CardHeader>
                 <CardTitle>No Data Available</CardTitle>
-                <CardDescription>Could not find information for this task.</CardDescription>
+                <CardDescription>
+                  Could not find information for this task.
+                </CardDescription>
               </CardHeader>
             </Card>
           )}

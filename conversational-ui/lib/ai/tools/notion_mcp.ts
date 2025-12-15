@@ -22,7 +22,7 @@ const notionClientCache = new Map<string, CachedEntry>();
 
 const noMCPClient = (error: unknown): MCPWrapper => ({
   client: {
-    tools: async () => ({} as any),
+    tools: async () => ({}) as any,
     close: async () => {
       /* noop */
     },
@@ -32,7 +32,9 @@ const noMCPClient = (error: unknown): MCPWrapper => ({
   __error: error,
 });
 
-export async function notionMCPClient(userContext?: UserContext): Promise<MCPWrapper> {
+export async function notionMCPClient(
+  userContext?: UserContext,
+): Promise<MCPWrapper> {
   const cacheKey = userContext?.spaceId
     ? `${userContext.spaceId}:${userContext?.userId ?? 'anonymous'}`
     : null;
@@ -56,7 +58,9 @@ export async function notionMCPClient(userContext?: UserContext): Promise<MCPWra
   }
 }
 
-async function createProxyClient(userContext?: UserContext): Promise<MCPWrapper> {
+async function createProxyClient(
+  userContext?: UserContext,
+): Promise<MCPWrapper> {
   const cuduEndpoint = process.env.CUDU_ENDPOINT;
   if (!cuduEndpoint) {
     throw new Error('CUDU_ENDPOINT not configured for Notion MCP integration');
@@ -94,7 +98,11 @@ async function createProxyClient(userContext?: UserContext): Promise<MCPWrapper>
   const client = await createMCPClient({ transport });
   const fullToolMap = await client.tools();
   const filteredEntries = Object.entries(fullToolMap ?? {})
-    .filter(([name]) => name.toLowerCase().includes('notion') || name.toLowerCase().startsWith('page_'))
+    .filter(
+      ([name]) =>
+        name.toLowerCase().includes('notion') ||
+        name.toLowerCase().startsWith('page_'),
+    )
     .slice(0, 16);
 
   const toolMap = Object.fromEntries(filteredEntries);

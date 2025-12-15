@@ -1,15 +1,15 @@
-import { Plus, UserPlus, Edit, ChevronDown, Users } from 'lucide-react';
+import { ChevronDown, Edit, Plus, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { getInitials, generatePastelColor } from '@/lib/utils';
+import { generatePastelColor, getInitials } from '@/lib/utils';
 
 interface Space {
   id: string;
@@ -31,7 +31,7 @@ interface SpaceSelectorProps {
   onSwitchSpace?: (spaceId: string) => void;
 }
 
-export function SpaceSelector({ 
+export function SpaceSelector({
   spaceName,
   spaceId,
   spaces,
@@ -39,11 +39,11 @@ export function SpaceSelector({
   onInviteToSpace,
   onViewMembers,
   onRenameSpace,
-  onSwitchSpace
+  onSwitchSpace,
 }: SpaceSelectorProps) {
   const initials = getInitials(spaceName || 'Default Space');
   const backgroundImage = generatePastelColor(spaceName);
-  
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -51,16 +51,19 @@ export function SpaceSelector({
           variant="ghost"
           className="flex items-center gap-2 px-2 hover:bg-muted rounded-md h-auto py-1 min-w-[200px]"
         >
-          <div 
+          <div
             className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold text-white shadow-sm ring-1 ring-white/10"
-            style={{ 
+            style={{
               backgroundImage,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.15)'
+              boxShadow:
+                '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 2px rgba(255,255,255,0.15)',
             }}
           >
             {initials}
           </div>
-          <span className="text-lg font-semibold truncate flex-1">{spaceName || 'Default Space'}</span>
+          <span className="text-lg font-semibold truncate flex-1">
+            {spaceName || 'Default Space'}
+          </span>
           <div className="flex-shrink-0">
             <ChevronDown size={16} />
           </div>
@@ -75,7 +78,7 @@ export function SpaceSelector({
               onClick={() => onSwitchSpace?.(space.id)}
               className={`flex items-center ${space.id === spaceId ? 'bg-muted' : ''}`}
             >
-              <div 
+              <div
                 className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-semibold text-white mr-2"
                 style={{ backgroundImage: generatePastelColor(space.name) }}
               >

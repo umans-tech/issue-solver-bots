@@ -1,7 +1,18 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
-import { CheckedSquare, UncheckedSquare, PlayIcon, XIcon, InfoIcon } from './icons';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
+import {
+  CheckedSquare,
+  InfoIcon,
+  PlayIcon,
+  UncheckedSquare,
+  XIcon,
+} from './icons';
 
 interface TodoItem {
   id: string;
@@ -18,14 +29,30 @@ interface TodoDisplayProps {
 const getStatusIcon = (status: TodoItem['status']) => {
   switch (status) {
     case 'completed':
-      return <span className="text-green-600"><CheckedSquare size={16} /></span>;
+      return (
+        <span className="text-green-600">
+          <CheckedSquare size={16} />
+        </span>
+      );
     case 'in_progress':
-      return <span className="text-blue-600 animate-pulse"><PlayIcon size={16} /></span>;
+      return (
+        <span className="text-blue-600 animate-pulse">
+          <PlayIcon size={16} />
+        </span>
+      );
     case 'cancelled':
-      return <span className="text-red-600"><XIcon size={16} /></span>;
+      return (
+        <span className="text-red-600">
+          <XIcon size={16} />
+        </span>
+      );
     case 'pending':
     default:
-      return <span className="text-gray-400"><UncheckedSquare size={16} /></span>;
+      return (
+        <span className="text-gray-400">
+          <UncheckedSquare size={16} />
+        </span>
+      );
   }
 };
 
@@ -70,10 +97,16 @@ const getPriorityColor = (priority?: TodoItem['priority']) => {
   }
 };
 
-export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => {
-  const completedCount = todos.filter(todo => todo.status === 'completed').length;
+export const TodoDisplay: React.FC<TodoDisplayProps> = ({
+  todos,
+  toolName,
+}) => {
+  const completedCount = todos.filter(
+    (todo) => todo.status === 'completed',
+  ).length;
   const totalCount = todos.length;
-  const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const progressPercentage =
+    totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   // Keep todos in original order from payload
 
@@ -83,19 +116,24 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-gray-900">Task Progress</h3>
-            
+            <h3 className="text-sm font-semibold text-gray-900">
+              Task Progress
+            </h3>
+
             {/* Hover info icon */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="opacity-60 hover:opacity-100 transition-opacity">
-                    <span className="text-gray-500"><InfoIcon size={14} /></span>
+                    <span className="text-gray-500">
+                      <InfoIcon size={14} />
+                    </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs">
-                    <strong>{toolName || 'TodoWrite'}</strong> tool executed successfully
+                    <strong>{toolName || 'TodoWrite'}</strong> tool executed
+                    successfully
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -105,11 +143,11 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
             {completedCount}/{totalCount} completed
           </div>
         </div>
-        
+
         {/* Progress bar */}
         <div className="mt-2">
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progressPercentage}%` }}
             />
@@ -123,43 +161,64 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
           const isCompleted = todo.status === 'completed';
           const isCancelled = todo.status === 'cancelled';
           const isInProgress = todo.status === 'in_progress';
-          
-          const hoverClass = isInProgress ? 'hover:bg-blue-50/50' : 
-                            isCompleted ? 'hover:bg-green-50/30' :
-                            isCancelled ? 'hover:bg-red-50/30' : 'hover:bg-gray-50/50';
-          
-          const opacity = isCompleted ? 'opacity-75' : isCancelled ? 'opacity-60' : '';
-          
+
+          const hoverClass = isInProgress
+            ? 'hover:bg-blue-50/50'
+            : isCompleted
+              ? 'hover:bg-green-50/30'
+              : isCancelled
+                ? 'hover:bg-red-50/30'
+                : 'hover:bg-gray-50/50';
+
+          const opacity = isCompleted
+            ? 'opacity-75'
+            : isCancelled
+              ? 'opacity-60'
+              : '';
+
           return (
-            <div key={todo.id} className={cn("p-4 transition-colors", hoverClass, opacity)}>
+            <div
+              key={todo.id}
+              className={cn('p-4 transition-colors', hoverClass, opacity)}
+            >
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-0.5">
                   {getStatusIcon(todo.status)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={cn(
-                      'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                      getStatusColor(todo.status)
-                    )}>
+                    <span
+                      className={cn(
+                        'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
+                        getStatusColor(todo.status),
+                      )}
+                    >
                       {getStatusText(todo.status)}
                     </span>
                     {todo.priority && (
-                      <span className={cn(
-                        'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
-                        getPriorityColor(todo.priority)
-                      )}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border',
+                          getPriorityColor(todo.priority),
+                        )}
+                      >
                         {todo.priority} priority
                       </span>
                     )}
                   </div>
-                  <p className={cn(
-                    "text-sm",
-                    isCompleted || isCancelled ? "line-through" : "",
-                    isCompleted ? "text-gray-600" : 
-                    isCancelled ? "text-gray-500" :
-                    isInProgress ? "text-gray-900 font-medium" : "text-gray-700"
-                  )}>
+                  <p
+                    className={cn(
+                      'text-sm',
+                      isCompleted || isCancelled ? 'line-through' : '',
+                      isCompleted
+                        ? 'text-gray-600'
+                        : isCancelled
+                          ? 'text-gray-500'
+                          : isInProgress
+                            ? 'text-gray-900 font-medium'
+                            : 'text-gray-700',
+                    )}
+                  >
                     {todo.content}
                   </p>
                 </div>
@@ -173,7 +232,9 @@ export const TodoDisplay: React.FC<TodoDisplayProps> = ({ todos, toolName }) => 
       {todos.length === 0 && (
         <div className="p-8 text-center">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-gray-400"><CheckedSquare size={24} /></span>
+            <span className="text-gray-400">
+              <CheckedSquare size={24} />
+            </span>
           </div>
           <p className="text-sm text-gray-500">No tasks to display</p>
         </div>

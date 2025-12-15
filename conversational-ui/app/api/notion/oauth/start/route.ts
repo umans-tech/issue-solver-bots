@@ -11,7 +11,9 @@ function buildCuduUrl(path: string, search: Record<string, string>) {
   }
 
   const url = new URL(`${cuduEndpoint}${path}`);
-  Object.entries(search).forEach(([key, value]) => url.searchParams.set(key, value));
+  Object.entries(search).forEach(([key, value]) =>
+    url.searchParams.set(key, value),
+  );
   return url.toString();
 }
 
@@ -54,7 +56,9 @@ export async function POST(request: Request) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       return NextResponse.json(
-        { error: payload?.detail || 'Failed to start Notion MCP authorization' },
+        {
+          error: payload?.detail || 'Failed to start Notion MCP authorization',
+        },
         { status: response.status },
       );
     }

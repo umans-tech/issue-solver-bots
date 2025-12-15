@@ -5,7 +5,13 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 type Cycle = 'monthly' | 'yearly';
 
@@ -69,7 +75,10 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('open-pricing-dialog', handler as EventListener);
+        window.removeEventListener(
+          'open-pricing-dialog',
+          handler as EventListener,
+        );
       }
     };
   }, []);
@@ -96,7 +105,10 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {children ? <SheetTrigger asChild>{children}</SheetTrigger> : null}
-      <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-lg p-0 flex flex-col"
+      >
         <SheetHeader className="px-6 pt-6">
           <SheetTitle>Pricing</SheetTitle>
         </SheetHeader>
@@ -109,7 +121,9 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
                 type="button"
                 onClick={() => setCycle(c)}
                 className={`rounded-full px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
-                  cycle === c ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                  cycle === c
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
               >
                 {c === 'monthly' ? 'Monthly' : 'Yearly'}
@@ -123,7 +137,10 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
             const price = p.pricing[cycle];
             const isEnterprise = p.planKey === 'enterprise';
             return (
-              <div key={p.name} className={`relative rounded-2xl border p-5 bg-card/80 ${p.planKey === 'pro' ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow' : 'border-border/50'}`}>
+              <div
+                key={p.name}
+                className={`relative rounded-2xl border p-5 bg-card/80 ${p.planKey === 'pro' ? 'border-primary/60 ring-1 ring-primary/20 from-primary/5 shadow' : 'border-border/50'}`}
+              >
                 {p.planKey === 'pro' && (
                   <span className="pointer-events-none absolute right-4 top-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
                     Most popular
@@ -131,11 +148,21 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
                 )}
                 <div className="space-y-1">
                   <div className="text-lg font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.description}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {p.description}
+                  </div>
                 </div>
                 <div className="mt-3 flex items-baseline gap-2">
-                  <div className={`${isEnterprise ? 'text-base' : 'text-2xl whitespace-nowrap'} font-bold`}>{price.amount}</div>
-                  {!isEnterprise && <div className="text-xs text-muted-foreground whitespace-nowrap">{price.descriptor}</div>}
+                  <div
+                    className={`${isEnterprise ? 'text-base' : 'text-2xl whitespace-nowrap'} font-bold`}
+                  >
+                    {price.amount}
+                  </div>
+                  {!isEnterprise && (
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      {price.descriptor}
+                    </div>
+                  )}
                 </div>
                 <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
                   {p.features.map((f) => (
@@ -147,9 +174,19 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
                 </ul>
                 <div className="mt-4">
                   {p.planKey === 'enterprise' ? (
-                    <Link href="mailto:contact@umans.ai" className="inline-flex w-full items-center justify-center rounded-md border border-border/60 bg-background px-6 py-2 text-sm font-semibold hover:border-border">{p.cta}</Link>
+                    <Link
+                      href="mailto:contact@umans.ai"
+                      className="inline-flex w-full items-center justify-center rounded-md border border-border/60 bg-background px-6 py-2 text-sm font-semibold hover:border-border"
+                    >
+                      {p.cta}
+                    </Link>
                   ) : (
-                    <Button className="w-full" onClick={() => startCheckout(p.planKey)}>{p.cta}</Button>
+                    <Button
+                      className="w-full"
+                      onClick={() => startCheckout(p.planKey)}
+                    >
+                      {p.cta}
+                    </Button>
                   )}
                 </div>
               </div>
@@ -160,5 +197,3 @@ export function PricingDialog({ children }: { children?: React.ReactNode }) {
     </Sheet>
   );
 }
-
-

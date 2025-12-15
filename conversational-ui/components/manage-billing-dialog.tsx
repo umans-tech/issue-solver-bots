@@ -7,16 +7,19 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-const FALLBACK_PORTAL_URL = 'https://dashboard.stripe.com/login?redirect=%2Finvoices';
+const FALLBACK_PORTAL_URL =
+  'https://dashboard.stripe.com/login?redirect=%2Finvoices';
 const FALLBACK_SUPPORT_EMAIL = 'billing@umans.ai';
 
-export function ManageBillingDialog({ children }: { children?: React.ReactNode }) {
+export function ManageBillingDialog({
+  children,
+}: { children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [runtimeConfig, setRuntimeConfig] = useState<any>(() => {
     if (typeof window === 'undefined') return null;
@@ -31,7 +34,10 @@ export function ManageBillingDialog({ children }: { children?: React.ReactNode }
     }
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('open-manage-billing', handler as EventListener);
+        window.removeEventListener(
+          'open-manage-billing',
+          handler as EventListener,
+        );
       }
     };
   }, []);
@@ -47,17 +53,24 @@ export function ManageBillingDialog({ children }: { children?: React.ReactNode }
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {children ? <SheetTrigger asChild>{children}</SheetTrigger> : null}
-      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md p-0 flex flex-col"
+      >
         <SheetHeader className="px-6 pt-6">
           <SheetTitle>Manage billing</SheetTitle>
           <SheetDescription>
-            We are rolling out a richer billing experience soon. Jump to the customer portal to review invoices or update payment details, or reach out to our team directly.
+            We are rolling out a richer billing experience soon. Jump to the
+            customer portal to review invoices or update payment details, or
+            reach out to our team directly.
           </SheetDescription>
         </SheetHeader>
 
         <div className="px-6 mt-6 space-y-3 text-sm text-muted-foreground">
           <p>
-            Billing portal access requires the email you used to subscribe. If you do not see your workspace&apos;s invoices, contact us and we&apos;ll help right away.
+            Billing portal access requires the email you used to subscribe. If
+            you do not see your workspace&apos;s invoices, contact us and
+            we&apos;ll help right away.
           </p>
         </div>
 
@@ -75,5 +88,3 @@ export function ManageBillingDialog({ children }: { children?: React.ReactNode }
     </Sheet>
   );
 }
-
-

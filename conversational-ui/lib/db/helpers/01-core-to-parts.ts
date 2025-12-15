@@ -94,7 +94,7 @@
 
 // async function migrateMessages() {
 //   console.info('Starting message migration from deprecated schema to new parts-based schema...');
-  
+
 //   const chats = await db.select().from(chat);
 //   console.info(`Found ${chats.length} chats to process`);
 

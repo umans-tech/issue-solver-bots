@@ -3,9 +3,9 @@ import { useSession } from 'next-auth/react';
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,7 +99,10 @@ export function SpaceRenameDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !newName.trim() || newName === currentName}>
+            <Button
+              type="submit"
+              disabled={isLoading || !newName.trim() || newName === currentName}
+            >
               {isLoading ? 'Saving...' : 'Save'}
             </Button>
           </AlertDialogFooter>
@@ -107,4 +110,4 @@ export function SpaceRenameDialog({
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}

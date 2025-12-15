@@ -1,30 +1,45 @@
 import { useState } from 'react';
-import { 
-  ChevronDown, 
-  ExternalLink, 
-  MapPin, 
-  Building, 
-  Link, 
-  Twitter, 
+import {
+  Building,
   Calendar,
-  Star,
+  ChevronDown,
+  ExternalLink,
+  FileText,
   GitFork,
-  Eye,
-  FileText
+  Link,
+  MapPin,
+  Star,
+  Twitter,
 } from 'lucide-react';
 import { TreeView } from '@primer/react';
 import { GitIcon } from '../icons';
-import { GitHubMCPResultProps, getGitHubMCPToolCategory } from './github-mcp-types';
+import {
+  getGitHubMCPToolCategory,
+  type GitHubMCPResultProps,
+} from './github-mcp-types';
 import { getFileExtension, getLanguageIcon } from '../sources';
 
 // Utility function to extract GitHub sources from MCP results
-export const extractGitHubSources = (toolName: string, result: any, args: any): Array<{ sourceType: 'url'; id: string; url: string; title: string }> => {
-  const sources: Array<{ sourceType: 'url'; id: string; url: string; title: string }> = [];
-  
+export const extractGitHubSources = (
+  toolName: string,
+  result: any,
+  args: any,
+): Array<{ sourceType: 'url'; id: string; url: string; title: string }> => {
+  const sources: Array<{
+    sourceType: 'url';
+    id: string;
+    url: string;
+    title: string;
+  }> = [];
+
   try {
     // Extract data from MCP format if needed
     let data = result;
-    if (result && result.content && Array.isArray(result.content) && result.content[0]?.text) {
+    if (
+      result?.content &&
+      Array.isArray(result.content) &&
+      result.content[0]?.text
+    ) {
       try {
         data = JSON.parse(result.content[0].text);
       } catch {
@@ -36,16 +51,18 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
       case 'get_file_contents':
         if (data && typeof data === 'object') {
           const fileName = data.name || args?.path || 'Unknown file';
-          const fileUrl = data.html_url || `https://github.com/search?q=filename:${encodeURIComponent(args?.path || fileName)}&type=code`;
+          const fileUrl =
+            data.html_url ||
+            `https://github.com/search?q=filename:${encodeURIComponent(args?.path || fileName)}&type=code`;
           sources.push({
             sourceType: 'url',
             id: crypto.randomUUID(),
             url: fileUrl,
-            title: fileName
+            title: fileName,
           });
         }
         break;
-        
+
       case 'search_code':
         if (Array.isArray(data)) {
           data.forEach((item: any) => {
@@ -54,24 +71,24 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: item.name
+                title: item.name,
               });
             }
           });
-        } else if (data && data.items && Array.isArray(data.items)) {
+        } else if (data?.items && Array.isArray(data.items)) {
           data.items.forEach((item: any) => {
             if (item.html_url && item.name) {
               sources.push({
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: item.name
+                title: item.name,
               });
             }
           });
         }
         break;
-        
+
       case 'issue_read':
         if (Array.isArray(data)) {
           data.forEach((item: any) => {
@@ -80,16 +97,16 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: item.title ? `Issue: ${item.title}` : 'Issue comment'
+                title: item.title ? `Issue: ${item.title}` : 'Issue comment',
               });
             }
           });
-        } else if (data && data.html_url && data.title) {
+        } else if (data?.html_url && data.title) {
           sources.push({
             sourceType: 'url',
             id: crypto.randomUUID(),
             url: data.html_url,
-            title: `Issue: ${data.title}`
+            title: `Issue: ${data.title}`,
           });
         }
         break;
@@ -101,63 +118,66 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
             sourceType: 'url',
             id: crypto.randomUUID(),
             url: issueData.html_url,
-            title: `Issue: ${issueData.title}`
+            title: `Issue: ${issueData.title}`,
           });
         }
         break;
       }
-        
+
       case 'get_pull_request':
-        if (data && data.html_url && data.title) {
+        if (data?.html_url && data.title) {
           sources.push({
             sourceType: 'url',
             id: crypto.randomUUID(),
             url: data.html_url,
-            title: `PR: ${data.title}`
+            title: `PR: ${data.title}`,
           });
         }
         break;
-        
+
       case 'list_issues':
         if (Array.isArray(data)) {
-          data.slice(0, 5).forEach((item: any) => { // Limit to first 5 to avoid too many sources
+          data.slice(0, 5).forEach((item: any) => {
+            // Limit to first 5 to avoid too many sources
             if (item.html_url && item.title) {
               sources.push({
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: `Issue: ${item.title}`
+                title: `Issue: ${item.title}`,
               });
             }
           });
         }
         break;
-        
+
       case 'list_pull_requests':
         if (Array.isArray(data)) {
-          data.slice(0, 5).forEach((item: any) => { // Limit to first 5 to avoid too many sources
+          data.slice(0, 5).forEach((item: any) => {
+            // Limit to first 5 to avoid too many sources
             if (item.html_url && item.title) {
               sources.push({
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: `PR: ${item.title}`
+                title: `PR: ${item.title}`,
               });
             }
           });
         }
         break;
-        
+
       case 'search_repositories':
       case 'list_repositories':
         if (Array.isArray(data)) {
-          data.slice(0, 5).forEach((item: any) => { // Limit to first 5 to avoid too many sources
+          data.slice(0, 5).forEach((item: any) => {
+            // Limit to first 5 to avoid too many sources
             if (item.html_url && item.full_name) {
               sources.push({
                 sourceType: 'url',
                 id: crypto.randomUUID(),
                 url: item.html_url,
-                title: `Repo: ${item.full_name}`
+                title: `Repo: ${item.full_name}`,
               });
             }
           });
@@ -167,55 +187,104 @@ export const extractGitHubSources = (toolName: string, result: any, args: any): 
   } catch (error) {
     console.warn('Error extracting GitHub sources:', error);
   }
-  
+
   return sources;
 };
 
-export const GitHubMCPResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
-
-  const parts = Array.isArray(result?.content) ? result!.content! : [];
+export const GitHubMCPResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
+  const parts = Array.isArray(result?.content) ? result?.content! : [];
   let text_result = parts.find((p: any) => p?.type === 'text')?.text ?? null;
-  let resource_result = parts.find((p: any) => p?.type === 'resource')?.resource ?? null;;
+  let resource_result =
+    parts.find((p: any) => p?.type === 'resource')?.resource ?? null;
 
   if (text_result) {
-    try{
+    try {
       text_result = JSON.parse(text_result);
-    } catch (error) {
-    }
+    } catch (error) {}
   }
   if (resource_result) {
-    try{
+    try {
       resource_result = JSON.parse(resource_result);
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   result = {
     text: text_result,
-    resource: resource_result
+    resource: resource_result,
   };
 
-
   const category = getGitHubMCPToolCategory(toolName);
-  
+
   // Category-based result handling
   switch (category) {
     case 'users':
-      return <GitHubUsersResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubUsersResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     case 'issues':
-      return <GitHubIssuesResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubIssuesResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     case 'pullRequests':
-      return <GitHubPullRequestsResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubPullRequestsResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     case 'repositories':
-      return <GitHubRepositoriesResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubRepositoriesResult
+          toolName={toolName}
+          result={result}
+          args={args}
+        />
+      );
     case 'actions':
-      return <GitHubActionsResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubActionsResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     case 'security':
-      return <GitHubSecurityResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubSecurityResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     case 'notifications':
-      return <GitHubNotificationsResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubNotificationsResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
     default:
-      return <GitHubGenericResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubGenericResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
   }
 };
 
@@ -263,7 +332,9 @@ function prepareIssueDataFromIssueWrite(
     normalized = tryParseJSON(output);
   } else if (output && typeof output === 'object') {
     if (Array.isArray((output as any).content)) {
-      const firstTextChunk = (output as any).content.find((chunk: any) => typeof chunk?.text === 'string');
+      const firstTextChunk = (output as any).content.find(
+        (chunk: any) => typeof chunk?.text === 'string',
+      );
       normalized = firstTextChunk ? tryParseJSON(firstTextChunk.text) : output;
     } else if (typeof (output as any).text === 'string') {
       normalized = tryParseJSON((output as any).text) ?? output;
@@ -279,9 +350,14 @@ function prepareIssueDataFromIssueWrite(
         ? normalized.url
         : '';
 
-  const numberFromOutput = typeof normalized?.number === 'number' ? normalized.number : undefined;
-  const numberFromInput = typeof input?.issue_number === 'number' ? input.issue_number : input?.number;
-  const number = numberFromOutput ?? numberFromInput ?? extractIssueNumberFromUrl(url) ?? 0;
+  const numberFromOutput =
+    typeof normalized?.number === 'number' ? normalized.number : undefined;
+  const numberFromInput =
+    typeof input?.issue_number === 'number'
+      ? input.issue_number
+      : input?.number;
+  const number =
+    numberFromOutput ?? numberFromInput ?? extractIssueNumberFromUrl(url) ?? 0;
 
   return {
     html_url: url,
@@ -289,106 +365,207 @@ function prepareIssueDataFromIssueWrite(
     number,
     state: normalized?.state ?? input?.state ?? 'open',
     body: normalized?.body ?? input?.body ?? '',
-    comments: typeof normalized?.comments === 'number' ? normalized.comments : 0,
+    comments:
+      typeof normalized?.comments === 'number' ? normalized.comments : 0,
   };
 }
 
 // Users category
-const GitHubUsersResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubUsersResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'get_me':
       return <GitHubUserProfile user={result} />;
     case 'search_users':
       return <GitHubUsersList users={result} query={args?.q} />;
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
-// Issues category  
-const GitHubIssuesResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+// Issues category
+const GitHubIssuesResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'list_issues':
-      return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubIssuesList
+          issues={result}
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     case 'issue_read':
       if ((args?.method ?? 'get').toLowerCase() === 'get_comments') {
-        return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+        return (
+          <GitHubGenericResult
+            toolName={toolName}
+            result={result}
+            args={args}
+          />
+        );
       }
       return <GitHubIssueDetail issue={result} />;
     case 'issue_write':
-      return <GitHubIssueDetail issue={prepareIssueDataFromIssueWrite(args ?? {}, result)} />;
+      return (
+        <GitHubIssueDetail
+          issue={prepareIssueDataFromIssueWrite(args ?? {}, result)}
+        />
+      );
     case 'search_issues':
-      return <GitHubIssuesList issues={result} repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubIssuesList
+          issues={result}
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
 // Pull Requests category
-const GitHubPullRequestsResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubPullRequestsResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'list_pull_requests':
-      return <GitHubPullRequestsList pullRequests={result} repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubPullRequestsList
+          pullRequests={result}
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     case 'get_pull_request':
       return <GitHubPullRequestDetail pullRequest={result} />;
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
 // Repositories category
-const GitHubRepositoriesResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubRepositoriesResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'search_repositories':
-      return <GitHubRepositoriesList repositories={result.text} query={args?.query} />;
+      return (
+        <GitHubRepositoriesList
+          repositories={result.text}
+          query={args?.query}
+        />
+      );
     case 'list_repositories':
       return <GitHubRepositoriesList repositories={result.text} />;
     case 'get_file_contents':
       return <GitHubFileContents file={result} path={args?.path} />;
     case 'search_code':
-      return <GitHubCodeSearchResults results={result.text} query={args?.query} />;
+      return (
+        <GitHubCodeSearchResults results={result.text} query={args?.query} />
+      );
     default:
-      return <GitHubGenericResult toolName={toolName} result={result.text} args={args} />;
+      return (
+        <GitHubGenericResult
+          toolName={toolName}
+          result={result.text}
+          args={args}
+        />
+      );
   }
 };
 
 // Actions category
-const GitHubActionsResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubActionsResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'list_workflows':
-      return <GitHubWorkflowsList workflows={result} repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubWorkflowsList
+          workflows={result}
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     case 'list_workflow_runs':
-      return <GitHubWorkflowRunsList runs={result} repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubWorkflowRunsList
+          runs={result}
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
 // Security category
-const GitHubSecurityResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubSecurityResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'list_code_scanning_alerts':
-      return <GitHubSecurityAlertsList alerts={result} type="Code Scanning" repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubSecurityAlertsList
+          alerts={result}
+          type="Code Scanning"
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     case 'list_secret_scanning_alerts':
-      return <GitHubSecurityAlertsList alerts={result} type="Secret Scanning" repository={`${args?.owner}/${args?.repo}`} />;
+      return (
+        <GitHubSecurityAlertsList
+          alerts={result}
+          type="Secret Scanning"
+          repository={`${args?.owner}/${args?.repo}`}
+        />
+      );
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
 // Notifications category
-const GitHubNotificationsResult = ({ toolName, result, args }: GitHubMCPResultProps) => {
+const GitHubNotificationsResult = ({
+  toolName,
+  result,
+  args,
+}: GitHubMCPResultProps) => {
   switch (toolName) {
     case 'list_notifications':
       return <GitHubNotificationsList notifications={result} />;
     default:
-      return <GitHubGenericResult toolName={toolName} result={result} args={args} />;
+      return (
+        <GitHubGenericResult toolName={toolName} result={result} args={args} />
+      );
   }
 };
 
 // Specific result components for individual tools
 
-// User profile component  
+// User profile component
 const GitHubUserProfile = ({ user }: { user: any }) => {
   // Extract MCP content payload if present
   let userData = user;
@@ -405,15 +582,18 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
   // Normalize commonly shifted fields coming from MCP
-  const details = userData && typeof (userData as any).details === 'object' ? (userData as any).details : undefined;
+  const details =
+    userData && typeof (userData as any).details === 'object'
+      ? (userData as any).details
+      : undefined;
   const publicRepos: number =
     typeof (userData as any).public_repos === 'number'
       ? (userData as any).public_repos
@@ -432,8 +612,10 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
       : typeof details?.following === 'number'
         ? details.following
         : 0;
-  const createdAt: string | undefined = (userData as any).created_at ?? details?.created_at;
-  const profileHref: string | undefined = (userData as any).html_url ?? (userData as any).profile_url;
+  const createdAt: string | undefined =
+    (userData as any).created_at ?? details?.created_at;
+  const profileHref: string | undefined =
+    (userData as any).html_url ?? (userData as any).profile_url;
 
   return (
     <div className="mt-1">
@@ -441,23 +623,25 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
         <GitIcon status="none" />
         <span className="text-muted-foreground">GitHub Profile</span>
       </div>
-      
+
       <div className="border rounded-lg p-6 bg-card">
         {/* Header with avatar and basic info */}
         <div className="flex items-start gap-4 mb-4">
           {userData.avatar_url && (
-            <img 
-              src={userData.avatar_url} 
-              alt="Profile Avatar" 
-              className="w-16 h-16 rounded-full border-2 border-border" 
+            <img
+              src={userData.avatar_url}
+              alt="Profile Avatar"
+              className="w-16 h-16 rounded-full border-2 border-border"
             />
           )}
           <div className="flex-1">
             <h2 className="text-xl font-semibold text-foreground">
               {userData.name || userData.login}
             </h2>
-            <p className="text-muted-foreground text-base mb-2">@{userData.login}</p>
-            
+            <p className="text-muted-foreground text-base mb-2">
+              @{userData.login}
+            </p>
+
             {userData.bio && (
               <p className="text-foreground text-sm leading-relaxed mb-3">
                 {userData.bio}
@@ -469,13 +653,13 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
         {/* Profile details - Two column layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           <div className="space-y-3">
-                      {userData.location && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span>{userData.location}</span>
-            </div>
-          )}
-            
+            {userData.location && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span>{userData.location}</span>
+              </div>
+            )}
+
             {userData.company && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Building className="w-4 h-4" />
@@ -486,8 +670,12 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
             {userData.blog && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Link className="w-4 h-4" />
-                <a 
-                  href={userData.blog.startsWith('http') ? userData.blog : `https://${userData.blog}`}
+                <a
+                  href={
+                    userData.blog.startsWith('http')
+                      ? userData.blog
+                      : `https://${userData.blog}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -539,19 +727,20 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
         </div>
 
         {/* View on GitHub link */}
-        {typeof profileHref === 'string' && /^https?:\/\//.test(profileHref) && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <a
-              href={profileHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>View on GitHub</span>
-              <ExternalLink size={14} />
-            </a>
-          </div>
-        )}
+        {typeof profileHref === 'string' &&
+          /^https?:\/\//.test(profileHref) && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <a
+                href={profileHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span>View on GitHub</span>
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          )}
       </div>
     </div>
   );
@@ -559,13 +748,17 @@ const GitHubUserProfile = ({ user }: { user: any }) => {
 
 // For components that don't have specific implementations yet, create placeholders
 const GitHubUsersList = ({ users, query }: { users: any; query?: string }) => (
-  <GitHubGenericResult toolName="search_users" result={users} args={{ q: query }} />
+  <GitHubGenericResult
+    toolName="search_users"
+    result={users}
+    args={{ q: query }}
+  />
 );
 
 const GitHubIssueDetail = ({ issue }: { issue: any }) => {
   // Use the same MCP content extraction logic
-  let issueData = issue;
-  
+  const issueData = issue;
+
   if (!issueData || typeof issueData !== 'object') {
     return <GitHubGenericResult toolName="issue_read" result={issue} />;
   }
@@ -589,49 +782,62 @@ const GitHubIssueDetail = ({ issue }: { issue: any }) => {
               <h3 className="font-medium text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {issueData.title}
               </h3>
-              <span className="text-sm text-muted-foreground">#{issueData.number}</span>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                issueData.state === 'open' 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                  : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-              }`}>
+              <span className="text-sm text-muted-foreground">
+                #{issueData.number}
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  issueData.state === 'open'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                }`}
+              >
                 {issueData.state}
               </span>
             </div>
-            
+
             {issueData.body && (
               <div className="text-sm text-muted-foreground mb-3 line-clamp-3">
-                {issueData.body.length > 200 ? issueData.body.slice(0, 200) + '...' : issueData.body}
+                {issueData.body.length > 200
+                  ? `${issueData.body.slice(0, 200)}...`
+                  : issueData.body}
               </div>
             )}
-            
+
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
               <div className="flex items-center gap-2">
                 {issueData.user?.avatar_url && (
-                  <img 
-                    src={issueData.user.avatar_url} 
+                  <img
+                    src={issueData.user.avatar_url}
                     alt={`@${issueData.user.login}`}
                     className="w-5 h-5 rounded-full"
                   />
                 )}
                 {issueData.user?.login && <span>@{issueData.user.login}</span>}
               </div>
-              {issueData.created_at && <span>opened {new Date(issueData.created_at).toLocaleDateString()}</span>}
+              {issueData.created_at && (
+                <span>
+                  opened {new Date(issueData.created_at).toLocaleDateString()}
+                </span>
+              )}
               {issueData.comments > 0 && (
-                <span>{issueData.comments} comment{issueData.comments !== 1 ? 's' : ''}</span>
+                <span>
+                  {issueData.comments} comment
+                  {issueData.comments !== 1 ? 's' : ''}
+                </span>
               )}
             </div>
 
             {issueData.labels && issueData.labels.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {issueData.labels.map((label: any) => (
-                  <span 
-                    key={label.id} 
+                  <span
+                    key={label.id}
                     className="px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ 
+                    style={{
                       backgroundColor: `#${label.color}20`,
                       color: `#${label.color}`,
-                      border: `1px solid #${label.color}40`
+                      border: `1px solid #${label.color}40`,
                     }}
                   >
                     {label.name}
@@ -640,7 +846,7 @@ const GitHubIssueDetail = ({ issue }: { issue: any }) => {
               </div>
             )}
           </div>
-          
+
           <div className="text-muted-foreground group-hover:text-foreground transition-colors">
             <ExternalLink size={16} />
           </div>
@@ -650,11 +856,14 @@ const GitHubIssueDetail = ({ issue }: { issue: any }) => {
   );
 };
 
-const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: any; repository: string }) => {
+const GitHubPullRequestsList = ({
+  pullRequests,
+  repository,
+}: { pullRequests: any; repository: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API (same logic as issues)
-  let prsArray = pullRequests;
+  const prsArray = pullRequests;
 
   if (!prsArray || prsArray.length === 0) {
     return null;
@@ -667,7 +876,8 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
       <div className="flex items-center gap-2 text-sm mb-2">
         <GitIcon status="none" />
         <span className="text-muted-foreground">
-          Found {prsArray.length} pull request{prsArray.length !== 1 ? 's' : ''} in {repository}
+          Found {prsArray.length} pull request{prsArray.length !== 1 ? 's' : ''}{' '}
+          in {repository}
         </span>
       </div>
 
@@ -683,31 +893,41 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
             <div className="flex items-start gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{pr.title}</h4>
-                  <span className="text-xs text-muted-foreground">#{pr.number}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs ${
-                    pr.state === 'open' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                      : pr.merged
-                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
+                  <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {pr.title}
+                  </h4>
+                  <span className="text-xs text-muted-foreground">
+                    #{pr.number}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs ${
+                      pr.state === 'open'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : pr.merged
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    }`}
+                  >
                     {pr.merged ? 'merged' : pr.state}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>@{pr.user?.login}</span>
                   <span>{new Date(pr.created_at).toLocaleDateString()}</span>
                   {pr.base && pr.head && (
-                    <span>{pr.head.ref} → {pr.base.ref}</span>
+                    <span>
+                      {pr.head.ref} → {pr.base.ref}
+                    </span>
                   )}
                   {pr.comments > 0 && (
-                    <span>{pr.comments} comment{pr.comments !== 1 ? 's' : ''}</span>
+                    <span>
+                      {pr.comments} comment{pr.comments !== 1 ? 's' : ''}
+                    </span>
                   )}
                 </div>
               </div>
-              
+
               <div className="text-muted-foreground group-hover:text-foreground transition-colors">
                 <ExternalLink size={14} />
               </div>
@@ -721,11 +941,13 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
           onClick={() => setExpanded(!expanded)}
           className="mt-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ChevronDown 
-            size={14} 
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
           />
-          {expanded ? 'Show less' : `Show ${prsArray.length - 3} more PR${prsArray.length - 3 !== 1 ? 's' : ''}`}
+          {expanded
+            ? 'Show less'
+            : `Show ${prsArray.length - 3} more PR${prsArray.length - 3 !== 1 ? 's' : ''}`}
         </button>
       )}
     </div>
@@ -734,10 +956,12 @@ const GitHubPullRequestsList = ({ pullRequests, repository }: { pullRequests: an
 
 const GitHubPullRequestDetail = ({ pullRequest }: { pullRequest: any }) => {
   // Use the same MCP content extraction logic
-  let prData = pullRequest;
-  
+  const prData = pullRequest;
+
   if (!prData || typeof prData !== 'object') {
-    return <GitHubGenericResult toolName="get_pull_request" result={pullRequest} />;
+    return (
+      <GitHubGenericResult toolName="get_pull_request" result={pullRequest} />
+    );
   }
 
   return (
@@ -759,36 +983,44 @@ const GitHubPullRequestDetail = ({ pullRequest }: { pullRequest: any }) => {
               <h3 className="font-medium text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {prData.title}
               </h3>
-              <span className="text-sm text-muted-foreground">#{prData.number}</span>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                prData.state === 'open' 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                  : prData.merged
-                  ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
+              <span className="text-sm text-muted-foreground">
+                #{prData.number}
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  prData.state === 'open'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : prData.merged
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                }`}
+              >
                 {prData.merged ? 'merged' : prData.state}
               </span>
             </div>
-            
+
             {prData.body && (
               <div className="text-sm text-muted-foreground mb-3 line-clamp-3">
-                {prData.body.length > 200 ? prData.body.slice(0, 200) + '...' : prData.body}
+                {prData.body.length > 200
+                  ? `${prData.body.slice(0, 200)}...`
+                  : prData.body}
               </div>
             )}
-            
+
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
               <div className="flex items-center gap-2">
                 {prData.user?.avatar_url && (
-                  <img 
-                    src={prData.user.avatar_url} 
+                  <img
+                    src={prData.user.avatar_url}
                     alt={`@${prData.user.login}`}
                     className="w-5 h-5 rounded-full"
                   />
                 )}
                 <span>@{prData.user?.login}</span>
               </div>
-              <span>opened {new Date(prData.created_at).toLocaleDateString()}</span>
+              <span>
+                opened {new Date(prData.created_at).toLocaleDateString()}
+              </span>
               {prData.base && prData.head && (
                 <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
                   {prData.head.ref} → {prData.base.ref}
@@ -798,20 +1030,25 @@ const GitHubPullRequestDetail = ({ pullRequest }: { pullRequest: any }) => {
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               {prData.comments > 0 && (
-                <span>{prData.comments} comment{prData.comments !== 1 ? 's' : ''}</span>
-              )}
-              {prData.commits && (
-                <span>{prData.commits} commit{prData.commits !== 1 ? 's' : ''}</span>
-              )}
-              {prData.additions !== undefined && prData.deletions !== undefined && (
-                <span className="flex items-center gap-1">
-                  <span className="text-green-600">+{prData.additions}</span>
-                  <span className="text-red-600">-{prData.deletions}</span>
+                <span>
+                  {prData.comments} comment{prData.comments !== 1 ? 's' : ''}
                 </span>
               )}
+              {prData.commits && (
+                <span>
+                  {prData.commits} commit{prData.commits !== 1 ? 's' : ''}
+                </span>
+              )}
+              {prData.additions !== undefined &&
+                prData.deletions !== undefined && (
+                  <span className="flex items-center gap-1">
+                    <span className="text-green-600">+{prData.additions}</span>
+                    <span className="text-red-600">-{prData.deletions}</span>
+                  </span>
+                )}
             </div>
           </div>
-          
+
           <div className="text-muted-foreground group-hover:text-foreground transition-colors">
             <ExternalLink size={16} />
           </div>
@@ -821,11 +1058,14 @@ const GitHubPullRequestDetail = ({ pullRequest }: { pullRequest: any }) => {
   );
 };
 
-const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; query?: string }) => {
+const GitHubRepositoriesList = ({
+  repositories,
+  query,
+}: { repositories: any; query?: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let reposArray = repositories.items;
+  const reposArray = repositories.items;
 
   if (!reposArray || reposArray.length === 0) {
     return null;
@@ -838,7 +1078,9 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
       <div className="flex items-center gap-2 text-sm mb-2">
         <GitIcon status="none" />
         <span className="text-muted-foreground">
-          Found {reposArray.length} repositor{reposArray.length !== 1 ? 'ies' : 'y'}{query ? ` for "${query}"` : ''}
+          Found {reposArray.length} repositor
+          {reposArray.length !== 1 ? 'ies' : 'y'}
+          {query ? ` for "${query}"` : ''}
         </span>
       </div>
 
@@ -855,7 +1097,9 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {String(repo.full_name || repo.name || 'Unknown repository')}
+                    {String(
+                      repo.full_name || repo.name || 'Unknown repository',
+                    )}
                   </h4>
                   {repo.private && (
                     <span className="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
@@ -868,17 +1112,17 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
                     </span>
                   )}
                 </div>
-                
+
                 {repo.description && (
                   <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                     {String(repo.description)}
                   </p>
                 )}
-                
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   {repo.language && (
                     <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <span className="w-2 h-2 rounded-full bg-blue-500" />
                       {String(repo.language)}
                     </span>
                   )}
@@ -895,11 +1139,13 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
                     </span>
                   )}
                   {repo.updated_at && (
-                    <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                    <span>
+                      Updated {new Date(repo.updated_at).toLocaleDateString()}
+                    </span>
                   )}
                 </div>
               </div>
-              
+
               <div className="text-muted-foreground group-hover:text-foreground transition-colors">
                 <ExternalLink size={14} />
               </div>
@@ -913,25 +1159,27 @@ const GitHubRepositoriesList = ({ repositories, query }: { repositories: any; qu
           onClick={() => setExpanded(!expanded)}
           className="mt-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ChevronDown 
-            size={14} 
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
           />
-          {expanded ? 'Show less' : `Show ${reposArray.length - 3} more repositor${reposArray.length - 3 !== 1 ? 'ies' : 'y'}`}
+          {expanded
+            ? 'Show less'
+            : `Show ${reposArray.length - 3} more repositor${reposArray.length - 3 !== 1 ? 'ies' : 'y'}`}
         </button>
       )}
     </div>
   );
 };
 
-
-
 const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Normalized fields from MCP
   const resource = file?.resource ?? null;
-  const directoryItems = Array.isArray(file?.text) ? (file.text as any[]) : null;
+  const directoryItems = Array.isArray(file?.text)
+    ? (file.text as any[])
+    : null;
 
   const repoUriToWebUrl = (uri: string): string => {
     try {
@@ -973,7 +1221,10 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
               {String(path || 'directory')}
               <TreeView.SubTree>
                 {directoryItems.map((item: any) => (
-                  <TreeView.Item id={String(item.path)} key={item.sha || item.path}>
+                  <TreeView.Item
+                    id={String(item.path)}
+                    key={item.sha || item.path}
+                  >
                     <TreeView.LeadingVisual>
                       {item.type === 'dir' ? (
                         <TreeView.DirectoryIcon />
@@ -1012,7 +1263,14 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
       <div className="mt-1">
         <div className="flex items-center gap-2 text-sm mb-1">
           <GitIcon status="none" />
-          <span className="text-muted-foreground">Retrieved file contents: "{path || (uri.startsWith('repo://') ? uri.split('/').slice(3).join('/') : (uri || ''))}"</span>
+          <span className="text-muted-foreground">
+            Retrieved file contents: "
+            {path ||
+              (uri.startsWith('repo://')
+                ? uri.split('/').slice(3).join('/')
+                : uri || '')}
+            "
+          </span>
         </div>
 
         <a
@@ -1042,7 +1300,9 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
                   {String(displayName)}
                 </h4>
               </div>
-              <div className="text-xs text-muted-foreground truncate">{displayUrl}</div>
+              <div className="text-xs text-muted-foreground truncate">
+                {displayUrl}
+              </div>
             </div>
             <div className="text-muted-foreground group-hover:text-foreground transition-colors">
               <ExternalLink size={14} />
@@ -1057,11 +1317,14 @@ const GitHubFileContents = ({ file, path }: { file: any; path?: string }) => {
   return null;
 };
 
-const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: string }) => {
+const GitHubCodeSearchResults = ({
+  results,
+  query,
+}: { results: any; query?: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let resultsArray = results.items;
+  const resultsArray = results.items;
 
   if (!resultsArray || resultsArray.length === 0) {
     return null;
@@ -1074,7 +1337,9 @@ const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: str
       <div className="flex items-center gap-2 text-sm mb-2">
         <GitIcon status="none" />
         <span className="text-muted-foreground">
-          Found {resultsArray.length} code result{resultsArray.length !== 1 ? 's' : ''}{query ? ` for "${query}"` : ''}
+          Found {resultsArray.length} code result
+          {resultsArray.length !== 1 ? 's' : ''}
+          {query ? ` for "${query}"` : ''}
         </span>
       </div>
 
@@ -1097,21 +1362,20 @@ const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: str
                     {String(result.repository?.full_name || '')}
                   </span>
                 </div>
-                
+
                 <div className="text-xs text-muted-foreground mb-2">
                   {String(result.path || '')}
                 </div>
 
                 {result.text_matches && result.text_matches.length > 0 && (
                   <div className="text-xs bg-muted/50 p-2 rounded font-mono overflow-hidden">
-                    {typeof result.text_matches[0].fragment === 'string' 
-                      ? result.text_matches[0].fragment 
-                      : JSON.stringify(result.text_matches[0].fragment)
-                    }
+                    {typeof result.text_matches[0].fragment === 'string'
+                      ? result.text_matches[0].fragment
+                      : JSON.stringify(result.text_matches[0].fragment)}
                   </div>
                 )}
               </div>
-              
+
               <div className="text-muted-foreground group-hover:text-foreground transition-colors">
                 <ExternalLink size={14} />
               </div>
@@ -1125,27 +1389,51 @@ const GitHubCodeSearchResults = ({ results, query }: { results: any; query?: str
           onClick={() => setExpanded(!expanded)}
           className="mt-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ChevronDown 
-            size={14} 
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
           />
-          {expanded ? 'Show less' : `Show ${resultsArray.length - 3} more result${resultsArray.length - 3 !== 1 ? 's' : ''}`}
+          {expanded
+            ? 'Show less'
+            : `Show ${resultsArray.length - 3} more result${resultsArray.length - 3 !== 1 ? 's' : ''}`}
         </button>
       )}
     </div>
   );
 };
 
-const GitHubWorkflowsList = ({ workflows, repository }: { workflows: any; repository: string }) => (
-  <GitHubGenericResult toolName="list_workflows" result={workflows} args={{ repository }} />
+const GitHubWorkflowsList = ({
+  workflows,
+  repository,
+}: { workflows: any; repository: string }) => (
+  <GitHubGenericResult
+    toolName="list_workflows"
+    result={workflows}
+    args={{ repository }}
+  />
 );
 
-const GitHubWorkflowRunsList = ({ runs, repository }: { runs: any; repository: string }) => (
-  <GitHubGenericResult toolName="list_workflow_runs" result={runs} args={{ repository }} />
+const GitHubWorkflowRunsList = ({
+  runs,
+  repository,
+}: { runs: any; repository: string }) => (
+  <GitHubGenericResult
+    toolName="list_workflow_runs"
+    result={runs}
+    args={{ repository }}
+  />
 );
 
-const GitHubSecurityAlertsList = ({ alerts, type, repository }: { alerts: any; type: string; repository: string }) => (
-  <GitHubGenericResult toolName="list_security_alerts" result={alerts} args={{ type, repository }} />
+const GitHubSecurityAlertsList = ({
+  alerts,
+  type,
+  repository,
+}: { alerts: any; type: string; repository: string }) => (
+  <GitHubGenericResult
+    toolName="list_security_alerts"
+    result={alerts}
+    args={{ type, repository }}
+  />
 );
 
 const GitHubNotificationsList = ({ notifications }: { notifications: any }) => (
@@ -1159,15 +1447,20 @@ function issueWebUrl(issue: any, owner: string, repo: string) {
 
   // REST "issues" may include PRs; those have a `pull_request` field
   const path = issue?.pull_request ? 'pull' : 'issues';
-  return issue?.number ? `https://github.com/${owner}/${repo}/${path}/${issue.number}` : null;
+  return issue?.number
+    ? `https://github.com/${owner}/${repo}/${path}/${issue.number}`
+    : null;
 }
 
 // Existing issues list component (renamed for consistency)
-const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: string }) => {
+const GitHubIssuesList = ({
+  issues,
+  repository,
+}: { issues: any; repository: string }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Handle different response formats from GitHub MCP API
-  let issuesArray = issues.issues;
+  const issuesArray = issues.issues;
 
   if (!issuesArray || issuesArray.length === 0) {
     return null;
@@ -1180,7 +1473,8 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
       <div className="flex items-center gap-2 text-sm mb-2">
         <GitIcon status="none" />
         <span className="text-muted-foreground">
-          Found {issuesArray.length} issue{issuesArray.length !== 1 ? 's' : ''} in {repository}
+          Found {issuesArray.length} issue{issuesArray.length !== 1 ? 's' : ''}{' '}
+          in {repository}
         </span>
       </div>
 
@@ -1188,7 +1482,11 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
         {displayedIssues.map((issue: any) => (
           <a
             key={issue.id}
-            href={issueWebUrl(issue, repository.split('/')[0], repository.split('/')[1])}
+            href={issueWebUrl(
+              issue,
+              repository.split('/')[0],
+              repository.split('/')[1],
+            )}
             target="_blank"
             rel="noopener noreferrer"
             className="block border rounded-lg p-3 bg-background hover:bg-muted/50 transition-colors cursor-pointer group"
@@ -1196,30 +1494,36 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
             <div className="flex items-start gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{issue.title}</h4>
-                  <span className="text-xs text-muted-foreground">#{issue.number}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs ${
-                    issue.state === 'open' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
-                  }`}>
+                  <h4 className="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {issue.title}
+                  </h4>
+                  <span className="text-xs text-muted-foreground">
+                    #{issue.number}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs ${
+                      issue.state === 'open'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                    }`}
+                  >
                     {issue.state}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>@{issue.user?.login}</span>
                   <span>{new Date(issue.created_at).toLocaleDateString()}</span>
                   {issue.labels?.length > 0 && (
                     <div className="flex gap-1">
                       {issue.labels.slice(0, 2).map((label: any) => (
-                        <span 
-                          key={label.id} 
+                        <span
+                          key={label.id}
                           className="px-1.5 py-0.5 rounded text-xs"
-                          style={{ 
+                          style={{
                             backgroundColor: `#${label.color}20`,
                             color: `#${label.color}`,
-                            border: `1px solid #${label.color}30`
+                            border: `1px solid #${label.color}30`,
                           }}
                         >
                           {label.name}
@@ -1234,7 +1538,7 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
                   )}
                 </div>
               </div>
-              
+
               <div className="text-muted-foreground group-hover:text-foreground transition-colors">
                 <ExternalLink size={14} />
               </div>
@@ -1248,11 +1552,13 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
           onClick={() => setExpanded(!expanded)}
           className="mt-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ChevronDown 
-            size={14} 
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
           />
-          {expanded ? 'Show less' : `Show ${issuesArray.length - 3} more issue${issuesArray.length - 3 !== 1 ? 's' : ''}`}
+          {expanded
+            ? 'Show less'
+            : `Show ${issuesArray.length - 3} more issue${issuesArray.length - 3 !== 1 ? 's' : ''}`}
         </button>
       )}
     </div>
@@ -1260,15 +1566,20 @@ const GitHubIssuesList = ({ issues, repository }: { issues: any; repository: str
 };
 
 // Generic fallback for other GitHub MCP tools
-const GitHubGenericResult = ({ toolName, result }: { toolName: string; result: any; args?: any }) => {
+const GitHubGenericResult = ({
+  toolName,
+  result,
+}: { toolName: string; result: any; args?: any }) => {
   const [expanded, setExpanded] = useState(false);
 
   const processedResult = result;
-  
+
   // Get a human-readable preview
   const getPreview = () => {
     if (typeof processedResult === 'string') {
-      return processedResult.length > 100 ? processedResult.slice(0, 100) + '...' : processedResult;
+      return processedResult.length > 100
+        ? `${processedResult.slice(0, 100)}...`
+        : processedResult;
     }
     if (typeof processedResult === 'object' && processedResult !== null) {
       // Try to extract meaningful info for common GitHub objects
@@ -1297,28 +1608,31 @@ const GitHubGenericResult = ({ toolName, result }: { toolName: string; result: a
     <div className="mt-1">
       <div className="flex items-center gap-2 text-sm mb-2">
         <GitIcon status="none" />
-        <span className="text-muted-foreground">GitHub {toolName.replace('_', ' ')}</span>
+        <span className="text-muted-foreground">
+          GitHub {toolName.replace('_', ' ')}
+        </span>
       </div>
 
       {!expanded ? (
-        <div 
+        <div
           className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => setExpanded(true)}
         >
-          <span className="text-xs text-muted-foreground">
-            {getPreview()}
-          </span>
+          <span className="text-xs text-muted-foreground">{getPreview()}</span>
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden bg-background">
-          <div 
+          <div
             className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
             onClick={() => setExpanded(false)}
           >
             <span className="text-xs font-medium text-muted-foreground flex-grow">
               {toolName.replace('_', ' ')} result
             </span>
-            <ChevronDown size={14} className="text-muted-foreground rotate-180" />
+            <ChevronDown
+              size={14}
+              className="text-muted-foreground rotate-180"
+            />
           </div>
           <div className="p-3">
             <pre className="text-sm overflow-auto max-h-96 bg-muted/20 p-3 rounded">
@@ -1329,4 +1643,4 @@ const GitHubGenericResult = ({ toolName, result }: { toolName: string; result: a
       )}
     </div>
   );
-}; 
+};

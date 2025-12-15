@@ -13,4 +13,4 @@ if (!databaseUrl) {
 const client = postgres(databaseUrl);
 
 // Create the database instance
-export const db = drizzle(client, { schema }); 
+export const db = drizzle(client, { schema });

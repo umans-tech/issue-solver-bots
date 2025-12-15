@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useActionState, useEffect, useState, Suspense } from 'react';
+import { Suspense, useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
 import Form from 'next/form';
 
@@ -12,19 +12,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { passwordReset } from '../actions';
-import { PasswordResetStatus, type PasswordResetActionState } from '../status';
+import { type PasswordResetActionState, PasswordResetStatus } from '../status';
 
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
 
-  const [state, formAction] = useActionState<PasswordResetActionState, FormData>(
-    passwordReset,
-    {
-      status: PasswordResetStatus.IDLE,
-    },
-  );
+  const [state, formAction] = useActionState<
+    PasswordResetActionState,
+    FormData
+  >(passwordReset, {
+    status: PasswordResetStatus.IDLE,
+  });
 
   useEffect(() => {
     if (state.status === PasswordResetStatus.SUCCESS) {
@@ -52,7 +52,9 @@ function ResetPasswordContent() {
             <div className="mb-4">
               <IconUmansLogo className="h-16 w-auto" />
             </div>
-            <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">Invalid Reset Link</h3>
+            <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">
+              Invalid Reset Link
+            </h3>
             <p className="text-sm text-gray-500 dark:text-zinc-400">
               This password reset link is invalid or has expired.
             </p>
@@ -75,7 +77,9 @@ function ResetPasswordContent() {
           <div className="mb-4">
             <IconUmansLogo className="h-16 w-auto" />
           </div>
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Reset Password</h3>
+          <h3 className="text-xl font-semibold dark:text-zinc-50">
+            Reset Password
+          </h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             Enter your new password below
           </p>
@@ -102,9 +106,7 @@ function ResetPasswordContent() {
               />
             </div>
 
-            <SubmitButton isSuccessful={false}>
-              Reset Password
-            </SubmitButton>
+            <SubmitButton isSuccessful={false}>Reset Password</SubmitButton>
 
             <div className="text-center text-sm text-gray-600 dark:text-zinc-400">
               <Link
@@ -123,15 +125,19 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-dvh w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <IconUmansLogo className="h-16 w-auto" />
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex h-dvh w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <IconUmansLogo className="h-16 w-auto" />
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
+              Loading...
+            </p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   );
-} 
+}

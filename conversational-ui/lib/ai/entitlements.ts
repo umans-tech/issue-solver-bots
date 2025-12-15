@@ -43,15 +43,19 @@ export async function checkChatEntitlements({
   let usedToday = 0;
   let usedThisMonth = 0;
   for (const r of rows) {
-    const t = new Date((r as any).createdAt ?? (r as any).created_at ?? Date.now()).getTime();
+    const t = new Date(
+      (r as any).createdAt ?? (r as any).created_at ?? Date.now(),
+    ).getTime();
     if (t >= month) usedThisMonth += 1;
     if (t >= today) usedToday += 1;
   }
 
   const withinDaily =
-    limits.dailyCompletions === undefined || usedToday < (limits.dailyCompletions ?? Infinity);
+    limits.dailyCompletions === undefined ||
+    usedToday < (limits.dailyCompletions ?? Number.POSITIVE_INFINITY);
   const withinMonthly =
-    limits.monthlyCompletions === undefined || usedThisMonth < (limits.monthlyCompletions ?? Infinity);
+    limits.monthlyCompletions === undefined ||
+    usedThisMonth < (limits.monthlyCompletions ?? Number.POSITIVE_INFINITY);
 
   return {
     ok: withinDaily && withinMonthly,
@@ -66,11 +70,13 @@ export async function checkChatEntitlements({
         ? 'monthly-limit'
         : undefined,
     retryAt: !withinDaily
-      ? new Date(startOfDay(new Date()).getTime() + 24 * 60 * 60 * 1000).toISOString()
+      ? new Date(
+          startOfDay(new Date()).getTime() + 24 * 60 * 60 * 1000,
+        ).toISOString()
       : !withinMonthly
-        ? new Date(startOfMonth(new Date()).setMonth(new Date().getMonth() + 1)).toISOString()
+        ? new Date(
+            startOfMonth(new Date()).setMonth(new Date().getMonth() + 1),
+          ).toISOString()
         : undefined,
   };
 }
-
-

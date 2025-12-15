@@ -10,7 +10,7 @@ import {
   UndoIcon,
 } from '@/components/icons';
 import { Copy } from 'lucide-react';
-import { Suggestion } from '@/lib/db/schema';
+import type { Suggestion } from '@/lib/db/schema';
 import { toast } from 'sonner';
 import { getSuggestions } from '../actions';
 
@@ -153,7 +153,12 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Please add final polish and check for grammar, add section titles for better structure, and ensure everything reads smoothly.' }],
+          parts: [
+            {
+              type: 'text',
+              text: 'Please add final polish and check for grammar, add section titles for better structure, and ensure everything reads smoothly.',
+            },
+          ],
         });
       },
     },
@@ -163,7 +168,12 @@ export const textArtifact = new Artifact<'text', TextArtifactMetadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Please add suggestions you have that could improve the writing.' }],
+          parts: [
+            {
+              type: 'text',
+              text: 'Please add suggestions you have that could improve the writing.',
+            },
+          ],
         });
       },
     },

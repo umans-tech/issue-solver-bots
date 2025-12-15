@@ -9,9 +9,7 @@ import { twMerge } from 'tailwind-merge';
 
 import type { DBMessage, Document } from '@/lib/db/schema';
 import { formatISO } from 'date-fns';
-import { CustomUIDataTypes, ChatTools } from './types';
-import { ChatMessage } from './types';
-import { ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -120,12 +118,14 @@ export function generateUUID(): string {
 //   });
 // }
 
-
-export const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
+export const SUPPORTED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'application/pdf',
+] as const;
 
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
 type ResponseMessage = ResponseMessageWithoutId & { id: string };
-
 
 export function getMostRecentUserMessage(messages: ChatMessage[]) {
   const userMessages = messages.filter((message) => message.role === 'user');
@@ -162,13 +162,13 @@ export function generatePastelColor(text: string) {
   for (let i = 0; i < text.length; i++) {
     hash = text.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   const h = hash % 360;
   // Augmentation de la saturation et ajustement de la luminosité pour plus de contraste
   const s = 85 + (hash % 15); // Variation de saturation entre 85-100%
   const l1 = 65 + (hash % 10); // Première couleur
   const l2 = 45 + (hash % 15); // Deuxième couleur plus foncée pour meilleur contraste
-  
+
   return `linear-gradient(135deg, hsl(${h}, ${s}%, ${l1}%) 0%, hsl(${h}, ${s}%, ${l2}%) 100%)`;
 }
 
@@ -208,18 +208,21 @@ export const getFallbackFaviconUrls = (url: string) => {
     const urlObj = new URL(url);
     const domain = urlObj.hostname;
     const protocol = urlObj.protocol;
-    const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
-    
+    const basePath = urlObj.pathname.substring(
+      0,
+      urlObj.pathname.lastIndexOf('/') + 1,
+    );
+
     const fallbacks = [];
-    
+
     // If URL has a path, try favicon.ico in that path first
     if (basePath !== '/') {
       fallbacks.push(`${protocol}//${domain}${basePath}favicon.ico`);
     }
-    
+
     // Always try the standard domain root favicon
     fallbacks.push(`${protocol}//${domain}/favicon.ico`);
-    
+
     return fallbacks;
   } catch (e) {
     return [];
@@ -233,7 +236,7 @@ export const getFallbackFaviconUrls = (url: string) => {
 export const getFaviconUrl = (url: string): string[] => {
   try {
     const domain = new URL(url).hostname;
-    
+
     // Multiple favicon services for fallback reliability
     return [
       `https://icons.duckduckgo.com/ip3/${domain}.ico`, // Alternative service

@@ -2,8 +2,14 @@
 
 import { SharedHeader } from '@/components/shared-header';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Filter, Activity, Search } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Activity, Filter, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 
 interface TaskHeaderProps {
@@ -67,16 +73,24 @@ export function TaskHeader({
     <SharedHeader
       rightExtra={
         <div className="hidden md:flex shrink-0 items-center gap-3 text-sm text-muted-foreground">
-          <span>{loading ? 'Loading…' : `${totalCount} ${totalCount === 1 ? 'task' : 'tasks'}`}</span>
+          <span>
+            {loading
+              ? 'Loading…'
+              : `${totalCount} ${totalCount === 1 ? 'task' : 'tasks'}`}
+          </span>
           <span aria-hidden="true">•</span>
-          <span>{groupCount} {groupCount === 1 ? 'category' : 'categories'}</span>
+          <span>
+            {groupCount} {groupCount === 1 ? 'category' : 'categories'}
+          </span>
         </div>
       }
     >
       <div className="flex-1 min-w-0 px-3 py-2 md:px-6">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-            <span className="text-lg lg:text-xl font-semibold text-foreground whitespace-nowrap">Tasks &amp; Processes</span>
+            <span className="text-lg lg:text-xl font-semibold text-foreground whitespace-nowrap">
+              Tasks &amp; Processes
+            </span>
             <div className="relative w-full md:flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -124,9 +138,13 @@ export function TaskHeader({
 
           {!loading && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground md:hidden">
-              <span>{totalCount} {totalCount === 1 ? 'task' : 'tasks'}</span>
+              <span>
+                {totalCount} {totalCount === 1 ? 'task' : 'tasks'}
+              </span>
               <span aria-hidden="true">•</span>
-              <span>{groupCount} {groupCount === 1 ? 'category' : 'categories'}</span>
+              <span>
+                {groupCount} {groupCount === 1 ? 'category' : 'categories'}
+              </span>
             </div>
           )}
         </div>

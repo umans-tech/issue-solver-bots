@@ -4,19 +4,22 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { genSaltSync, hashSync } from 'bcrypt-ts';
 
-import { createUser, getUser, createUserWithVerification, getUserByVerificationToken } from '@/lib/db/queries';
-import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email';
-import { 
-  LoginStatus, 
-  RegisterStatus,
+import {
+  createUserWithVerification,
+  getUser,
+  getUserByVerificationToken,
+} from '@/lib/db/queries';
+import { sendPasswordResetEmail, sendVerificationEmail } from '@/lib/email';
+import {
+  type LoginActionState,
+  LoginStatus,
+  type PasswordResetActionState,
   PasswordResetStatus,
-  type LoginActionState, 
   type RegisterActionState,
-  type PasswordResetActionState
+  RegisterStatus,
 } from './status';
 
 import { signIn } from './auth';
-import { ensureDefaultSpace } from '@/lib/db/queries';
 
 // Reuse existing database connection pattern
 import { eq } from 'drizzle-orm';
@@ -37,19 +40,20 @@ const emailSchema = z.object({
 });
 
 // Constants for consistent error responses
-const INVALID_CREDENTIALS_RESPONSE = { 
-  status: LoginStatus.FAILED, 
-  error: 'Invalid credentials' 
+const INVALID_CREDENTIALS_RESPONSE = {
+  status: LoginStatus.FAILED,
+  error: 'Invalid credentials',
 };
 
 const REGISTRATION_FAILED_RESPONSE = {
   status: RegisterStatus.FAILED,
-  error: 'Failed to create account. Please try again.'
+  error: 'Failed to create account. Please try again.',
 };
 
 const INVALID_FORM_DATA_RESPONSE = {
   status: RegisterStatus.INVALID_DATA,
-  error: 'Please enter a valid email and a password with at least 6 characters.'
+  error:
+    'Please enter a valid email and a password with at least 6 characters.',
 };
 
 export const login = async (
@@ -64,7 +68,7 @@ export const login = async (
 
     // First, check if user exists
     const [user] = await getUser(validatedData.email);
-    
+
     if (!user) {
       return INVALID_CREDENTIALS_RESPONSE;
     }
@@ -77,16 +81,17 @@ export const login = async (
     // Check password first before revealing verification status
     const { compare } = await import('bcrypt-ts');
     const passwordsMatch = await compare(validatedData.password, user.password);
-    
+
     if (!passwordsMatch) {
       return INVALID_CREDENTIALS_RESPONSE;
     }
 
     // Only reveal verification status if credentials are correct
     if (!user.emailVerified) {
-      return { 
-        status: LoginStatus.EMAIL_NOT_VERIFIED, 
-        error: 'Please verify your email address before signing in. Check your inbox for the verification link.' 
+      return {
+        status: LoginStatus.EMAIL_NOT_VERIFIED,
+        error:
+          'Please verify your email address before signing in. Check your inbox for the verification link.',
       };
     }
 
@@ -100,9 +105,9 @@ export const login = async (
     return { status: LoginStatus.SUCCESS };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { 
+      return {
         status: LoginStatus.INVALID_DATA,
-        error: 'Please enter a valid email and password.'
+        error: 'Please enter a valid email and password.',
       };
     }
 
@@ -125,9 +130,9 @@ export const register = async (
 
     if (user) {
       // Don't reveal whether it's OAuth or password user for security
-      return { 
+      return {
         status: RegisterStatus.USER_EXISTS,
-        error: 'An account with this email already exists.'
+        error: 'An account with this email already exists.',
       };
     }
 
@@ -135,7 +140,11 @@ export const register = async (
     const verificationToken = nanoid(64);
 
     // Create the user with verification token (unverified)
-    await createUserWithVerification(validatedData.email, validatedData.password, verificationToken);
+    await createUserWithVerification(
+      validatedData.email,
+      validatedData.password,
+      verificationToken,
+    );
 
     // Send verification email
     try {
@@ -175,7 +184,7 @@ export const passwordReset = async (
         const [existingUser] = await getUser(validatedData.email);
         if (existingUser) {
           const resetToken = nanoid(64);
-          
+
           // Update user with reset token (reuse existing field)
           await db
             .update(user)
@@ -188,9 +197,10 @@ export const passwordReset = async (
         console.error('Password reset error:', error);
       }
 
-      return { 
+      return {
         status: PasswordResetStatus.SUCCESS,
-        message: 'If an account with that email exists, you will receive reset instructions.'
+        message:
+          'If an account with that email exists, you will receive reset instructions.',
       };
     }
 
@@ -198,7 +208,7 @@ export const passwordReset = async (
     if (!newPassword || newPassword.length < 6) {
       return {
         status: PasswordResetStatus.INVALID_DATA,
-        error: 'Password must be at least 6 characters.'
+        error: 'Password must be at least 6 characters.',
       };
     }
 
@@ -206,7 +216,7 @@ export const passwordReset = async (
     if (!userRecord || !userRecord.password) {
       return {
         status: PasswordResetStatus.FAILED,
-        error: 'Invalid reset link or account uses Google sign-in.'
+        error: 'Invalid reset link or account uses Google sign-in.',
       };
     }
 
@@ -216,9 +226,9 @@ export const passwordReset = async (
 
     await db
       .update(user)
-      .set({ 
+      .set({
         password: hashedPassword,
-        emailVerificationToken: null 
+        emailVerificationToken: null,
       })
       .where(eq(user.id, userRecord.id));
 
@@ -229,31 +239,32 @@ export const passwordReset = async (
         password: newPassword,
         redirect: false,
       });
-      
-      return { 
+
+      return {
         status: PasswordResetStatus.SUCCESS,
-        message: 'Password reset successfully! Signing you in...'
+        message: 'Password reset successfully! Signing you in...',
       };
     } catch (signInError) {
       console.error('Auto sign-in failed after password reset:', signInError);
       // Still return success since password was reset
-      return { 
+      return {
         status: PasswordResetStatus.SUCCESS,
-        message: 'Password reset successfully! Please sign in with your new password.'
+        message:
+          'Password reset successfully! Please sign in with your new password.',
       };
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { 
+      return {
         status: PasswordResetStatus.INVALID_DATA,
-        error: 'Please enter a valid email address.'
+        error: 'Please enter a valid email address.',
       };
     }
 
     console.error('Password reset error:', error);
-    return { 
+    return {
       status: PasswordResetStatus.FAILED,
-      error: 'Something went wrong. Please try again.'
+      error: 'Something went wrong. Please try again.',
     };
   }
 };

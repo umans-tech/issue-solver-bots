@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { IconUmansLogo } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { FaXTwitter, FaLinkedinIn, FaDiscord } from 'react-icons/fa6';
+import { FaDiscord, FaLinkedinIn, FaXTwitter } from 'react-icons/fa6';
 
 export function LandingNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -66,26 +66,41 @@ export function LandingNavbar() {
           {/* Right side actions */}
           <div className="flex items-center space-x-4">
             <div className="hidden sm:flex items-center gap-3 text-foreground/80">
-              <a href="https://discord.gg/Q5hdNrk7Rw" target="_blank" rel="noreferrer" className="hover:text-foreground">
+              <a
+                href="https://discord.gg/Q5hdNrk7Rw"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground"
+              >
                 <FaDiscord className="h-4 w-4" />
               </a>
-              <a href="https://x.com/umans_ai" target="_blank" rel="noreferrer" className="hover:text-foreground">
+              <a
+                href="https://x.com/umans_ai"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground"
+              >
                 <FaXTwitter className="h-4 w-4" />
               </a>
-              <a href="https://www.linkedin.com/company/umans-ai" target="_blank" rel="noreferrer" className="hover:text-foreground">
+              <a
+                href="https://www.linkedin.com/company/umans-ai"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground"
+              >
                 <FaLinkedinIn className="h-4 w-4" />
               </a>
             </div>
             {/* Theme Toggle */}
             <ThemeToggle variant="ghost" />
-            
+
             {/* Sign In Button */}
             <Link href="/go-to-app">
               <Button variant="ghost" size="sm" className="text-sm font-medium">
                 Sign In
               </Button>
             </Link>
-            
+
             {/* Sign Up Button */}
             <Link href="/go-to-app">
               <Button size="sm" className="text-sm font-medium">

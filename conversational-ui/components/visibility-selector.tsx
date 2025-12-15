@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -69,10 +69,7 @@ export function VisibilitySelector({
           className,
         )}
       >
-        <Button
-          variant="ghost"
-          className="hidden md:flex md:px-2 md:h-[34px]"
-        >
+        <Button variant="ghost" className="hidden md:flex md:px-2 md:h-[34px]">
           {selectedVisibility?.icon}
           {selectedVisibility?.label}
           <ChevronDownIcon />

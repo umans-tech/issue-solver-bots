@@ -11,7 +11,9 @@ type EventLike = {
   branch?: string | null;
 };
 
-export function extractRepositoryIndexedEvents(events: EventLike[] | undefined | null): RepositoryIndexedSummary[] {
+export function extractRepositoryIndexedEvents(
+  events: EventLike[] | undefined | null,
+): RepositoryIndexedSummary[] {
   if (!Array.isArray(events)) return [];
 
   const summaries = events

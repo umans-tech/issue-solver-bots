@@ -2,7 +2,15 @@
 
 import { useState } from 'react';
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
-import { SiGitlab, SiNotion, SiLinear, SiPostgresql, SiGit, SiFigma, SiSlack } from 'react-icons/si';
+import {
+  SiFigma,
+  SiGit,
+  SiGitlab,
+  SiLinear,
+  SiNotion,
+  SiPostgresql,
+  SiSlack,
+} from 'react-icons/si';
 import { VscAzureDevops } from 'react-icons/vsc';
 import { Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -29,88 +37,100 @@ const integrations: Integration[] = [
   {
     id: 'github',
     name: 'GitHub',
-    description: 'Connect your GitHub repositories to analyze code, create issues, and manage pull requests.',
+    description:
+      'Connect your GitHub repositories to analyze code, create issues, and manage pull requests.',
     icon: GitHubLogoIcon,
     category: 'Code Repository',
-    status: 'available'
+    status: 'available',
   },
   {
     id: 'gitlab',
     name: 'GitLab',
-    description: 'Integrate with GitLab for comprehensive DevOps workflow management.',
+    description:
+      'Integrate with GitLab for comprehensive DevOps workflow management.',
     icon: ({ className }) => <SiGitlab className={className} color="default" />,
     category: 'Code Repository',
-    status: 'available'
+    status: 'available',
   },
   {
     id: 'azure-devops',
     name: 'Azure DevOps',
-    description: 'Connect to Azure DevOps for enterprise-grade development lifecycle management.',
+    description:
+      'Connect to Azure DevOps for enterprise-grade development lifecycle management.',
     icon: VscAzureDevops,
     category: 'Code Repository',
-    status: 'available'
+    status: 'available',
   },
   {
     id: 'self-hosted-git',
     name: 'Self-hosted Git',
-    description: 'Connect to your private Git repositories with custom endpoints.',
+    description:
+      'Connect to your private Git repositories with custom endpoints.',
     icon: ({ className }) => <SiGit className={className} color="default" />,
     category: 'Code Repository',
-    status: 'available'
+    status: 'available',
   },
   {
     id: 'notion',
     name: 'Notion',
-    description: 'Integrate with Notion to access and manage your knowledge base and documentation.',
+    description:
+      'Integrate with Notion to access and manage your knowledge base and documentation.',
     icon: ({ className }) => <SiNotion className={className} color="default" />,
     category: 'Knowledge Base',
-    status: 'available'
+    status: 'available',
   },
   {
     id: 'linear',
     name: 'Linear',
-    description: 'Connect Linear to streamline issue tracking and project management workflows.',
+    description:
+      'Connect Linear to streamline issue tracking and project management workflows.',
     icon: ({ className }) => <SiLinear className={className} color="default" />,
     category: 'Project Management',
-    status: 'coming-soon'
+    status: 'coming-soon',
   },
   {
     id: 'postgresql',
     name: 'PostgreSQL',
-    description: 'Direct database integration for querying and analyzing your PostgreSQL data.',
-    icon: ({ className }) => <SiPostgresql className={className} color="default" />,
+    description:
+      'Direct database integration for querying and analyzing your PostgreSQL data.',
+    icon: ({ className }) => (
+      <SiPostgresql className={className} color="default" />
+    ),
     category: 'Database',
-    status: 'coming-soon'
+    status: 'coming-soon',
   },
   {
     id: 'slack',
     name: 'Slack',
-    description: 'Bring conversations into Umans by syncing channels, threads, and notifications.',
+    description:
+      'Bring conversations into Umans by syncing channels, threads, and notifications.',
     icon: ({ className }) => <SiSlack className={className} color="default" />,
     category: 'Communication',
-    status: 'coming-soon'
+    status: 'coming-soon',
   },
   {
     id: 'figma',
     name: 'Figma',
-    description: 'Review and reference your design files directly inside Umans.',
+    description:
+      'Review and reference your design files directly inside Umans.',
     icon: ({ className }) => <SiFigma className={className} color="default" />,
     category: 'Design',
-    status: 'coming-soon'
-  }
+    status: 'coming-soon',
+  },
 ];
 
 const categoryOrder: Record<Integration['category'], number> = {
   'Knowledge Base': 0,
   'Code Repository': 1,
   'Project Management': 2,
-  'Communication': 3,
-  'Design': 4,
-  'Database': 5
+  Communication: 3,
+  Design: 4,
+  Database: 5,
 };
 
 const sortedIntegrations = [...integrations].sort((a, b) => {
-  const categoryDifference = categoryOrder[a.category] - categoryOrder[b.category];
+  const categoryDifference =
+    categoryOrder[a.category] - categoryOrder[b.category];
 
   if (categoryDifference !== 0) {
     return categoryDifference;
@@ -151,9 +171,12 @@ export default function IntegrationsPage() {
         <div className="flex-1 overflow-auto">
           <div className="container mx-auto p-6 space-y-8">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Integrations
+              </h1>
               <p className="text-muted-foreground">
-                Connect your tools and services to enhance your workflow and productivity.
+                Connect your tools and services to enhance your workflow and
+                productivity.
               </p>
             </div>
 
@@ -167,7 +190,11 @@ export default function IntegrationsPage() {
                     <button
                       key={integration.id}
                       type="button"
-                      onClick={isAvailable ? () => handleConnect(integration.id) : undefined}
+                      onClick={
+                        isAvailable
+                          ? () => handleConnect(integration.id)
+                          : undefined
+                      }
                       disabled={!isAvailable}
                       className="group relative flex w-full min-w-[260px] flex-col gap-3 rounded-2xl border border-border/60 bg-card/70 px-4 py-4 text-left transition-all duration-200 hover:z-20 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/40 hover:bg-background/95 hover:shadow-xl focus-visible:z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-dashed disabled:opacity-80"
                     >
@@ -177,8 +204,12 @@ export default function IntegrationsPage() {
                             <IconComponent className="h-5 w-5" />
                           </span>
                           <span className="flex flex-col">
-                            <span className="font-semibold leading-tight whitespace-nowrap">{integration.name}</span>
-                            <span className="text-xs text-muted-foreground">{integration.category}</span>
+                            <span className="font-semibold leading-tight whitespace-nowrap">
+                              {integration.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {integration.category}
+                            </span>
                           </span>
                         </span>
 
@@ -196,7 +227,6 @@ export default function IntegrationsPage() {
                           </Badge>
                         )}
                       </div>
-
                     </button>
                   );
                 })}
@@ -206,14 +236,16 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
-      <RepoConnectionDialog 
-        key={/* key by space if available via a sessioned header; keep stable here */ 'integrations'} 
-        open={showRepoDialog} 
-        onOpenChange={setShowRepoDialog} 
+      <RepoConnectionDialog
+        key={
+          /* key by space if available via a sessioned header; keep stable here */ 'integrations'
+        }
+        open={showRepoDialog}
+        onOpenChange={setShowRepoDialog}
       />
-      <NotionIntegrationDialog 
-        open={showNotionDialog} 
-        onOpenChange={setShowNotionDialog} 
+      <NotionIntegrationDialog
+        open={showNotionDialog}
+        onOpenChange={setShowNotionDialog}
       />
     </>
   );

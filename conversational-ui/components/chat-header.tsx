@@ -11,7 +11,7 @@ import { Copy } from 'lucide-react';
 import { useSidebar } from './ui/sidebar';
 import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { VisibilityType, VisibilitySelector } from './visibility-selector';
+import { VisibilitySelector, type VisibilityType } from './visibility-selector';
 import { SharedHeader } from './shared-header';
 
 function PureChatHeader({
@@ -43,11 +43,11 @@ function PureChatHeader({
           sourceChatId: chatId,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to clone conversation');
       }
-      
+
       const data = await response.json();
       if (data.success && data.newChatId) {
         toast.success('Created a clone of this conversation!');
@@ -92,7 +92,9 @@ function PureChatHeader({
                 onClick={handleCloneConversation}
               >
                 <Copy />
-                <span className="ml-2 hidden md:inline">Clone Conversation</span>
+                <span className="ml-2 hidden md:inline">
+                  Clone Conversation
+                </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Clone this conversation</TooltipContent>
@@ -111,11 +113,7 @@ function PureChatHeader({
     </>
   );
 
-  return (
-    <SharedHeader enableSessionRefresh={true}>
-      {chatContent}
-    </SharedHeader>
-  );
+  return <SharedHeader enableSessionRefresh={true}>{chatContent}</SharedHeader>;
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {

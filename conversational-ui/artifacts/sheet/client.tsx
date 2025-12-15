@@ -96,7 +96,9 @@ export const sheetArtifact = new Artifact<'sheet', Metadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Can you please format and clean the data?' }],
+          parts: [
+            { type: 'text', text: 'Can you please format and clean the data?' },
+          ],
         });
       },
     },
@@ -106,7 +108,12 @@ export const sheetArtifact = new Artifact<'sheet', Metadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Can you please analyze and visualize the data by creating a new code artifact in python?' }],
+          parts: [
+            {
+              type: 'text',
+              text: 'Can you please analyze and visualize the data by creating a new code artifact in python?',
+            },
+          ],
         });
       },
     },

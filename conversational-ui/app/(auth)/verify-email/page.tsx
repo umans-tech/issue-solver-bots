@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -12,8 +12,10 @@ function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
-  
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'pending'>('pending');
+
+  const [status, setStatus] = useState<
+    'verifying' | 'success' | 'error' | 'pending'
+  >('pending');
   const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
@@ -60,9 +62,10 @@ function VerifyEmailContent() {
     setIsResending(true);
     try {
       // Get email from localStorage if available
-      const email = typeof window !== 'undefined' 
-        ? localStorage.getItem('pendingVerificationEmail') 
-        : null;
+      const email =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('pendingVerificationEmail')
+          : null;
 
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
@@ -93,16 +96,19 @@ function VerifyEmailContent() {
           <div className="mb-4">
             <IconUmansLogo className="h-16 w-auto" />
           </div>
-          
+
           {status === 'pending' && (
             <>
-              <h3 className="text-xl font-semibold dark:text-zinc-50">Check Your Email</h3>
+              <h3 className="text-xl font-semibold dark:text-zinc-50">
+                Check Your Email
+              </h3>
               <p className="text-sm text-gray-500 dark:text-zinc-400">
-                We've sent a verification email to your address. Please click the link in the email to verify your account.
+                We've sent a verification email to your address. Please click
+                the link in the email to verify your account.
               </p>
               <div className="mt-6">
-                <Button 
-                  onClick={resendVerification} 
+                <Button
+                  onClick={resendVerification}
                   disabled={isResending}
                   variant="outline"
                 >
@@ -114,7 +120,9 @@ function VerifyEmailContent() {
 
           {status === 'verifying' && (
             <>
-              <h3 className="text-xl font-semibold dark:text-zinc-50">Verifying Email...</h3>
+              <h3 className="text-xl font-semibold dark:text-zinc-50">
+                Verifying Email...
+              </h3>
               <p className="text-sm text-gray-500 dark:text-zinc-400">
                 Please wait while we verify your email address.
               </p>
@@ -123,9 +131,12 @@ function VerifyEmailContent() {
 
           {status === 'success' && (
             <>
-              <h3 className="text-xl font-semibold text-green-600 dark:text-green-400">Email Verified! ✅</h3>
+              <h3 className="text-xl font-semibold text-green-600 dark:text-green-400">
+                Email Verified! ✅
+              </h3>
               <p className="text-sm text-gray-500 dark:text-zinc-400">
-                Your email has been successfully verified. You will be redirected to the login page shortly.
+                Your email has been successfully verified. You will be
+                redirected to the login page shortly.
               </p>
               <div className="mt-6">
                 <Button onClick={() => router.push('/login')}>
@@ -137,26 +148,32 @@ function VerifyEmailContent() {
 
           {status === 'error' && (
             <>
-              <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">Verification Failed</h3>
+              <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">
+                Verification Failed
+              </h3>
               <p className="text-sm text-gray-500 dark:text-zinc-400">
-                The verification link may be invalid or expired. Please try requesting a new verification email.
+                The verification link may be invalid or expired. Please try
+                requesting a new verification email.
               </p>
               <div className="mt-6 flex gap-4">
-                <Button 
-                  onClick={resendVerification} 
+                <Button
+                  onClick={resendVerification}
                   disabled={isResending}
                   variant="outline"
                 >
                   {isResending ? 'Sending...' : 'Resend Verification Email'}
                 </Button>
-                <Button onClick={() => router.push('/register')} variant="outline">
+                <Button
+                  onClick={() => router.push('/register')}
+                  variant="outline"
+                >
                   Back to Register
                 </Button>
               </div>
             </>
           )}
         </div>
-        
+
         <div className="text-center px-4 sm:px-16">
           <p className="text-sm text-gray-600 dark:text-zinc-400">
             {'Already verified? '}
@@ -175,15 +192,19 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-dvh w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <IconUmansLogo className="h-16 w-auto" />
-          <p className="text-sm text-gray-500 dark:text-zinc-400">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex h-dvh w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <IconUmansLogo className="h-16 w-auto" />
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
+              Loading...
+            </p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <VerifyEmailContent />
     </Suspense>
   );
-} 
+}

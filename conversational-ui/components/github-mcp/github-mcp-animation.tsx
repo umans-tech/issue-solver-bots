@@ -1,43 +1,46 @@
 import { GitIcon } from '../icons';
 import { getGitHubMCPToolCategory } from './github-mcp-types';
 
-export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?: any }) => {
+export const GitHubMCPAnimation = ({
+  toolName,
+  args,
+}: { toolName: string; args?: any }) => {
   const category = getGitHubMCPToolCategory(toolName);
-  
+
   // Category-based animation configurations
   const getCategoryConfig = () => {
     switch (category) {
       case 'users':
         return {
-          defaultText: 'Fetching user information...'
+          defaultText: 'Fetching user information...',
         };
       case 'issues':
         return {
-          defaultText: 'Processing issue...'
+          defaultText: 'Processing issue...',
         };
       case 'pullRequests':
         return {
-          defaultText: 'Handling pull request...'
+          defaultText: 'Handling pull request...',
         };
       case 'repositories':
         return {
-          defaultText: 'Accessing repository...'
+          defaultText: 'Accessing repository...',
         };
       case 'actions':
         return {
-          defaultText: 'Managing workflow...'
+          defaultText: 'Managing workflow...',
         };
       case 'security':
         return {
-          defaultText: 'Checking security...'
+          defaultText: 'Checking security...',
         };
       case 'notifications':
         return {
-          defaultText: 'Managing notifications...'
+          defaultText: 'Managing notifications...',
         };
       default:
         return {
-          defaultText: 'Processing GitHub request...'
+          defaultText: 'Processing GitHub request...',
         };
     }
   };
@@ -45,15 +48,15 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
   // Specific tool customizations within categories
   const getSpecificText = () => {
     const categoryConfig = getCategoryConfig();
-    
+
     switch (toolName) {
       // Users
       case 'get_me':
         return 'Getting your GitHub profile...';
       case 'search_users':
         return `Searching for users: "${args?.q}"...`;
-      
-      // Issues  
+
+      // Issues
       case 'list_issues':
         return `Loading issues from ${args?.owner}/${args?.repo}...`;
       case 'issue_read': {
@@ -72,7 +75,7 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
       }
       case 'search_issues':
         return `Searching issues: "${args?.query}"...`;
-      
+
       // Pull Requests
       case 'list_pull_requests':
         return `Loading pull requests from ${args?.owner}/${args?.repo}...`;
@@ -80,7 +83,7 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
         return `Fetching pull request #${args?.pullNumber}...`;
       case 'create_pull_request':
         return 'Creating pull request...';
-      
+
       // Repositories
       case 'search_code':
         return `Searching code for "${args?.query}"...`;
@@ -90,23 +93,23 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
         return 'Loading repositories...';
       case 'search_repositories':
         return `Searching repositories: "${args?.query}"...`;
-      
+
       // Actions
       case 'list_workflows':
         return `Loading workflows from ${args?.owner}/${args?.repo}...`;
       case 'run_workflow':
         return `Triggering workflow: ${args?.workflow_id}...`;
-      
+
       // Security
       case 'list_code_scanning_alerts':
         return 'Checking code scanning alerts...';
       case 'list_secret_scanning_alerts':
         return 'Checking secret scanning alerts...';
-      
+
       // Notifications
       case 'list_notifications':
         return 'Loading your notifications...';
-      
+
       default:
         return categoryConfig.defaultText;
     }
@@ -122,4 +125,4 @@ export const GitHubMCPAnimation = ({ toolName, args }: { toolName: string; args?
       </div>
     </div>
   );
-}; 
+};

@@ -1,12 +1,12 @@
 import { generateUUID } from '@/lib/utils';
-import { type UIMessageStreamWriter, tool } from 'ai';
+import { tool, type UIMessageStreamWriter } from 'ai';
 import { z } from 'zod';
-import { Session } from 'next-auth';
+import type { Session } from 'next-auth';
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
-import { ChatMessage } from '@/lib/types';
+import type { ChatMessage } from '@/lib/types';
 
 interface CreateDocumentProps {
   session: Session;

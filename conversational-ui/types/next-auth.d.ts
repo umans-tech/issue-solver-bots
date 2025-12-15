@@ -1,6 +1,6 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import type { DefaultSession } from 'next-auth';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
@@ -11,7 +11,11 @@ declare module "next-auth" {
         processId?: string | null;
         connectedRepoUrl?: string | null;
         isDefault?: boolean;
-        indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
+        indexedVersions?: Array<{
+          sha: string;
+          indexedAt?: string;
+          branch?: string;
+        }> | null;
       } | null;
       spaces?: Array<{
         id: string;
@@ -20,9 +24,13 @@ declare module "next-auth" {
         processId?: string | null;
         connectedRepoUrl?: string | null;
         isDefault?: boolean;
-        indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
+        indexedVersions?: Array<{
+          sha: string;
+          indexedAt?: string;
+          branch?: string;
+        }> | null;
       }>;
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 
   interface User {
@@ -34,7 +42,11 @@ declare module "next-auth" {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
-      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
+      indexedVersions?: Array<{
+        sha: string;
+        indexedAt?: string;
+        branch?: string;
+      }> | null;
     } | null;
     spaces?: Array<{
       id: string;
@@ -43,7 +55,11 @@ declare module "next-auth" {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
-      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
+      indexedVersions?: Array<{
+        sha: string;
+        indexedAt?: string;
+        branch?: string;
+      }> | null;
     }>;
   }
 }

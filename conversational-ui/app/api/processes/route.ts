@@ -22,34 +22,42 @@ export async function GET(request: Request) {
     if (status) queryParams.set('status', status);
 
     const backendUrl = process.env.CUDU_ENDPOINT;
-    const response = await fetch(`${backendUrl}/processes?${queryParams.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      `${backendUrl}/processes?${queryParams.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
 
     if (!response.ok) {
-      console.error('Backend response not OK:', response.status, response.statusText);
+      console.error(
+        'Backend response not OK:',
+        response.status,
+        response.statusText,
+      );
       return NextResponse.json(
         { error: `Backend service error: ${response.statusText}` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
     const data = await response.json();
-    
+
     // Enhance the response data to ensure consistent field names
-    const enhancedProcesses = data.processes?.map((process: any) => ({
-      ...process,
-      // Ensure consistent status mapping
-      status: process.status || 'unknown',
-      // Add processType if not present but type is available
-      processType: process.processType || process.type,
-      // Format dates properly
-      createdAt: process.createdAt || process.created_at,
-      updatedAt: process.updatedAt || process.updated_at,
-    })) || [];
+    const enhancedProcesses =
+      data.processes?.map((process: any) => ({
+        ...process,
+        // Ensure consistent status mapping
+        status: process.status || 'unknown',
+        // Add processType if not present but type is available
+        processType: process.processType || process.type,
+        // Format dates properly
+        createdAt: process.createdAt || process.created_at,
+        updatedAt: process.updatedAt || process.updated_at,
+      })) || [];
 
     return NextResponse.json({
       ...data,
@@ -57,10 +65,10 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching processes:', error);
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch processes from backend' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

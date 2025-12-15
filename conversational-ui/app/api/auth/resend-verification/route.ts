@@ -14,7 +14,7 @@ const db = drizzle(client);
 export async function POST(request: Request) {
   try {
     let email: string;
-    
+
     // Try to get email from request body, fallback to URL search params
     try {
       const body = await request.json();
@@ -26,26 +26,20 @@ export async function POST(request: Request) {
     }
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     // Find user by email
     const [existingUser] = await getUser(email);
 
     if (!existingUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     if (existingUser.emailVerified) {
       return NextResponse.json(
         { error: 'Email is already verified' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,13 +57,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { message: 'Verification email sent successfully' },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Resend verification error:', error);
     return NextResponse.json(
       { error: 'Failed to resend verification email' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

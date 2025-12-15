@@ -1,4 +1,4 @@
-import {ArtifactKind} from '@/components/artifact';
+import type { ArtifactKind } from '@/components/artifact';
 
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that shows a document on the right side of the screen while the conversation remains on the left. 
@@ -113,21 +113,21 @@ Remember: This is their first impression of umans.ai. Make it welcoming and valu
 `;
 
 export const systemPrompt = ({
-                                 selectedChatModel,
-                                 isOnboarding = false,
-                             }: {
-    selectedChatModel: string;
-    isOnboarding?: boolean;
+  selectedChatModel,
+  isOnboarding = false,
+}: {
+  selectedChatModel: string;
+  isOnboarding?: boolean;
 }) => {
-    if (isOnboarding) {
-        return onboardingPrompt;
-    }
+  if (isOnboarding) {
+    return onboardingPrompt;
+  }
 
-    if (selectedChatModel === 'chat-model-reasoning') {
-        return regularPrompt;
-    } else {
-        return `${regularPrompt}\n\n${artifactsPrompt}`;
-    }
+  if (selectedChatModel === 'chat-model-reasoning') {
+    return regularPrompt;
+  } else {
+    return `${regularPrompt}\n\n${artifactsPrompt}`;
+  }
 };
 
 export const codePrompt = `
@@ -163,28 +163,28 @@ You are a spreadsheet creation assistant. Create a spreadsheet in csv format bas
 `;
 
 export const updateDocumentPrompt = (
-    currentContent: string | null,
-    type: ArtifactKind,
+  currentContent: string | null,
+  type: ArtifactKind,
 ) =>
-    type === 'text'
-        ? `\
+  type === 'text'
+    ? `\
 Improve the following contents of the document based on the given prompt.
 
 ${currentContent}
 `
-        : type === 'code'
-            ? `\
+    : type === 'code'
+      ? `\
 Improve the following code snippet based on the given prompt.
 
 ${currentContent}
 `
-            : type === 'sheet'
-                ? `\
+      : type === 'sheet'
+        ? `\
 Improve the following spreadsheet based on the given prompt.
 
 ${currentContent}
 `
-                : '';
+        : '';
 
 export const alignedDeliveryPrompt = `
 Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.

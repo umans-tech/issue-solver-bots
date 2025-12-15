@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { EyeIcon, CrossIcon, CheckCircleFillIcon, CopyIcon, RedoIcon, ClockRewind, AlertCircle } from '@/components/icons';
+import {
+  AlertCircle,
+  CheckCircleFillIcon,
+  ClockRewind,
+  CopyIcon,
+  CrossIcon,
+  EyeIcon,
+  RedoIcon,
+} from '@/components/icons';
 import {
   Sheet,
   SheetContent,
@@ -28,8 +36,20 @@ const ClockIcon = ({ size = 16 }: { size?: number }) => (
     viewBox="0 0 16 16"
     style={{ color: 'currentcolor' }}
   >
-    <circle cx="8" cy="8" r="7" stroke="currentColor" fill="none" strokeWidth="1.5" />
-    <path d="M8 4.5V8H11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <circle
+      cx="8"
+      cy="8"
+      r="7"
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="1.5"
+    />
+    <path
+      d="M8 4.5V8H11.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -38,9 +58,9 @@ const StatusIcon = ({ status }: { status: string }) => {
   // Define status indicator colors - match with GitIcon's colors
   const statusColors = {
     indexing: '#FA75AA', // Pink color from Umans logo for indexing
-    indexed: '#FA75AA' // Pink color from Umans logo
+    indexed: '#FA75AA', // Pink color from Umans logo
   };
-  
+
   if (status === 'indexed') {
     return (
       <span className="text-green-500">
@@ -48,7 +68,7 @@ const StatusIcon = ({ status }: { status: string }) => {
       </span>
     );
   }
-  
+
   // Use the same animated indicator as GitIcon for indexing status
   if (status === 'indexing' || status === 'connected') {
     return (
@@ -60,7 +80,7 @@ const StatusIcon = ({ status }: { status: string }) => {
       </div>
     );
   }
-  
+
   // Fallback for unknown status
   return (
     <span className="text-amber-500">
@@ -106,17 +126,23 @@ export function RepoConnectionDialog({
   const [error, setError] = useState<string | null>(null);
   const [isPrefilled, setIsPrefilled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [repoDetails, setRepoDetails] = useState<RepositoryDetails | null>(null);
+  const [repoDetails, setRepoDetails] = useState<RepositoryDetails | null>(
+    null,
+  );
   const [isRotatingToken, setIsRotatingToken] = useState(false);
   const [newAccessToken, setNewAccessToken] = useState('');
   const [showNewToken, setShowNewToken] = useState(false);
   const [envDialogOpen, setEnvDialogOpen] = useState(false);
-  const [envInfo, setEnvInfo] = useState<{ kbId?: string; environment_id: string; process_id?: string } | null>(null);
-  
+  const [envInfo, setEnvInfo] = useState<{
+    kbId?: string;
+    environment_id: string;
+    process_id?: string;
+  } | null>(null);
+
   // Get the process id from session
   const processId = session?.user?.selectedSpace?.processId;
   const selectedSpaceId = session?.user?.selectedSpace?.id;
-  
+
   // Use the same hook that the chat header uses to get live status updates
   const liveProcessStatus = useProcessStatus(processId);
 
@@ -160,23 +186,31 @@ export function RepoConnectionDialog({
       (async () => {
         try {
           const kbAtCall = repoDetails.knowledge_base_id;
-          const res = await fetch(`/api/repo/environments?knowledgeBaseId=${kbAtCall}`, {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' }
-          });
+          const res = await fetch(
+            `/api/repo/environments?knowledgeBaseId=${kbAtCall}`,
+            {
+              cache: 'no-store',
+              headers: { 'Cache-Control': 'no-cache' },
+            },
+          );
           if (res.ok) {
             const data = await res.json();
             // guard against races
-            if (data?.environment_id && kbAtCall === repoDetails?.knowledge_base_id) {
+            if (
+              data?.environment_id &&
+              kbAtCall === repoDetails?.knowledge_base_id
+            ) {
               setEnvInfo({ kbId: kbAtCall, ...data });
             }
           } else {
             // Fallback to localStorage if available
             const key = `env-info:${repoDetails.knowledge_base_id}`;
-            const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+            const raw =
+              typeof window !== 'undefined' ? localStorage.getItem(key) : null;
             if (raw) {
               const parsed = JSON.parse(raw);
-              if (parsed && parsed.environment_id) setEnvInfo({ kbId: repoDetails.knowledge_base_id, ...parsed });
+              if (parsed?.environment_id)
+                setEnvInfo({ kbId: repoDetails.knowledge_base_id, ...parsed });
             }
           }
         } catch {
@@ -199,13 +233,15 @@ export function RepoConnectionDialog({
 
       // Only update if status actually changed
       if (liveProcessStatus !== repoDetails.status) {
-        console.log(`Status updated from process hook: ${repoDetails.status} -> ${liveProcessStatus}`);
-        
-        setRepoDetails(prev => {
+        console.log(
+          `Status updated from process hook: ${repoDetails.status} -> ${liveProcessStatus}`,
+        );
+
+        setRepoDetails((prev) => {
           if (!prev) return null;
           return {
             ...prev,
-            status: liveProcessStatus
+            status: liveProcessStatus,
           };
         });
       }
@@ -215,24 +251,27 @@ export function RepoConnectionDialog({
   // Function to fetch repository details
   const fetchRepositoryDetails = async () => {
     if (!processId) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
       const spaceAtCall = selectedSpaceId;
-      const response = await fetch('/api/repo', { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+      const response = await fetch('/api/repo', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await response.json();
       // guard if space switched mid-flight
       if (spaceAtCall !== selectedSpaceId) {
         return;
       }
-      
+
       // Check if we received an error response
       if (response.ok && data.error === true) {
         console.log(`Repository connection failed: ${data.errorMessage}`);
         setIsPrefilled(true);
         setIsEditing(false);
-        
+
         // Save error details
         setRepoDetails({
           url: data.url || '',
@@ -241,7 +280,7 @@ export function RepoConnectionDialog({
           process_id: data.process_id || processId,
           error: true,
           errorType: data.errorType,
-          errorMessage: data.errorMessage
+          errorMessage: data.errorMessage,
         });
       } else if (response.ok && data.connected && data.url) {
         // Prefill the form with the repository URL
@@ -252,7 +291,7 @@ export function RepoConnectionDialog({
         setIsPrefilled(true);
         // Start in non-editing mode
         setIsEditing(false);
-        
+
         // Save comprehensive repo details for display
         setRepoDetails({
           url: data.url,
@@ -266,7 +305,7 @@ export function RepoConnectionDialog({
           last_failed_at: data.last_failed_at,
           last_failed_error: data.last_failed_error,
           last_failed_type: data.last_failed_type,
-          token_permissions: data.token_permissions
+          token_permissions: data.token_permissions,
         });
       } else {
         // No existing repository, enable editing by default
@@ -323,16 +362,22 @@ export function RepoConnectionDialog({
       setIsRotatingToken(false);
       setNewAccessToken('');
       setShowNewToken(false);
-      
+
       if (data.token_permissions) {
-        setRepoDetails(prev => prev ? {
-          ...prev,
-          token_permissions: data.token_permissions
-        } : null);
+        setRepoDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                token_permissions: data.token_permissions,
+              }
+            : null,
+        );
       }
     } catch (err) {
       console.error('Error updating token:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to update token');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update token',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -354,31 +399,35 @@ export function RepoConnectionDialog({
     try {
       setIsSyncing(true);
       setError(null);
-      
+
       const response = await fetch('/api/repo/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to sync repository');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         // Set a temporary visual feedback by updating the status locally
-        setRepoDetails(prev => prev ? {
-          ...prev,
-          status: 'indexing'
-        } : null);
-        
+        setRepoDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'indexing',
+              }
+            : null,
+        );
+
         // First, close the dialog with proper animation
         onOpenChange(false);
-        
+
         // After the dialog closes and a small delay, reload the page
         // This ensures both proper dialog animation and fresh data on reload
         setTimeout(() => {
@@ -389,7 +438,9 @@ export function RepoConnectionDialog({
       }
     } catch (err) {
       console.error('Error syncing repository:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to sync repository');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to sync repository',
+      );
     } finally {
       setIsSyncing(false);
     }
@@ -397,19 +448,20 @@ export function RepoConnectionDialog({
 
   const renderConnectedRepoInfo = () => {
     if (!repoDetails) return null;
-    
+
     const copyCommitSha = () => {
       if (repoDetails.commit_sha) {
         navigator.clipboard.writeText(repoDetails.commit_sha);
         toast.success('Commit SHA copied to clipboard!');
       }
     };
-    
+
     // If we have an error, show an error message instead of repository details
     if (repoDetails.error) {
-      const friendlyErrorMessage = repoDetails.errorType === 'timeout'
-        ? 'Indexing took too long. Please try again.'
-        : repoDetails.errorMessage || 'Unknown error occurred';
+      const friendlyErrorMessage =
+        repoDetails.errorType === 'timeout'
+          ? 'Indexing took too long. Please try again.'
+          : repoDetails.errorMessage || 'Unknown error occurred';
 
       return (
         <div className="space-y-4 py-4 text-sm">
@@ -419,7 +471,7 @@ export function RepoConnectionDialog({
               <span>{repoDetails.url}</span>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-1 pb-3">
             <div className="font-semibold">Error Details</div>
             <div className="flex items-center text-red-500 gap-2">
@@ -428,30 +480,45 @@ export function RepoConnectionDialog({
             </div>
             <div className="text-muted-foreground text-xs mt-2">
               {repoDetails.errorType === 'authentication_failed' && (
-                <p>Please check your access token and make sure it has the necessary permissions to access this repository.</p>
+                <p>
+                  Please check your access token and make sure it has the
+                  necessary permissions to access this repository.
+                </p>
               )}
               {repoDetails.errorType === 'repository_not_found' && (
-                <p>The repository URL could not be found. Please verify that the URL is correct.</p>
+                <p>
+                  The repository URL could not be found. Please verify that the
+                  URL is correct.
+                </p>
               )}
               {repoDetails.errorType === 'repository_unavailable' && (
-                <p>Could not connect to the repository. Please check your internet connection and try again.</p>
+                <p>
+                  Could not connect to the repository. Please check your
+                  internet connection and try again.
+                </p>
               )}
               {repoDetails.errorType === 'permission_denied' && (
-                <p>You don't have permission to access this repository. Please check your access rights.</p>
+                <p>
+                  You don't have permission to access this repository. Please
+                  check your access rights.
+                </p>
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-1 border-t pt-3">
             <div className="font-semibold">Recommendation</div>
             <div className="text-muted-foreground">
-              <p>Click "Change Repository" below to edit your repository connection settings.</p>
+              <p>
+                Click "Change Repository" below to edit your repository
+                connection settings.
+              </p>
             </div>
           </div>
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4 py-4 text-sm">
         <div className="flex flex-col gap-1 border-b pb-3">
@@ -460,11 +527,13 @@ export function RepoConnectionDialog({
             <span>{repoDetails.url}</span>
           </div>
         </div>
-        
+
         <div className="flex flex-col gap-1 border-b pb-3">
           {/* Compact summary bar: status, times, and git info in one row */}
           {(() => {
-            const shortSha = repoDetails.commit_sha ? repoDetails.commit_sha.slice(0, 7) : 'N/A';
+            const shortSha = repoDetails.commit_sha
+              ? repoDetails.commit_sha.slice(0, 7)
+              : 'N/A';
             return (
               <div className="flex items-start justify-between">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
@@ -476,9 +545,17 @@ export function RepoConnectionDialog({
                           Failed
                         </span>
                       </div>
-                      <div className="inline-flex items-center gap-3 pl-3 ml-3 border-l border-border" title="Last indexation state">
-                        <span>Failed: {formatDate(repoDetails.last_failed_at)}</span>
-                        <span className="text-muted-foreground">Last indexed: {formatDate(repoDetails.indexing_completed)}</span>
+                      <div
+                        className="inline-flex items-center gap-3 pl-3 ml-3 border-l border-border"
+                        title="Last indexation state"
+                      >
+                        <span>
+                          Failed: {formatDate(repoDetails.last_failed_at)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Last indexed:{' '}
+                          {formatDate(repoDetails.indexing_completed)}
+                        </span>
                       </div>
                     </>
                   ) : (
@@ -486,20 +563,36 @@ export function RepoConnectionDialog({
                       <div className="inline-flex items-center gap-1">
                         <StatusIcon status={repoDetails.status} />
                         <span className="capitalize" title="Indexation status">
-                          {repoDetails.status === 'connected' ? 'indexing' : repoDetails.status}
+                          {repoDetails.status === 'connected'
+                            ? 'indexing'
+                            : repoDetails.status}
                         </span>
                       </div>
-                      <div className="inline-flex items-center gap-2 pl-3 ml-3 border-l border-border" title="Indexation times">
-                        <span>Started: {formatDate(repoDetails.indexing_started)}</span>
-                        <span className="text-muted-foreground"></span>
-                        <span>Completed: {formatDate(repoDetails.indexing_completed)}</span>
+                      <div
+                        className="inline-flex items-center gap-2 pl-3 ml-3 border-l border-border"
+                        title="Indexation times"
+                      >
+                        <span>
+                          Started: {formatDate(repoDetails.indexing_started)}
+                        </span>
+                        <span className="text-muted-foreground" />
+                        <span>
+                          Completed:{' '}
+                          {formatDate(repoDetails.indexing_completed)}
+                        </span>
                       </div>
                     </>
                   )}
-                  <div className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border" title="Git branch">
+                  <div
+                    className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border"
+                    title="Git branch"
+                  >
                     <span>Branch: {repoDetails.branch || 'N/A'}</span>
                   </div>
-                  <div className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border" title={repoDetails.commit_sha || undefined}>
+                  <div
+                    className="inline-flex items-center gap-1 pl-3 ml-3 border-l border-border"
+                    title={repoDetails.commit_sha || undefined}
+                  >
                     <span>Commit: </span>
                     <span className="font-mono">{shortSha}</span>
                     {repoDetails.commit_sha && (
@@ -522,7 +615,11 @@ export function RepoConnectionDialog({
                   variant="outline"
                   className="h-8 px-3 ml-3 flex items-center gap-1"
                   onClick={handleSyncRepository}
-                  disabled={isSyncing || repoDetails.status === 'indexing' || repoDetails.status === 'connected'}
+                  disabled={
+                    isSyncing ||
+                    repoDetails.status === 'indexing' ||
+                    repoDetails.status === 'connected'
+                  }
                 >
                   <div className={isSyncing ? 'animate-spin' : ''}>
                     <ClockRewind size={14} />
@@ -616,11 +713,15 @@ export function RepoConnectionDialog({
           <div className="font-semibold">Environment</div>
           <div className="flex items-center justify-between">
             <div className="text-muted-foreground text-sm">
-              {envInfo?.environment_id && envInfo?.kbId === repoDetails.knowledge_base_id ? (
+              {envInfo?.environment_id &&
+              envInfo?.kbId === repoDetails.knowledge_base_id ? (
                 <div className="flex items-center gap-2">
                   <span>Configured</span>
                   {envInfo.process_id && (
-                    <a className="text-primary hover:underline" href={`/tasks/${envInfo.process_id}`}>
+                    <a
+                      className="text-primary hover:underline"
+                      href={`/tasks/${envInfo.process_id}`}
+                    >
                       View progress
                     </a>
                   )}
@@ -637,7 +738,10 @@ export function RepoConnectionDialog({
               onClick={() => setEnvDialogOpen(true)}
               disabled={!repoDetails.knowledge_base_id}
             >
-              {envInfo?.environment_id && envInfo?.kbId === repoDetails.knowledge_base_id ? 'Edit' : 'Setup'}
+              {envInfo?.environment_id &&
+              envInfo?.kbId === repoDetails.knowledge_base_id
+                ? 'Edit'
+                : 'Setup'}
             </Button>
           </div>
         </div>
@@ -645,7 +749,7 @@ export function RepoConnectionDialog({
         {/* Token Permissions Display */}
         {repoDetails.token_permissions && (
           <div className="border-t pt-4 mt-4">
-            <TokenPermissionsDisplay 
+            <TokenPermissionsDisplay
               permissions={repoDetails.token_permissions}
               repositoryUrl={repoDetails.url}
             />
@@ -657,7 +761,7 @@ export function RepoConnectionDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!repoUrl) {
       setError('Repository URL is required');
       return;
@@ -668,22 +772,24 @@ export function RepoConnectionDialog({
       setError('Please enter your access token');
       return;
     }
-    
+
     setError(null);
     setIsSubmitting(true);
-    
+
     try {
       // Check if we have a valid session with a selected space
       if (!session?.user?.id || !session?.user?.selectedSpace?.id) {
         // Try to refresh the session to get the latest data
         await updateSession();
-        
+
         // If we still don't have valid session data, show error
         if (!session?.user?.id || !session?.user?.selectedSpace?.id) {
-          throw new Error('Session data is incomplete. Please reload the page and try again.');
+          throw new Error(
+            'Session data is incomplete. Please reload the page and try again.',
+          );
         }
       }
-      
+
       // Gather data for the API call including user and space info
       const payload = {
         repoUrl,
@@ -691,7 +797,7 @@ export function RepoConnectionDialog({
         userId: session.user.id,
         spaceId: session.user.selectedSpace.id,
       };
-      
+
       // Call our Next.js API route
       const response = await fetch('/api/repo', {
         method: 'POST',
@@ -700,10 +806,10 @@ export function RepoConnectionDialog({
         },
         body: JSON.stringify(payload),
       });
-      
+
       // Get the response data
       const data = await response.json();
-      
+
       if (!response.ok) {
         // Check if we have detailed error information
         if (data.errorType && data.errorMessage) {
@@ -713,18 +819,23 @@ export function RepoConnectionDialog({
           errorObj.type = data.errorType;
           throw errorObj;
         }
-        
+
         throw new Error(data.error || 'Failed to connect repository');
       }
-      
+
       // Extract process_id from events if needed
-      if (data.status?.toLowerCase() === 'connected' && !data.process_id && data.events && data.events[0]) {
+      if (
+        data.status?.toLowerCase() === 'connected' &&
+        !data.process_id &&
+        data.events &&
+        data.events[0]
+      ) {
         data.process_id = data.events[0].process_id;
       }
-      
+
       // Get the correct knowledge base ID, handling both formats
       const knowledgeBaseId = data.knowledgeBaseId || data.knowledge_base_id;
-      
+
       // If we have the knowledge base ID, update the space
       if (knowledgeBaseId) {
         // Update the space with the knowledge base ID and connected repo URL
@@ -740,11 +851,11 @@ export function RepoConnectionDialog({
             connectedRepoUrl: repoUrl,
           }),
         });
-        
+
         if (!updateResponse.ok) {
           throw new Error('Failed to update space with knowledge base ID');
         }
-        
+
         // Create properly structured updated space
         const updatedSpace = {
           ...session.user.selectedSpace,
@@ -752,30 +863,30 @@ export function RepoConnectionDialog({
           processId: data.process_id || null,
           connectedRepoUrl: repoUrl,
         };
-        
+
         // Update the session with the new space data
         await updateSession({
           user: {
             ...session.user,
             selectedSpace: updatedSpace,
             // Also add at root level for direct access by codebase search
-            knowledgeBaseId: knowledgeBaseId
-          }
+            knowledgeBaseId: knowledgeBaseId,
+          },
         });
-        
+
         // Reload the page to ensure fresh data
         window.location.reload();
       } else {
         throw new Error('No knowledge base ID received from the server');
       }
-      
+
       // Success
       setRepoUrl('');
       setAccessToken('');
       onOpenChange(false);
     } catch (err) {
-      console.error("Error in repository connection:", err);
-      
+      console.error('Error in repository connection:', err);
+
       // Check if we have a typed error from our API
       // @ts-ignore - check for custom properties
       if (err instanceof Error && err.type) {
@@ -788,9 +899,9 @@ export function RepoConnectionDialog({
           error: true,
           // @ts-ignore - we know these properties exist
           errorType: err.type,
-          errorMessage: err.message
+          errorMessage: err.message,
         });
-        
+
         // Show the error in the error UI section rather than edit mode
         setIsPrefilled(true);
         setIsEditing(false);
@@ -812,7 +923,7 @@ export function RepoConnectionDialog({
             Connect a code repository to enhance your chat experience.
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="flex-1 overflow-y-auto px-1">
           {isLoading ? (
             <div className="py-8 text-center">
@@ -836,7 +947,7 @@ export function RepoConnectionDialog({
                   disabled={isLoading}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="accessToken">Access Token</Label>
                 <div className="relative">
@@ -862,7 +973,7 @@ export function RepoConnectionDialog({
                     </span>
                   </Button>
                 </div>
-                
+
                 {/* Proactive Token Generator */}
                 {repoUrl && (
                   <ProactiveTokenGenerator
@@ -871,7 +982,7 @@ export function RepoConnectionDialog({
                   />
                 )}
               </div>
-              
+
               {error && (
                 <div className="text-sm text-red-500 flex items-center gap-1">
                   <CrossIcon size={12} />
@@ -881,7 +992,7 @@ export function RepoConnectionDialog({
             </form>
           )}
         </div>
-        
+
         <SheetFooter className="flex-shrink-0 mt-4">
           {isPrefilled && !isEditing ? (
             <Button
@@ -920,4 +1031,4 @@ export function RepoConnectionDialog({
       />
     </Sheet>
   );
-} 
+}

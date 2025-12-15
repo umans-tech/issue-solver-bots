@@ -10,20 +10,30 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const knowledgeBaseId: string | undefined = body?.knowledgeBaseId || body?.kbId;
+  const knowledgeBaseId: string | undefined =
+    body?.knowledgeBaseId || body?.kbId;
   const promptId: string | undefined = body?.promptId || body?.prompt_id;
   const mode: Mode = body?.mode === 'complete' ? 'complete' : 'update';
 
   if (!knowledgeBaseId) {
-    return NextResponse.json({ error: 'knowledgeBaseId is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'knowledgeBaseId is required' },
+      { status: 400 },
+    );
   }
   if (!promptId) {
-    return NextResponse.json({ error: 'promptId is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'promptId is required' },
+      { status: 400 },
+    );
   }
 
   const cuduEndpoint = process.env.CUDU_ENDPOINT;
   if (!cuduEndpoint) {
-    return NextResponse.json({ error: 'CUDU API endpoint is not configured' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'CUDU API endpoint is not configured' },
+      { status: 500 },
+    );
   }
 
   const apiUrl = `${cuduEndpoint}/repositories/${knowledgeBaseId}/auto-documentation/generate`;

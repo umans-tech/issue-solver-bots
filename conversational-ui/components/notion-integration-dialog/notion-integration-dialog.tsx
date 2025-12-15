@@ -15,7 +15,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircleFillIcon, AlertCircle, ClockRewind } from '@/components/icons';
+import {
+  AlertCircle,
+  CheckCircleFillIcon,
+  ClockRewind,
+} from '@/components/icons';
 
 interface NotionIntegrationDialogProps {
   open: boolean;
@@ -42,7 +46,8 @@ export function NotionIntegrationDialog({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [integration, setIntegration] = useState<NotionIntegrationDetails | null>(null);
+  const [integration, setIntegration] =
+    useState<NotionIntegrationDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [didRefresh, setDidRefresh] = useState(false);
 
@@ -101,21 +106,30 @@ export function NotionIntegrationDialog({
         }
         if (!res.ok) {
           const payload = await res.json().catch(() => ({}));
-          throw new Error(payload?.error || 'Failed to load Notion integration');
+          throw new Error(
+            payload?.error || 'Failed to load Notion integration',
+          );
         }
         const payload = await res.json();
         if (payload?.connected && payload.integration) {
           const details = payload.integration;
           setIntegration({
             connectedAt:
-              details.connected_at ?? details.connectedAt ?? new Date().toISOString(),
+              details.connected_at ??
+              details.connectedAt ??
+              new Date().toISOString(),
             workspaceId: details.workspace_id ?? details.workspaceId ?? null,
-            workspaceName: details.workspace_name ?? details.workspaceName ?? null,
+            workspaceName:
+              details.workspace_name ?? details.workspaceName ?? null,
             botId: details.bot_id ?? details.botId ?? null,
             processId: details.process_id ?? details.processId,
-            tokenExpiresAt: details.token_expires_at ?? details.tokenExpiresAt ?? null,
+            tokenExpiresAt:
+              details.token_expires_at ?? details.tokenExpiresAt ?? null,
             hasMcpToken:
-              details.has_mcp_token ?? details.hasMcpToken ?? details.hasMcp ?? false,
+              details.has_mcp_token ??
+              details.hasMcpToken ??
+              details.hasMcp ??
+              false,
           });
           setError(null);
           if (!didRefresh && details.hasMcpToken) {
@@ -156,7 +170,9 @@ export function NotionIntegrationDialog({
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result?.error || 'Failed to start the Notion connection');
+        throw new Error(
+          result?.error || 'Failed to start the Notion connection',
+        );
       }
       if (result?.authorizeUrl) {
         window.location.href = result.authorizeUrl;
@@ -182,7 +198,9 @@ export function NotionIntegrationDialog({
         <SheetHeader>
           <SheetTitle>Connect Notion</SheetTitle>
           <SheetDescription>
-            Bring your Notion workspace into this space so everyone can pull rich context into conversations, capture better tickets, and publish polished docs—without leaving Umans.
+            Bring your Notion workspace into this space so everyone can pull
+            rich context into conversations, capture better tickets, and publish
+            polished docs—without leaving Umans.
           </SheetDescription>
         </SheetHeader>
 
@@ -203,7 +221,8 @@ export function NotionIntegrationDialog({
             <div className="rounded-md border bg-muted/20 p-3">
               <p className="text-sm font-medium">Workspace</p>
               <p className="text-sm text-muted-foreground">
-                {integration.workspaceName} ({integration.workspaceId ?? 'unknown'})
+                {integration.workspaceName} (
+                {integration.workspaceId ?? 'unknown'})
               </p>
             </div>
           )}
@@ -211,7 +230,9 @@ export function NotionIntegrationDialog({
           {integration?.botId && (
             <div className="rounded-md border bg-muted/20 p-3">
               <p className="text-sm font-medium">Connection ID</p>
-              <p className="text-sm text-muted-foreground">{integration.botId}</p>
+              <p className="text-sm text-muted-foreground">
+                {integration.botId}
+              </p>
             </div>
           )}
 
@@ -222,7 +243,9 @@ export function NotionIntegrationDialog({
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              By connecting, you let every teammate and Umans agent in this space search your Notion workspace for context, draft better tickets, and update pages when you ask.
+              By connecting, you let every teammate and Umans agent in this
+              space search your Notion workspace for context, draft better
+              tickets, and update pages when you ask.
             </p>
           </div>
         </div>

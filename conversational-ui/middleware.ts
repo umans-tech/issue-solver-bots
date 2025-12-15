@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import NextAuth from 'next-auth';
 import { authConfig } from '@/app/(auth)/auth.config';
 
@@ -19,7 +19,7 @@ export default function middleware(req: NextRequest) {
   if (req.nextUrl.pathname === '/api/health') {
     return NextResponse.next();
   }
-  
+
   if (req.nextUrl.pathname.startsWith('/api/auth/')) {
     return NextResponse.next();
   }
@@ -27,7 +27,7 @@ export default function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith('/api/billing/')) {
     return NextResponse.next();
   }
-  
+
   // If a pending checkout exists, force user into billing/start, except for auth flows
   const allowedDuringPending = [
     '/billing/start',

@@ -197,11 +197,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
   useEffect(() => {
     refreshHistory();
-  }, [
-    pathname, 
-    refreshHistory, 
-    session?.user?.selectedSpace?.id
-  ]);
+  }, [pathname, refreshHistory, session?.user?.selectedSpace?.id]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
