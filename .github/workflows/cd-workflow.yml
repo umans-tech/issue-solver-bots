@@ -90,7 +90,7 @@ jobs:
           TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
           TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}
 
-  package:
+  package-webapi:
     needs: [ detect-changes ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
@@ -135,6 +135,40 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-webapi-${{ env.IMAGE_ENV_TAG }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-webapi-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
 
+  package-worker:
+    needs: [ detect-changes ]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./issue-solver
+    env:
+      IMAGE_ENV_TAG: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: extractions/setup-just@v2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::034362042699:role/GitHubActionsRole
+          role-session-name: SessionGitHubActions
+          aws-region: eu-west-3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build and push worker container image
         uses: docker/build-push-action@v6
         with:
@@ -145,6 +179,27 @@ jobs:
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ github.sha }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-west-3.amazonaws.com/umans-platform:umans-platform-worker-${{ env.IMAGE_ENV_TAG }}-${{ github.sha }}
+
+  package-conversational-ui:
+    needs: [ detect-changes ]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_ENV_TAG: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::034362042699:role/GitHubActionsRole
+          role-session-name: SessionGitHubActions
+          aws-region: eu-west-3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push conversational-ui container image
         uses: docker/build-push-action@v6
@@ -171,7 +226,7 @@ jobs:
 
 
   deploy:
-    needs: [ detect-changes, provision, package ]
+    needs: [ detect-changes, provision, package-webapi, package-worker, package-conversational-ui ]
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true')) ||
       (github.event_name == 'pull_request' && github.event.action != 'closed' && (needs.detect-changes.outputs.deploy-changes == 'true' || needs.detect-changes.outputs.app-changes == 'true' || needs.detect-changes.outputs.workflow-changes == 'true'))
@@ -298,35 +353,96 @@ jobs:
           STRIPE_BILLING_PORTAL_URL_PROD: ${{ secrets.TF_VAR_STRIPE_BILLING_PORTAL_URL_PROD }}
           STRIPE_BILLING_PORTAL_URL_DEV: ${{ secrets.TF_VAR_STRIPE_BILLING_PORTAL_URL_DEV }}
 
-      - name: Build blog
-        if: needs.detect-changes.outputs.blog-changes == 'true'
+  build-blog:
+    needs: [ detect-changes ]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.blog-changes == 'true') ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && needs.detect-changes.outputs.blog-changes == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Install and build blog
         run: |
           cd blog
           pnpm install --frozen-lockfile
           pnpm build
 
+      - name: Upload blog dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-dist
+          path: blog/dist
+          if-no-files-found: error
+
+  deploy-blog:
+    needs: [ detect-changes, provision, build-blog ]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.blog-changes == 'true') ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && needs.detect-changes.outputs.blog-changes == 'true')
+    runs-on: ubuntu-latest
+    env:
+      GH_PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+
+      - name: Install just
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::034362042699:role/GitHubActionsRole
+          role-session-name: SessionGitHubActions
+          aws-region: eu-west-3
+
+      - name: Download blog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: blog-dist
+          path: blog/dist
+
+      - name: Init provision workspace
+        run: |
+          cd operations/01-provision
+          terraform init -reconfigure
+          just init
+
       - name: Read blog outputs
-        if: needs.detect-changes.outputs.blog-changes == 'true'
         id: blog_out
         run: |
-          cd operations/02-deploy
+          cd operations/01-provision
           echo "bucket=$(terraform output -raw blog_bucket_name)" >> $GITHUB_OUTPUT
           echo "dist=$(terraform output -raw blog_distribution_id)" >> $GITHUB_OUTPUT
           echo "url=$(terraform output -raw blog_url)" >> $GITHUB_OUTPUT
 
       - name: Sync blog to S3
-        if: needs.detect-changes.outputs.blog-changes == 'true'
         run: |
           aws s3 sync blog/dist s3://${{ steps.blog_out.outputs.bucket }} --delete
 
       - name: Invalidate CloudFront for blog
-        if: needs.detect-changes.outputs.blog-changes == 'true'
         run: |
           aws cloudfront create-invalidation --distribution-id ${{ steps.blog_out.outputs.dist }} --paths '/*'
 
       - name: Blog URL
-        if: needs.detect-changes.outputs.blog-changes == 'true'
         run: echo "Blog deployed to ${{ steps.blog_out.outputs.url }}"
+
   cleanup:
     needs: detect-changes
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
