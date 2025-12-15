@@ -16,16 +16,16 @@ ws := `bash -c 'if [ -n "$GH_PR_NUMBER" ]; then \
 branch_name := `bash -c 'git rev-parse --abbrev-ref HEAD'`
 # set stripe_secret_key to  STRIPE_SECRET_KEY_PROD if production workspace else STRIPE_SECRET_KEY_DEV
 stripe_secret_key := if ws == "production" {
-  env_var("STRIPE_SECRET_KEY_PROD")
+  env("STRIPE_SECRET_KEY_PROD")
 } else {
-  env_var("STRIPE_SECRET_KEY_DEV")
+  env("STRIPE_SECRET_KEY_DEV", "")
 }
 
 # set stripe_billing_portal_url to STRIPE_BILLING_PORTAL_URL_PROD if production workspace else STRIPE_BILLING_PORTAL_URL_DEV
 stripe_billing_portal_url := if ws == "production" {
-  env_var("STRIPE_BILLING_PORTAL_URL_PROD")
+  env("STRIPE_BILLING_PORTAL_URL_PROD")
 } else {
-  env_var("STRIPE_BILLING_PORTAL_URL_DEV")
+  env("STRIPE_BILLING_PORTAL_URL_DEV", "")
 }
 
 # 🎬 Initialize terraform workspace for apps deployment
@@ -41,6 +41,12 @@ plan: init
 
 # 🚀 Apply changes for apps deployment
 apply: init
+    @if [ -z "{{stripe_secret_key}}" ]; then \
+      echo ">>> WARNING: STRIPE_SECRET_KEY is not set. Some features may not work properly."; \
+    fi
+    @if [ -z "{{stripe_billing_portal_url}}" ]; then \
+      echo ">>> WARNING: STRIPE_BILLING_PORTAL_URL is not set. Some features may not work properly."; \
+    fi
     @terraform apply -var "branch_name={{branch_name}}" -var "stripe_secret_key={{stripe_secret_key}}" -var "stripe_billing_portal_url={{stripe_billing_portal_url}}" -auto-approve
     @echo ">>> Deployed App URLs:"
     @echo ">>> AWS:"
