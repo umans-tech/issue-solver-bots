@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { auth } from '@/app/(auth)/auth';
 
 function streamToString(stream: any): Promise<string> {
@@ -14,15 +14,20 @@ function streamToString(stream: any): Promise<string> {
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
-    const kbId = searchParams.get('kbId') || session.user.selectedSpace?.knowledgeBaseId;
+    const kbId =
+      searchParams.get('kbId') || session.user.selectedSpace?.knowledgeBaseId;
     const commitSha = searchParams.get('commitSha');
     const path = searchParams.get('path');
 
     if (!kbId || !commitSha || !path) {
-      return NextResponse.json({ error: 'kbId, commitSha and path are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'kbId, commitSha and path are required' },
+        { status: 400 },
+      );
     }
 
     const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
@@ -48,8 +53,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ content: bodyString, title });
   } catch (error: any) {
     console.error('Error fetching doc file:', error);
-    return NextResponse.json({ error: 'Failed to fetch file' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch file' },
+      { status: 500 },
+    );
   }
 }
-
-

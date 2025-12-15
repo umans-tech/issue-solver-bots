@@ -4,4 +4,4 @@ export default function IntegrationsLayout({
   children: React.ReactNode;
 }) {
   return children;
-} 
+}

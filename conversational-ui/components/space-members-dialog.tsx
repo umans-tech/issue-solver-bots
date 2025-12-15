@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Users, Mail, CheckCircle, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle, Clock, Users } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -64,7 +64,9 @@ export function SpaceMembersDialog({
       setCurrentUserId(data.currentUserId);
     } catch (error) {
       console.error('Error fetching members:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch members');
+      setError(
+        error instanceof Error ? error.message : 'Failed to fetch members',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +88,7 @@ export function SpaceMembersDialog({
         <div className="py-6">
           {isLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           )}
 
@@ -119,12 +121,12 @@ export function SpaceMembersDialog({
                   >
                     <div className="relative">
                       <Avatar
-                          user={{ 
-                            email: member.email,
-                            name: member.name,
-                            image: member.image
-                          }}
-                          size={40}
+                        user={{
+                          email: member.email,
+                          name: member.name,
+                          image: member.image,
+                        }}
+                        size={40}
                       />
                       {member.id === currentUserId && (
                         <Badge
@@ -172,4 +174,4 @@ export function SpaceMembersDialog({
       </SheetContent>
     </Sheet>
   );
-} 
+}

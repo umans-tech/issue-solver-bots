@@ -4,12 +4,12 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 
 import {
-  getUser,
-  getSelectedSpace,
   createUser,
   ensureDefaultSpace,
-  verifyUserEmail,
+  getSelectedSpace,
+  getUser,
   updateUserProfile,
+  verifyUserEmail,
 } from '@/lib/db/queries';
 
 import { authConfig } from './auth.config';
@@ -27,7 +27,11 @@ interface ExtendedSession extends Session {
       processId?: string | null;
       connectedRepoUrl?: string | null;
       isDefault?: boolean;
-      indexedVersions?: Array<{ sha: string; indexedAt?: string; branch?: string }> | null;
+      indexedVersions?: Array<{
+        sha: string;
+        indexedAt?: string;
+        branch?: string;
+      }> | null;
     } | null;
   } & Omit<Session['user'], 'id'>;
 }
@@ -46,17 +50,17 @@ export const {
     }),
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-        
+
         const email = credentials.email as string;
         const password = credentials.password as string;
-        
+
         const users = await getUser(email);
         if (users.length === 0) return null;
 
@@ -80,23 +84,23 @@ export const {
       console.log('🔐 NextAuth signIn callback triggered', {
         provider: account?.provider,
         userEmail: user?.email,
-        userId: user?.id
+        userId: user?.id,
       });
 
       if (account?.provider === 'google') {
         try {
           console.log('🔍 Checking if Google user exists:', user.email);
-          
+
           const existingUsers = await getUser(user.email!);
           console.log('👤 Existing users found:', existingUsers.length);
-          
+
           if (existingUsers.length === 0) {
             console.log('➕ Creating new OAuth user:', user.email);
-            
+
             await createUser(user.email!, null, user.name, user.image);
             console.log('✅ User created successfully');
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
             const [newUser] = await getUser(user.email!);
             if (newUser?.id) {
@@ -108,29 +112,34 @@ export const {
             if (!dbUser.name || !dbUser.image) {
               await updateUserProfile(dbUser.id, {
                 name: user.name,
-                image: user.image
+                image: user.image,
               });
               console.log('✅ Updated existing user profile with Google data');
             }
           }
-          
+
           const [dbUser] = await getUser(user.email!);
           console.log('👤 Database user retrieved:', dbUser?.id);
-          
+
           if (!dbUser?.id) {
             console.error('❌ Failed to retrieve user from database');
             return false;
           }
-          
-          console.log('🏠 Creating default space for database user:', dbUser.id);
+
+          console.log(
+            '🏠 Creating default space for database user:',
+            dbUser.id,
+          );
           try {
             await ensureDefaultSpace(dbUser.id);
             console.log('✅ Default space created successfully');
           } catch (spaceError) {
             console.error('❌ Error creating default space:', spaceError);
-            console.log('⚠️ Continuing with sign-in despite space creation failure');
+            console.log(
+              '⚠️ Continuing with sign-in despite space creation failure',
+            );
           }
-          
+
           console.log('🎉 Google OAuth sign-in successful');
           return true;
         } catch (error) {
@@ -138,7 +147,7 @@ export const {
           return false;
         }
       }
-      
+
       console.log('✅ Non-Google sign-in successful');
       return true;
     },
@@ -151,11 +160,14 @@ export const {
           token.subscriptionStatus = dbUser.subscriptionStatus;
           token.hasCompletedOnboarding = dbUser.hasCompletedOnboarding;
         } else {
-          console.error('❌ JWT: Could not find database user for email:', user.email);
+          console.error(
+            '❌ JWT: Could not find database user for email:',
+            user.email,
+          );
           token.id = user.id;
         }
       }
-        
+
       // Always refresh hasCompletedOnboarding from database for existing tokens
       if (token.id && token.email) {
         const [dbUser] = await getUser(token.email as string);
@@ -198,8 +210,11 @@ export const {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.plan = token.plan as string | undefined;
-        session.user.subscriptionStatus = token.subscriptionStatus as string | undefined;
-        session.user.hasCompletedOnboarding = token.hasCompletedOnboarding as boolean;
+        session.user.subscriptionStatus = token.subscriptionStatus as
+          | string
+          | undefined;
+        session.user.hasCompletedOnboarding =
+          token.hasCompletedOnboarding as boolean;
 
         // Add selected space info to the session
         if (token.selectedSpace) {
@@ -216,7 +231,8 @@ export const {
           };
 
           if (token.selectedSpace.indexedVersions) {
-            session.user.selectedSpace.indexedVersions = token.selectedSpace.indexedVersions;
+            session.user.selectedSpace.indexedVersions =
+              token.selectedSpace.indexedVersions;
           }
 
           // Add an extra check to directly query the database if any critical fields are missing
@@ -233,7 +249,9 @@ export const {
 
               if (
                 spaceFromDb &&
-                (spaceFromDb.knowledgeBaseId || spaceFromDb.processId || spaceFromDb.connectedRepoUrl)
+                (spaceFromDb.knowledgeBaseId ||
+                  spaceFromDb.processId ||
+                  spaceFromDb.connectedRepoUrl)
               ) {
                 console.log(
                   'Session: Found extra space data in database, updating session:',

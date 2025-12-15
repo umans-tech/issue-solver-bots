@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { ChevronDownIcon } from './icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Markdown } from './markdown';
 import cx from 'classnames';
 import { DocumentToolCall, DocumentToolResult } from './document';
@@ -10,17 +10,34 @@ import { Weather } from './weather';
 import { WebSearch, WebSearchAnimation } from './web-search';
 import { FetchWebpage, FetchWebpageAnimation } from './fetch-webpage';
 import { DocumentPreview } from './document-preview';
-import { RemoteCodingAgentAnimation, RemoteCodingStream } from './remote-coding-agent';
-import { CodebaseSearchResult, CodebaseSearchPreview } from './codebase-assistant';
-import { GitHubMCPAnimation, GitHubMCPResult, isGitHubMCPTool } from './github-mcp';
-import { NotionMCPAnimation, NotionMCPResult, isNotionMCPTool } from './notion-mcp';
+import {
+  RemoteCodingAgentAnimation,
+  RemoteCodingStream,
+} from './remote-coding-agent';
+import {
+  CodebaseSearchPreview,
+  CodebaseSearchResult,
+} from './codebase-assistant';
+import {
+  GitHubMCPAnimation,
+  GitHubMCPResult,
+  isGitHubMCPTool,
+} from './github-mcp';
+import {
+  isNotionMCPTool,
+  NotionMCPAnimation,
+  NotionMCPResult,
+} from './notion-mcp';
 
 interface MessageReasoningProps {
   isLoading: boolean;
-  chronologicalItems?: Array<{ part: any; index: number; type: 'reasoning' | 'tool' }>;
+  chronologicalItems?: Array<{
+    part: any;
+    index: number;
+    type: 'reasoning' | 'tool';
+  }>;
   isStreaming?: boolean;
 }
-
 
 export function MessageReasoning({
   isLoading,
@@ -28,7 +45,7 @@ export function MessageReasoning({
   isStreaming = false,
 }: MessageReasoningProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const hasContent = chronologicalItems.length > 0;
 
   const variants = {
@@ -51,21 +68,27 @@ export function MessageReasoning({
       {/* Show animated state while streaming, completed state when done */}
       {isStreaming && hasContent ? (
         <div className="flex flex-row gap-2 items-center">
-          <span className="animate-pulse text-muted-foreground">Reasoning...</span>
+          <span className="animate-pulse text-muted-foreground">
+            Reasoning...
+          </span>
           <div
             className="cursor-pointer"
             onClick={() => {
               setIsExpanded(!isExpanded);
             }}
           >
-            <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+            <div
+              className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            >
               <ChevronDownIcon />
             </div>
           </div>
         </div>
       ) : isStreaming && !hasContent ? (
         <div className="flex flex-row gap-2 items-center">
-          <span className="animate-pulse text-muted-foreground">Reasoning...</span>
+          <span className="animate-pulse text-muted-foreground">
+            Reasoning...
+          </span>
         </div>
       ) : hasContent ? (
         <div className="flex flex-row gap-2 items-center">
@@ -76,7 +99,9 @@ export function MessageReasoning({
               setIsExpanded(!isExpanded);
             }}
           >
-            <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+            <div
+              className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            >
               <ChevronDownIcon />
             </div>
           </div>
@@ -98,32 +123,29 @@ export function MessageReasoning({
             {/* Render items in chronological order */}
             {chronologicalItems.map((item, itemIndex) => {
               const { part, index, type } = item;
-              
+
               if (type === 'reasoning') {
                 const reasoning = (part as any).text || '';
-                return reasoning && reasoning.trim() ? (
+                return reasoning?.trim() ? (
                   <div key={`reasoning-${index}`}>
                     <Markdown>{reasoning}</Markdown>
                   </div>
                 ) : null;
               }
-              
+
               if (type === 'tool' && part.type === 'tool-invocation') {
                 const { toolInvocation } = part;
                 const { toolName, toolCallId, state } = toolInvocation;
-                
+
                 if (state === 'call') {
                   const { args } = toolInvocation;
 
                   return (
                     <div
                       key={toolCallId}
-                      className={cx(
-                        'my-2',
-                        {
-                          skeleton: ['getWeather'].includes(toolName),
-                        }
-                      )}
+                      className={cx('my-2', {
+                        skeleton: ['getWeather'].includes(toolName),
+                      })}
                     >
                       {toolName === 'getWeather' ? (
                         <Weather />
@@ -197,10 +219,7 @@ export function MessageReasoning({
                       {toolName === 'getWeather' ? (
                         <Weather weatherAtLocation={result} />
                       ) : toolName === 'createDocument' ? (
-                        <DocumentPreview
-                          isReadonly={true}
-                          result={result}
-                        />
+                        <DocumentPreview isReadonly={true} result={result} />
                       ) : toolName === 'updateDocument' ? (
                         <DocumentToolResult
                           type="update"
@@ -214,8 +233,7 @@ export function MessageReasoning({
                           isReadonly={true}
                         />
                       ) : toolName === 'codebaseAssistant' ? (
-                          <div>
-                          </div>
+                        <div />
                       ) : toolName === 'remoteCodingAgent' ? (
                         <RemoteCodingStream
                           toolCallId={toolCallId}
@@ -223,7 +241,7 @@ export function MessageReasoning({
                           issueDescription={issueDescription}
                           isStreaming={false}
                           result={result}
-                      />
+                        />
                       ) : toolName === 'webSearch' ? (
                         <WebSearch result={result} query={args?.query} />
                       ) : toolName === 'codebaseSearch' ? (
@@ -235,17 +253,27 @@ export function MessageReasoning({
                       ) : toolName === 'fetchWebpage' ? (
                         <FetchWebpage result={result} url={args?.url} />
                       ) : isNotionMCPTool(toolName) ? (
-                        <NotionMCPResult toolName={toolName} result={result} args={args} />
+                        <NotionMCPResult
+                          toolName={toolName}
+                          result={result}
+                          args={args}
+                        />
                       ) : isGitHubMCPTool(toolName) ? (
-                        <GitHubMCPResult toolName={toolName} result={result} args={args} />
+                        <GitHubMCPResult
+                          toolName={toolName}
+                          result={result}
+                          args={args}
+                        />
                       ) : (
-                        <pre className="text-xs overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+                        <pre className="text-xs overflow-auto">
+                          {JSON.stringify(result, null, 2)}
+                        </pre>
                       )}
                     </div>
                   );
                 }
               }
-              
+
               return null;
             })}
           </motion.div>

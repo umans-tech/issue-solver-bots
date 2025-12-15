@@ -1,15 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import { AnimatePresence, motion } from 'framer-motion';
+import {
   AlertCircle,
-  ClockRewind,
   ChevronDownIcon,
+  ClockRewind,
   InfoIcon,
-  LoaderIcon
+  LoaderIcon,
 } from './icons';
 import { Check } from 'lucide-react';
 
@@ -30,9 +29,12 @@ interface ProcessTimelineViewProps {
   className?: string;
 }
 
-export function ProcessTimelineView({ events = [], className }: ProcessTimelineViewProps) {
+export function ProcessTimelineView({
+  events = [],
+  className,
+}: ProcessTimelineViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => {
       const dateA = a.occurred_at ? new Date(a.occurred_at) : new Date(0);
@@ -47,16 +49,16 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
       if (event.occurred_at) {
         return new Date(event.occurred_at).toLocaleString();
       }
-      return "N/A";
+      return 'N/A';
     } catch (e) {
-      return "Invalid Date";
+      return 'Invalid Date';
     }
   };
 
   // Function to get event icon and color based on event type
   const getEventTypeDetails = (eventType: string) => {
     const type = eventType.toLowerCase();
-    
+
     // Extract the action part from event type (e.g., "requested" from "issue_resolution_requested")
     const getActionFromType = (type: string) => {
       // Split by underscore and get the last part
@@ -70,76 +72,76 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
     };
 
     const actionLabel = getActionFromType(type);
-    
+
     if (type.includes('validated')) {
       return {
         icon: <Check className="h-4 w-4" />,
         color: 'bg-green-100 border-green-200',
         textColor: 'text-green-700',
-        label: actionLabel || 'Validated'
+        label: actionLabel || 'Validated',
       };
     } else if (type.includes('provided')) {
       return {
         icon: <ClockRewind size={16} />,
         color: 'bg-blue-500/10 border-blue-500/20',
         textColor: 'text-blue-500',
-        label: actionLabel || 'Provided'
+        label: actionLabel || 'Provided',
       };
     } else if (type.includes('prepared')) {
       return {
         icon: <ClockRewind size={16} />,
         color: 'bg-blue-100 border-blue-200',
         textColor: 'text-blue-700',
-        label: actionLabel || 'Prepared'
+        label: actionLabel || 'Prepared',
       };
     } else if (type.includes('start')) {
       return {
         icon: <ClockRewind size={16} />,
         color: 'bg-blue-500/10 border-blue-500/20',
         textColor: 'text-blue-500',
-        label: actionLabel || 'Started'
+        label: actionLabel || 'Started',
       };
     } else if (type.includes('indexed')) {
       return {
         icon: <Check className="h-4 w-4" />,
         color: 'bg-green-500/10 border-green-500/20',
         textColor: 'text-green-500',
-        label: actionLabel || 'Indexed'
+        label: actionLabel || 'Indexed',
       };
     } else if (type.includes('complete') || type.includes('success')) {
       return {
         icon: <Check className="h-4 w-4" />,
         color: 'bg-green-500/10 border-green-500/20',
         textColor: 'text-green-500',
-        label: actionLabel || 'Completed'
+        label: actionLabel || 'Completed',
       };
     } else if (type.includes('fail') || type.includes('error')) {
       return {
         icon: <AlertCircle size={16} />,
         color: 'bg-red-500/10 border-red-500/20',
         textColor: 'text-red-500',
-        label: actionLabel || 'Failed'
+        label: actionLabel || 'Failed',
       };
     } else if (type.includes('request')) {
       return {
         icon: <InfoIcon size={16} />,
         color: 'bg-purple-500/10 border-purple-500/20',
         textColor: 'text-purple-500',
-        label: actionLabel || 'Requested'
+        label: actionLabel || 'Requested',
       };
     } else if (type.includes('progress') || type.includes('update')) {
       return {
         icon: <LoaderIcon size={16} />,
         color: 'bg-yellow-500/10 border-yellow-500/20',
         textColor: 'text-yellow-500',
-        label: actionLabel || 'In Progress'
+        label: actionLabel || 'In Progress',
       };
     } else {
       return {
         icon: <InfoIcon size={16} />,
         color: 'bg-gray-500/10 border-gray-500/20',
         textColor: 'text-gray-500',
-        label: actionLabel || 'Event'
+        label: actionLabel || 'Event',
       };
     }
   };
@@ -161,21 +163,23 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
 
   if (!events || events.length === 0) {
     return (
-      <div className={cn("text-center py-4 text-muted-foreground", className)}>
+      <div className={cn('text-center py-4 text-muted-foreground', className)}>
         No timeline events available
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn('space-y-2', className)}>
       {/* Timeline header with toggle */}
-      <div 
+      <div
         className="flex items-center gap-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <h3 className="font-medium text-sm text-muted-foreground">Timeline</h3>
-        <div className={cn("transition-transform", isExpanded ? "rotate-180" : "")}>
+        <div
+          className={cn('transition-transform', isExpanded ? 'rotate-180' : '')}
+        >
           <ChevronDownIcon size={16} />
         </div>
       </div>
@@ -195,34 +199,43 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
             {/* Horizontal timeline */}
             <div className="flex overflow-x-auto pb-2 gap-2">
               {sortedEvents.map((event, index) => {
-                const { icon, color, textColor, label } = getEventTypeDetails(event.type);
-                
+                const { icon, color, textColor, label } = getEventTypeDetails(
+                  event.type,
+                );
+
                 return (
-                  <div 
-                    key={event.id || index} 
+                  <div
+                    key={event.id || index}
                     className={cn(
-                      "flex-shrink-0 border rounded-md p-1.5 min-w-[150px] max-w-[200px]", 
-                      color
+                      'flex-shrink-0 border rounded-md p-1.5 min-w-[150px] max-w-[200px]',
+                      color,
                     )}
                   >
                     <div className="flex items-center gap-1">
-                      <div className={cn("w-4 h-4 flex items-center justify-center", textColor)}>
+                      <div
+                        className={cn(
+                          'w-4 h-4 flex items-center justify-center',
+                          textColor,
+                        )}
+                      >
                         {icon}
                       </div>
                       <div>
-                        <span className={cn("font-medium text-xs", textColor)}>{label}</span>
+                        <span className={cn('font-medium text-xs', textColor)}>
+                          {label}
+                        </span>
                       </div>
                     </div>
-                    
+
                     <time className="text-xs text-muted-foreground block">
                       {formatDate(event)}
                     </time>
-                    
+
                     {event.data && (
                       <div className="mt-1 text-xs bg-background/50 p-1 rounded-md">
                         <pre className="whitespace-pre-wrap break-words overflow-hidden text-ellipsis max-h-[80px]">
-                          {typeof event.data === 'string' 
-                            ? event.data 
+                          {typeof event.data === 'string'
+                            ? event.data
                             : JSON.stringify(event.data, null, 2)}
                         </pre>
                       </div>
@@ -236,4 +249,4 @@ export function ProcessTimelineView({ events = [], className }: ProcessTimelineV
       </AnimatePresence>
     </div>
   );
-} 
+}

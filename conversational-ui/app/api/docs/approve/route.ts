@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 import { auth } from '@/app/(auth)/auth';
 
@@ -14,9 +18,15 @@ async function streamToString(stream: any): Promise<string> {
   });
 }
 
-async function loadManifest(s3Client: S3Client, bucket: string, key: string): Promise<Manifest> {
+async function loadManifest(
+  s3Client: S3Client,
+  bucket: string,
+  key: string,
+): Promise<Manifest> {
   try {
-    const res = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const res = await s3Client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
     // @ts-ignore - aws sdk stream type
     const bodyString = await streamToString(res.Body);
     const parsed = JSON.parse(bodyString);
@@ -28,7 +38,8 @@ async function loadManifest(s3Client: S3Client, bucket: string, key: string): Pr
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const kbId = body?.kbId || session.user.selectedSpace?.knowledgeBaseId;
@@ -36,8 +47,16 @@ export async function POST(request: Request) {
   const path = body?.path;
   const action = body?.action;
 
-  if (!kbId || !commitSha || !path || (action !== 'approve' && action !== 'revoke')) {
-    return NextResponse.json({ error: 'kbId, commitSha, path and action are required' }, { status: 400 });
+  if (
+    !kbId ||
+    !commitSha ||
+    !path ||
+    (action !== 'approve' && action !== 'revoke')
+  ) {
+    return NextResponse.json(
+      { error: 'kbId, commitSha, path and action are required' },
+      { status: 400 },
+    );
   }
 
   const bucket = process.env.BLOB_BUCKET_NAME || '';
@@ -64,7 +83,8 @@ export async function POST(request: Request) {
       approved_at: new Date().toISOString(),
     };
   } else {
-    const { approved_by_id, approved_by_name, approved_at, ...rest } = existingEntry;
+    const { approved_by_id, approved_by_name, approved_at, ...rest } =
+      existingEntry;
     manifest[path] = rest;
   }
 

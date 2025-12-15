@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { Button } from './ui/button';
-import { CopyIcon, DownloadIcon, MermaidCodeIcon, MermaidDiagramIcon, LoaderIcon, XIcon } from './icons';
+import {
+  DownloadIcon,
+  LoaderIcon,
+  MermaidCodeIcon,
+  MermaidDiagramIcon,
+  XIcon,
+} from './icons';
 import { toast } from 'sonner';
 import { CodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
@@ -40,13 +46,15 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       flowchart: {
         htmlLabels: true,
         useMaxWidth: true,
-      }
+      },
     });
 
     // Render the diagram
     const renderDiagram = async () => {
       if (!code || code.trim() === '') {
-        setError('The diagram code is empty. Please provide valid Mermaid syntax.');
+        setError(
+          'The diagram code is empty. Please provide valid Mermaid syntax.',
+        );
         setIsLoading(false);
         return;
       }
@@ -58,10 +66,10 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
 
         // Generate a unique ID that's safe for CSS selectors
         const uniqueId = `mermaid-diagram-${Math.random().toString(36).substring(2)}`;
-        
+
         // First validate the syntax
         await mermaid.parse(code);
-        
+
         // If validation passes, render the diagram
         const { svg } = await mermaid.render(uniqueId, code);
         // Remove any error icons or messages from the SVG
@@ -69,7 +77,8 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
         setSvg(cleanedSvg);
         setError(null);
       } catch (parseError: any) {
-        const errorMessage = parseError?.str || parseError?.message || 'Invalid diagram syntax';
+        const errorMessage =
+          parseError?.str || parseError?.message || 'Invalid diagram syntax';
         setError(`Syntax error in diagram: ${errorMessage}`);
       } finally {
         setIsLoading(false);
@@ -97,26 +106,31 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       // Create a new SVG element with proper dimensions
       const clonedSvg = svgElement.cloneNode(true) as SVGElement;
       const bbox = svgElement.getBBox();
-      
+
       // Add padding to the SVG
       const padding = 20;
       const width = bbox.width + padding * 2;
       const height = bbox.height + padding * 2;
-      
+
       clonedSvg.setAttribute('width', width.toString());
       clonedSvg.setAttribute('height', height.toString());
-      clonedSvg.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
-      
+      clonedSvg.setAttribute(
+        'viewBox',
+        `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`,
+      );
+
       // Convert SVG to a data URL
       const svgData = new XMLSerializer().serializeToString(clonedSvg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      
+      const svgBlob = new Blob([svgData], {
+        type: 'image/svg+xml;charset=utf-8',
+      });
+
       // Create downloadable link
       const link = document.createElement('a');
       link.download = 'diagram.svg';
       link.href = URL.createObjectURL(svgBlob);
       link.click();
-      
+
       // Cleanup
       URL.revokeObjectURL(link.href);
     } catch (error) {
@@ -126,7 +140,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   };
 
   const toggleViewMode = () => {
-    setViewMode(current => current === 'code' ? 'diagram' : 'code');
+    setViewMode((current) => (current === 'code' ? 'diagram' : 'code'));
   };
 
   if (error) {
@@ -157,9 +171,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
             <p className="text-sm font-medium text-red-600 dark:text-red-400">
               Failed to render diagram
             </p>
-            <p className="text-sm text-muted-foreground">
-              {error}
-            </p>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         )}
         {isCodeView && (
@@ -177,7 +189,7 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
   return (
     <div className="w-full mt-4">
       <div className="flex justify-end mb-4 gap-2">
-       {!isCodeView && !error && !isLoading && (
+        {!isCodeView && !error && !isLoading && (
           <Button
             onClick={handleDownloadPNG}
             variant="ghost"
@@ -207,15 +219,20 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
           )}
         </Button>
       </div>
-      
-      <div className={cn(
-        "relative w-full overflow-hidden mb-4",
-        isFullPage && "fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-start justify-center p-8 overflow-y-auto"
-      )} ref={diagramRef} onClick={(e) => {
-        if (isFullPage && e.target === e.currentTarget) {
-          setIsFullPage(false);
-        }
-      }}>
+
+      <div
+        className={cn(
+          'relative w-full overflow-hidden mb-4',
+          isFullPage &&
+            'fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-start justify-center p-8 overflow-y-auto',
+        )}
+        ref={diagramRef}
+        onClick={(e) => {
+          if (isFullPage && e.target === e.currentTarget) {
+            setIsFullPage(false);
+          }
+        }}
+      >
         {isCodeView ? (
           <CodeBlock
             node={null}
@@ -232,18 +249,20 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
           </div>
         ) : error ? (
           <div className="w-full p-4 rounded-lg border border-red-200 dark:border-red-800 bg-background">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {error}
-            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         ) : (
           <div
             className={cn(
-              "mermaid-diagram-container",
+              'mermaid-diagram-container',
               `${className} p-4 bg-background rounded-lg cursor-pointer transition-transform hover:scale-[1.02]`,
-              isFullPage && "min-w-[800px] w-auto h-auto mx-auto my-8"
+              isFullPage && 'min-w-[800px] w-auto h-auto mx-auto my-8',
             )}
-            style={isFullPage ? { transform: 'scale(1.5)', transformOrigin: 'top center' } : undefined}
+            style={
+              isFullPage
+                ? { transform: 'scale(1.5)', transformOrigin: 'top center' }
+                : undefined
+            }
             onClick={(e) => {
               e.stopPropagation();
               if (!isCodeView) setIsFullPage(!isFullPage);
@@ -267,4 +286,4 @@ export function MermaidDiagram({ code, className }: MermaidDiagramProps) {
       </div>
     </div>
   );
-} 
+}

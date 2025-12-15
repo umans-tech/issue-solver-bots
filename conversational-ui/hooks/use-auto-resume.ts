@@ -48,7 +48,11 @@ export function useAutoResume({
 
     let shouldResume = false;
 
-    for (let index = processedCountRef.current; index < dataStream.length; index += 1) {
+    for (
+      let index = processedCountRef.current;
+      index < dataStream.length;
+      index += 1
+    ) {
       const part = dataStream[index];
       if (part.type !== 'data-appendMessage') continue;
 

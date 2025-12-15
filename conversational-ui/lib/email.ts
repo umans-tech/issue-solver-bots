@@ -23,7 +23,11 @@ const getEmailLogo = () => {
 };
 
 // Modern email template with consistent branding
-const createEmailTemplate = (title: string, content: string, showLogo: boolean = true) => `
+const createEmailTemplate = (
+  title: string,
+  content: string,
+  showLogo = true,
+) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,14 +49,18 @@ const createEmailTemplate = (title: string, content: string, showLogo: boolean =
         <tr>
             <td align="center" style="padding: 40px 20px;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
-                    ${showLogo ? `
+                    ${
+                      showLogo
+                        ? `
                     <!-- Header with Logo -->
                     <tr>
                         <td align="center" style="padding: 48px 40px 32px 40px; background: linear-gradient(135deg, #1a1a1a 0%, #374151 100%);">
                             ${getEmailLogo()}
                         </td>
                     </tr>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
                     <!-- Content -->
                     <tr>
@@ -90,12 +98,17 @@ const createEmailTemplate = (title: string, content: string, showLogo: boolean =
 `;
 
 // Modern button component
-const createButton = (href: string, text: string, style: 'primary' | 'secondary' | 'success' | 'google' = 'primary') => {
+const createButton = (
+  href: string,
+  text: string,
+  style: 'primary' | 'secondary' | 'success' | 'google' = 'primary',
+) => {
   const styles = {
     primary: 'background-color: #1a1a1a; color: #ffffff;',
-    secondary: 'background-color: #f1f5f9; color: #1a1a1a; border: 1px solid #e2e8f0;',
+    secondary:
+      'background-color: #f1f5f9; color: #1a1a1a; border: 1px solid #e2e8f0;',
     success: 'background-color: #10b981; color: #ffffff;',
-    google: 'background-color: #4285f4; color: #ffffff;'
+    google: 'background-color: #4285f4; color: #ffffff;',
   };
 
   return `
@@ -112,11 +125,16 @@ const createButton = (href: string, text: string, style: 'primary' | 'secondary'
 };
 
 // Utility for creating info boxes
-const createInfoBox = (content: string, variant: 'info' | 'warning' | 'success' = 'info') => {
+const createInfoBox = (
+  content: string,
+  variant: 'info' | 'warning' | 'success' = 'info',
+) => {
   const styles = {
     info: 'background-color: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af;',
-    warning: 'background-color: #fefce8; border-left: 4px solid #eab308; color: #a16207;',
-    success: 'background-color: #f0fdf4; border-left: 4px solid #22c55e; color: #166534;'
+    warning:
+      'background-color: #fefce8; border-left: 4px solid #eab308; color: #a16207;',
+    success:
+      'background-color: #f0fdf4; border-left: 4px solid #22c55e; color: #166534;',
   };
 
   return `
@@ -135,7 +153,7 @@ export async function sendVerificationEmail(
   verificationToken: string,
 ): Promise<void> {
   const verificationUrl = `${getBaseUrl()}/verify-email?token=${verificationToken}`;
-  
+
   const content = `
     <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #475569; text-align: center;">
       Welcome to Umans! To complete your account setup and start collaborating, please verify your email address.
@@ -168,7 +186,7 @@ export async function sendVerificationEmail(
         </tr>
     </table>
   `;
-  
+
   try {
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
@@ -200,7 +218,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
         </tr>
     </table>
   `;
-  
+
   try {
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
@@ -250,13 +268,13 @@ export async function sendSpaceInviteNotificationEmail(
         </tr>
     </table>
   `;
-  
+
   try {
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
       to,
       subject: `You've been invited to "${spaceName}" space`,
-      html: createEmailTemplate('You\'ve been invited to a space! 🚀', content),
+      html: createEmailTemplate("You've been invited to a space! 🚀", content),
     });
   } catch (error) {
     console.error('Failed to send space invite notification email:', error);
@@ -271,7 +289,7 @@ export async function sendPasswordResetEmail(
   try {
     // Check if user exists and if they're a Gmail user
     const [user] = await getUser(to);
-    
+
     if (!user) {
       // Don't send email if user doesn't exist (security)
       return;
@@ -308,7 +326,7 @@ export async function sendPasswordResetEmail(
 
     // Regular password reset email for credential users
     const resetUrl = `${getBaseUrl()}/reset-password?token=${resetToken}`;
-    
+
     const content = `
       <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #475569; text-align: center;">
         We received a request to reset your password. Click the button below to create a new password for your account.
@@ -341,7 +359,7 @@ export async function sendPasswordResetEmail(
           </tr>
       </table>
     `;
-    
+
     await resend.emails.send({
       from: process.env.EMAIL_FROM!,
       to,
@@ -352,4 +370,4 @@ export async function sendPasswordResetEmail(
     console.error('Failed to send password reset email:', error);
     throw new Error('Failed to send password reset email');
   }
-} 
+}

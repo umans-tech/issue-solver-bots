@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { auth } from '@/app/(auth)/auth';
 
 async function streamToString(stream: any): Promise<string> {
@@ -14,12 +18,18 @@ async function streamToString(stream: any): Promise<string> {
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
-    const kbId = searchParams.get('kbId') || session.user.selectedSpace?.knowledgeBaseId;
+    const kbId =
+      searchParams.get('kbId') || session.user.selectedSpace?.knowledgeBaseId;
     const commitSha = searchParams.get('commitSha');
-    if (!kbId || !commitSha) return NextResponse.json({ error: 'kbId and commitSha are required' }, { status: 400 });
+    if (!kbId || !commitSha)
+      return NextResponse.json(
+        { error: 'kbId and commitSha are required' },
+        { status: 400 },
+      );
 
     const BUCKET_NAME = process.env.BLOB_BUCKET_NAME || '';
     const s3Client = new S3Client({
@@ -36,26 +46,36 @@ export async function GET(request: Request) {
     let continuationToken: string | undefined = undefined;
     const files: string[] = [];
     do {
-      const listCmd: ListObjectsV2Command = new ListObjectsV2Command({ Bucket: BUCKET_NAME, Prefix: prefix, ContinuationToken: continuationToken });
+      const listCmd: ListObjectsV2Command = new ListObjectsV2Command({
+        Bucket: BUCKET_NAME,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      });
       const res = await s3Client.send(listCmd);
-      (res.Contents || []).forEach(obj => {
+      (res.Contents || []).forEach((obj) => {
         const key = obj.Key || '';
         if (key.endsWith('.md')) {
           files.push(key.substring(prefix.length));
         }
       });
-      continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+      continuationToken = res.IsTruncated
+        ? res.NextContinuationToken
+        : undefined;
     } while (continuationToken);
 
     // Sort alphabetically, keep index.md first if present
     files.sort((a, b) => a.localeCompare(b));
-    const indexFirst = files.includes('index.md') ? ['index.md', ...files.filter(f => f !== 'index.md')] : files;
+    const indexFirst = files.includes('index.md')
+      ? ['index.md', ...files.filter((f) => f !== 'index.md')]
+      : files;
 
     let metadata: Record<string, { origin?: string; process_id?: string }> = {};
     // Try new metadata format first, then fall back to old origins format
     try {
       const metadataKey = `${prefix}__metadata__.json`;
-      const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: metadataKey }));
+      const manifestRes = await s3Client.send(
+        new GetObjectCommand({ Bucket: BUCKET_NAME, Key: metadataKey }),
+      );
       const manifestBody = await streamToString(manifestRes.Body);
       const parsed = JSON.parse(manifestBody);
       if (parsed && typeof parsed === 'object') {
@@ -65,13 +85,18 @@ export async function GET(request: Request) {
       // Fall back to old __origins__.json format for backward compatibility
       try {
         const originKey = `${prefix}__origins__.json`;
-        const manifestRes = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: originKey }));
+        const manifestRes = await s3Client.send(
+          new GetObjectCommand({ Bucket: BUCKET_NAME, Key: originKey }),
+        );
         const manifestBody = await streamToString(manifestRes.Body);
         const parsed = JSON.parse(manifestBody);
         if (parsed && typeof parsed === 'object') {
           // Convert old format to new format
           metadata = Object.fromEntries(
-            Object.entries(parsed).map(([path, origin]) => [path, { origin: origin as string }])
+            Object.entries(parsed).map(([path, origin]) => [
+              path,
+              { origin: origin as string },
+            ]),
           );
         }
       } catch (originError) {
@@ -85,4 +110,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to list docs' }, { status: 500 });
   }
 }
-

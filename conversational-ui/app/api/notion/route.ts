@@ -20,7 +20,8 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const spaceId = searchParams.get('spaceId') || session.user.selectedSpace?.id;
+    const spaceId =
+      searchParams.get('spaceId') || session.user.selectedSpace?.id;
 
     if (!spaceId) {
       return NextResponse.json({ connected: false });

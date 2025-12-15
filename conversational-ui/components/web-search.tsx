@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { GlobeIcon } from './icons';
 import { SourceFavicon } from './source-favicon';
 
@@ -26,14 +26,14 @@ export const WebSearchAnimation = () => (
 
 export function WebSearch({ result, query }: WebSearchResultProps) {
   const [expanded, setExpanded] = useState(false);
-  
+
   if (!result || !Array.isArray(result)) {
     return null;
   }
-  
+
   // Take only the first 3 sources for the collapsed view
   const visibleSources = result.slice(0, 3);
-  
+
   return (
     <div className="mt-1">
       {query && (
@@ -41,11 +41,13 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
           <span className="text-muted-foreground">
             <GlobeIcon size={16} />
           </span>
-          <span className="text-muted-foreground">Searched the web for: "{query}"</span>
+          <span className="text-muted-foreground">
+            Searched the web for: "{query}"
+          </span>
         </div>
       )}
       {!expanded ? (
-        <div 
+        <div
           className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-sm font-medium gap-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={() => setExpanded(true)}
         >
@@ -57,14 +59,16 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
         </div>
       ) : (
         <div className="rounded-md border border-border overflow-hidden bg-background">
-          <div 
+          <div
             className="py-1.5 px-3 border-b border-border/50 flex items-center cursor-pointer hover:bg-muted/10 transition-colors"
             onClick={() => setExpanded(false)}
           >
             <div className="flex items-center gap-1.5 flex-grow">
-              <span className="text-xs font-medium text-muted-foreground">Search results</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Search results
+              </span>
             </div>
-            <button 
+            <button
               className="text-xs text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted/50"
               aria-label="Close search results"
               onClick={(e) => {
@@ -72,19 +76,19 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
                 setExpanded(false);
               }}
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="14" 
-                height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
@@ -93,12 +97,15 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
               <div key={index} className="flex flex-col gap-1 p-3">
                 <div className="flex items-start gap-2">
                   <div className="flex-shrink-0 mt-0.5">
-                    <SourceFavicon url={source.url} className="w-5 h-5 rounded-sm" />
+                    <SourceFavicon
+                      url={source.url}
+                      className="w-5 h-5 rounded-sm"
+                    />
                   </div>
                   <div className="flex flex-col gap-0">
-                    <a 
-                      href={source.url} 
-                      target="_blank" 
+                    <a
+                      href={source.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-base font-medium text-primary hover:underline line-clamp-1"
                     >
@@ -116,49 +123,59 @@ export function WebSearch({ result, query }: WebSearchResultProps) {
       )}
     </div>
   );
-} 
+}
 
 // Combine all web search results
-export const getCombinedWebSearchResults = (message: any, isLoading: boolean) => {
-  if (!message.toolInvocations || message.toolInvocations.length === 0 || isLoading) {
+export const getCombinedWebSearchResults = (
+  message: any,
+  isLoading: boolean,
+) => {
+  if (
+    !message.toolInvocations ||
+    message.toolInvocations.length === 0 ||
+    isLoading
+  ) {
     return null;
   }
-  
+
   // Get all web search results
   const webSearchResults = message.toolInvocations
-    .filter((tool: any) => 
-      tool.toolName === 'webSearch' && 
-      tool.state === 'result' && 
-      'result' in tool
+    .filter(
+      (tool: any) =>
+        tool.toolName === 'webSearch' &&
+        tool.state === 'result' &&
+        'result' in tool,
     )
-    .map((tool: any) => tool.state === 'result' ? tool.result : undefined)
+    .map((tool: any) => (tool.state === 'result' ? tool.result : undefined))
     .filter((result: any) => result !== undefined);
-  
+
   if (webSearchResults.length === 0) {
     return null;
   }
-  
+
   // Combine all results, ensuring no duplicate URLs
   const urlSet = new Set();
   const combinedResults = [];
-  
+
   for (const result of webSearchResults) {
     if (!Array.isArray(result)) continue;
-    
+
     for (const source of result) {
-      if (source && source.url && !urlSet.has(source.url)) {
+      if (source?.url && !urlSet.has(source.url)) {
         urlSet.add(source.url);
         combinedResults.push(source);
       }
     }
   }
-  
+
   return combinedResults.length > 0 ? combinedResults : null;
 };
 
 export const hasMultipleWebSearchesCalls = (message: any) => {
   if (!message.toolInvocations) return false;
-  return message.toolInvocations.filter(
-    (tool: any) => tool.toolName === 'webSearch' && tool.state === 'result'
-  ).length > 1;
+  return (
+    message.toolInvocations.filter(
+      (tool: any) => tool.toolName === 'webSearch' && tool.state === 'result',
+    ).length > 1
+  );
 };

@@ -3,30 +3,34 @@
 import { DefaultChatTransport } from 'ai';
 import pRetry from 'p-retry';
 import { useChat } from '@ai-sdk/react';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useLocalStorage } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { PricingDialog } from '@/components/pricing-dialog';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
-import { fetcher, generateUUID, fetchWithErrorHandlers, getMostRecentUserMessage } from '@/lib/utils';
+import {
+  fetcher,
+  fetchWithErrorHandlers,
+  generateUUID,
+  getMostRecentUserMessage,
+} from '@/lib/utils';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 
 import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
-import { VisibilityType } from './visibility-selector';
+import type { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useAutoResume } from '@/hooks/use-auto-resume';
-import { Attachment, ChatMessage } from '@/lib/types';
+import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from '@/components/data-stream-provider';
-import { differenceInMinutes, differenceInHours } from 'date-fns';
+import { differenceInHours, differenceInMinutes } from 'date-fns';
 
 export function Chat({
   id,
@@ -46,10 +50,12 @@ export function Chat({
   const [storedModelId] = useLocalStorage('chat-model', selectedChatModel);
   const router = useRouter();
   const { data: session } = useSession();
-  
+
   // Handle potential corrupt localStorage data
-  const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<string | null>(null);
-  
+  const [knowledgeBaseIdState, setKnowledgeBaseIdState] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     // Safely get the knowledge base ID from localStorage
     try {
@@ -61,7 +67,10 @@ export function Chat({
           const parsedValue = JSON.parse(rawValue);
           setKnowledgeBaseIdState(parsedValue);
         } catch (e) {
-          console.error('Error parsing knowledge_base_id from localStorage:', e);
+          console.error(
+            'Error parsing knowledge_base_id from localStorage:',
+            e,
+          );
           // Clear invalid data
           localStorage.removeItem('knowledge_base_id');
         }
@@ -73,7 +82,7 @@ export function Chat({
       console.error('Error reading knowledge_base_id from localStorage:', e);
     }
   }, []);
-  
+
   const { mutate } = useSWRConfig();
   const { setDataStream } = useDataStream();
 
@@ -98,9 +107,11 @@ export function Chat({
 
   const isNetworkLikeError = (err: unknown) => {
     const message = err instanceof Error ? err.message : String(err);
-    return /network|ERR_INCOMPLETE_CHUNKED_ENCODING|Failed to fetch|TypeError/i.test(message);
+    return /network|ERR_INCOMPLETE_CHUNKED_ENCODING|Failed to fetch|TypeError/i.test(
+      message,
+    );
   };
-  
+
   const {
     messages,
     setMessages,
@@ -165,10 +176,13 @@ export function Chat({
       const msg = String(error?.message || '').toLowerCase();
       const daily = /daily message limit reached\s*\((\d+)\)/i.exec(msg);
       const monthly = /monthly message limit reached\s*\((\d+)\)/i.exec(msg);
-      const retryAt = typeof payload?.retryAt === 'string' ? payload.retryAt : undefined;
+      const retryAt =
+        typeof payload?.retryAt === 'string' ? payload.retryAt : undefined;
       const retryText = retryAt ? `Try again in ${timeUntil(retryAt)}` : '';
       if (daily) {
-        setLimitMessage(`Daily limit reached (${daily[1]}). ${retryText}`.trim());
+        setLimitMessage(
+          `Daily limit reached (${daily[1]}). ${retryText}`.trim(),
+        );
         const last = getMostRecentUserMessage(messages);
         if (last) {
           // Mark last user message as unsaved visually
@@ -177,7 +191,8 @@ export function Chat({
             for (let i = clone.length - 1; i >= 0; i -= 1) {
               if (clone[i].role === 'user') {
                 (clone[i] as any).unsaved = true;
-                (clone[i] as any).limitText = `Daily limit reached (${daily[1]}). ${retryText}`.trim();
+                (clone[i] as any).limitText =
+                  `Daily limit reached (${daily[1]}). ${retryText}`.trim();
                 break;
               }
             }
@@ -187,7 +202,9 @@ export function Chat({
         return;
       }
       if (monthly) {
-        setLimitMessage(`Monthly limit reached (${monthly[1]}). ${retryText}`.trim());
+        setLimitMessage(
+          `Monthly limit reached (${monthly[1]}). ${retryText}`.trim(),
+        );
         const last = getMostRecentUserMessage(messages);
         if (last) {
           setMessages((prev) => {
@@ -195,7 +212,8 @@ export function Chat({
             for (let i = clone.length - 1; i >= 0; i -= 1) {
               if (clone[i].role === 'user') {
                 (clone[i] as any).unsaved = true;
-                (clone[i] as any).limitText = `Monthly limit reached (${monthly[1]}). ${retryText}`.trim();
+                (clone[i] as any).limitText =
+                  `Monthly limit reached (${monthly[1]}). ${retryText}`.trim();
                 break;
               }
             }
@@ -247,7 +265,9 @@ export function Chat({
     if (!autoResume) return;
     if (resumeBlocked) return;
 
-    const onOnline = () => { void Promise.resolve(resumeStream()).catch(() => {}); };
+    const onOnline = () => {
+      void Promise.resolve(resumeStream()).catch(() => {});
+    };
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         void Promise.resolve(resumeStream()).catch(() => {});
@@ -260,8 +280,6 @@ export function Chat({
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [autoResume, resumeBlocked, resumeStream]);
-
-
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,
@@ -296,7 +314,9 @@ export function Chat({
               <span className="text-muted-foreground">Free plan</span>
               <span className="text-muted-foreground">•</span>
               <PricingDialog>
-                <button className="text-foreground hover:underline">Upgrade</button>
+                <button className="text-foreground hover:underline">
+                  Upgrade
+                </button>
               </PricingDialog>
             </div>
           </div>
@@ -312,7 +332,9 @@ export function Chat({
                 onClick={() => {
                   window.dispatchEvent(new Event('open-pricing-dialog'));
                 }}
-              >Upgrade</button>
+              >
+                Upgrade
+              </button>
             </div>
           </div>
         )}
@@ -352,13 +374,13 @@ export function Chat({
                 variant="outline"
                 onClick={async (e) => {
                   e.preventDefault();
-                  
+
                   // Check if user is authenticated
                   if (!session?.user) {
                     toast.error('Please sign in to continue this conversation');
                     return;
                   }
-                  
+
                   try {
                     // Call branch API with the last message ID
                     const lastMessage = messages[messages.length - 1];
@@ -372,14 +394,16 @@ export function Chat({
                         messageId: lastMessage.id,
                       }),
                     });
-                    
+
                     if (!response.ok) {
                       throw new Error('Failed to create conversation copy');
                     }
-                    
+
                     const data = await response.json();
                     if (data.success && data.newChatId) {
-                      toast.success('Created new conversation from shared chat!');
+                      toast.success(
+                        'Created new conversation from shared chat!',
+                      );
                       // Navigate to the new chat
                       router.push(`/chat/${data.newChatId}`);
                     }

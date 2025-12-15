@@ -10,7 +10,8 @@ import {
 import {
   type Dispatch,
   memo,
-  ReactNode, RefObject,
+  type ReactNode,
+  type RefObject,
   type SetStateAction,
   useEffect,
   useRef,
@@ -25,14 +26,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-import {
-  ArrowUpIcon,
-  StopIcon,
-  SummarizeIcon,
-} from './icons';
+import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
 import { artifactDefinitions, type ArtifactKind } from './artifact';
-import { ArtifactToolbarItem } from './create-artifact';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { ArtifactToolbarItem } from './create-artifact';
+import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 
 type ToolProps = {
@@ -432,7 +429,9 @@ const PureToolbar = ({
             exit={{ scale: 1 }}
             className="p-3"
             onClick={() => {
-              void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
+              void fetch(`/api/chat/${chatId}/cancel`, {
+                method: 'POST',
+              }).catch(() => {});
               void stop();
               setMessages((messages) => messages);
             }}

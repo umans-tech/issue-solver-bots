@@ -10,7 +10,7 @@ import { IconUmansLogo } from '@/components/icons';
 import { SubmitButton } from '@/components/submit-button';
 
 import { register } from '../actions';
-import { RegisterStatus, type RegisterActionState } from '../status';
+import { type RegisterActionState, RegisterStatus } from '../status';
 
 export default function Page() {
   const router = useRouter();

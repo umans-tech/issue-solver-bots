@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
-import { getStripe, getPriceId, type PlanKey, type BillingCycle } from '@/lib/stripe';
+import {
+  type BillingCycle,
+  getPriceId,
+  getStripe,
+  type PlanKey,
+} from '@/lib/stripe';
 import { getUser } from '@/lib/db/queries';
 
 export async function POST(req: Request) {
   const session = await auth();
 
-  const { plan, cycle }: { plan: PlanKey; cycle: BillingCycle } = await req.json();
+  const { plan, cycle }: { plan: PlanKey; cycle: BillingCycle } =
+    await req.json();
   if (!plan || !cycle) {
     return NextResponse.json({ error: 'Missing plan/cycle' }, { status: 400 });
   }
@@ -22,7 +28,11 @@ export async function POST(req: Request) {
   const [dbUser] = await getUser(email);
 
   const stripe = getStripe();
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    'http://localhost:3000';
 
   const checkout = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -38,5 +48,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ url: checkout.url });
 }
-
-

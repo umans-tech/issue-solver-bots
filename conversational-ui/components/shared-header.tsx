@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
-import { GitIcon } from './icons';
+import { GitIcon, IconUmansLogo } from './icons';
 import { ThemeToggle } from './theme-toggle';
-import { IconUmansLogo } from './icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { RepoConnectionDialog } from './repo-connection-dialog';
 import { useProcessStatus } from '@/hooks/use-process-status';
@@ -18,7 +17,11 @@ interface SharedHeaderProps {
   rightExtra?: React.ReactNode; // Allows pages to inject ephemeral right area content (e.g., status badge)
 }
 
-export function SharedHeader({ enableSessionRefresh = false, children, rightExtra }: SharedHeaderProps) {
+export function SharedHeader({
+  enableSessionRefresh = false,
+  children,
+  rightExtra,
+}: SharedHeaderProps) {
   const { data: session, update: updateSession } = useSession();
   const [showRepoDialog, setShowRepoDialog] = useState(false);
   const [isSessionRefreshed, setIsSessionRefreshed] = useState(false);
@@ -34,75 +37,81 @@ export function SharedHeader({ enableSessionRefresh = false, children, rightExtr
   // Session refresh logic - only enabled for chat where it's needed
   useEffect(() => {
     if (!enableSessionRefresh) return;
-    
+
     const refreshSession = async () => {
       if (isSessionRefreshed) return; // Prevent multiple refreshes
-      
+
       // Only try to refresh session if user is authenticated
       if (!session?.user) {
-        console.log("No authenticated user, skipping session refresh");
+        console.log('No authenticated user, skipping session refresh');
         return;
       }
-      
+
       try {
-        console.log("Attempting to refresh session from server...");
-        
+        console.log('Attempting to refresh session from server...');
+
         // Call our custom session refresh endpoint
-        const response = await fetch('/api/auth/session', { 
+        const response = await fetch('/api/auth/session', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+            'Cache-Control': 'no-cache',
+          },
         });
-        
+
         if (response.ok) {
           const freshSession = await response.json();
-          console.log("Refreshed session data on mount:", {
+          console.log('Refreshed session data on mount:', {
             knowledgeBaseId: freshSession?.user?.selectedSpace?.knowledgeBaseId,
-            processId: freshSession?.user?.selectedSpace?.processId
+            processId: freshSession?.user?.selectedSpace?.processId,
           });
-          
+
           // Update session with fresh data
           await updateSession(freshSession);
-          console.log("Session refreshed on mount");
+          console.log('Session refreshed on mount');
           setIsSessionRefreshed(true);
         } else {
-          console.log("Session refresh failed:", response.status, response.statusText);
+          console.log(
+            'Session refresh failed:',
+            response.status,
+            response.statusText,
+          );
         }
       } catch (error) {
-        console.error("Error refreshing session on mount:", error);
+        console.error('Error refreshing session on mount:', error);
       }
     };
-    
+
     refreshSession();
   }, [updateSession, isSessionRefreshed, session?.user, enableSessionRefresh]);
 
   // Get repository data from session for the git status
   const processId = session?.user?.selectedSpace?.processId;
   const knowledgeBaseId = session?.user?.selectedSpace?.knowledgeBaseId;
-  
+
   // Log all relevant session data for debugging in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log("Session data in SharedHeader:", {
+      console.log('Session data in SharedHeader:', {
         knowledgeBaseId,
         processId,
         selectedSpaceId: session?.user?.selectedSpace?.id,
         hasSession: !!session,
         hasUser: !!session?.user,
-        hasSelectedSpace: !!session?.user?.selectedSpace
+        hasSelectedSpace: !!session?.user?.selectedSpace,
       });
     }
   }, [session, knowledgeBaseId, processId]);
 
   // Use our custom hook to poll the process status (now determines initial status internally)
   const gitStatus = useProcessStatus(processId);
-  
+
   // Log status for debugging in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Git status: ${gitStatus}, KB: ${knowledgeBaseId}, Process: ${processId}`);
+      console.log(
+        `Git status: ${gitStatus}, KB: ${knowledgeBaseId}, Process: ${processId}`,
+      );
     }
   }, [gitStatus, knowledgeBaseId, processId]);
 
@@ -147,10 +156,10 @@ export function SharedHeader({ enableSessionRefresh = false, children, rightExtr
         </div>
       </header>
 
-      <RepoConnectionDialog 
+      <RepoConnectionDialog
         key={session?.user?.selectedSpace?.id}
-        open={showRepoDialog} 
-        onOpenChange={setShowRepoDialog} 
+        open={showRepoDialog}
+        onOpenChange={setShowRepoDialog}
       />
     </>
   );

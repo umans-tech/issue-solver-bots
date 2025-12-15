@@ -7,20 +7,24 @@ export async function POST(request: Request) {
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
-    const { spaceId, knowledgeBaseId, processId, connectedRepoUrl, name, isDefault } = await request.json();
+    const {
+      spaceId,
+      knowledgeBaseId,
+      processId,
+      connectedRepoUrl,
+      name,
+      isDefault,
+    } = await request.json();
 
     // Validate required fields
     if (!spaceId) {
       return NextResponse.json(
         { error: 'Space ID is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,9 +37,11 @@ export async function POST(request: Request) {
       isDefault?: boolean;
     } = {};
 
-    if (knowledgeBaseId !== undefined) updates.knowledgeBaseId = knowledgeBaseId;
+    if (knowledgeBaseId !== undefined)
+      updates.knowledgeBaseId = knowledgeBaseId;
     if (processId !== undefined) updates.processId = processId;
-    if (connectedRepoUrl !== undefined) updates.connectedRepoUrl = connectedRepoUrl;
+    if (connectedRepoUrl !== undefined)
+      updates.connectedRepoUrl = connectedRepoUrl;
     if (name !== undefined) updates.name = name;
     if (isDefault !== undefined) updates.isDefault = isDefault;
 
@@ -45,26 +51,31 @@ export async function POST(request: Request) {
     if (!updatedSpace) {
       return NextResponse.json(
         { error: 'Failed to update space' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Return success with updated space data and clear information about the changes
-    return NextResponse.json({
-      ...updatedSpace,
-      // Include information about what was updated for clarity
-      updates: {
-        knowledgeBaseId: updates.knowledgeBaseId !== undefined ? 'updated' : 'unchanged',
-        processId: updates.processId !== undefined ? 'updated' : 'unchanged',
-        connectedRepoUrl: updates.connectedRepoUrl !== undefined ? 'updated' : 'unchanged',
-        name: updates.name !== undefined ? 'updated' : 'unchanged',
-        isDefault: updates.isDefault !== undefined ? 'updated' : 'unchanged',
-      }
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        ...updatedSpace,
+        // Include information about what was updated for clarity
+        updates: {
+          knowledgeBaseId:
+            updates.knowledgeBaseId !== undefined ? 'updated' : 'unchanged',
+          processId: updates.processId !== undefined ? 'updated' : 'unchanged',
+          connectedRepoUrl:
+            updates.connectedRepoUrl !== undefined ? 'updated' : 'unchanged',
+          name: updates.name !== undefined ? 'updated' : 'unchanged',
+          isDefault: updates.isDefault !== undefined ? 'updated' : 'unchanged',
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to update space' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
-import { Split, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Copy, Split, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -15,7 +15,7 @@ import {
 } from './ui/tooltip';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
-import { ChatMessage } from '@/lib/types';
+import type { ChatMessage } from '@/lib/types';
 
 export function PureMessageActions({
   chatId,
@@ -36,7 +36,7 @@ export function PureMessageActions({
 
   // Only hide actions when loading
   if (isLoading) return null;
-  
+
   const handleBranch = async () => {
     try {
       const response = await fetch('/api/branch', {
@@ -55,7 +55,7 @@ export function PureMessageActions({
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.newChatId) {
         toast.success('Created new branch!');
         // Navigate to the new chat
@@ -96,7 +96,9 @@ export function PureMessageActions({
               <Copy />
             </Button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={5} side="top">Copy</TooltipContent>
+          <TooltipContent sideOffset={5} side="top">
+            Copy
+          </TooltipContent>
         </Tooltip>
 
         {message.role === 'assistant' && (
@@ -111,7 +113,9 @@ export function PureMessageActions({
                   <Split />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent sideOffset={5} side="top">Branch Conversation</TooltipContent>
+              <TooltipContent sideOffset={5} side="top">
+                Branch Conversation
+              </TooltipContent>
             </Tooltip>
 
             {!isReadonly && (
@@ -165,7 +169,9 @@ export function PureMessageActions({
                       <ThumbsUp />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={5} side="top">Upvote Response</TooltipContent>
+                  <TooltipContent sideOffset={5} side="top">
+                    Upvote Response
+                  </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -217,7 +223,9 @@ export function PureMessageActions({
                       <ThumbsDown />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent sideOffset={5} side="top">Downvote Response</TooltipContent>
+                  <TooltipContent sideOffset={5} side="top">
+                    Downvote Response
+                  </TooltipContent>
                 </Tooltip>
               </>
             )}

@@ -5,7 +5,6 @@ import { artifactDefinitions } from './artifact';
 import { initialArtifactData, useArtifact } from '@/hooks/use-artifact';
 import { useDataStream } from '@/components/data-stream-provider';
 
-
 export function DataStreamHandler() {
   const { dataStream } = useDataStream();
   const { artifact, setArtifact, setMetadata } = useArtifact();

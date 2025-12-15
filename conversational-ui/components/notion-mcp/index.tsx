@@ -17,11 +17,20 @@ type NotionSummary = {
   json?: unknown;
 };
 
-const HINT_PREFIXES = ['notion', 'page', 'database', 'workspace', 'block', 'search'];
+const HINT_PREFIXES = [
+  'notion',
+  'page',
+  'database',
+  'workspace',
+  'block',
+  'search',
+];
 
 export const isNotionMCPTool = (toolName: string): boolean => {
   const name = toolName.toLowerCase();
-  return HINT_PREFIXES.some((hint) => name.startsWith(hint) || name.includes(`.${hint}`));
+  return HINT_PREFIXES.some(
+    (hint) => name.startsWith(hint) || name.includes(`.${hint}`),
+  );
 };
 
 const prettifyToolName = (toolName: string): string =>
@@ -64,8 +73,12 @@ const summarizeResult = (result: any): NotionSummary => {
         item?.properties?.title?.plain_text ||
         item?.id ||
         'Untitled';
-      const secondary = item?.url || item?.properties?.url || item?.created_time;
-      return { primary: String(title), secondary: secondary ? String(secondary) : undefined };
+      const secondary =
+        item?.url || item?.properties?.url || item?.created_time;
+      return {
+        primary: String(title),
+        secondary: secondary ? String(secondary) : undefined,
+      };
     });
     return { items };
   }
@@ -86,7 +99,10 @@ const truncate = (value?: string, max = 36) => {
   return value.length > max ? `${value.slice(0, max)}…` : value;
 };
 
-const getArg = (args: Record<string, unknown> | undefined, keys: string[]): string | undefined => {
+const getArg = (
+  args: Record<string, unknown> | undefined,
+  keys: string[],
+): string | undefined => {
   if (!args) return undefined;
   for (const key of keys) {
     const value = args[key];
@@ -126,9 +142,13 @@ const findReadableString = (input: unknown, depth = 0): string | undefined => {
   return undefined;
 };
 
-const normalizeToolName = (toolName: string) => toolName.replace(/^notion[._-]?/i, '').toLowerCase();
+const normalizeToolName = (toolName: string) =>
+  toolName.replace(/^notion[._-]?/i, '').toLowerCase();
 
-const animationTextForTool = (rawToolName: string, args?: Record<string, unknown>): string => {
+const animationTextForTool = (
+  rawToolName: string,
+  args?: Record<string, unknown>,
+): string => {
   const normalized = normalizeToolName(rawToolName);
 
   const formatQuoted = (value?: string, max = 36) => {
@@ -138,7 +158,8 @@ const animationTextForTool = (rawToolName: string, args?: Record<string, unknown
     return `"${truncate(trimmed, max)}"`;
   };
 
-  const extractQuery = () => formatQuoted(getArg(args, ['query', 'q', 'search']), 48);
+  const extractQuery = () =>
+    formatQuoted(getArg(args, ['query', 'q', 'search']), 48);
 
   const extractTitle = () =>
     formatQuoted(
@@ -148,24 +169,36 @@ const animationTextForTool = (rawToolName: string, args?: Record<string, unknown
       48,
     );
 
-  const extractId = () => formatQuoted(getArg(args, ['id', 'page_id', 'pageId', 'database_id', 'databaseId']), 32);
+  const extractId = () =>
+    formatQuoted(
+      getArg(args, ['id', 'page_id', 'pageId', 'database_id', 'databaseId']),
+      32,
+    );
 
   switch (normalized) {
     case 'search': {
       const query = extractQuery();
-      return query ? `Searching Notion for ${query}...` : 'Searching across Notion...';
+      return query
+        ? `Searching Notion for ${query}...`
+        : 'Searching across Notion...';
     }
     case 'fetch': {
       const target = extractTitle() || extractId();
-      return target ? `Fetching Notion content ${target}...` : 'Fetching Notion content...';
+      return target
+        ? `Fetching Notion content ${target}...`
+        : 'Fetching Notion content...';
     }
     case 'create-pages': {
       const title = extractTitle();
-      return title ? `Creating Notion page ${title}...` : 'Creating a Notion page...';
+      return title
+        ? `Creating Notion page ${title}...`
+        : 'Creating a Notion page...';
     }
     case 'update-page': {
       const target = extractTitle() || extractId();
-      return target ? `Updating Notion page ${target}...` : 'Updating a Notion page...';
+      return target
+        ? `Updating Notion page ${target}...`
+        : 'Updating a Notion page...';
     }
     case 'create-database':
       return 'Creating a Notion database...';
@@ -186,11 +219,14 @@ const animationTextForTool = (rawToolName: string, args?: Record<string, unknown
   }
 };
 
-const resultSummaryText = (rawToolName: string, args?: Record<string, unknown>) => {
+const resultSummaryText = (
+  rawToolName: string,
+  args?: Record<string, unknown>,
+) => {
   const normalized = normalizeToolName(rawToolName);
 
   const quoted = (value?: string, max = 48) =>
-    value && value.trim().length ? `"${truncate(value.trim(), max)}"` : undefined;
+    value?.trim().length ? `"${truncate(value.trim(), max)}"` : undefined;
 
   const extractQuery = () => quoted(getArg(args, ['query', 'q', 'search']));
   const extractTitle = () =>
@@ -199,16 +235,24 @@ const resultSummaryText = (rawToolName: string, args?: Record<string, unknown>) 
         findReadableString(args && (args as any).title) ||
         findReadableString(args && (args as any).name),
     );
-  const extractId = () => quoted(getArg(args, ['id', 'page_id', 'pageId', 'database_id', 'databaseId']), 32);
+  const extractId = () =>
+    quoted(
+      getArg(args, ['id', 'page_id', 'pageId', 'database_id', 'databaseId']),
+      32,
+    );
 
   switch (normalized) {
     case 'search': {
       const query = extractQuery();
-      return query ? `Searched Notion for: ${query}` : 'Searched across Notion.';
+      return query
+        ? `Searched Notion for: ${query}`
+        : 'Searched across Notion.';
     }
     case 'fetch': {
       const target = extractTitle() || extractId();
-      return target ? `Fetched Notion content: ${target}` : 'Fetched Notion content.';
+      return target
+        ? `Fetched Notion content: ${target}`
+        : 'Fetched Notion content.';
     }
     case 'create-pages': {
       const title = extractTitle();
@@ -216,7 +260,9 @@ const resultSummaryText = (rawToolName: string, args?: Record<string, unknown>) 
     }
     case 'update-page': {
       const target = extractTitle() || extractId();
-      return target ? `Updated Notion page: ${target}` : 'Updated a Notion page.';
+      return target
+        ? `Updated Notion page: ${target}`
+        : 'Updated a Notion page.';
     }
     case 'create-database':
       return 'Created a Notion database.';
@@ -231,7 +277,10 @@ const resultSummaryText = (rawToolName: string, args?: Record<string, unknown>) 
     case 'get-comments':
       return 'Retrieved Notion comments.';
     default: {
-      const text = animationTextForTool(rawToolName, args).replace(/\.\.\.$/, '');
+      const text = animationTextForTool(rawToolName, args).replace(
+        /\.\.\.$/,
+        '',
+      );
       if (!text) return 'Completed Notion tool.';
       return `${text[0].toUpperCase()}${text.slice(1)}.`;
     }
@@ -325,7 +374,10 @@ export const extractNotionSources = (
 
     if (typeof value === 'object') {
       const resourceUri = (value as any)?.resource?.uri;
-      if (typeof resourceUri === 'string' && resourceUri.includes('notion.so/')) {
+      if (
+        typeof resourceUri === 'string' &&
+        resourceUri.includes('notion.so/')
+      ) {
         addSource(resourceUri.split('#')[0], (value as any)?.resource?.title);
       }
 
@@ -345,14 +397,16 @@ export const extractNotionSources = (
         addSource(normalized, title);
       }
 
-      Object.values(value as Record<string, unknown>).forEach((entry) => collect(entry, depth + 1));
+      Object.values(value as Record<string, unknown>).forEach((entry) =>
+        collect(entry, depth + 1),
+      );
     }
   };
 
   collect(result);
   collect(args);
 
-  if (result && result.content && Array.isArray(result.content)) {
+  if (result?.content && Array.isArray(result.content)) {
     for (const entry of result.content) {
       if (entry?.type === 'resource' && entry?.resource?.uri) {
         const url = entry.resource.uri.split('#')[0];
@@ -405,7 +459,9 @@ export const NotionMCPResult = ({
         <div className="space-y-3 rounded-md border border-border bg-card/60 p-4">
           {details.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Parameters</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Parameters
+              </p>
               <ul className="text-xs text-muted-foreground">
                 {details.map((item) => (
                   <li key={`${item.primary}-${item.secondary}`}>
@@ -423,9 +479,13 @@ export const NotionMCPResult = ({
                   key={`${item.primary}-${item.secondary}`}
                   className="rounded-md border border-border/60 bg-background/80 px-3 py-2"
                 >
-                  <p className="text-sm font-medium text-foreground">{item.primary}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {item.primary}
+                  </p>
                   {item.secondary && (
-                    <p className="text-xs text-muted-foreground">{item.secondary}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.secondary}
+                    </p>
                   )}
                 </div>
               ))}

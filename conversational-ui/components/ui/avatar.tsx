@@ -2,9 +2,8 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, generatePastelColor } from '@/lib/utils';
 import { getGravatarUrl, getInitials } from '@/lib/avatar-utils';
-import { generatePastelColor } from '@/lib/utils';
 
 interface AvatarProps {
   user: {
@@ -19,11 +18,11 @@ interface AvatarProps {
 export function Avatar({ user, size = 24, className }: AvatarProps) {
   const [imageError, setImageError] = useState(false);
   const [gravatarError, setGravatarError] = useState(false);
-  
+
   const { image: googleImage, name, email } = user;
   const initials = getInitials(name, email);
   const gradientBackground = generatePastelColor(email || name || '');
-  
+
   // If we have a Google image and it hasn't failed, show it
   if (googleImage && !imageError) {
     return (
@@ -37,11 +36,11 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
       />
     );
   }
-  
+
   // If Google image failed or doesn't exist, try Gravatar
   if (email && !gravatarError && !imageError) {
     const gravatarUrl = getGravatarUrl(email, size * 2); // 2x for retina
-    
+
     return (
       <Image
         src={gravatarUrl}
@@ -53,13 +52,13 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
       />
     );
   }
-  
+
   // Fallback to initials with gradient
   return (
     <div
       className={cn(
         'flex items-center justify-center rounded-full text-white font-medium',
-        className
+        className,
       )}
       style={{
         width: size,
@@ -71,4 +70,4 @@ export function Avatar({ user, size = 24, className }: AvatarProps) {
       {initials}
     </div>
   );
-} 
+}

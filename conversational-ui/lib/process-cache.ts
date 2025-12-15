@@ -17,7 +17,11 @@ export function getCachedProcess(processId: string): any | null {
   return cached.data;
 }
 
-export function setCachedProcess(processId: string, data: any, ttlMs: number = DEFAULT_TTL_MS) {
+export function setCachedProcess(
+  processId: string,
+  data: any,
+  ttlMs: number = DEFAULT_TTL_MS,
+) {
   cache.set(processId, {
     data,
     expiresAt: Date.now() + ttlMs,

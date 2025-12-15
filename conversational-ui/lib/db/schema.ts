@@ -1,15 +1,15 @@
 import type { InferSelectModel } from 'drizzle-orm';
 import {
-  pgTable,
-  varchar,
-  timestamp,
-  json,
-  uuid,
-  text,
-  primaryKey,
-  foreignKey,
   boolean,
+  foreignKey,
+  json,
   jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 
 export const space = pgTable('Space', {
@@ -34,7 +34,9 @@ export const user = pgTable('User', {
   selectedSpaceId: uuid('selectedSpaceId').references(() => space.id),
   emailVerified: timestamp('emailVerified'),
   emailVerificationToken: varchar('emailVerificationToken', { length: 255 }),
-  hasCompletedOnboarding: boolean('hasCompletedOnboarding').notNull().default(false),
+  hasCompletedOnboarding: boolean('hasCompletedOnboarding')
+    .notNull()
+    .default(false),
   profileNotes: text('profileNotes'),
   // Billing
   plan: varchar('plan', { length: 32 }).notNull().default('free'),
@@ -44,18 +46,22 @@ export const user = pgTable('User', {
 
 export type User = InferSelectModel<typeof user>;
 
-export const spaceToUser = pgTable('SpaceToUser', {
-  spaceId: uuid('spaceId')
-    .notNull()
-    .references(() => space.id),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.spaceId, table.userId] }),
-  };
-});
+export const spaceToUser = pgTable(
+  'SpaceToUser',
+  {
+    spaceId: uuid('spaceId')
+      .notNull()
+      .references(() => space.id),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => user.id),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.spaceId, table.userId] }),
+    };
+  },
+);
 
 export type SpaceToUser = InferSelectModel<typeof spaceToUser>;
 
@@ -66,7 +72,9 @@ export const chat = pgTable('Chat', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
-  spaceId: uuid('spaceId').notNull().references(() => space.id),
+  spaceId: uuid('spaceId')
+    .notNull()
+    .references(() => space.id),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
@@ -213,8 +221,7 @@ export type Stream = InferSelectModel<typeof stream>;
 
 export const tokenUsage = pgTable('TokenUsage', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  messageId: uuid('message_id')
-    .notNull(),
+  messageId: uuid('message_id').notNull(),
   provider: varchar('provider', { length: 50 }).notNull(),
   model: varchar('model', { length: 100 }).notNull(),
   rawUsageData: jsonb('raw_usage_data').notNull(),

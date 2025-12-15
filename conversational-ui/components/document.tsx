@@ -2,7 +2,6 @@ import { memo } from 'react';
 
 import type { ArtifactKind } from './artifact';
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
-import { toast } from 'sonner';
 import { useArtifact } from '@/hooks/use-artifact';
 
 const getActionText = (
@@ -128,7 +127,7 @@ function PureDocumentToolCall({
         </div>
 
         <div className="text-left">
-        {`${getActionText(type, 'present')} ${
+          {`${getActionText(type, 'present')} ${
             type === 'create' && 'title' in args && args.title
               ? `"${args.title}"`
               : type === 'update' && 'description' in args

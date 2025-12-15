@@ -10,7 +10,7 @@ import { IconUmansLogo } from '@/components/icons';
 import { SubmitButton } from '@/components/submit-button';
 
 import { login } from '../actions';
-import { LoginStatus, type LoginActionState } from '../status';
+import { type LoginActionState, LoginStatus } from '../status';
 
 export default function Page() {
   const router = useRouter();
@@ -27,12 +27,15 @@ export default function Page() {
 
   useEffect(() => {
     if (state.status === LoginStatus.EMAIL_NOT_VERIFIED) {
-      toast.error(state.error || 'Please verify your email address before signing in.', {
-        action: {
-          label: 'Resend Verification',
-          onClick: () => router.push('/verify-email'),
+      toast.error(
+        state.error || 'Please verify your email address before signing in.',
+        {
+          action: {
+            label: 'Resend Verification',
+            onClick: () => router.push('/verify-email'),
+          },
         },
-      });
+      );
     } else if (state.status === LoginStatus.FAILED) {
       toast.error(state.error || 'Invalid credentials');
     } else if (state.status === LoginStatus.INVALID_DATA) {

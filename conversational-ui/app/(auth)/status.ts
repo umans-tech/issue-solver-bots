@@ -41,4 +41,4 @@ export type PasswordResetActionState = {
   status: PasswordResetStatus;
   message?: string;
   error?: string;
-}; 
+};

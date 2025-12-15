@@ -28,7 +28,10 @@ const lookupKeyMap: Record<PlanKey, Record<BillingCycle, string>> = {
 
 const priceCache = new Map<string, string>();
 
-export async function getPriceId(plan: PlanKey, cycle: BillingCycle): Promise<string> {
+export async function getPriceId(
+  plan: PlanKey,
+  cycle: BillingCycle,
+): Promise<string> {
   const lookupKey = lookupKeyMap[plan]?.[cycle];
   if (!lookupKey) {
     throw new Error(`Missing Stripe price lookup key for ${plan}/${cycle}`);
@@ -54,5 +57,3 @@ export async function getPriceId(plan: PlanKey, cycle: BillingCycle): Promise<st
   priceCache.set(lookupKey, price.id);
   return price.id;
 }
-
-

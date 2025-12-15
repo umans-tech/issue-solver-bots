@@ -257,7 +257,12 @@ export const codeArtifact = new Artifact<'code', Metadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Add comments to the code snippet for understanding' }],
+          parts: [
+            {
+              type: 'text',
+              text: 'Add comments to the code snippet for understanding',
+            },
+          ],
         });
       },
     },
@@ -267,7 +272,12 @@ export const codeArtifact = new Artifact<'code', Metadata>({
       onClick: ({ sendMessage }) => {
         sendMessage({
           role: 'user',
-          parts: [{ type: 'text', text: 'Add logs to the code snippet for debugging' }],
+          parts: [
+            {
+              type: 'text',
+              text: 'Add logs to the code snippet for debugging',
+            },
+          ],
         });
       },
     },

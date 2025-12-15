@@ -1,13 +1,20 @@
 'use client';
 
-import React, { startTransition, useMemo, useOptimistic, useState, useEffect } from 'react';
+import React, {
+  startTransition,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useState,
+} from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { MagicWandIcon, CodeIcon as RadixCodeIcon } from '@radix-ui/react-icons';
-import { SiOpenai, SiAnthropic, SiGoogle } from 'react-icons/si';
+import {
+  CodeIcon as RadixCodeIcon,
+  MagicWandIcon,
+} from '@radix-ui/react-icons';
+import { SiAnthropic, SiGoogle, SiOpenai } from 'react-icons/si';
 import { useLocalStorage } from 'usehooks-ts';
-
-import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,7 +27,10 @@ import { cn } from '@/lib/utils';
 
 import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 
-type IconRenderer = (props?: { size?: number; className?: string }) => React.ReactElement | null;
+type IconRenderer = (props?: {
+  size?: number;
+  className?: string;
+}) => React.ReactElement | null;
 
 function getModelIconComponent(modelId: string): IconRenderer | null {
   // Try lucide first (none are brand-specific here; keep empty mapping to respect order)
@@ -82,8 +92,12 @@ export function ModelSelector({
 }) {
   const [open, setOpen] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
-  const [optimisticModelId, setOptimisticModelId] = useOptimistic(selectedModelId);
-  const [storedModelId, setStoredModelId] = useLocalStorage('chat-model', selectedModelId);
+  const [optimisticModelId, setOptimisticModelId] =
+    useOptimistic(selectedModelId);
+  const [storedModelId, setStoredModelId] = useLocalStorage(
+    'chat-model',
+    selectedModelId,
+  );
 
   useEffect(() => {
     if (storedModelId !== selectedModelId) {
@@ -100,10 +114,7 @@ export function ModelSelector({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         asChild
-        className={cn(
-          'w-fit data-[state=open]:bg-muted',
-          className,
-        )}
+        className={cn('w-fit data-[state=open]:bg-muted', className)}
       >
         <Button
           variant="ghost"
@@ -118,13 +129,29 @@ export function ModelSelector({
           <ChevronDownIcon size={16} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[320px] bg-muted border-muted p-1">
+      <DropdownMenuContent
+        align="start"
+        className="min-w-[320px] bg-muted border-muted p-1"
+      >
         {(() => {
-          const primaryIds = new Set(['chat-model-large', 'coding-model-large']);
+          const primaryIds = new Set([
+            'chat-model-large',
+            'coding-model-large',
+          ]);
           const primary = chatModels.filter((m) => primaryIds.has(m.id));
           const other = chatModels.filter((m) => !primaryIds.has(m.id));
 
-          const Item = ({ m }: { m: { id: string; name: string; description: string; provider: 'openai' | 'anthropic' | 'google'; providerDisplayName: string } }) => (
+          const Item = ({
+            m,
+          }: {
+            m: {
+              id: string;
+              name: string;
+              description: string;
+              provider: 'openai' | 'anthropic' | 'google';
+              providerDisplayName: string;
+            };
+          }) => (
             <DropdownMenuItem
               key={m.id}
               onSelect={() => {
@@ -140,14 +167,20 @@ export function ModelSelector({
               <div className="flex items-center gap-2">
                 {(() => {
                   const Icon = getModelIconComponent(m.id);
-                  return Icon ? <Icon size={16} className="text-foreground/70" /> : null;
+                  return Icon ? (
+                    <Icon size={16} className="text-foreground/70" />
+                  ) : null;
                 })()}
                 <div className="flex flex-col gap-0.5 items-start">
                   <div className="text-foreground text-sm flex items-center gap-2">
                     <span>{m.name}</span>
-                    <span className="text-[11px] text-muted-foreground/70">• {m.providerDisplayName}</span>
+                    <span className="text-[11px] text-muted-foreground/70">
+                      • {m.providerDisplayName}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-muted-foreground/70">{m.description}</div>
+                  <div className="text-[11px] text-muted-foreground/70">
+                    {m.description}
+                  </div>
                 </div>
               </div>
               <div className="text-muted-foreground opacity-0 group-data-[active=true]/item:opacity-100">
@@ -158,7 +191,9 @@ export function ModelSelector({
 
           return (
             <div className="flex flex-col">
-              <div className="px-2 pb-1 pt-1 text-[11px] uppercase tracking-wide text-muted-foreground/70">Recommended</div>
+              <div className="px-2 pb-1 pt-1 text-[11px] uppercase tracking-wide text-muted-foreground/70">
+                Recommended
+              </div>
               {primary.map((m) => (
                 <Item key={m.id} m={m} />
               ))}
@@ -168,7 +203,11 @@ export function ModelSelector({
                   <Collapsible.Trigger asChild>
                     <button className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground/80 transition-colors py-1">
                       <span className="inline-flex items-center gap-2">
-                        {otherOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {otherOpen ? (
+                          <ChevronDown size={14} />
+                        ) : (
+                          <ChevronRight size={14} />
+                        )}
                         Other models
                       </span>
                     </button>

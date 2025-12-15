@@ -3,9 +3,9 @@ import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,17 +48,18 @@ export function SpaceInviteDialog({
       }
 
       const result = await response.json();
-      
+
       toast.success(
-        `Successfully invited ${result.userEmail} to "${result.spaceName}"! ` +
-        `They will receive an email notification about the invitation.`
+        `Successfully invited ${result.userEmail} to "${result.spaceName}"! They will receive an email notification about the invitation.`,
       );
 
       onOpenChange(false);
       setEmail('');
     } catch (error) {
       console.error('Error inviting user:', error);
-      setError(error instanceof Error ? error.message : 'Failed to invite user');
+      setError(
+        error instanceof Error ? error.message : 'Failed to invite user',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -83,11 +84,7 @@ export function SpaceInviteDialog({
                 required
               />
             </div>
-            {error && (
-              <div className="text-sm text-red-500">
-                {error}
-              </div>
-            )}
+            {error && <div className="text-sm text-red-500">{error}</div>}
           </div>
           <AlertDialogFooter>
             <Button
@@ -106,4 +103,4 @@ export function SpaceInviteDialog({
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}

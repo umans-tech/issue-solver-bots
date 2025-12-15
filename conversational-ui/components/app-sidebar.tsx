@@ -3,8 +3,8 @@
 import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import { Activity, Plug, MessageCircle, BookText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, BookText, Plug } from 'lucide-react';
 import Link from 'next/link';
 
 import { PlusIcon } from '@/components/icons';
@@ -15,15 +15,19 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupContent,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { SpaceSelector } from '@/components/space-selector';
 import { SpaceRenameDialog } from '@/components/space-rename-dialog';
 import { SpaceCreateDialog } from '@/components/space-create-dialog';
@@ -70,7 +74,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   const fetchSpaces = async (): Promise<SpaceSummary[] | undefined> => {
     if (!session?.user?.id) return;
-    
+
     try {
       const response = await fetch('/api/spaces/list');
       if (!response.ok) {
@@ -79,7 +83,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       const fetchedSpaces: SpaceSummary[] = await response.json();
 
       setSpaces(fetchedSpaces);
-      
+
       // Update session with spaces
       await updateSession({
         ...session,
@@ -129,7 +133,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         return matchingSpace ?? previous;
       }
 
-      const fallbackSpace = spaces.find((space) => space.isDefault) ?? spaces[0];
+      const fallbackSpace =
+        spaces.find((space) => space.isDefault) ?? spaces[0];
       return fallbackSpace ?? null;
     });
   }, [spaces]);
@@ -150,7 +155,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     setIsRenameDialogOpen(true);
   };
 
-  const switchToSpace = async (spaceId: string, skipSpaceListRefresh: boolean = false) => {
+  const switchToSpace = async (
+    spaceId: string,
+    skipSpaceListRefresh = false,
+  ) => {
     try {
       // Check if we're currently in a chat
       const currentPath = window.location.pathname;
@@ -199,7 +207,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           latestSpaces = refreshedSpaces;
         }
       }
-      
+
       // Find the space in our local state
       let selectedSpace = latestSpaces.find((space) => space.id === spaceId);
       if (!selectedSpace && switchedSpace) {
@@ -248,7 +256,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex w-full flex-row justify-between items-center">
-            <SpaceSelector 
+            <SpaceSelector
               spaceName={activeSpace?.name || 'Loading space...'}
               spaceId={activeSpace?.id || ''}
               spaces={spaces}
@@ -278,22 +286,21 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           </div>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent>
         {/* Conversations Section */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                </SidebarMenuButton>
+                <SidebarMenuButton asChild />
               </SidebarMenuItem>
             </SidebarMenu>
             <SidebarHistory user={user} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter>
         {/* Docs Section */}
         <SidebarGroup>
@@ -316,7 +323,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/tasks" className="w-full flex items-center gap-2">
+                  <Link
+                    href="/tasks"
+                    className="w-full flex items-center gap-2"
+                  >
                     <Activity className="h-4 w-4" />
                     <span>Tasks</span>
                   </Link>
@@ -325,14 +335,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
         {/* Integrations Section */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/integrations" className="w-full flex items-center gap-2">
+                  <Link
+                    href="/integrations"
+                    className="w-full flex items-center gap-2"
+                  >
                     <Plug className="h-4 w-4" />
                     <span>Integrations</span>
                   </Link>
@@ -341,7 +354,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
         {user && <SidebarUserNav user={user} />}
       </SidebarFooter>
       <SpaceRenameDialog

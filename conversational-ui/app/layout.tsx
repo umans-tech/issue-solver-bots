@@ -11,14 +11,15 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://chat.umans.ai'),
   title: {
     default: 'umans.ai Platform',
-    template: `%s - umans.ai Platform`
+    template: `%s - umans.ai Platform`,
   },
-  description: 'umans.ai empowers teams to deliver predictable, high-quality software aligned with business goals.',
+  description:
+    'umans.ai empowers teams to deliver predictable, high-quality software aligned with business goals.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png'
-  }
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export const viewport = {

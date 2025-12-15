@@ -12,21 +12,23 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 import { passwordReset } from '../actions';
-import { PasswordResetStatus, type PasswordResetActionState } from '../status';
+import { type PasswordResetActionState, PasswordResetStatus } from '../status';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
 
-  const [state, formAction] = useActionState<PasswordResetActionState, FormData>(
-    passwordReset,
-    {
-      status: PasswordResetStatus.IDLE,
-    },
-  );
+  const [state, formAction] = useActionState<
+    PasswordResetActionState,
+    FormData
+  >(passwordReset, {
+    status: PasswordResetStatus.IDLE,
+  });
 
   useEffect(() => {
     if (state.status === PasswordResetStatus.SUCCESS) {
-      toast.success(state.message || 'Password reset instructions sent to your email.');
+      toast.success(
+        state.message || 'Password reset instructions sent to your email.',
+      );
     } else if (state.status === PasswordResetStatus.FAILED) {
       toast.error(state.error || 'Failed to send reset email');
     } else if (state.status === PasswordResetStatus.INVALID_DATA) {
@@ -60,10 +62,9 @@ export default function ForgotPasswordPage() {
             {isInstructionsSent ? 'Check Your Email' : 'Forgot Password'}
           </h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            {isInstructionsSent 
-              ? 'We\'ve sent password reset instructions to your email address.'
-              : 'Enter your email address and we\'ll send you instructions to reset your password'
-            }
+            {isInstructionsSent
+              ? "We've sent password reset instructions to your email address."
+              : "Enter your email address and we'll send you instructions to reset your password"}
           </p>
         </div>
 
@@ -98,16 +99,16 @@ export default function ForgotPasswordPage() {
               </SubmitButton>
             ) : (
               <div className="flex flex-col gap-2">
-                <Button 
-                  type="button" 
-                  disabled 
+                <Button
+                  type="button"
+                  disabled
                   className="bg-green-600 hover:bg-green-600"
                 >
                   ✓ Instructions Sent
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleSendAgain}
                   className="text-sm"
                 >
@@ -138,4 +139,4 @@ export default function ForgotPasswordPage() {
       </div>
     </div>
   );
-} 
+}

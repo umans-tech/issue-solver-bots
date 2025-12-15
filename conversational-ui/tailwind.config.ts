@@ -78,7 +78,9 @@ const config: Config = {
             'pre code::before': { content: '""' },
             'pre code::after': { content: '""' },
             code: {
-              fontFamily: theme('fontFamily.mono')?.join(', ') ?? theme('fontFamily.mono'),
+              fontFamily:
+                theme('fontFamily.mono')?.join(', ') ??
+                theme('fontFamily.mono'),
             },
           },
         },
@@ -94,9 +96,9 @@ const config: Config = {
     },
   },
   plugins: [
-    require('tailwindcss-animate'), 
+    require('tailwindcss-animate'),
     require('@tailwindcss/typography'),
-    function({ addUtilities }: any) {
+    ({ addUtilities }: any) => {
       const newUtilities = {
         '.line-clamp-1': {
           overflow: 'hidden',
@@ -116,9 +118,9 @@ const config: Config = {
           '-webkit-box-orient': 'vertical',
           '-webkit-line-clamp': '3',
         },
-      }
-      addUtilities(newUtilities)
-    }
+      };
+      addUtilities(newUtilities);
+    },
   ],
 };
 export default config;

@@ -6,22 +6,22 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import {
-  user,
   chat,
-  type User,
-  document,
-  type Suggestion,
-  suggestion,
   type DBMessage,
+  document,
   message,
-  vote,
   space,
   spaceToUser,
   stream,
+  type Suggestion,
+  suggestion,
   tokenUsage,
   type TokenUsage,
+  user,
+  type User,
+  vote,
 } from './schema';
-import { ArtifactKind } from '@/components/artifact';
+import type { ArtifactKind } from '@/components/artifact';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -41,10 +41,10 @@ export async function getUser(email: string): Promise<Array<User>> {
 }
 
 export async function createUser(
-  email: string, 
-  password: string | null, 
-  name?: string | null, 
-  image?: string | null
+  email: string,
+  password: string | null,
+  name?: string | null,
+  image?: string | null,
 ) {
   let hash = null;
   if (password) {
@@ -61,18 +61,18 @@ export async function createUser(
 }
 
 export async function createUserWithVerification(
-  email: string, 
-  password: string, 
-  verificationToken: string
+  email: string,
+  password: string,
+  verificationToken: string,
 ) {
   const salt = genSaltSync(10);
   const hash = hashSync(password, salt);
 
   try {
-    return await db.insert(user).values({ 
-      email, 
-      password: hash, 
-      emailVerificationToken: verificationToken
+    return await db.insert(user).values({
+      email,
+      password: hash,
+      emailVerificationToken: verificationToken,
     });
   } catch (error) {
     console.error('Failed to create user with verification in database');
@@ -80,9 +80,14 @@ export async function createUserWithVerification(
   }
 }
 
-export async function getUserByVerificationToken(token: string): Promise<Array<User>> {
+export async function getUserByVerificationToken(
+  token: string,
+): Promise<Array<User>> {
   try {
-    return await db.select().from(user).where(eq(user.emailVerificationToken, token));
+    return await db
+      .select()
+      .from(user)
+      .where(eq(user.emailVerificationToken, token));
   } catch (error) {
     console.error('Failed to get user by verification token from database');
     throw error;
@@ -93,9 +98,9 @@ export async function verifyUserEmail(userId: string) {
   try {
     const result = await db
       .update(user)
-      .set({ 
+      .set({
         emailVerified: new Date(),
-        emailVerificationToken: null 
+        emailVerificationToken: null,
       })
       .where(eq(user.id, userId))
       .returning({ email: user.email });
@@ -170,10 +175,10 @@ export async function getChatsByUserId({ id }: { id: string }) {
   }
 }
 
-export async function getChatsByUserIdAndSpaceId({ 
-  userId, 
-  spaceId 
-}: { 
+export async function getChatsByUserIdAndSpaceId({
+  userId,
+  spaceId,
+}: {
   userId: string;
   spaceId: string;
 }) {
@@ -468,7 +473,7 @@ export async function createSpace(
   userId: string,
   knowledgeBaseId?: string,
   processId?: string,
-  isDefault: boolean = false,
+  isDefault = false,
 ) {
   try {
     // First verify the user exists
@@ -497,17 +502,17 @@ export async function createSpace(
 
     if (newSpaces.length > 0) {
       const newSpace = newSpaces[0];
-      
+
       // Create the space-user relationship
       await db.insert(spaceToUser).values({
         spaceId: newSpace.id,
         userId: userId,
       });
-      
+
       console.log(`✅ Created space "${name}" for user ${userId}`);
       return newSpace;
     }
-    
+
     return null;
   } catch (error) {
     console.error('❌ Error creating space:', error);
@@ -681,18 +686,21 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
 
 export async function getCurrentUserSpace(userId: string) {
   let currentSpace = await getSelectedSpace(userId);
-  
+
   if (!currentSpace) {
     currentSpace = await ensureDefaultSpace(userId);
   }
-  
+
   return currentSpace;
 }
 
 /**
  * Invite a user to a space
  */
-export async function inviteUserToSpace(spaceId: string, userEmail: string): Promise<{
+export async function inviteUserToSpace(
+  spaceId: string,
+  userEmail: string,
+): Promise<{
   success: boolean;
   error?: string;
   space?: any;
@@ -718,12 +726,15 @@ export async function inviteUserToSpace(spaceId: string, userEmail: string): Pro
       .where(
         and(
           eq(spaceToUser.spaceId, spaceId),
-          eq(spaceToUser.userId, userToInvite.id)
-        )
+          eq(spaceToUser.userId, userToInvite.id),
+        ),
       );
 
     if (existingMembership.length > 0) {
-      return { success: false, error: 'User is already a member of this space' };
+      return {
+        success: false,
+        error: 'User is already a member of this space',
+      };
     }
 
     // Add user to space
@@ -766,7 +777,10 @@ export async function getSpaceMembers(spaceId: string) {
   }
 }
 
-export async function updateUserOnboarding(userId: string, hasCompletedOnboarding: boolean) {
+export async function updateUserOnboarding(
+  userId: string,
+  hasCompletedOnboarding: boolean,
+) {
   try {
     return await db
       .update(user)
@@ -778,7 +792,10 @@ export async function updateUserOnboarding(userId: string, hasCompletedOnboardin
   }
 }
 
-export async function updateUserProfileNotes(userId: string, profileNotes: string) {
+export async function updateUserProfileNotes(
+  userId: string,
+  profileNotes: string,
+) {
   try {
     return await db
       .update(user)
@@ -790,7 +807,10 @@ export async function updateUserProfileNotes(userId: string, profileNotes: strin
   }
 }
 
-export async function updateUserProfile(userId: string, updates: { name?: string | null; image?: string | null }) {
+export async function updateUserProfile(
+  userId: string,
+  updates: { name?: string | null; image?: string | null },
+) {
   try {
     return await db.update(user).set(updates).where(eq(user.id, userId));
   } catch (error) {
@@ -800,7 +820,9 @@ export async function updateUserProfile(userId: string, updates: { name?: string
 }
 
 // Token usage queries
-export async function getTokenUsageByUser(userId: string): Promise<Array<TokenUsage & { chatId: string }>> {
+export async function getTokenUsageByUser(
+  userId: string,
+): Promise<Array<TokenUsage & { chatId: string }>> {
   try {
     return await db
       .select({
@@ -824,7 +846,9 @@ export async function getTokenUsageByUser(userId: string): Promise<Array<TokenUs
   }
 }
 
-export async function getTokenUsageBySpace(spaceId: string): Promise<Array<TokenUsage & { chatId: string }>> {
+export async function getTokenUsageBySpace(
+  spaceId: string,
+): Promise<Array<TokenUsage & { chatId: string }>> {
   try {
     return await db
       .select({
@@ -848,7 +872,9 @@ export async function getTokenUsageBySpace(spaceId: string): Promise<Array<Token
   }
 }
 
-export async function getTokenUsageByChat(chatId: string): Promise<Array<TokenUsage>> {
+export async function getTokenUsageByChat(
+  chatId: string,
+): Promise<Array<TokenUsage>> {
   try {
     return await db
       .select({

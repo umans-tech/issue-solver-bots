@@ -1,8 +1,19 @@
 'use client';
 
-import { AlertCircle, CheckCircle, ExternalLink, ChevronDown } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ExternalLink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 
@@ -23,19 +34,22 @@ interface TokenPermissionsDisplayProps {
 const SCOPE_INFO = {
   repo: {
     name: 'Repository Access',
-    description: 'Full access to repositories, issues, and pull requests'
+    description: 'Full access to repositories, issues, and pull requests',
   },
   workflow: {
     name: 'GitHub Actions',
-    description: 'Access to GitHub Actions workflows'
+    description: 'Access to GitHub Actions workflows',
   },
   'read:user': {
-    name: 'User Profile', 
-    description: 'Read user profile information'
-  }
+    name: 'User Profile',
+    description: 'Read user profile information',
+  },
 };
 
-export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPermissionsDisplayProps) {
+export function TokenPermissionsDisplay({
+  permissions,
+  repositoryUrl,
+}: TokenPermissionsDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!permissions) {
@@ -46,12 +60,12 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
     const baseUrl = 'https://github.com/settings/tokens/new';
     const params = new URLSearchParams({
       description: 'Umans-AI-Platform',
-      scopes: 'repo,workflow,read:user'
+      scopes: 'repo,workflow,read:user',
     });
     return `${baseUrl}?${params.toString()}`;
   };
 
-  const isGitHubRepo = repositoryUrl && repositoryUrl.toLowerCase().includes('github.com');
+  const isGitHubRepo = repositoryUrl?.toLowerCase().includes('github.com');
 
   if (!isGitHubRepo) {
     return (
@@ -68,7 +82,7 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
 
   const requiredScopes = ['repo', 'workflow', 'read:user'];
   const totalRequired = requiredScopes.length;
-  const hasCount = requiredScopes.filter(scope => {
+  const hasCount = requiredScopes.filter((scope) => {
     if (scope === 'read:user') return permissions.has_read_user;
     if (scope === 'repo') return permissions.has_repo;
     if (scope === 'workflow') return permissions.has_workflow;
@@ -86,24 +100,27 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
               <AlertCircle className="h-4 w-4 text-amber-500" />
             )}
             <CardTitle className="text-sm">Token Permissions</CardTitle>
-            <Badge variant={permissions.is_optimal ? "default" : "secondary"}>
+            <Badge variant={permissions.is_optimal ? 'default' : 'secondary'}>
               {hasCount}/{totalRequired}
             </Badge>
           </div>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
+
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-6 w-6 p-0"
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            />
           </Button>
         </div>
-        
+
         {!permissions.is_optimal && (
           <CardDescription className="text-xs">
-            Missing {permissions.missing_scopes.length} permission{permissions.missing_scopes.length !== 1 ? 's' : ''}
+            Missing {permissions.missing_scopes.length} permission
+            {permissions.missing_scopes.length !== 1 ? 's' : ''}
           </CardDescription>
         )}
       </CardHeader>
@@ -113,9 +130,10 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
           {/* Permission Details */}
           <div className="grid gap-2">
             {Object.entries(SCOPE_INFO).map(([scope, info]) => {
-              const hasPermission = permissions.scopes.includes(scope) || 
+              const hasPermission =
+                permissions.scopes.includes(scope) ||
                 (scope === 'read:user' && permissions.has_read_user);
-              
+
               return (
                 <div key={scope} className="flex items-center gap-2 text-xs">
                   {hasPermission ? (
@@ -150,4 +168,4 @@ export function TokenPermissionsDisplay({ permissions, repositoryUrl }: TokenPer
       )}
     </Card>
   );
-} 
+}

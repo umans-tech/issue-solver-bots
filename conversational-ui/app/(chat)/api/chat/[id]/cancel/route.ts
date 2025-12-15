@@ -1,7 +1,10 @@
 import { auth } from '@/app/(auth)/auth';
 import { getChatById, getStreamIdsByChatId } from '@/lib/db/queries';
 import type { Chat } from '@/lib/db/schema';
-import { getController, deleteController } from '@/lib/stream/controller-registry';
+import {
+  deleteController,
+  getController,
+} from '@/lib/stream/controller-registry';
 
 export async function POST(
   _req: Request,
@@ -44,4 +47,3 @@ export async function POST(
 
   return new Response(null, { status: 200 });
 }
-

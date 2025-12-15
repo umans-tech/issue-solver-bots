@@ -2,7 +2,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { tokenUsage } from '@/lib/db/schema';
-import { myProvider } from "@/lib/ai/models";
+import { myProvider } from '@/lib/ai/models';
 
 export interface TokenUsageData {
   messageId: string;
@@ -31,11 +31,11 @@ export async function recordTokenUsage(data: TokenUsageData) {
 export function extractModel(selectedChatModel: string) {
   const languageModel = myProvider.languageModel(selectedChatModel);
   if (!languageModel) {
-      // Don't throw - token usage tracking shouldn't break the chat flow
-      console.error(`Language model not found for: ${selectedChatModel}`);
+    // Don't throw - token usage tracking shouldn't break the chat flow
+    console.error(`Language model not found for: ${selectedChatModel}`);
   }
   return {
     chatModelProvider: languageModel.provider,
     chatModelName: languageModel.modelId,
-  }
+  };
 }

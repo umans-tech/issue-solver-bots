@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()!.split(';').shift() || null;
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
   return null;
 }
 
@@ -19,8 +19,10 @@ export default function BillingStartPage() {
         if (raw) {
           try {
             const parsed = JSON.parse(decodeURIComponent(raw));
-            if (parsed?.plan === 'solo' || parsed?.plan === 'pro') plan = parsed.plan;
-            if (parsed?.cycle === 'monthly' || parsed?.cycle === 'yearly') cycle = parsed.cycle;
+            if (parsed?.plan === 'solo' || parsed?.plan === 'pro')
+              plan = parsed.plan;
+            if (parsed?.cycle === 'monthly' || parsed?.cycle === 'yearly')
+              cycle = parsed.cycle;
           } catch {}
         }
 
@@ -48,5 +50,3 @@ export default function BillingStartPage() {
 
   return null;
 }
-
-

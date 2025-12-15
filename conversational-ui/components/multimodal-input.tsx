@@ -1,17 +1,16 @@
 'use client';
 
-import { UIMessage } from 'ai';
 import cx from 'classnames';
 import type React from 'react';
 import {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  type Dispatch,
-  type SetStateAction,
   type ChangeEvent,
+  type Dispatch,
   memo,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
@@ -28,10 +27,8 @@ import { ModelSelector } from './model-selector';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
-import { UseChatHelpers } from '@ai-sdk/react';
-import { Attachment } from '@/lib/types';
-import type { ChatMessage } from '@/lib/types';
-import { useDataStream } from './data-stream-provider';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { Attachment, ChatMessage } from '@/lib/types';
 
 function PureMultimodalInput({
   chatId,
@@ -123,7 +120,10 @@ function PureMultimodalInput({
         try {
           const attachment = await uploadFile(file);
           if (attachment) {
-            setAttachments((currentAttachments) => [...currentAttachments, attachment]);
+            setAttachments((currentAttachments) => [
+              ...currentAttachments,
+              attachment,
+            ]);
           }
         } catch (error) {
           console.error('Error uploading clipboard image:', error);
@@ -141,21 +141,24 @@ function PureMultimodalInput({
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
-    sendMessage({
-      role: 'user',
-      parts: [
-        ...attachments.map((attachment) => ({
-          type: 'file' as const,
-          url: attachment.url,
-          name: attachment.name,
-          mediaType: attachment.contentType,
-        })),
-        {
-          type: 'text',
-          text: input,
-        },
-      ],
-    }, { body: { selectedChatModel: selectedModelId } });
+    sendMessage(
+      {
+        role: 'user',
+        parts: [
+          ...attachments.map((attachment) => ({
+            type: 'file' as const,
+            url: attachment.url,
+            name: attachment.name,
+            mediaType: attachment.contentType,
+          })),
+          {
+            type: 'text',
+            text: input,
+          },
+        ],
+      },
+      { body: { selectedChatModel: selectedModelId } },
+    );
 
     setAttachments([]);
     setLocalStorageInput('');
@@ -231,8 +234,6 @@ function PureMultimodalInput({
   );
 
   const { isAtBottom, scrollToBottom } = useScrollToBottom();
-
-
 
   return (
     <div className="relative w-full flex flex-col gap-4">
@@ -321,7 +322,10 @@ function PureMultimodalInput({
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start items-center gap-2">
-        <AttachmentsButton fileInputRef={fileInputRef} isLoading={status === 'streaming'} />
+        <AttachmentsButton
+          fileInputRef={fileInputRef}
+          isLoading={status === 'streaming'}
+        />
         <ModelSelector
           selectedModelId={selectedModelId}
           className="!h-[34px] !px-2"
@@ -394,7 +398,9 @@ function PureStopButton({
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
-        void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(() => {});
+        void fetch(`/api/chat/${chatId}/cancel`, { method: 'POST' }).catch(
+          () => {},
+        );
         void stop();
         setMessages((messages) => messages);
       }}

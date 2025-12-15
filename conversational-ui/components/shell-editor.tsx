@@ -16,7 +16,13 @@ interface ShellEditorProps {
   forceSetValue?: boolean;
 }
 
-export function ShellEditor({ value, onChange, minHeight = 160, placeholder, forceSetValue = false }: ShellEditorProps) {
+export function ShellEditor({
+  value,
+  onChange,
+  minHeight = 160,
+  placeholder,
+  forceSetValue = false,
+}: ShellEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
 
@@ -32,20 +38,34 @@ export function ShellEditor({ value, onChange, minHeight = 160, placeholder, for
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            const tr = update.transactions.find((t) => !t.annotation(Transaction.remote));
+            const tr = update.transactions.find(
+              (t) => !t.annotation(Transaction.remote),
+            );
             if (tr) onChange(update.state.doc.toString());
           }
         }),
         EditorView.theme({
-          '&': { width: '100%', minHeight: `${minHeight}px`, border: '1px solid var(--border)', borderRadius: '0.5rem' },
-          '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: '0.85rem' },
+          '&': {
+            width: '100%',
+            minHeight: `${minHeight}px`,
+            border: '1px solid var(--border)',
+            borderRadius: '0.5rem',
+          },
+          '.cm-scroller': {
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontSize: '0.85rem',
+          },
           '.cm-content': { padding: '12px' },
           '.cm-gutters': { borderRight: '1px solid var(--border)' },
         }),
       ],
     });
 
-    viewRef.current = new EditorView({ state: startState, parent: containerRef.current });
+    viewRef.current = new EditorView({
+      state: startState,
+      parent: containerRef.current,
+    });
 
     return () => {
       viewRef.current?.destroy();
@@ -79,5 +99,3 @@ export function ShellEditor({ value, onChange, minHeight = 160, placeholder, for
     </div>
   );
 }
-
-

@@ -17,20 +17,30 @@ export const authConfig = {
       const isOnLogin = nextUrl.pathname.startsWith('/login');
       const isOnLanding = nextUrl.pathname.startsWith('/landing');
       const isOnVerifyEmail = nextUrl.pathname.startsWith('/verify-email');
-      const isOnForgotPassword = nextUrl.pathname.startsWith('/forgot-password');
+      const isOnForgotPassword =
+        nextUrl.pathname.startsWith('/forgot-password');
       const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
 
       if (isLoggedIn && (isOnLogin || isOnRegister)) {
         // If a pending checkout cookie exists, send user to billing/start first
         const cookie = (nextUrl as unknown as URL).searchParams.get('force');
-        const hasPending = (nextUrl as unknown as URL).searchParams.get('pending');
+        const hasPending = (nextUrl as unknown as URL).searchParams.get(
+          'pending',
+        );
         if (!cookie && !hasPending) {
           // We cannot read cookies here easily; rely on client redirect after login.
         }
         return Response.redirect(new URL('/', nextUrl as unknown as URL));
       }
 
-      if (isOnRegister || isOnLogin || isOnLanding || isOnVerifyEmail || isOnForgotPassword || isOnResetPassword) {
+      if (
+        isOnRegister ||
+        isOnLogin ||
+        isOnLanding ||
+        isOnVerifyEmail ||
+        isOnForgotPassword ||
+        isOnResetPassword
+      ) {
         return true; // Always allow access to auth pages
       }
 

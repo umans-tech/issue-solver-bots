@@ -10,10 +10,9 @@ import {
 } from 'react';
 import { Textarea } from './ui/textarea';
 import { deleteTrailingMessages } from '@/app/(chat)/actions';
-import { ChatMessage } from '@/lib/types';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { ChatMessage } from '@/lib/types';
+import type { UseChatHelpers } from '@ai-sdk/react';
 import { getTextFromMessage } from '@/lib/utils';
-
 
 export type MessageEditorProps = {
   message: ChatMessage;
@@ -61,7 +60,7 @@ export function MessageEditor({
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
 
     try {
