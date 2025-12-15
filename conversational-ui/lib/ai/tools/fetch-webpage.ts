@@ -4,8 +4,8 @@ import type { Session } from 'next-auth';
 import { type Browser, chromium, type Page } from 'playwright';
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
-import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync } from 'fs';
+import { join } from 'path';
 import type { ChatMessage } from '@/lib/types';
 
 export interface FetchWebpageProps {
