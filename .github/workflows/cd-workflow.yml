@@ -80,27 +80,6 @@ jobs:
           role-session-name: SessionGitHubActions
           aws-region: eu-west-3
 
-      - name: Terraform init (provision)
-        run: |
-          cd operations/01-provision
-          terraform init -reconfigure
-
-      - name: Blog import dry-run
-        run: |
-          cd operations/01-provision
-          DRY_RUN=true just import-blog
-        env:
-          GH_PR_NUMBER: ${{ github.event.pull_request.number }}
-
-      - name: Blog import adopt + clean deploy state
-        run: |
-          cd operations/01-provision
-          CLEAN_DEPLOY_STATE=true just import-blog
-        env:
-          GH_PR_NUMBER: ${{ github.event.pull_request.number }}
-          TF_VAR_supabase_token: ${{ secrets.TF_VAR_SUPABASE_TOKEN }}
-          TF_VAR_supabase_organization_slug: ${{ secrets.TF_VAR_SUPABASE_ORGANIZATION_SLUG }}µî
-
       - name: Apply provision
         run: |
           cd operations/01-provision
