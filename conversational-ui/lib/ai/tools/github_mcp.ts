@@ -1,6 +1,8 @@
 import { experimental_createMCPClient as createMCPClient } from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
+const MCP_REQUEST_TIMEOUT_MS = 30_000; // 30s timeout for MCP requests
+
 export async function codeRepositoryMCPClient(userContext?: {
   userId?: string;
   spaceId?: string;
@@ -34,7 +36,7 @@ const createProxyMCPClient = async (userContext?: {
     throw new Error('CUDU_ENDPOINT not configured for GitHub MCP integration');
   }
 
-  // Create custom transport that injects user context into requests
+  // Create custom transport that injects user context and timeout protection
   class UserContextTransport extends StreamableHTTPClientTransport {
     async send(request: any): Promise<any> {
       // Inject user context into the request if available
@@ -45,7 +47,17 @@ const createProxyMCPClient = async (userContext?: {
           space_id: userContext.spaceId,
         };
       }
-      return super.send(request);
+
+      // Wrap with timeout protection to prevent hung requests
+      return Promise.race([
+        super.send(request),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error('MCP request timeout')),
+            MCP_REQUEST_TIMEOUT_MS,
+          ),
+        ),
+      ]);
     }
   }
 

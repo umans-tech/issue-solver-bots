@@ -211,6 +211,18 @@ export async function POST(request: Request) {
     ...notionClientWrapper.activeTools(),
   ];
 
+  // Cleanup function to release MCP client resources
+  const cleanupMCPClients = async () => {
+    try {
+      await Promise.allSettled([
+        githubClientWrapper.client.close(),
+        notionClientWrapper.client.close(),
+      ]);
+    } catch (error) {
+      console.error('[MCP] Cleanup error:', error);
+    }
+  };
+
   const stream = createUIMessageStream({
     execute: async ({ writer: dataStream }) => {
       // Create a dedicated abort controller not tied to request.signal
@@ -371,11 +383,15 @@ export async function POST(request: Request) {
         console.error('Failed to save chat');
       } finally {
         deleteController(streamId);
+        // Release MCP client connections
+        after(cleanupMCPClients);
       }
     },
     onError: (error) => {
       console.error('Error during streaming:', error);
       deleteController(streamId);
+      // Release MCP client connections on error
+      after(cleanupMCPClients);
       return 'Oops, an error occured!';
     },
   });

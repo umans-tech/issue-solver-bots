@@ -3,6 +3,8 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 
 const NOTION_PROXY_PATH = '/mcp/notion/proxy';
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 100; // Limit cache growth
+const MCP_REQUEST_TIMEOUT_MS = 30_000; // 30s timeout for MCP requests
 
 type UserContext = { userId?: string; spaceId?: string } | undefined;
 
@@ -20,6 +22,41 @@ type CachedEntry = MCPWrapper & { fetchedAt: number };
 
 const notionClientCache = new Map<string, CachedEntry>();
 
+// Evict stale entries to prevent unbounded cache growth
+function evictStaleEntries() {
+  const now = Date.now();
+  const toDelete: string[] = [];
+
+  // Convert to array for iteration compatibility
+  const entries = Array.from(notionClientCache.entries());
+  for (const [key, entry] of entries) {
+    if (now - entry.fetchedAt > CACHE_TTL_MS) {
+      toDelete.push(key);
+      // Clean up MCP client connection
+      entry.client.close().catch((err) => {
+        console.error('[Notion MCP] Failed to close stale client:', err);
+      });
+    }
+  }
+
+  toDelete.forEach((key) => notionClientCache.delete(key));
+
+  // If cache still too large, evict oldest entries
+  if (notionClientCache.size > MAX_CACHE_SIZE) {
+    const sortedEntries = Array.from(notionClientCache.entries()).sort(
+      ([, a], [, b]) => a.fetchedAt - b.fetchedAt,
+    );
+    const excess = notionClientCache.size - MAX_CACHE_SIZE;
+    for (let i = 0; i < excess; i++) {
+      const [key, entry] = sortedEntries[i];
+      notionClientCache.delete(key);
+      entry.client.close().catch((err) => {
+        console.error('[Notion MCP] Failed to close evicted client:', err);
+      });
+    }
+  }
+}
+
 const noMCPClient = (error: unknown): MCPWrapper => ({
   client: {
     tools: async () => ({}) as any,
@@ -35,6 +72,9 @@ const noMCPClient = (error: unknown): MCPWrapper => ({
 export async function notionMCPClient(
   userContext?: UserContext,
 ): Promise<MCPWrapper> {
+  // Periodically clean stale cache entries
+  evictStaleEntries();
+
   const cacheKey = userContext?.spaceId
     ? `${userContext.spaceId}:${userContext?.userId ?? 'anonymous'}`
     : null;
@@ -43,6 +83,12 @@ export async function notionMCPClient(
     const cached = notionClientCache.get(cacheKey);
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
       return cached;
+    } else if (cached) {
+      // Remove expired entry and close connection
+      notionClientCache.delete(cacheKey);
+      cached.client.close().catch((err) => {
+        console.error('[Notion MCP] Failed to close expired client:', err);
+      });
     }
   }
 
@@ -54,6 +100,10 @@ export async function notionMCPClient(
     return wrapper;
   } catch (error) {
     console.error('[Notion MCP] failed to initialise client:', error);
+    // Remove from cache on error to force refresh on next attempt
+    if (cacheKey) {
+      notionClientCache.delete(cacheKey);
+    }
     return noMCPClient(error);
   }
 }
@@ -75,7 +125,17 @@ async function createProxyClient(
           space_id: userContext.spaceId,
         };
       }
-      return super.send(request);
+
+      // Wrap with timeout protection to prevent hung requests
+      return Promise.race([
+        super.send(request),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error('MCP request timeout')),
+            MCP_REQUEST_TIMEOUT_MS,
+          ),
+        ),
+      ]);
     }
   }
 
