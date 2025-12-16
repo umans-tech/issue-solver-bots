@@ -29,10 +29,6 @@ plan: init
 apply: init
     @terraform apply -var "branch_name={{ branch_name }}" -auto-approve
 
-# 🪄 Import existing blog resources into this workspace state (no recreation)
-import-blog:
-    @WORKSPACE={{ ws }} ./import-blog.sh
-
 # 👀 Show outputs for resources provisionning
 output:
     @echo "\n>>> Transaction Pooler Connection (JDBC): ☕️️🔌🐘"
