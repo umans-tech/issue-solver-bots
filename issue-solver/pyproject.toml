@@ -1,6 +1,6 @@
 [project]
 name = "issue-solver"
-version = "0.1.13"
+version = "0.1.14"
 description = "A tool to specify, solve issues and review code in a repository using an autonomous agents."
 readme = "README.md"
 requires-python = ">=3.12"
