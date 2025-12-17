@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from issue_solver.git_operations.git_helper import (
+    GitClient,
     GitHelper,
     GitSettings,
     extract_git_clone_default_directory_name,
@@ -73,3 +74,37 @@ def test_get_changed_files_commit(mock_repo_class, mock_repo):
 def test_git_clone_directory_name(repo_url, expected_directory):
     # Test the problematic case
     assert extract_git_clone_default_directory_name(repo_url) == expected_directory
+
+
+def test_update_to_latest_remote_state_refreshes_origin_token():
+    # Given
+    repo = Mock()
+    repo.remotes.origin.url = "https://oauth2:old-token@gitlab.com/group/project.git"
+    repo.git.remote = Mock()
+    repo.git.fetch = Mock()
+    repo.git.checkout = Mock()
+    repo.git.pull = Mock()
+    repo_path = Path("/tmp/repo")
+    git_settings = GitSettings(
+        repository_url="https://gitlab.com/group/project.git",
+        access_token="new-token",
+    )
+
+    with patch.object(
+        GitClient, "_default_branch", return_value="main"
+    ) as mock_default:
+        # When
+        GitClient._update_to_latest_remote_state(git_settings, repo, repo_path)
+
+    # Then
+    repo.git.remote.assert_called_once_with(
+        "set-url",
+        "origin",
+        "https://oauth2:new-token@gitlab.com/group/project.git",
+    )
+    mock_default.assert_called_once_with(
+        "https://gitlab.com/group/project.git", "new-token", repo_path
+    )
+    repo.git.fetch.assert_called_once_with("--prune")
+    repo.git.checkout.assert_called_once_with("main")
+    repo.git.pull.assert_called_once_with("--rebase")

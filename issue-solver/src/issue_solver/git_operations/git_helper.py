@@ -323,10 +323,8 @@ class GitHelper:
         return None
 
     def _inject_access_token(self, base_url: str) -> str:
-        stripped_url = base_url.removeprefix("https://")
-        if self.settings.access_token:
-            return f"https://oauth2:{self.settings.access_token}@{stripped_url}"
-        return f"https://{stripped_url}"
+        authenticated_url = self.settings.authenticated_url(base_url)
+        return authenticated_url or base_url
 
     def _ensure_repo_origin(self, repo: Repo, url: str) -> None:
         if "repo_origin" not in repo.remotes:
@@ -455,6 +453,18 @@ class GitSettings(BaseSettings):
         default="umans-agent",
         description="Username used for Git commits.",
     )
+
+    def authenticated_url(self, url: str) -> str:
+        base_url = url
+        if not base_url:
+            return base_url
+        if not self.access_token:
+            return base_url
+        if base_url.startswith(("http://", "https://")):
+            sanitized = url_without_credentials(base_url)
+            scheme, rest = sanitized.split("://", 1)
+            return f"{scheme}://oauth2:{self.access_token}@{rest}"
+        return base_url
 
 
 @dataclass
@@ -652,16 +662,22 @@ class GitClient:
     def _update_to_latest_remote_state(
         cls, git_settings: GitSettings | None, repo: Repo, repo_path: Path
     ):
-        default_branch = cls._default_branch(
-            git_settings.repository_url
-            if git_settings and git_settings.repository_url
-            else repo.remotes.origin.url,
-            git_settings.access_token if git_settings else None,
-            repo_path,
-        )
+        cls._apply_git_settings(repo, git_settings)
+        remote_url = url_without_credentials(repo.remotes.origin.url)
+        access_token = git_settings.access_token if git_settings else None
+        default_branch = cls._default_branch(remote_url, access_token, repo_path)
         repo.git.fetch("--prune")
         repo.git.checkout(default_branch)
         repo.git.pull("--rebase")
+
+    @classmethod
+    def _apply_git_settings(cls, repo: Repo, git_settings: GitSettings | None) -> None:
+        if not git_settings or not git_settings.access_token:
+            return
+        base_url = git_settings.repository_url or repo.remotes.origin.url
+        authenticated_url = git_settings.authenticated_url(base_url)
+        if authenticated_url:
+            repo.git.remote("set-url", "origin", authenticated_url)
 
 
 def name_new_branch_for_issue(issue: IssueInfo, process_id: str) -> str:
@@ -718,3 +734,11 @@ def extract_git_clone_default_directory_name(repo_url: str) -> str:
         directory_name = url
 
     return directory_name
+
+
+def url_without_credentials(url: str) -> str:
+    if url.startswith(("http://", "https://")):
+        scheme, rest = url.split("://", 1)
+        rest = rest.split("@", 1)[-1]
+        return f"{scheme}://{rest}"
+    return url
