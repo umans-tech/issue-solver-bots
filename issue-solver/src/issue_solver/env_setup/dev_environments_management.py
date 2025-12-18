@@ -184,21 +184,30 @@ def run_as_umans_with_env(
     if not env_body.endswith("\n"):
         env_body += "\n"
 
+    # SECURITY NOTE:
+    # Historically we wrote the env to `env_path` (default: /home/umans/.cudu_env) and
+    # sourced it from the command runner. For background jobs there was no EXIT trap,
+    # otherwise the env file could be deleted before the background process had a
+    # chance to read it. That caused secrets to persist on disk for background runs.
+    #
+    # We now avoid writing secrets to disk entirely by streaming `env_body` to the
+    # runner via an inherited file descriptor (FD 3).
+    #
+    # `env_path` is kept for backward compatibility but is intentionally unused.
+    _ = env_path
+
     if background:
         run_line = (
-            "nohup runuser -u umans -- /bin/bash -lc '"
-            f'set -Eeuo pipefail; set -a; . "{env_path}"; set +a; '
-            'if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then '
-            'mkdir -p "${REPO_PATH}"; cd "${REPO_PATH}" || cd "$HOME"; else cd "$HOME"; fi; '
-            'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; '
-            'echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }; '
-            f"exec {command}' "
-            ">> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid"
+            f'nohup runuser -u umans -- /bin/bash "{exec_path}" '
+            ">> /home/umans/.cudu_run.log 2>&1 < /dev/null & "
+            "echo $! > /home/umans/.cudu_run.pid"
         )
+        cleanup_line = f'rm -f "{exec_path}"'
     else:
         run_line = f'runuser -u umans -- /bin/bash "{exec_path}"'
+        cleanup_line = ""
 
-    trap_line = "" if background else f'trap \'rm -f "{env_path}" "{exec_path}"\' EXIT'
+    trap_line = "" if background else f"trap 'rm -f \"{exec_path}\"' EXIT"
 
     script = f"""
 set -Eeuo pipefail
@@ -206,21 +215,23 @@ umask 0077
 {global_setup_script.strip() if global_setup_script else ""}
 {trap_line}
 
-# 1) write .env literally
-cat > "{env_path}" <<'ENV'
+# 1) Stream env settings securely (no on-disk env file).
+# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
+# /dev/fd/3.
+exec 3< <(cat <<'ENV'
 {env_body}ENV
-chown umans:umans "{env_path}"
-chmod 600 "{env_path}"
+)
 
-# 2) write the exec script literally (owned by umans)
+# 2) write the exec script literally (owned by umans; contains no secrets)
 cat > "{exec_path}" <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-. "{env_path}"
+. /dev/fd/3
 set +a
+exec 3<&-
 
-# --- pick a safe working directory so .env is readable ---
+# --- pick a safe working directory ---
 if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
   mkdir -p "${{REPO_PATH}}"
   cd "${{REPO_PATH}}" || cd "$HOME"
@@ -231,18 +242,18 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# keep cudu CLI fresh (idempotent; inexpensive when already up to date)
-uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+{"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
 
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-exec {command} | tee -a /home/umans/.cudu_run.log
+{f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
 SH
 chown umans:umans "{exec_path}"
 chmod 700 "{exec_path}"
 
-# 3) run as umans without -c or -l
+# 3) run as umans
 {run_line}
+{cleanup_line}
 """
     return dedent(script)

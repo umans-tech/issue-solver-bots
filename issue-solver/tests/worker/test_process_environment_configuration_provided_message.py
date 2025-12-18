@@ -6,7 +6,9 @@ from morphcloud.api import MorphCloudClient, Snapshot
 
 from tests.controllable_clock import ControllableClock
 from tests.examples.happy_path_persona import BriceDeNice
-from tests.worker.test_process_issue_resolution_requested_message import to_script
+from tests.worker.test_process_issue_resolution_requested_message import (
+    to_script,
+)
 
 from issue_solver.env_setup.errors import Phase
 from issue_solver.events.domain import (

@@ -633,7 +633,7 @@ export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
     started_instance.exec.assert_called_once_with(
-        to_script(
+        to_background_script(
             command="cudu solve",
             dotenv_settings=solve_settings,
         )
@@ -791,38 +791,40 @@ export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
     started_instance.exec.assert_called_once_with(
-        to_script(command="cudu solve", dotenv_settings=solve_settings)
+        to_background_script(command="cudu solve", dotenv_settings=solve_settings)
     )
 
 
 def to_script(
-    command: str, dotenv_settings: str, global_setup_script: str | None = None
+    command: str, dotenv_settings: str, global_setup_script: str | None = ""
 ) -> str:
-    return """
+    env_body = dotenv_settings.strip() + "\n"
+    return f"""
 set -Eeuo pipefail
 umask 0077
-%s
-trap \'rm -f "/home/umans/.cudu_env" "/home/umans/.cudu_run.sh"\' EXIT
+{global_setup_script}
+trap 'rm -f "/home/umans/.cudu_run.sh"' EXIT
 
-# 1) write .env literally
-cat > "/home/umans/.cudu_env" <<\'ENV\'
-%s
-ENV
-chown umans:umans "/home/umans/.cudu_env"
-chmod 600 "/home/umans/.cudu_env"
+# 1) Stream env settings securely (no on-disk env file).
+# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
+# /dev/fd/3.
+exec 3< <(cat <<'ENV'
+{env_body}ENV
+)
 
-# 2) write the exec script literally (owned by umans)
-cat > "/home/umans/.cudu_run.sh" <<\'SH\'
+# 2) write the exec script literally (owned by umans; contains no secrets)
+cat > "/home/umans/.cudu_run.sh" <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-. "/home/umans/.cudu_env"
+. /dev/fd/3
 set +a
+exec 3<&-
 
-# --- pick a safe working directory so .env is readable ---
-if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then
-  mkdir -p "${REPO_PATH}"
-  cd "${REPO_PATH}" || cd "$HOME"
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
 else
   cd "$HOME"
 fi
@@ -830,17 +832,68 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# keep cudu CLI fresh (idempotent; inexpensive when already up to date)
 uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
 # quick sanity (leave for now; remove once stable)
-echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-exec %s | tee -a /home/umans/.cudu_run.log
+exec {command} | tee -a /home/umans/.cudu_run.log
 SH
 chown umans:umans "/home/umans/.cudu_run.sh"
 chmod 700 "/home/umans/.cudu_run.sh"
 
-# 3) run as umans without -c or -l
+# 3) run as umans
 runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
-""" % ((global_setup_script or "").strip(), dotenv_settings.strip(), command)
+
+"""
+
+
+def to_background_script(command: str, dotenv_settings: str) -> str:
+    env_body = dotenv_settings.strip() + "\n"
+    return f"""
+set -Eeuo pipefail
+umask 0077
+
+
+
+# 1) Stream env settings securely (no on-disk env file).
+# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
+# /dev/fd/3.
+exec 3< <(cat <<'ENV'
+{env_body}ENV
+)
+
+# 2) write the exec script literally (owned by umans; contains no secrets)
+cat > "/home/umans/.cudu_run.sh" <<'SH'
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+. /dev/fd/3
+set +a
+exec 3<&-
+
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
+
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+
+
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+
+exec {command}
+SH
+chown umans:umans "/home/umans/.cudu_run.sh"
+chmod 700 "/home/umans/.cudu_run.sh"
+
+# 3) run as umans
+nohup runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh" >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
+rm -f "/home/umans/.cudu_run.sh"
+"""
