@@ -419,7 +419,7 @@ def to_script_background(command: str, dotenv_settings: str) -> str:
 
 
     # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    nohup runuser -u umans -- /bin/bash <<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
+    nohup runuser -u umans -- /bin/bash <<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
     #!/bin/bash
     set -Eeuo pipefail
     set -a

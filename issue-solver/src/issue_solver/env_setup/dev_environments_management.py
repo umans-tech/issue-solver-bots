@@ -200,7 +200,7 @@ def run_as_umans_with_env(
     if background:
         run_line = (
             "nohup runuser -u umans -- /bin/bash "
-            "<<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & "
+            "<<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 & "
             "echo $! > /home/umans/.cudu_run.pid"
         )
     else:
