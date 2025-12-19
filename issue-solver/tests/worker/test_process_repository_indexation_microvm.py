@@ -379,13 +379,15 @@ def to_script(command: str, dotenv_settings: str) -> str:
     umask 0077
 
     # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    runuser -u umans -- /bin/bash <<'SH' 3<<'ENV'
+    runuser -u umans -- /bin/bash <<'SH'
     #!/bin/bash
     set -Eeuo pipefail
     set -a
-    . /dev/fd/3
+    eval "$(cat <<'ENV'
+    {env_body}
+    ENV
+    )"
     set +a
-    exec 3<&-
 
     # --- pick a safe working directory ---
     if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
@@ -405,8 +407,6 @@ def to_script(command: str, dotenv_settings: str) -> str:
 
     exec {command} | tee -a /home/umans/.cudu_run.log
     SH
-    {env_body}
-    ENV
     """
     return textwrap.dedent(template)
 
@@ -419,13 +419,15 @@ def to_script_background(command: str, dotenv_settings: str) -> str:
 
 
     # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    nohup runuser -u umans -- /bin/bash <<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
+    nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
     #!/bin/bash
     set -Eeuo pipefail
     set -a
-    . /dev/fd/3
+    eval "$(cat <<'ENV'
+    {env_body}
+    ENV
+    )"
     set +a
-    exec 3<&-
 
     # --- pick a safe working directory ---
     if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
@@ -445,7 +447,5 @@ def to_script_background(command: str, dotenv_settings: str) -> str:
 
     exec {command}
     SH
-    {env_body}
-    ENV
     """
     return textwrap.dedent(template)

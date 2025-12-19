@@ -200,11 +200,11 @@ def run_as_umans_with_env(
     if background:
         run_line = (
             "nohup runuser -u umans -- /bin/bash "
-            "<<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 & "
+            "<<'SH' >> /home/umans/.cudu_run.log 2>&1 & "
             "echo $! > /home/umans/.cudu_run.pid"
         )
     else:
-        run_line = "runuser -u umans -- /bin/bash <<'SH' 3<<'ENV'"
+        run_line = "runuser -u umans -- /bin/bash <<'SH'"
 
     script = f"""
     set -Eeuo pipefail
@@ -216,9 +216,11 @@ def run_as_umans_with_env(
     #!/bin/bash
     set -Eeuo pipefail
     set -a
-    . /dev/fd/3
+    eval "$(cat <<'ENV'
+    {env_body}
+    ENV
+    )"
     set +a
-    exec 3<&-
 
     # --- pick a safe working directory ---
     if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
@@ -238,7 +240,5 @@ def run_as_umans_with_env(
 
     {f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
     SH
-    {env_body}
-    ENV
     """
     return dedent(script)
