@@ -1,5 +1,4 @@
 import os
-import textwrap
 from datetime import datetime
 from unittest.mock import Mock, AsyncMock, call
 
@@ -801,79 +800,73 @@ def to_script(
 ) -> str:
     env_body = dotenv_settings.strip() + "\n"
     global_setup_line = global_setup_script.strip() if global_setup_script else ""
-    template = f"""
-    set -Eeuo pipefail
-    umask 0077
-    {global_setup_line}
+    template = f"""\nset -Eeuo pipefail
+umask 0077
+{global_setup_line}
 
-    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    runuser -u umans -- /bin/bash <<'SH'
-    #!/bin/bash
-    set -Eeuo pipefail
-    set -a
-    eval "$(cat <<'ENV'
-    {env_body}
-    ENV
-    )"
-    set +a
+# Stream env inline; no files written.
+runuser -u umans -- /bin/bash <<'SH'
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+cat <<'ENV' | while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done
+{env_body}ENV
+set +a
 
-    # --- pick a safe working directory ---
-    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-      mkdir -p "${{REPO_PATH}}"
-      cd "${{REPO_PATH}}" || cd "$HOME"
-    else
-      cd "$HOME"
-    fi
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
 
-    # ensure PATH is sane for user invocations
-    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-    uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
-    # quick sanity (leave for now; remove once stable)
-    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-    exec {command} | tee -a /home/umans/.cudu_run.log
-    SH
-    """
-    return textwrap.dedent(template)
+exec {command} | tee -a /home/umans/.cudu_run.log
+SH
+"""
+    return template
 
 
 def to_background_script(command: str, dotenv_settings: str) -> str:
     env_body = dotenv_settings.strip() + "\n"
-    template = f"""
-    set -Eeuo pipefail
-    umask 0077
+    template = f"""\nset -Eeuo pipefail
+umask 0077
 
 
-    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
-    #!/bin/bash
-    set -Eeuo pipefail
-    set -a
-    eval "$(cat <<'ENV'
-    {env_body}
-    ENV
-    )"
-    set +a
+# Stream env inline; no files written.
+nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+cat <<'ENV' | while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done
+{env_body}ENV
+set +a
 
-    # --- pick a safe working directory ---
-    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-      mkdir -p "${{REPO_PATH}}"
-      cd "${{REPO_PATH}}" || cd "$HOME"
-    else
-      cd "$HOME"
-    fi
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
 
-    # ensure PATH is sane for user invocations
-    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 
 
-    # quick sanity (leave for now; remove once stable)
-    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-    exec {command}
-    SH
-    """
-    return textwrap.dedent(template)
+exec {command}
+SH
+"""
+    return template

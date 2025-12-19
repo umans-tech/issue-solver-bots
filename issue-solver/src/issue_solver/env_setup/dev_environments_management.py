@@ -207,38 +207,36 @@ def run_as_umans_with_env(
         run_line = "runuser -u umans -- /bin/bash <<'SH'"
 
     script = f"""
-    set -Eeuo pipefail
-    umask 0077
-    {global_setup_script.strip() if global_setup_script else ""}
+set -Eeuo pipefail
+umask 0077
+{global_setup_script.strip() if global_setup_script else ""}
 
-    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
-    {run_line}
-    #!/bin/bash
-    set -Eeuo pipefail
-    set -a
-    eval "$(cat <<'ENV'
-    {env_body}
-    ENV
-    )"
-    set +a
+# Stream env inline; no files written.
+{run_line}
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+cat <<'ENV' | while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done
+{env_body}ENV
+set +a
 
-    # --- pick a safe working directory ---
-    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-      mkdir -p "${{REPO_PATH}}"
-      cd "${{REPO_PATH}}" || cd "$HOME"
-    else
-      cd "$HOME"
-    fi
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
 
-    # ensure PATH is sane for user invocations
-    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-    {"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
+{"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
 
-    # quick sanity (leave for now; remove once stable)
-    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-    {f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
-    SH
+{f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
+SH
     """
     return dedent(script)
