@@ -1,4 +1,5 @@
 from pathlib import Path
+import textwrap
 from typing import Any, Callable, cast
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -372,12 +373,79 @@ async def test_access_token_missing_skips_offload(
 
 
 def to_script(command: str, dotenv_settings: str) -> str:
-    from issue_solver.env_setup.dev_environments_management import run_as_umans_with_env
+    env_body = dotenv_settings.strip() + "\n"
+    template = f"""
+    set -Eeuo pipefail
+    umask 0077
 
-    return run_as_umans_with_env(dotenv_settings, command)
+    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
+    runuser -u umans -- /bin/bash <<'SH' 3<<'ENV'
+    #!/bin/bash
+    set -Eeuo pipefail
+    set -a
+    . /dev/fd/3
+    set +a
+    exec 3<&-
+
+    # --- pick a safe working directory ---
+    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+      mkdir -p "${{REPO_PATH}}"
+      cd "${{REPO_PATH}}" || cd "$HOME"
+    else
+      cd "$HOME"
+    fi
+
+    # ensure PATH is sane for user invocations
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+    uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+
+    # quick sanity (leave for now; remove once stable)
+    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+
+    exec {command} | tee -a /home/umans/.cudu_run.log
+    SH
+    {env_body}
+    ENV
+    """
+    return textwrap.dedent(template)
 
 
 def to_script_background(command: str, dotenv_settings: str) -> str:
-    from issue_solver.env_setup.dev_environments_management import run_as_umans_with_env
+    env_body = dotenv_settings.strip() + "\n"
+    template = f"""
+    set -Eeuo pipefail
+    umask 0077
 
-    return run_as_umans_with_env(dotenv_settings, command, background=True)
+
+    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
+    nohup runuser -u umans -- /bin/bash <<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
+    #!/bin/bash
+    set -Eeuo pipefail
+    set -a
+    . /dev/fd/3
+    set +a
+    exec 3<&-
+
+    # --- pick a safe working directory ---
+    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+      mkdir -p "${{REPO_PATH}}"
+      cd "${{REPO_PATH}}" || cd "$HOME"
+    else
+      cd "$HOME"
+    fi
+
+    # ensure PATH is sane for user invocations
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+
+
+    # quick sanity (leave for now; remove once stable)
+    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+
+    exec {command}
+    SH
+    {env_body}
+    ENV
+    """
+    return textwrap.dedent(template)

@@ -1,4 +1,5 @@
 import os
+import textwrap
 from datetime import datetime
 from unittest.mock import Mock, AsyncMock, call
 
@@ -799,101 +800,80 @@ def to_script(
     command: str, dotenv_settings: str, global_setup_script: str | None = ""
 ) -> str:
     env_body = dotenv_settings.strip() + "\n"
-    return f"""
-set -Eeuo pipefail
-umask 0077
-{global_setup_script}
-trap 'rm -f "/home/umans/.cudu_run.sh"' EXIT
+    global_setup_line = global_setup_script.strip() if global_setup_script else ""
+    template = f"""
+    set -Eeuo pipefail
+    umask 0077
+    {global_setup_line}
 
-# 1) Stream env settings securely (no on-disk env file).
-# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
-# /dev/fd/3.
-exec 3< <(cat <<'ENV'
-{env_body}ENV
-)
+    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
+    runuser -u umans -- /bin/bash <<'SH' 3<<'ENV'
+    #!/bin/bash
+    set -Eeuo pipefail
+    set -a
+    . /dev/fd/3
+    set +a
+    exec 3<&-
 
-# 2) write the exec script literally (owned by umans; contains no secrets)
-cat > "/home/umans/.cudu_run.sh" <<'SH'
-#!/bin/bash
-set -Eeuo pipefail
-set -a
-. /dev/fd/3
-set +a
-exec 3<&-
+    # --- pick a safe working directory ---
+    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+      mkdir -p "${{REPO_PATH}}"
+      cd "${{REPO_PATH}}" || cd "$HOME"
+    else
+      cd "$HOME"
+    fi
 
-# --- pick a safe working directory ---
-if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-  mkdir -p "${{REPO_PATH}}"
-  cd "${{REPO_PATH}}" || cd "$HOME"
-else
-  cd "$HOME"
-fi
+    # ensure PATH is sane for user invocations
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# ensure PATH is sane for user invocations
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+    uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
-uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+    # quick sanity (leave for now; remove once stable)
+    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-# quick sanity (leave for now; remove once stable)
-echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
-
-exec {command} | tee -a /home/umans/.cudu_run.log
-SH
-chown umans:umans "/home/umans/.cudu_run.sh"
-chmod 700 "/home/umans/.cudu_run.sh"
-
-# 3) run as umans
-runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
-
-"""
+    exec {command} | tee -a /home/umans/.cudu_run.log
+    SH
+    {env_body}
+    ENV
+    """
+    return textwrap.dedent(template)
 
 
 def to_background_script(command: str, dotenv_settings: str) -> str:
     env_body = dotenv_settings.strip() + "\n"
-    return f"""
-set -Eeuo pipefail
-umask 0077
+    template = f"""
+    set -Eeuo pipefail
+    umask 0077
+
+
+    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
+    nohup runuser -u umans -- /bin/bash <<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
+    #!/bin/bash
+    set -Eeuo pipefail
+    set -a
+    . /dev/fd/3
+    set +a
+    exec 3<&-
+
+    # --- pick a safe working directory ---
+    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+      mkdir -p "${{REPO_PATH}}"
+      cd "${{REPO_PATH}}" || cd "$HOME"
+    else
+      cd "$HOME"
+    fi
+
+    # ensure PATH is sane for user invocations
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 
 
-# 1) Stream env settings securely (no on-disk env file).
-# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
-# /dev/fd/3.
-exec 3< <(cat <<'ENV'
-{env_body}ENV
-)
+    # quick sanity (leave for now; remove once stable)
+    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-# 2) write the exec script literally (owned by umans; contains no secrets)
-cat > "/home/umans/.cudu_run.sh" <<'SH'
-#!/bin/bash
-set -Eeuo pipefail
-set -a
-. /dev/fd/3
-set +a
-exec 3<&-
-
-# --- pick a safe working directory ---
-if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-  mkdir -p "${{REPO_PATH}}"
-  cd "${{REPO_PATH}}" || cd "$HOME"
-else
-  cd "$HOME"
-fi
-
-# ensure PATH is sane for user invocations
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-
-
-
-# quick sanity (leave for now; remove once stable)
-echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
-
-exec {command}
-SH
-chown umans:umans "/home/umans/.cudu_run.sh"
-chmod 700 "/home/umans/.cudu_run.sh"
-
-# 3) run as umans
-nohup runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh" >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
-rm -f "/home/umans/.cudu_run.sh"
-"""
+    exec {command}
+    SH
+    {env_body}
+    ENV
+    """
+    return textwrap.dedent(template)

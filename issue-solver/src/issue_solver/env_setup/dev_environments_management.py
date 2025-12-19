@@ -177,8 +177,8 @@ def run_as_umans_with_env(
     env_body: str,
     command: str,
     global_setup_script: str | None = None,
-    env_path: str = "/home/umans/.cudu_env",
-    exec_path: str = "/home/umans/.cudu_run.sh",
+    env_path: str = "/home/umans/.cudu_env",  # deprecated; unused
+    exec_path: str = "/home/umans/.cudu_run.sh",  # deprecated; unused
     background: bool = False,
 ) -> str:
     if not env_body.endswith("\n"):
@@ -191,69 +191,54 @@ def run_as_umans_with_env(
     # chance to read it. That caused secrets to persist on disk for background runs.
     #
     # We now avoid writing secrets to disk entirely by streaming `env_body` to the
-    # runner via an inherited file descriptor (FD 3).
-    #
-    # `env_path` is kept for backward compatibility but is intentionally unused.
+    # runner via an inherited file descriptor (FD 3) and piping the run script over
+    # stdin. No temporary files are created. `env_path`/`exec_path` remain for
+    # backward compatibility but are unused.
     _ = env_path
+    _ = exec_path
 
     if background:
         run_line = (
-            f'nohup runuser -u umans -- /bin/bash "{exec_path}" '
-            ">> /home/umans/.cudu_run.log 2>&1 < /dev/null & "
+            "nohup runuser -u umans -- /bin/bash "
+            "<<'SH' 3<<'ENV' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & "
             "echo $! > /home/umans/.cudu_run.pid"
         )
-        cleanup_line = f'rm -f "{exec_path}"'
     else:
-        run_line = f'runuser -u umans -- /bin/bash "{exec_path}"'
-        cleanup_line = ""
-
-    trap_line = "" if background else f"trap 'rm -f \"{exec_path}\"' EXIT"
+        run_line = "runuser -u umans -- /bin/bash <<'SH' 3<<'ENV'"
 
     script = f"""
-set -Eeuo pipefail
-umask 0077
-{global_setup_script.strip() if global_setup_script else ""}
-{trap_line}
+    set -Eeuo pipefail
+    umask 0077
+    {global_setup_script.strip() if global_setup_script else ""}
 
-# 1) Stream env settings securely (no on-disk env file).
-# We open FD 3 to a pipe containing `env_body`, and the runner will source it from
-# /dev/fd/3.
-exec 3< <(cat <<'ENV'
-{env_body}ENV
-)
+    # Stream env (FD 3) and inline run script (stdin) directly into bash; no files written.
+    {run_line}
+    #!/bin/bash
+    set -Eeuo pipefail
+    set -a
+    . /dev/fd/3
+    set +a
+    exec 3<&-
 
-# 2) write the exec script literally (owned by umans; contains no secrets)
-cat > "{exec_path}" <<'SH'
-#!/bin/bash
-set -Eeuo pipefail
-set -a
-. /dev/fd/3
-set +a
-exec 3<&-
+    # --- pick a safe working directory ---
+    if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+      mkdir -p "${{REPO_PATH}}"
+      cd "${{REPO_PATH}}" || cd "$HOME"
+    else
+      cd "$HOME"
+    fi
 
-# --- pick a safe working directory ---
-if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
-  mkdir -p "${{REPO_PATH}}"
-  cd "${{REPO_PATH}}" || cd "$HOME"
-else
-  cd "$HOME"
-fi
+    # ensure PATH is sane for user invocations
+    export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# ensure PATH is sane for user invocations
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+    {"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
 
-{"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
+    # quick sanity (leave for now; remove once stable)
+    echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-# quick sanity (leave for now; remove once stable)
-echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
-
-{f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
-SH
-chown umans:umans "{exec_path}"
-chmod 700 "{exec_path}"
-
-# 3) run as umans
-{run_line}
-{cleanup_line}
-"""
+    {f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
+    SH
+    {env_body}
+    ENV
+    """
     return dedent(script)
