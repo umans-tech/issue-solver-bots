@@ -177,23 +177,13 @@ def run_as_umans_with_env(
     env_body: str,
     command: str,
     global_setup_script: str | None = None,
-    env_path: str = "/home/umans/.cudu_env",  # deprecated; unused
-    exec_path: str = "/home/umans/.cudu_run.sh",  # deprecated; unused
+    env_path: str = "/home/umans/.cudu_env",  # legacy signature; unused
+    exec_path: str = "/home/umans/.cudu_run.sh",  # legacy signature; unused
     background: bool = False,
 ) -> str:
     if not env_body.endswith("\n"):
         env_body += "\n"
 
-    # SECURITY NOTE:
-    # Historically we wrote the env to `env_path` (default: /home/umans/.cudu_env) and
-    # sourced it from the command runner. For background jobs there was no EXIT trap,
-    # otherwise the env file could be deleted before the background process had a
-    # chance to read it. That caused secrets to persist on disk for background runs.
-    #
-    # We now avoid writing secrets to disk entirely by streaming `env_body` to the
-    # runner via an inherited file descriptor (FD 3) and piping the run script over
-    # stdin. No temporary files are created. `env_path`/`exec_path` remain for
-    # backward compatibility but are unused.
     _ = env_path
     _ = exec_path
 
@@ -211,7 +201,6 @@ set -Eeuo pipefail
 umask 0077
 {global_setup_script.strip() if global_setup_script else ""}
 
-# Stream env inline; no files written.
 {run_line}
 #!/bin/bash
 set -Eeuo pipefail
@@ -231,12 +220,12 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-{"" if background else "uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1"}
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
 {f"exec {command}" if background else f"exec {command} | tee -a /home/umans/.cudu_run.log"}
 SH
-    """
+"""
     return dedent(script)

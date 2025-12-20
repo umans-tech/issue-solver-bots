@@ -804,7 +804,6 @@ def to_script(
 umask 0077
 {global_setup_line}
 
-# Stream env inline; no files written.
 runuser -u umans -- /bin/bash <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
@@ -841,7 +840,6 @@ def to_background_script(command: str, dotenv_settings: str) -> str:
 umask 0077
 
 
-# Stream env inline; no files written.
 nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
 #!/bin/bash
 set -Eeuo pipefail
@@ -861,7 +859,7 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
