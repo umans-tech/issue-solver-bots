@@ -380,7 +380,7 @@ runuser -u umans -- /bin/bash <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-cat <<'ENV' | while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done
+while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done <<'ENV'
 {env_body}ENV
 set +a
 
@@ -417,7 +417,7 @@ nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & e
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-cat <<'ENV' | while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done
+while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done <<'ENV'
 {env_body}ENV
 set +a
 
