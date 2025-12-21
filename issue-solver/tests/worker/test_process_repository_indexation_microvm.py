@@ -372,28 +372,19 @@ async def test_access_token_missing_skips_offload(
 
 
 def to_script(command: str, dotenv_settings: str) -> str:
-    return f"""
-set -Eeuo pipefail
+    env_body = dotenv_settings.strip() + "\n"
+    template = f"""\nset -Eeuo pipefail
 umask 0077
 
-trap 'rm -f "/home/umans/.cudu_env" "/home/umans/.cudu_run.sh"' EXIT
-
-# 1) write .env literally
-cat > "/home/umans/.cudu_env" <<'ENV'
-{dotenv_settings.strip()}
-ENV
-chown umans:umans "/home/umans/.cudu_env"
-chmod 600 "/home/umans/.cudu_env"
-
-# 2) write the exec script literally (owned by umans)
-cat > "/home/umans/.cudu_run.sh" <<'SH'
+runuser -u umans -- /bin/bash <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-. "/home/umans/.cudu_env"
+source /dev/stdin <<'ENV'
+{env_body}ENV
 set +a
 
-# --- pick a safe working directory so .env is readable ---
+# --- pick a safe working directory ---
 if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
   mkdir -p "${{REPO_PATH}}"
   cd "${{REPO_PATH}}" || cd "$HOME"
@@ -404,40 +395,33 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
 exec {command} | tee -a /home/umans/.cudu_run.log
 SH
-chown umans:umans "/home/umans/.cudu_run.sh"
-chmod 700 "/home/umans/.cudu_run.sh"
-
-# 3) run as umans without -c or -l
-runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
 """
+    return template
 
 
 def to_script_background(command: str, dotenv_settings: str) -> str:
-    return f"""
-set -Eeuo pipefail
+    env_body = dotenv_settings.strip() + "\n"
+    template = f"""\nset -Eeuo pipefail
 umask 0077
 
-# 1) write .env literally
-cat > "/home/umans/.cudu_env" <<'ENV'
-{dotenv_settings.strip()}
-ENV
-chown umans:umans "/home/umans/.cudu_env"
-chmod 600 "/home/umans/.cudu_env"
 
-# 2) write the exec script literally (owned by umans)
-cat > "/home/umans/.cudu_run.sh" <<'SH'
+# Stream env inline; no files written.
+nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-. "/home/umans/.cudu_env"
+source /dev/stdin <<'ENV'
+{env_body}ENV
 set +a
 
-# --- pick a safe working directory so .env is readable ---
+# --- pick a safe working directory ---
 if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
   mkdir -p "${{REPO_PATH}}"
   cd "${{REPO_PATH}}" || cd "$HOME"
@@ -448,14 +432,12 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+
 # quick sanity (leave for now; remove once stable)
 echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-exec {command} | tee -a /home/umans/.cudu_run.log
+exec {command}
 SH
-chown umans:umans "/home/umans/.cudu_run.sh"
-chmod 700 "/home/umans/.cudu_run.sh"
-
-# 3) run as umans without -c or -l
-nohup runuser -u umans -- /bin/bash -lc 'set -Eeuo pipefail; set -a; . "/home/umans/.cudu_env"; set +a; if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then mkdir -p "${{REPO_PATH}}"; cd "${{REPO_PATH}}" || cd "$HOME"; else cd "$HOME"; fi; export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}; exec {command}' >> /home/umans/.cudu_run.log 2>&1 < /dev/null & echo $! > /home/umans/.cudu_run.pid
 """
+    return template

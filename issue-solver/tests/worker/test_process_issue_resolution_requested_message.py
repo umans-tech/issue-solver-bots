@@ -633,7 +633,7 @@ export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
     started_instance.exec.assert_called_once_with(
-        to_script(
+        to_background_script(
             command="cudu solve",
             dotenv_settings=solve_settings,
         )
@@ -791,38 +791,32 @@ export REPO_PATH=\'test-repo\'
 export PROCESS_ID=\'test-process-id\'
 """
     started_instance.exec.assert_called_once_with(
-        to_script(command="cudu solve", dotenv_settings=solve_settings)
+        to_background_script(command="cudu solve", dotenv_settings=solve_settings)
     )
 
 
 def to_script(
-    command: str, dotenv_settings: str, global_setup_script: str | None = None
+    command: str, dotenv_settings: str, global_setup_script: str | None = ""
 ) -> str:
-    return """
-set -Eeuo pipefail
+    env_body = dotenv_settings.strip() + "\n"
+    global_setup_line = global_setup_script.strip() if global_setup_script else ""
+    template = f"""\nset -Eeuo pipefail
 umask 0077
-%s
-trap \'rm -f "/home/umans/.cudu_env" "/home/umans/.cudu_run.sh"\' EXIT
+{global_setup_line}
 
-# 1) write .env literally
-cat > "/home/umans/.cudu_env" <<\'ENV\'
-%s
-ENV
-chown umans:umans "/home/umans/.cudu_env"
-chmod 600 "/home/umans/.cudu_env"
-
-# 2) write the exec script literally (owned by umans)
-cat > "/home/umans/.cudu_run.sh" <<\'SH\'
+runuser -u umans -- /bin/bash <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-. "/home/umans/.cudu_env"
+# Source full env block from stdin; preserves multi-line values and keeps secrets off disk
+source /dev/stdin <<'ENV'
+{env_body}ENV
 set +a
 
-# --- pick a safe working directory so .env is readable ---
-if [ -n "${REPO_PATH:-}" ] && [ "${REPO_PATH:0:1}" = "/" ]; then
-  mkdir -p "${REPO_PATH}"
-  cd "${REPO_PATH}" || cd "$HOME"
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
 else
   cd "$HOME"
 fi
@@ -830,17 +824,49 @@ fi
 # ensure PATH is sane for user invocations
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# keep cudu CLI fresh (idempotent; inexpensive when already up to date)
 uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
 
 # quick sanity (leave for now; remove once stable)
-echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || { echo "cudu not found" >&2; exit 127; }
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
 
-exec %s | tee -a /home/umans/.cudu_run.log
+exec {command} | tee -a /home/umans/.cudu_run.log
 SH
-chown umans:umans "/home/umans/.cudu_run.sh"
-chmod 700 "/home/umans/.cudu_run.sh"
+"""
+    return template
 
-# 3) run as umans without -c or -l
-runuser -u umans -- /bin/bash "/home/umans/.cudu_run.sh"
-""" % ((global_setup_script or "").strip(), dotenv_settings.strip(), command)
+
+def to_background_script(command: str, dotenv_settings: str) -> str:
+    env_body = dotenv_settings.strip() + "\n"
+    template = f"""\nset -Eeuo pipefail
+umask 0077
+
+
+nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & echo $! > /home/umans/.cudu_run.pid
+#!/bin/bash
+set -Eeuo pipefail
+set -a
+# Source full env block from stdin; preserves multi-line values and keeps secrets off disk
+source /dev/stdin <<'ENV'
+{env_body}ENV
+set +a
+
+# --- pick a safe working directory ---
+if [ -n "${{REPO_PATH:-}}" ] && [ "${{REPO_PATH:0:1}}" = "/" ]; then
+  mkdir -p "${{REPO_PATH}}"
+  cd "${{REPO_PATH}}" || cd "$HOME"
+else
+  cd "$HOME"
+fi
+
+# ensure PATH is sane for user invocations
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+uv tool install --python 3.12 --upgrade issue-solver >/dev/null 2>&1
+
+# quick sanity (leave for now; remove once stable)
+echo "PWD=$(pwd)"; echo "PATH=$PATH"; command -v cudu >/dev/null || {{ echo "cudu not found" >&2; exit 127; }}
+
+exec {command}
+SH
+"""
+    return template

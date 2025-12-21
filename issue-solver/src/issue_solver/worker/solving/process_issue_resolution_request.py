@@ -144,7 +144,9 @@ async def resolve_issue(
                 )
                 env_script = solve_command_settings.to_env_script()
                 instance.wait_until_ready()
-                solve_command_script = run_as_umans_with_env(env_script, "cudu solve")
+                solve_command_script = run_as_umans_with_env(
+                    env_script, "cudu solve", background=True
+                )
                 instance_exec_response = instance.exec(solve_command_script)
                 print(f"Instance exec STDOUT: {instance_exec_response.stdout}")
                 print(f"Instance exec STDERR: {instance_exec_response.stderr}")
