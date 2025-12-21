@@ -21,6 +21,31 @@ NOTION_VERSION = "2025-09-03"
 
 router = APIRouter()
 
+# Shared AsyncClient with connection pooling to prevent connection exhaustion
+_shared_client: httpx.AsyncClient | None = None
+
+def get_shared_client() -> httpx.AsyncClient:
+    """Get or create shared AsyncClient with connection pooling."""
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            limits=httpx.Limits(
+                max_connections=100,
+                max_keepalive_connections=20,
+                keepalive_expiry=30.0,
+            ),
+            follow_redirects=True,
+        )
+    return _shared_client
+
+async def cleanup_shared_client():
+    """Cleanup shared client on shutdown."""
+    global _shared_client
+    if _shared_client is not None:
+        await _shared_client.aclose()
+        _shared_client = None
+
 
 @router.post("/mcp/notion/proxy")
 async def proxy_notion_mcp(
@@ -139,19 +164,19 @@ async def _forward_to_notion(
     if incoming_session_id:
         headers["mcp-session-id"] = incoming_session_id
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            logging.getLogger("issue_solver.webapi.routers.notion_mcp").debug(
-                "Forwarding Notion MCP request with token prefix %s (len=%d)",
-                access_token[:6],
-                len(access_token),
-            )
-            response = await client.post(endpoint, json=payload, headers=headers)
-        except httpx.RequestError as exc:
-            raise HTTPException(
-                status_code=503,
-                detail="Unable to connect to Notion MCP server. Please try again later.",
-            ) from exc
+    client = get_shared_client()
+    try:
+        logging.getLogger("issue_solver.webapi.routers.notion_mcp").debug(
+            "Forwarding Notion MCP request with token prefix %s (len=%d)",
+            access_token[:6],
+            len(access_token),
+        )
+        response = await client.post(endpoint, json=payload, headers=headers)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to connect to Notion MCP server. Please try again later.",
+        ) from exc
 
     if not response.is_success:
         error_text = response.text

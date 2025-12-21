@@ -67,13 +67,30 @@ async def init_webapi_event_store() -> EventStore:
 
 async def init_agent_message_store() -> AgentMessageStore:
     database_url = extract_direct_database_url()
+
+    # Create connection pool to prevent connection exhaustion
+    connection_pool = await asyncpg.create_pool(
+        database_url,
+        min_size=2,
+        max_size=10,
+        max_queries=50000,
+        max_inactive_connection_lifetime=300.0,
+        statement_cache_size=0,
+        command_timeout=60.0,
+    )
+
+    # Configure Redis with connection pooling
+    redis_client = Redis.from_url(
+        os.environ["REDIS_URL"],
+        max_connections=20,
+        socket_keepalive=True,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+        health_check_interval=30,
+    )
+
     agent_message_store = StreamingAgentMessageStore(
-        PostgresAgentMessageStore(
-            connection=await asyncpg.connect(
-                database_url,
-                statement_cache_size=0,
-            )
-        ),
-        redis_client=Redis.from_url(os.environ["REDIS_URL"]),
+        PostgresAgentMessageStore(connection=connection_pool),
+        redis_client=redis_client,
     )
     return agent_message_store

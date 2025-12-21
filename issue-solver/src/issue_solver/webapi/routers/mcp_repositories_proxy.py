@@ -20,6 +20,31 @@ from issue_solver.webapi.dependencies import get_event_store, get_logger
 
 router = APIRouter()
 
+# Shared AsyncClient with connection pooling to prevent connection exhaustion
+_shared_client: httpx.AsyncClient | None = None
+
+def get_shared_client() -> httpx.AsyncClient:
+    """Get or create shared AsyncClient with connection pooling."""
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            limits=httpx.Limits(
+                max_connections=100,
+                max_keepalive_connections=20,
+                keepalive_expiry=30.0,
+            ),
+            follow_redirects=True,
+        )
+    return _shared_client
+
+async def cleanup_shared_client():
+    """Cleanup shared client on shutdown."""
+    global _shared_client
+    if _shared_client is not None:
+        await _shared_client.aclose()
+        _shared_client = None
+
 
 @router.get("/mcp/repositories/proxy")
 async def proxy_code_repo_mcp_stream(request: Request) -> StarletteResponse:  # type: ignore[name-defined]
@@ -37,13 +62,13 @@ async def proxy_code_repo_mcp_stream(request: Request) -> StarletteResponse:  # 
     }
 
     async def event_stream():
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream(
-                "GET", "https://api.githubcopilot.com/mcp/", headers=headers
-            ) as resp:
-                resp.raise_for_status()
-                async for chunk in resp.aiter_bytes():
-                    yield chunk
+        client = get_shared_client()
+        async with client.stream(
+            "GET", "https://api.githubcopilot.com/mcp/", headers=headers
+        ) as resp:
+            resp.raise_for_status()
+            async for chunk in resp.aiter_bytes():
+                yield chunk
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -141,26 +166,27 @@ async def proxy_github_mcp(
 
     if incoming_session_id:
         headers["mcp-session-id"] = incoming_session_id
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            "https://api.githubcopilot.com/mcp/", json=payload, headers=headers
+
+    client = get_shared_client()
+    response = await client.post(
+        "https://api.githubcopilot.com/mcp/", json=payload, headers=headers
+    )
+
+    if response.status_code == 401:
+        raise HTTPException(
+            status_code=401,
+            detail="GitHub authentication failed. Please check your repository connection.",
         )
 
-        if response.status_code == 401:
-            raise HTTPException(
-                status_code=401,
-                detail="GitHub authentication failed. Please check your repository connection.",
-            )
+    if not response.is_success:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"GitHub MCP server error: {response.text}",
+        )
 
-        if not response.is_success:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"GitHub MCP server error: {response.text}",
-            )
-
-        formatted_response = await format_response(response)
-        outgoing_session_id = response.headers.get("mcp-session-id")
-        return formatted_response, outgoing_session_id
+    formatted_response = await format_response(response)
+    outgoing_session_id = response.headers.get("mcp-session-id")
+    return formatted_response, outgoing_session_id
 
 
 @router.get("/api/mcp/github/health")
