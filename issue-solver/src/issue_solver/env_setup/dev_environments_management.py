@@ -179,6 +179,15 @@ def run_as_umans_with_env(
     global_setup_script: str | None = None,
     background: bool = False,
 ) -> str:
+    """
+    Build a run script that:
+
+    - keeps secrets off disk (env is streamed via stdin, no temp files)
+    - loads env in the same process as the command (no subshell loss)
+    - tolerates multi-line values (env block sourced as a whole)
+    - behaves the same for foreground/background; only logging differs
+    - runs as user 'umans' with umask 0077 and a safe working dir/PATH
+    """
     if not env_body.endswith("\n"):
         env_body += "\n"
 
@@ -200,6 +209,7 @@ umask 0077
 #!/bin/bash
 set -Eeuo pipefail
 set -a
+# Source full env block from stdin; preserves multi-line values and keeps secrets off disk
 source /dev/stdin <<'ENV'
 {env_body}ENV
 set +a

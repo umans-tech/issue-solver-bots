@@ -808,6 +808,7 @@ runuser -u umans -- /bin/bash <<'SH'
 #!/bin/bash
 set -Eeuo pipefail
 set -a
+# Source full env block from stdin; preserves multi-line values and keeps secrets off disk
 source /dev/stdin <<'ENV'
 {env_body}ENV
 set +a
@@ -844,6 +845,7 @@ nohup runuser -u umans -- /bin/bash <<'SH' >> /home/umans/.cudu_run.log 2>&1 & e
 #!/bin/bash
 set -Eeuo pipefail
 set -a
+# Source full env block from stdin; preserves multi-line values and keeps secrets off disk
 source /dev/stdin <<'ENV'
 {env_body}ENV
 set +a
