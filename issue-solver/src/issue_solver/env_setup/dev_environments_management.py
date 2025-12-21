@@ -177,15 +177,10 @@ def run_as_umans_with_env(
     env_body: str,
     command: str,
     global_setup_script: str | None = None,
-    env_path: str = "/home/umans/.cudu_env",  # legacy signature; unused
-    exec_path: str = "/home/umans/.cudu_run.sh",  # legacy signature; unused
     background: bool = False,
 ) -> str:
     if not env_body.endswith("\n"):
         env_body += "\n"
-
-    _ = env_path
-    _ = exec_path
 
     if background:
         run_line = (

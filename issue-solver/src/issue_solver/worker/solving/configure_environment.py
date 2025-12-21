@@ -42,10 +42,7 @@ async def configure_environment(
         issue=None,
         install_script=message.project_setup,
     ).to_env_script()
-    cmd = run_as_umans_with_env(
-        prepare_command_env,
-        "cudu prepare",
-    )
+    cmd = run_as_umans_with_env(prepare_command_env, "cudu prepare")
     secrets_to_redact = (
         [repo_credentials.url, repo_credentials.access_token]
         if repo_credentials.access_token

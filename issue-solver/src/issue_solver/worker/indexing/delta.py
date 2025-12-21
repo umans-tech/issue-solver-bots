@@ -208,11 +208,7 @@ def _offload_delta_indexing_to_microvm(
         process_queue_url=None,
     ).to_env_script()
     env_script = _append_openai_env(env_script)
-    cmd = run_as_umans_with_env(
-        env_script,
-        "cudu index-repository",
-        background=True,
-    )
+    cmd = run_as_umans_with_env(env_script, "cudu index-repository", background=True)
     exec_response = instance.exec(cmd)
     logger.info(
         f"MicroVM delta offload started "
