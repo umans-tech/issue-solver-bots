@@ -205,7 +205,7 @@ umask 0077
 #!/bin/bash
 set -Eeuo pipefail
 set -a
-while IFS= read -r line; do [ -z "$line" ] && continue; eval "$line"; done <<'ENV'
+source /dev/stdin <<'ENV'
 {env_body}ENV
 set +a
 
