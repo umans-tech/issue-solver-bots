@@ -16,23 +16,24 @@ Medium (confirmed credential exposure; limited evidence of successful abuse; S3 
 
 ---
 
-## Timeline (UTC unless stated otherwise)
+## Timeline (CET unless stated otherwise)
 
-* **2025-12-26 02:01:09 UTC**: AWS reported an event `GetCallerIdentity` using the exposed access key from IP `95.173.222.10` (FR).
-* **2025-12-24 to 2025-12-26**: CloudTrail Event History contains multiple calls using the same key from IP `193.32.126.230` and `95.173.222.10`.
-* **2025-12-26 (morning, local time)**: Key rotation performed:
-
+* **2025-12-24 21:16:34 CET**: First suspicious API call observed for the compromised key (`ses:GetAccount`, `AccessDenied`) from IP `193.32.126.230`.
+* **2025-12-24 to 2025-12-26**: Additional reconnaissance-style calls observed using the same key (SES/SNS), including traffic from IP `95.173.222.10`.
+* **2025-12-26 03:01:09 CET (02:01:09 UTC)**: `GetCallerIdentity` call observed on the compromised key (source IP `95.173.222.10`), **as referenced in the AWS alert**.
+* **2025-12-26 07:41:15 CET**: AWS Support Case notification received.
+* **2025-12-26 11:55 CET**: Key rotation started.
     * Created a new access key for `knowledge-blob-user`
     * Updated App Runner (`conversational-ui`) environment variables `BLOB_ACCESS_KEY_ID` and `BLOB_READ_WRITE_TOKEN` in the AWS Console
-* **2025-12-26 ~12:30 (local time)**: Compromised key revocation completed:
-
+* **2025-12-26 12:30 CET**: Compromised key revocation completed.
     * Marked old key inactive
     * Deleted old key
-* **Post-rotation (same day)**: Production validated end-to-end:
-
+* **2025-12-26 12:36 CET**: Production validated end-to-end.
     * Streaming screenshot analysis works
     * Access to previously generated docs works
-    * **Doc generation executed successfully and newly generated docs were uploaded to the blob, confirming worker Lambda S3 access after rotation**
+    * Doc generation executed successfully and newly generated docs were uploaded to the blob, confirming worker Lambda S3 access after rotation
+* **2025-12-26 16:20:58 CET**: Summary posted in the [AWS Support Case #176673127500854](https://034362042699-zxze6x64.support.console.aws.amazon.com/support/home?region=eu-west-3#/case/?displayId=176673127500854) (key deleted, investigation summary, mitigation plan).
+* **2025-12-26 16:21:05 CET**: AWS marked the Support Case as resolved.
 
 ---
 
@@ -46,14 +47,33 @@ AWS Support reported potential third-party access to an access key and recommend
 
 We queried CloudTrail Event History for the compromised access key and observed the following notable events:
 
-* **SESv2 probing**
+**Earliest suspicious event (within 2025-12-01 → 2025-12-27):**
+* **2025-12-24 21:16:34 CET** — `ses:GetAccount` (SESv2), executed as `knowledge-blob-user`. The call was denied (`AccessDenied`) and originated from an unknown IP (`193.32.126.230`).
 
+```shell
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=AccessKeyId,AttributeValue="$OLD_KEY" \
+  --start-time 2025-12-01T00:00:00Z \
+  --end-time 2025-12-27T00:00:00Z \
+  --query 'reverse(sort_by(Events,&EventTime))[-1].[EventTime,EventSource,EventName,Username]' \
+  --output table
+
+-------------------------------
+|        LookupEvents         |
++-----------------------------+
+|  2025-12-24T21:16:34+01:00  |
+|  ses.amazonaws.com          |
+|  GetAccount                 |
+|  knowledge-blob-user        |
++-----------------------------+
+```
+
+* **SESv2 probing**
     * `ses:GetSendQuota`
     * `ses:GetAccount`
     * All returned `AccessDenied` (the IAM user is not authorized for SES actions)
 
 * **SNS probing**
-
     * `sns:GetSMSAttributes`
     * Returned `AccessDenied` (the IAM user is not authorized for SNS actions)
 
@@ -107,18 +127,15 @@ We do not have definitive evidence of the exact leak vector yet, but common vect
 ## Remediation performed
 
 1. **Credential rotation**
-
     * Created a new access key for `knowledge-blob-user`
-    * Updated App Runner (`conversational-ui`) environment variables to use the new key
+    * Updated App Runner (`conversational-ui`) environment variables to use the new key (completed during the rotation window)
 2. **Credential revocation**
-
     * Marked the compromised key as inactive
-    * Deleted the compromised key at ~12:30 local time on 2025-12-26
+    * Deleted the compromised key at **12:30 CET** on 2025-12-26
 3. **Production verification (end-to-end)**
-
     * Confirmed conversational UI still runs and streaming works
     * Confirmed read access to existing generated docs still works
-    * **Confirmed new doc generation succeeds and uploads new artifacts to the knowledge blob S3 bucket (worker Lambda path validated)**
+    * Confirmed new doc generation succeeds and uploads new artifacts to the knowledge blob S3 bucket (worker Lambda path validated) by **12:36 CET**
 
 ---
 
@@ -144,15 +161,6 @@ Move S3 access to IAM roles instead of IAM user keys:
 * Add alerts for unusual access key usage (new IPs, new regions, unusual services).
 * Confirm root account MFA and general account security posture.
 
-### 4) Close the AWS Support Case
-
-Respond with:
-
-* The compromised key was deleted (~12:30 local time, 2025-12-26)
-* Investigation summary (SES/SNS probing denied, no observed IAM mutations)
-* Acknowledgement of the S3 data event logging limitation, plus planned mitigation
-* Confirmation that production is healthy after rotation and worker doc generation was validated
-
 ---
 
 ## Action items
@@ -169,4 +177,5 @@ Respond with:
 * Compromised key is deleted.
 * Production services are healthy after rotation.
 * Worker Lambda blob write path is confirmed working post-rotation.
+* [AWS Support Case #176673127500854](https://034362042699-zxze6x64.support.console.aws.amazon.com/support/home?region=eu-west-3#/case/?displayId=176673127500854) is resolved.
 * Longer-term fix is planned: eliminate static IAM user keys and improve S3 auditability.
