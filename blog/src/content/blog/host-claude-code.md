@@ -26,33 +26,30 @@ Not every capable model works well as a coding agent. Agentic coding requires a 
 
 DeepSeek V3.2 is currently one of the strongest open-weights options for this use case. Their [technical report](https://arxiv.org/pdf/2512.02556) describes training specifically for agentic tasks, with a synthesis pipeline that generated prompts across code agents, search agents, and general tool-use scenarios. The results show up in benchmarks designed to measure this kind of work:
 
-| Benchmark | DeepSeek V3.2 | GLM-4.7 | MiniMax-M2.1 | Claude Sonnet 4.5 | Gemini 3.0 | Claude Opus 4.5 | GPT-5.2 |
+| Benchmark | DeepSeek V3.2 | GLM-4.7 | MiniMax-M2.1 | Claude Sonnet 4.5 | Gemini 3 Pro | Claude Opus 4.5 | GPT-5.2 |
 |-----------|---------------|---------|--------------|-------------------|------------|------------------|---------|
 | SWE-bench Verified | 73.1% | 73.8% | 74.0% | 77.2% | 78.0% | **80.9%** | 80.0% |
 | SWE-bench Multilingual | 70.2% | 66.7% | 72.5% | 68% | 65.0% | **77.5%** | 72.0% |
 | Terminal Bench 2.0 | 46.4% | 41.0% | 47.9% | 50.0% | 54.2% | **57.8%** | 54.0% |
 
-SWE-bench Verified is Python-only. SWE Multilingual covers the full language range, where DeepSeek outperforms the closed models. These benchmarks measure the ability to take a GitHub issue description and produce a working pull request, which is closer to real agent work than isolated code completion tasks.
+SWE-bench Verified is Python-only. SWE Multilingual covers the full language range, where DeepSeek outperforms Claude Sonnet 4.5 and Gemini 3 pro. These benchmarks measure the ability to take a GitHub issue description and produce a working pull request, which is closer to real agent work than isolated code completion tasks.
 
-Benchmark results can be gamed, and training data contamination is a real concern. Independent evaluations help validate these numbers. [SWE-rebench](https://swe-rebench.com/) runs continuously on new PRs specifically to resist contamination. [Artificial Analysis](https://artificialanalysis.ai/models?intelligence=agentic-index) runs these same benchmarks independently. Both rank DeepSeek V3.2 as the top open-weights model for agentic coding.
+Benchmark results can be gamed, and training data contamination is a real concern. Independent evaluations help validate these numbers. [SWE-rebench](https://swe-rebench.com/) runs continuously on new pull requests specifically to resist contamination, and it still puts DeepSeek V3.2 at the top among open-weights models. [Artificial Analysis](https://artificialanalysis.ai/models?intelligence=agentic-index) also runs agentic-style evaluations independently and aggregates them into an agentic index. There, DeepSeek V3.2 currently ranks second among open-weights, one point behind GLM-4.7.
 
 One practical consideration for self-hosting: DeepSeek V3.2 is a 671B mixture-of-experts model with 37B active parameters. A dense model of equivalent quality would be much larger and slower. Devstral 2, for example, is a dense 123B model that performs reasonably well on coding benchmarks. But because V3.2 only activates a fraction of its parameters per token, it runs roughly 3x faster at inference while having access to more total capacity. When you're paying for GPU time, this difference matters.
 
-Don't over-index on total weight size either. In agentic workloads, long context and concurrency are what really bite. Each active request carries large KV caches (files, logs, traces), so VRAM grows quickly as you add users.
+Agents routinely stuff the context with repo files, diffs, logs, and tool output, so long context is the default. At that point, the bottleneck is less about model size and more about scaling with context. This is where [attention](https://arxiv.org/abs/1706.03762) design matters.
 
-This is where attention architecture matters. DeepSeek's FlashMLA stack targets MLA + sparse kernels on Hopper/Blackwell and supports FP8 KV cache, which is explicitly aimed at keeping memory and throughput under control for long contexts ([Hopper FP8 sparse deep dive](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250929-hopper-fp8-sparse-deep-dive.md), [kernel deep dive](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250422-new-kernel-deep-dive.md)). MiniMax explains why M2 uses full attention, which keeps quality but makes KV cache scale more steeply with long contexts ([blog](https://huggingface.co/blog/MiniMax-AI/why-did-m2-end-up-as-a-full-attention-model)).
+With full attention, every token can interact with every other token, so the attention work grows roughly quadratically with context length. Sparse attention limits which tokens interact, so the work stays much closer to linear, which is why it remains practical at very long context. [DeepSeek V3.2](https://arxiv.org/pdf/2512.02556) is an example of this long-context-optimized approach, with an MLA-based sparse stack and kernels tuned for Hopper/Blackwell (deep dives: [FlashMLA FP8 sparse](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250929-hopper-fp8-sparse-deep-dive.md), [kernel deep dive](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250422-new-kernel-deep-dive.md)). By contrast, models like GLM-4.7 and [MiniMax-M2.1](https://huggingface.co/blog/MiniMax-AI/why-did-m2-end-up-as-a-full-attention-model) stick with full attention because it is the simplest baseline to get right, but it makes long-context scaling steeper.
 
-The nuance is that "concurrency" here is not just total sessions; it is concurrent requests. You rarely batch all sessions at once. Real usage is bursty: a user goes idle, then becomes active again, and you pay the cost of loading/refreshing long context. That makes time-to-first-token and context loading speed matter. In practice, with higher concurrent requests, DSA models like DeepSeek V3.2 can be more efficient than full-attention models like GLM 4.7 or M2.1 even if the weights are larger. If you have very few users or plenty of headroom, this difference matters much less. For capacity planning, start from your expected active-user ratio (Claude's cost model assumptions are a decent proxy: [costs page](https://code.claude.com/docs/en/costs)) and then compare how each model's attention/KV cache scales with long context.
+Concurrency is the other half of the story. What matters operationally is concurrent in-flight requests, not total users. Agent workloads are bursty, and production inference relies on [KV caching](https://huggingface.co/blog/not-lain/kv-caching) for latency. That means each in-flight request carries its own cache footprint, so memory adds up fast when multiple long-context requests overlap. For capacity planning, start from an active-user ratio (Anthropic’s assumptions are a decent proxy: [costs page](https://code.claude.com/docs/en/costs)). If you have few active requests or plenty of headroom, these differences matter much less.
 
-KV cache sizing at 100 concurrent requests (128k context):
+For example, KV cache sizing at 100 concurrent requests (128k context), KV cache only:
+- DeepSeek V3.2 : ~5 GB per request -> ~500 GB for 100 requests
+- GLM-4.7 : ~23 GB per request -> ~2.3 TB for 100 requests
+- MiniMax-M2.1 : ~16 GB per request -> ~1.6 TB for 100 requests
 
-If you assume ~100 concurrent in-flight requests, the KV cache footprint alone looks like this:
-
-- DeepSeek V3.2 (DSA): ~5 GB per request -> ~500 GB for 100 requests
-- GLM-4.7 (full attention, GQA): ~23 GB per request -> ~2.3 TB for 100 requests
-- MiniMax-M2.1 (full attention): ~16 GB per request -> ~1.6 TB for 100 requests
-
-These numbers are KV cache only (no weights, no activations). The point is directionality: as concurrent requests grow, DSA can be significantly more memory-efficient even if the model weights are larger.
+These numbers are KV cache only (no weights, no activations). The point is directionality. As concurrent long-context requests grow, KV cache can dominate your VRAM budget, and attention scaling can dominate your throughput.
 
 
 ## Setup
@@ -175,9 +172,14 @@ Claude Code picks up the self-hosted model through LiteLLM.
 Full session example (multi-file edits, greps, tool calls):
 
 <figure>
-  <video controls playsinline preload="metadata">
-    <source src="/blog/umans-coder-v0-claude-code-full-session.mp4" type="video/mp4" />
-  </video>
+  <iframe
+    src="https://www.youtube.com/embed/yu7gTHoo16M"
+    style="width: 100%; height: 360px; border: none; background: transparent; display: block; margin: 0 auto;"
+    title="Claude Code session with umans-coder-v0"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen
+  ></iframe>
   <figcaption style="text-align: center; font-size: 0.9em; color: #666;">
     A full Claude Code session against umans-coder-v0 (multi-file edits, grep, tool calls).
   </figcaption>
@@ -215,9 +217,14 @@ claude mcp add --transport http exa "https://mcp.exa.ai/mcp?exaApiKey=EXA_API_KE
 ```
 
 <figure>
-  <video controls playsinline preload="metadata">
-    <source src="/blog/umans-coder-v0-using-mcp.mp4" type="video/mp4" />
-  </video>
+  <iframe
+    src="https://www.youtube.com/embed/P6xWWBzraRo"
+    style="width: 100%; height: 360px; border: none; background: transparent; display: block; margin: 0 auto;"
+    title="MCP web search + code context in Claude Code"
+    loading="lazy"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen
+  ></iframe>
   <figcaption style="text-align: center; font-size: 0.9em; color: #666;">
     MCP web search + code context (Exa) running inside Claude Code.
   </figcaption>
