@@ -1,10 +1,9 @@
 ---
 title: "The Claude Code experience, self-hosted"
 excerpt: "How to run Claude Code against a self-hosted DeepSeek V3.2–class model using vLLM + LiteLLM, so agentic coding stays inside your perimeter."
-publishDate: 2025-12-23
-updatedDate: 2025-12-23
+publishDate: 2025-12-29
+updatedDate: 2025-12-29
 isFeatured: true
-tags: [ "AI", "Engineering", "Consistency", "Claude Code", "DeepSeek", "GLM-4.7", "minimax-m2.1" ]
 seo:
   title: "Claude Code in your infra"
   description: "A practical setup for running Claude Code against a self-hosted umans-coder-v0 endpoint using vLLM and a LiteLLM gateway."
@@ -32,25 +31,19 @@ DeepSeek V3.2 is currently one of the strongest open-weights options for this us
 | SWE-bench Multilingual | 70.2% | 66.7% | 72.5% | 68% | 65.0% | **77.5%** | 72.0% |
 | Terminal Bench 2.0 | 46.4% | 41.0% | 47.9% | 50.0% | 54.2% | **57.8%** | 54.0% |
 
-SWE-bench Verified is Python-only. SWE Multilingual covers the full language range, where DeepSeek outperforms Claude Sonnet 4.5 and Gemini 3 pro. These benchmarks measure the ability to take a GitHub issue description and produce a working pull request, which is closer to real agent work than isolated code completion tasks.
+SWE-bench Verified is Python-only. SWE-bench Multilingual covers the full language range, where DeepSeek outperforms Claude Sonnet 4.5 and Gemini 3 Pro. Terminal Bench 2.0 measures end-to-end coding tasks in a terminal environment. All three benchmarks are closer to real agent work than isolated code completion tasks.
 
-Benchmark results can be gamed, and training data contamination is a real concern. Independent evaluations help validate these numbers. [SWE-rebench](https://swe-rebench.com/) runs continuously on new pull requests specifically to resist contamination, and it still puts DeepSeek V3.2 at the top among open-weights models. [Artificial Analysis](https://artificialanalysis.ai/models?intelligence=agentic-index) also runs agentic-style evaluations independently and aggregates them into an agentic index. There, DeepSeek V3.2 currently ranks second among open-weights, one point behind GLM-4.7.
+Benchmark results can be gamed, and training data contamination is a real concern. Independent evaluations help validate these numbers. [SWE-rebench](https://swe-rebench.com/) re-runs SWE-bench continuously on new pull requests specifically to resist contamination, and it still puts DeepSeek V3.2 at the top among open-weights models. [Artificial Analysis](https://artificialanalysis.ai/models?intelligence=agentic-index) also runs agentic-style evaluations independently and aggregates them into an agentic index. There, DeepSeek V3.2 currently ranks second among open-weights, one point behind GLM-4.7.
 
 One practical consideration for self-hosting: DeepSeek V3.2 is a 671B mixture-of-experts model with 37B active parameters. A dense model of equivalent quality would be much larger and slower. Devstral 2, for example, is a dense 123B model that performs reasonably well on coding benchmarks. But because V3.2 only activates a fraction of its parameters per token, it runs roughly 3x faster at inference while having access to more total capacity. When you're paying for GPU time, this difference matters.
 
 Agents routinely stuff the context with repo files, diffs, logs, and tool output, so long context is the default. At that point, the bottleneck is less about model size and more about scaling with context. This is where [attention](https://arxiv.org/abs/1706.03762) design matters.
 
-With full attention, every token can interact with every other token, so the attention work grows roughly quadratically with context length. Sparse attention limits which tokens interact, so the work stays much closer to linear, which is why it remains practical at very long context. [DeepSeek V3.2](https://arxiv.org/pdf/2512.02556) is an example of this long-context-optimized approach, with an MLA-based sparse stack and kernels tuned for Hopper/Blackwell (deep dives: [FlashMLA FP8 sparse](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250929-hopper-fp8-sparse-deep-dive.md), [kernel deep dive](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250422-new-kernel-deep-dive.md)). By contrast, models like GLM-4.7 and [MiniMax-M2.1](https://huggingface.co/blog/MiniMax-AI/why-did-m2-end-up-as-a-full-attention-model) stick with full attention because it is the simplest baseline to get right, but it makes long-context scaling steeper.
+With full attention, every token can interact with every other token, so the attention work grows roughly quadratically with context length. Sparse attention limits which tokens interact, reducing how much work the main attention does at long context. [DeepSeek V3.2](https://arxiv.org/pdf/2512.02556) is an example of this long-context-optimized approach, which helps sessions stay responsive as the context grows. By contrast, models like GLM-4.7 and MiniMax-M2.1 stick with full attention because it's [easier to get right](https://huggingface.co/blog/MiniMax-AI/why-did-m2-end-up-as-a-full-attention-model), but sessions get sluggish as context grows.
 
-Concurrency is the other half of the story. What matters operationally is concurrent in-flight requests, not total users. Agent workloads are bursty, and production inference relies on [KV caching](https://huggingface.co/blog/not-lain/kv-caching) for latency. That means each in-flight request carries its own cache footprint, so memory adds up fast when multiple long-context requests overlap. For capacity planning, start from an active-user ratio (Anthropic’s assumptions are a decent proxy: [costs page](https://code.claude.com/docs/en/costs)). If you have few active requests or plenty of headroom, these differences matter much less.
+Concurrency is the other half of the story. What matters operationally is concurrent in-flight requests, not total users. Agent workloads are bursty, and production inference relies on [KV caching](https://huggingface.co/blog/not-lain/kv-caching) for latency. That means each in-flight request carries its own cache footprint, so memory adds up fast when multiple long-context requests overlap. DeepSeek V3.2 uses [MLA](https://arxiv.org/abs/2405.04434), which caches compressed representations instead of full keys and values. That brings per-request memory at 128k context down to about [5 GB](https://github.com/deepseek-ai/FlashMLA/blob/main/docs/20250929-hopper-fp8-sparse-deep-dive.md), versus about 23 GB for GLM-4.7 and 16 GB for MiniMax-M2.1. At 100 concurrent requests, that's 500 GB versus 2.3 TB and 1.6 TB respectively (see [Appendix: KV cache sizing assumptions](#appendix-kv-cache-sizing-assumptions)).
 
-For example, KV cache sizing at 100 concurrent requests (128k context), KV cache only:
-- DeepSeek V3.2 : ~5 GB per request -> ~500 GB for 100 requests
-- GLM-4.7 : ~23 GB per request -> ~2.3 TB for 100 requests
-- MiniMax-M2.1 : ~16 GB per request -> ~1.6 TB for 100 requests
-
-These numbers are KV cache only (no weights, no activations). The point is directionality. As concurrent long-context requests grow, KV cache can dominate your VRAM budget, and attention scaling can dominate your throughput.
-
+For capacity planning, start from an active-user ratio (Anthropic's assumptions are a decent proxy: [costs page](https://code.claude.com/docs/en/costs)). If you have few active requests or plenty of headroom, these differences matter much less.
 
 ## Setup
 
@@ -74,7 +67,7 @@ We published Docker images built on our [vLLM fork](https://github.com/umans-ai/
 
 It includes [DeepGEMM](https://github.com/deepseek-ai/DeepGEMM) for optimized inference on Hopper and Blackwell GPUs.
 
-Quickstart in Docker (set `--tensor-parallel-size` to your GPU count; if you see `sm_103a`/ptxas errors on B200/B300, set `TRITON_PTXAS_PATH`; if weights are not cached, pass `HF_TOKEN` and `HF_XET_HIGH_PERFORMANCE=1`):
+Quickstart in Docker (set `--tensor-parallel-size` to your GPU count; if you see `sm_103a`/ptxas errors on B200/B300, set `TRITON_PTXAS_PATH`; `HF_TOKEN` and `HF_XET_HIGH_PERFORMANCE=1` are optional but speed up downloads):
 
 ```bash
 docker run --gpus all --rm --ipc=host -p 8000:8000 \
@@ -121,8 +114,6 @@ We tested this on 8xH200, 8xB200, 4xB300 and 8xB300.
 Once the model is running, you need to configure LiteLLM and point Claude Code at it.
 
 ### LiteLLM configuration
-
-<!-- TODO: Expand with full setup details -->
 
 ```yaml
 litellm_settings:
@@ -189,7 +180,7 @@ Full session example (multi-file edits, greps, tool calls):
 
 The workflow works. Multi-file edits, streaming responses, iterative debugging. The interface is unchanged since it's still Claude Code.
 
-Capabilities land where the benchmarks suggest. Refactors, test generation, bug fixes all work. The model reasons through problems and recovers from errors. For agent frameworks that simulate tool calls via user messages, [DeepSeek's report](https://arxiv.org/pdf/2512.02556) notes that non-thinking mode tends to work better. Claude Code handles both modes.
+Capabilities land where the benchmarks suggest. Refactors, test generation, bug fixes all work. The model reasons through problems and recovers from errors. For agent frameworks that simulate tool calls via user messages, [DeepSeek's report](https://arxiv.org/pdf/2512.02556) notes that non-thinking mode tends to work better. Claude Code handles both modes. In thinking mode, some edge-case request patterns can trigger a proxy retry that disables thinking for that step, but Claude Code continues without interruption.
 
 ### Hosted tools caveat (WebSearch)
 
@@ -244,22 +235,29 @@ We're working on closing that gap. The approach is to start from a strong agenti
 
 More on that soon 👀.
 
+<a id="appendix-kv-cache-sizing-assumptions"></a>
 ## Appendix: KV cache sizing assumptions
 
+All estimates below are KV cache only (no weights, no activations). They assume a 128k context is 131,072 tokens.
+
 DeepSeek V3.2:
-- FlashMLA sparse backend notes FP8 KV cache format is 656 bytes per token.
-- 128k context: 656 * 128k ~= 86 MB per layer.
+- FlashMLA sparse backend notes an FP8 "with-scale" KV cache format of 656 bytes per token (per layer).
+- Per-layer cache at 128k: 656 * 131,072 ~= 86 MB (≈82 MiB).
 - DeepSeek V3.2 has 61 layers -> ~5 GB per in-flight request.
 
-Full attention (GQA) formula:
-- KV bytes per token = 2 * num_key_value_heads * head_dim (FP8).
+Full attention (GQA) sizing formula:
+- Per-token KV bytes per layer ~= 2 * num_key_value_heads * head_dim * bytes_per_element
+  - 2 is for K and V.
+  - bytes_per_element is 1 for FP8, 2 for FP16/BF16.
 
 GLM-4.7:
 - num_key_value_heads = 8, head_dim = 128, num_hidden_layers = 92.
-- 2 * 8 * 128 = 2048 bytes per token -> ~256 MB per layer @ 128k.
-- 256 MB * 92 ~= 23 GB per in-flight request.
+- Per-token KV bytes per layer (FP8): 2 * 8 * 128 = 2048 bytes -> ~256 MB per layer @ 128k.
+- 256 MB * 92 ~= 23 GB per in-flight request (FP8 KV cache).
+- If KV cache is FP16/BF16 instead, multiply by ~2.
 
 MiniMax-M2.1:
 - num_key_value_heads = 8, head_dim = 128, num_hidden_layers = 62.
-- 2 * 8 * 128 = 2048 bytes per token -> ~256 MB per layer @ 128k.
-- 256 MB * 62 ~= 16 GB per in-flight request.
+- Per-token KV bytes per layer (FP8): 2 * 8 * 128 = 2048 bytes -> ~256 MB per layer @ 128k.
+- 256 MB * 62 ~= 16 GB per in-flight request (FP8 KV cache).
+- If KV cache is FP16/BF16 instead, multiply by ~2.
