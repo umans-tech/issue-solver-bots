@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { IconUmansLogo } from '@/components/icons';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -12,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { EnvsWaitlistForm } from '@/components/envs-waitlist-form';
-import { Check, Terminal, Zap, Shield, GitBranch, RefreshCw, Box } from 'lucide-react';
+import { Terminal, Zap, Shield, GitBranch, RefreshCw, Box, FileText, CheckCircle2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { MouseEventHandler } from 'react';
 import { usePostHog } from 'posthog-js/react';
@@ -20,51 +19,266 @@ import { FaDiscord, FaLinkedinIn, FaXTwitter } from 'react-icons/fa6';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
-function DemoTerminal() {
-  const [lines, setLines] = useState<string[]>([]);
-  
-  useEffect(() => {
-    const sequence = [
-      { text: '> envs.create_sandbox(profile="my-repo")', delay: 500 },
-      { text: 'Connected (2.1s)', delay: 1500, color: 'text-green-500' },
-      { text: '> Running tests...', delay: 2500 },
-      { text: '✓ Tests passed', delay: 4000, color: 'text-green-500' },
-      { text: 'Snapshot created: snap-8f2a9c', delay: 4500, color: 'text-blue-500' },
-      { text: '> Forking sandbox for parallel exec...', delay: 5500 },
-      { text: 'Ready.', delay: 6500 },
-    ];
+// --- Visual Components ---
 
-    let timeouts: NodeJS.Timeout[] = [];
-    
-    // Reset and start
-    setLines([]);
-    
-    sequence.forEach((item) => {
-      const t = setTimeout(() => {
-        setLines(prev => [...prev, `<span class="${item.color || ''}">${item.text}</span>`]);
-      }, item.delay);
-      timeouts.push(t);
-    });
-
-    return () => timeouts.forEach(clearTimeout);
-  }, []);
-
+function TerminalChrome({ title, children, className }: { title: string, children: React.ReactNode, className?: string }) {
   return (
-    <div className="bg-zinc-950 rounded-lg border border-zinc-800 p-4 font-mono text-sm text-zinc-300 shadow-2xl w-full max-w-2xl mx-auto h-[240px] flex flex-col relative z-20">
-      <div className="flex gap-1.5 mb-4">
-        <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
-        <div className="w-3 h-3 rounded-full bg-yellow-500/20"></div>
-        <div className="w-3 h-3 rounded-full bg-green-500/20"></div>
+    <div className={cn(
+        "rounded-xl border border-zinc-800 bg-black/90 overflow-hidden shadow-2xl shadow-indigo-500/10 font-mono text-xs sm:text-sm",
+        className
+    )}>
+      <div className="bg-zinc-900/50 border-b border-zinc-800 p-3 flex items-center justify-between">
+         <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/30" />
+            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/30" />
+         </div>
+         <div className="text-zinc-500 text-[11px] font-medium tracking-wide">{title}</div>
+         <div className="w-10" /> 
       </div>
-      <div className="space-y-2 flex-1 overflow-hidden">
-        {lines.map((line, i) => (
-          <div key={i} dangerouslySetInnerHTML={{ __html: line }} />
-        ))}
-        <div className="animate-pulse inline-block w-2 h-4 bg-zinc-500 align-middle"></div>
+      <div className="p-4 sm:p-6 text-zinc-300 space-y-1.5 min-h-[300px] relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none" />
+        <div className="relative z-10">
+            {children}
+        </div>
       </div>
     </div>
   );
 }
+
+function TerminalLine({ 
+  children, 
+  highlight,
+  accentColor, 
+}: { 
+  children: React.ReactNode, 
+  highlight?: boolean, 
+  accentColor?: string,
+}) {
+  return (
+    <div className={cn(
+      "relative pl-3 py-0.5 -mx-4 px-4 transition-all duration-300 flex items-start",
+      highlight ? "bg-white/5" : "hover:bg-white/[0.02]"
+    )}>
+       {accentColor && (
+         <div className={cn("absolute left-0 top-0 bottom-0 w-[3px]", accentColor)} />
+       )}
+       <div className="flex-1 break-all leading-relaxed">
+         {children}
+       </div>
+    </div>
+  );
+}
+
+function ArtifactThumb({ type, name }: { type: 'image' | 'file', name: string }) {
+   return (
+      <div className="inline-flex items-center gap-2 ml-2 py-0.5 px-2 bg-zinc-800/50 border border-zinc-700/50 rounded-md cursor-default select-none transition-colors align-middle">
+         <div className={cn(
+             "w-4 h-4 rounded flex items-center justify-center shrink-0",
+             type === 'image' ? "text-indigo-400" : "text-zinc-400"
+         )}>
+             {type === 'image' ? (
+                 <div className="w-2.5 h-2.5 border border-current rounded-[1px]" />
+             ) : (
+                 <FileText size={10} />
+             )}
+         </div>
+         <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[100px]">{name}</span>
+      </div>
+   )
+}
+
+function StepIndicator() {
+    return (
+        <div className="flex items-center justify-center gap-3 text-[10px] uppercase tracking-wider font-semibold text-zinc-500 mb-6">
+            <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center bg-zinc-800 text-zinc-400">1</span>
+                <span>Request</span>
+            </div>
+            <div className="w-4 h-[1px] bg-zinc-800" />
+            <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center bg-zinc-800 text-zinc-400">2</span>
+                <span>Run</span>
+            </div>
+            <div className="w-4 h-[1px] bg-zinc-800" />
+            <div className="flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center bg-zinc-800 text-zinc-400">3</span>
+                <span>Result</span>
+            </div>
+        </div>
+    )
+}
+
+function UnifiedDemo() {
+  const [mode, setMode] = useState<'before' | 'after'>('after');
+  
+  // Auto-toggle once when scrolled into view (optional interaction hint)
+  // For now, let's keep it manual or default to 'after' as it's the hero.
+  
+  return (
+    <div className="w-full max-w-3xl mx-auto py-8">
+        
+        {/* Toggle */}
+        <div className="flex justify-center mb-10">
+            <div className="bg-zinc-900/80 p-1 rounded-full border border-zinc-800 inline-flex relative shadow-lg">
+                <div 
+                    className="absolute inset-y-1 rounded-full bg-zinc-700/50 transition-all duration-300 ease-out w-[50%]"
+                    style={{ left: mode === 'before' ? '4px' : '50%' }}
+                />
+                <button 
+                    type="button"
+                    onClick={() => setMode('before')}
+                    className={cn(
+                        "relative z-10 px-6 py-2 rounded-full text-sm font-medium transition-colors w-32",
+                        mode === 'before' ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                    )}
+                >
+                    Local
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => setMode('after')}
+                    className={cn(
+                        "relative z-10 px-6 py-2 rounded-full text-sm font-medium transition-colors w-32 flex items-center justify-center gap-2",
+                        mode === 'after' ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                    )}
+                >
+                    <span>Envs</span>
+                    {mode === 'after' && <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />}
+                </button>
+            </div>
+        </div>
+
+        <StepIndicator />
+
+        {/* Terminal Card */}
+        <div className="relative group perspective-1000">
+             <div className={cn(
+                 "absolute -inset-1 rounded-2xl bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-xl transition-opacity duration-700",
+                 mode === 'after' ? "opacity-100" : "opacity-0"
+             )} />
+             
+             <TerminalChrome 
+                title={mode === 'before' ? 'local shell' : 'envs sandbox'}
+                className="relative bg-zinc-950/90 backdrop-blur-sm"
+             >
+                {/* 1. Request (Comments) */}
+                <TerminalLine>
+                    <span className="text-zinc-500"># Dev: Add email validation and update tests</span>
+                </TerminalLine>
+                <TerminalLine>
+                    <span className="text-zinc-500"># Agent: Sure.</span>
+                </TerminalLine>
+                
+                <div className="h-4" />
+
+                {mode === 'before' ? (
+                    <>
+                         {/* 2. Run (Before) */}
+                        <TerminalLine>
+                            <span className="text-zinc-500 mr-2">$</span>
+                            <span>pytest -q</span>
+                        </TerminalLine>
+                        <TerminalLine highlight accentColor="bg-red-500">
+                             <span className="text-red-400">zsh: command not found: pytest</span>
+                        </TerminalLine>
+                        
+                        <div className="h-4" />
+
+                        <TerminalLine>
+                            <span className="text-zinc-500 mr-2">$</span>
+                            <span>docker compose up -d</span>
+                        </TerminalLine>
+                        <TerminalLine accentColor="bg-red-500">
+                             <span className="text-red-400">zsh: command not found: docker</span>
+                        </TerminalLine>
+                        
+                         <div className="h-6" />
+                        
+                        {/* 3. Result (Before) */}
+                        <TerminalLine>
+                             <span className="text-zinc-500"># Agent: Nothing is installed. I can't run tests.</span>
+                             <XCircle size={14} className="inline-block ml-2 text-red-500 align-text-bottom" />
+                        </TerminalLine>
+                    </>
+                ) : (
+                    <>
+                        {/* 2. Run (After) */}
+                        <TerminalLine>
+                             <span className="text-zinc-500 mr-2">&gt;</span> 
+                             <span className="text-purple-300">envs.create_sandbox</span>(repo="acme/api")
+                        </TerminalLine>
+                        <TerminalLine highlight accentColor="bg-green-500">
+                             <span className="text-green-400">✓ connected in 2.1s (warm)</span>
+                        </TerminalLine>
+                        
+                        <div className="h-2" />
+
+                        <TerminalLine>
+                            <span className="text-zinc-500 mr-2">$</span>
+                            <span>pytest -q && ruff .</span>
+                        </TerminalLine>
+                        <TerminalLine>
+                            <span className="text-zinc-400">✓ 42 tests passed</span>
+                        </TerminalLine>
+
+                         <div className="h-2" />
+
+                        <TerminalLine>
+                            <span className="text-zinc-500 mr-2">$</span>
+                            <span>playwright test</span>
+                        </TerminalLine>
+                        <TerminalLine>
+                            <span className="text-blue-300">saved: artifacts/e2e/signup.png</span>
+                            <ArtifactThumb type="image" name="screenshot" />
+                        </TerminalLine>
+
+                        <div className="h-6" />
+
+                        {/* 3. Result (After) */}
+                        <TerminalLine>
+                             <span className="text-zinc-500"># Agent: Done. Tests passed and verified.</span>
+                             <CheckCircle2 size={14} className="inline-block ml-2 text-green-500 align-text-bottom" />
+                        </TerminalLine>
+                         <TerminalLine>
+                             <span className="inline-block w-2 h-4 bg-zinc-500 animate-pulse align-middle" />
+                        </TerminalLine>
+                    </>
+                )}
+             </TerminalChrome>
+        </div>
+        
+        {/* Not Just For Developers (Mini Example) - Aligned Width */}
+        <div className="mt-8 border-t border-zinc-800/50 pt-8">
+            <h3 className="text-center text-sm font-medium text-zinc-500 mb-6">Or give any assistant a real workspace</h3>
+            <div className="bg-zinc-950 rounded-xl border border-zinc-800 p-4 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                 <div className="flex-1 space-y-3 font-mono text-xs sm:text-sm">
+                     <div className="flex gap-3">
+                        <span className="text-zinc-500 shrink-0 w-8 text-right">PM:</span>
+                        <span className="text-zinc-300">"Reproduce the bug and write a diagnosis."</span>
+                    </div>
+                     <div className="flex gap-3">
+                        <span className="text-blue-400 shrink-0 w-8 text-right">Bot:</span>
+                        <span className="text-zinc-400">"Starting sandbox, running repro..."</span>
+                    </div>
+                 </div>
+                 
+                 <div className="w-full sm:w-auto flex items-center gap-3 bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
+                    <div className="bg-indigo-500/10 p-2 rounded text-indigo-400">
+                        <FileText size={18} />
+                    </div>
+                    <div>
+                        <div className="text-xs font-medium text-zinc-200">diagnosis.md</div>
+                        <div className="text-[10px] text-zinc-500">Generated 2m ago</div>
+                    </div>
+                 </div>
+            </div>
+        </div>
+
+    </div>
+  );
+}
+
 
 export default function EnvsPage() {
   const posthog = usePostHog();
@@ -93,12 +307,11 @@ export default function EnvsPage() {
   }, []);
 
   useEffect(() => {
-    // Observer for pricing view
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            posthog?.capture('view_pricing', { waitlist_id: 'envs', page_path: '/offers/envs' });
+            posthog?.capture('view_example_section', { waitlist_id: 'envs', page_path: '/offers/envs' });
             observer.disconnect();
           }
         });
@@ -106,8 +319,8 @@ export default function EnvsPage() {
       { threshold: 0.5 }
     );
 
-    const pricingSection = document.getElementById('pricing');
-    if (pricingSection) observer.observe(pricingSection);
+    const exampleSection = document.getElementById('examples-section');
+    if (exampleSection) observer.observe(exampleSection);
 
     return () => observer.disconnect();
   }, [posthog]);
@@ -119,7 +332,6 @@ export default function EnvsPage() {
 
   const handleEarlyAccessClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
     posthog?.capture('click_request_early_access');
-    // Ensure the mail client opens even if other handlers interfere with default navigation.
     event.preventDefault();
     window.location.assign(earlyAccessHref);
   };
@@ -231,11 +443,6 @@ export default function EnvsPage() {
       <main className="relative z-10">
         {/* 1. Hero */}
         <section className="pt-32 pb-20 lg:pt-40 lg:pb-32 px-6 text-center max-w-5xl mx-auto">
-          {/* A/B Test Variants:
-              1. "Repo-ready sandboxes for AI agents. MCP-native." (Original)
-              2. "The infrastructure for autonomous software engineering."
-              3. "Give your AI agents a real developer environment."
-          */}
           <h1 className="text-5xl sm:text-7xl font-bold tracking-tight mb-8 text-foreground text-balance">
             <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
               Repo-ready sandboxes
@@ -270,9 +477,9 @@ export default function EnvsPage() {
           </p>
         </section>
 
-        {/* 2. Proof Visual */}
-        <section className="px-6 pb-32">
-          <DemoTerminal />
+        {/* 2. Unified Demo */}
+        <section id="examples-section" className="px-6 pb-32">
+          <UnifiedDemo />
         </section>
 
         {/* 3. Problem */}
@@ -410,53 +617,7 @@ export default function EnvsPage() {
            </div>
         </section>
 
-        {/* 7. Pricing Smoke Test */}
-        <section id="pricing" className="py-24 max-w-5xl mx-auto px-6">
-           <h2 className="text-3xl font-bold mb-4 text-center">Pricing</h2>
-           <p className="text-center text-muted-foreground mb-12">Waitlist members get early access.</p>
-           
-           <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <Card className="border-border/50 relative overflow-hidden bg-card/40 backdrop-blur-sm">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-muted-foreground/20"></div>
-                 <CardHeader>
-                    <CardTitle className="text-xl">Starter</CardTitle>
-                    <div className="text-3xl font-bold mt-2">$29 <span className="text-sm font-normal text-muted-foreground">/ month</span></div>
-                    <CardDescription>For individual developers</CardDescription>
-                 </CardHeader>
-                 <CardContent>
-                    <ul className="space-y-3 text-sm">
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> 100 sandbox hours</li>
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> 2 concurrent sandboxes</li>
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> Standard machine types</li>
-                    </ul>
-                 </CardContent>
-              </Card>
-
-               <Card className="border-primary/20 relative overflow-hidden shadow-lg bg-primary/5 backdrop-blur-sm">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
-                 <Badge className="absolute top-4 right-4">Most Popular</Badge>
-                 <CardHeader>
-                    <CardTitle className="text-xl">Team</CardTitle>
-                    <div className="text-3xl font-bold mt-2">$149 <span className="text-sm font-normal text-muted-foreground">/ month</span></div>
-                    <CardDescription>For engineering teams</CardDescription>
-                 </CardHeader>
-                 <CardContent>
-                    <ul className="space-y-3 text-sm">
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> 500 sandbox hours</li>
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> 10 concurrent sandboxes</li>
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> Powerful machine types</li>
-                       <li className="flex items-center gap-2"><Check size={16} className="text-primary"/> Shared snapshots</li>
-                    </ul>
-                 </CardContent>
-              </Card>
-           </div>
-           
-           <div className="text-center mt-8 text-sm text-muted-foreground">
-              <p>Enterprise / VPC needs? Talk to us.</p>
-           </div>
-        </section>
-
-        {/* 8. Waitlist Form */}
+        {/* 7. Waitlist Form */}
         <section id="waitlist" className="py-24 border-t border-border/40">
            <div className="max-w-md mx-auto px-6 text-center">
               <h2 className="text-3xl font-bold mb-4">Join the waitlist</h2>
@@ -468,14 +629,14 @@ export default function EnvsPage() {
            </div>
         </section>
 
-        {/* 9. Coming Soon */}
+        {/* 8. Coming Soon */}
         <section className="py-16 text-center">
            <div className="inline-block px-4 py-2 rounded-full bg-muted border border-border text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Coming soon:</span> Productivity sandboxes (Excel, PowerPoint) for agent-driven deliverables.
            </div>
         </section>
 
-        {/* 10. FAQ */}
+        {/* 9. FAQ */}
         <section className="py-20 max-w-3xl mx-auto px-6">
            <h2 className="text-2xl font-bold mb-10 text-center">Frequently Asked Questions</h2>
            <div className="space-y-6">

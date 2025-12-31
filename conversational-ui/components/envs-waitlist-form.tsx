@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ export function EnvsWaitlistForm() {
     goal: '',
     repos_count: '',
     need_vpc: '',
+    pricing_expectation: '',
     repo_link: '',
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -42,6 +43,18 @@ export function EnvsWaitlistForm() {
         });
     }
   };
+
+  useEffect(() => {
+    const handleUnload = () => {
+        if (hasFocused && status !== 'success') {
+           posthog?.capture('form_abandoned', {
+               waitlist_id: 'envs',
+               page_path: window.location.pathname
+           });
+        }
+    }
+    return handleUnload;
+  }, [hasFocused, status, posthog]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +81,7 @@ export function EnvsWaitlistForm() {
           goal: formData.goal || undefined,
           repos_count: formData.repos_count || undefined,
           need_vpc: formData.need_vpc ? formData.need_vpc === 'yes' : undefined,
+          pricing_expectation: formData.pricing_expectation || undefined,
           repo_link: formData.repo_link || undefined,
           utm,
           referrer: document.referrer,
@@ -173,6 +187,22 @@ export function EnvsWaitlistForm() {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="pricing_expectation">Pricing expectation (optional)</Label>
+        <Select onValueChange={(val) => handleChange('pricing_expectation', val)}>
+          <SelectTrigger id="pricing_expectation">
+            <SelectValue placeholder="Select preference" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="per_hour">Per sandbox hour</SelectItem>
+            <SelectItem value="per_repo">Per repo</SelectItem>
+            <SelectItem value="per_seat">Per seat</SelectItem>
+            <SelectItem value="flat_team">Per team (flat monthly)</SelectItem>
+            <SelectItem value="not_sure">Not sure yet</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
        <div className="space-y-2">
