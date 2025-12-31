@@ -57,5 +57,15 @@ locals {
   api_domain                = "api.${local.domain_prefix}umans.ai"
   auth_url                  = "https://${local.app_domain}"
   custom_app_runner_domains = [local.landing_domain, local.app_domain]
+  offer_redirects = {
+    envs = "/offers/envs"
+  }
+  offer_redirect_domains = {
+    for subdomain, path in local.offer_redirects :
+    "${subdomain}.${local.landing_domain}" => {
+      subdomain = subdomain
+      path      = path
+    }
+  }
 
 }
