@@ -28,6 +28,11 @@ export default function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow public waitlist endpoints
+  if (req.nextUrl.pathname.startsWith('/api/waitlist/')) {
+    return NextResponse.next();
+  }
+
   // If a pending checkout exists, force user into billing/start, except for auth flows
   const allowedDuringPending = [
     '/billing/start',

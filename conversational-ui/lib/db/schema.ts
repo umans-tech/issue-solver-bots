@@ -10,6 +10,7 @@ import {
   timestamp,
   uuid,
   varchar,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const space = pgTable('Space', {
@@ -230,3 +231,28 @@ export const tokenUsage = pgTable('TokenUsage', {
 });
 
 export type TokenUsage = InferSelectModel<typeof tokenUsage>;
+
+export const waitlistSignups = pgTable('WaitlistSignups', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  waitlistId: text('waitlistId').notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  role: text('role'),
+  goal: text('goal'),
+  reposCount: text('reposCount'),
+  needVpc: boolean('needVpc'),
+  repoLink: text('repoLink'),
+  utmSource: text('utmSource'),
+  utmMedium: text('utmMedium'),
+  utmCampaign: text('utmCampaign'),
+  utmContent: text('utmContent'),
+  utmTerm: text('utmTerm'),
+  referrer: text('referrer'),
+  pagePath: text('pagePath'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+}, (table) => {
+  return {
+    uniqueWaitlistEmail: uniqueIndex('unique_waitlist_email').on(table.waitlistId, table.email),
+  };
+});
+
+export type WaitlistSignup = InferSelectModel<typeof waitlistSignups>;
