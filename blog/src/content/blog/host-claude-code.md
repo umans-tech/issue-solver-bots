@@ -2,7 +2,6 @@
 title: "The Claude Code experience, self-hosted"
 excerpt: "How to run Claude Code against a self-hosted DeepSeek V3.2–class model using vLLM + LiteLLM, so agentic coding stays inside your perimeter."
 publishDate: 2025-12-29
-updatedDate: 2025-12-29
 isFeatured: true
 seo:
   title: "Claude Code in your infra"
@@ -55,7 +54,7 @@ The architecture looks like this:
   src="/blog/architecture_diagram.html"
   style="width: 100%; max-width:200%; height: 350px; border: none; background: transparent; transform: display: block; margin: 0 auto;"
   loading="lazy"
-></iframe>
+/>
 
 Claude Code expects to talk to an Anthropic-compatible API. The [gateway requirements](https://code.claude.com/docs/en/llm-gateway) specify what this means: the `/v1/messages` endpoint, the `/v1/messages/count_tokens` endpoint for token counting, and specific headers like `anthropic-beta` and `anthropic-version`.
 
