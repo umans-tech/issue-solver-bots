@@ -1,14 +1,13 @@
 ---
 title: "Shipping Solo With AI Agents Without Reading the Code"
-excerpt: "If your mental model of coding agents is stuck around May 2025, update it. Solo builders now ship by talking to a CLI agent, running the system, iterating fast, and barely reading code."
+excerpt: "Some solo builders now ship by talking to a CLI agent, running the system, iterating fast, and barely reading code. Two perspectives, what enables it, and what breaks in teams."
 publishDate: 2026-01-02
 isFeatured: true
 tags: [ "AI", "Coding Agents", "Agentic Workflows", "CLI", "Software Delivery", "Testing" ]
 seo:
   title: "Shipping solo with AI agents without reading code"
-  description: "Since May 2025, solo builders can ship via CLI coding agents: talk, run, iterate, read little code. Two perspectives, limits, and what teams change."
+  description: "AI is becoming a new abstraction for solo building: iterate on intent with a CLI agent, run, refine, read little code. Two field reports, real limits."
 ---
-
 
 If your mental model of coding agents is stuck around May 2025, it is worth updating. The baseline shifts
 fast, [even for people who watch the space every day](https://x.com/karpathy/status/2004607146781278521).
@@ -18,7 +17,7 @@ your head, and you end up reading diffs more than you want. The agent moves quic
 it has already moved on.
 
 That pace mismatch is the whole problem. Agents can change more code than a human can comfortably validate. And if you
-try to delegate a real change and get a huge pull request back, you are not “reviewing code” anymore. You are reviewing
+try to delegate a real change and get a huge pull request back, you are not "reviewing code" anymore. You are reviewing
 dozens of silent assumptions and micro decisions the agent made on its own.
 
 So a lot of us parked the idea at: useful for prototypes, maybe for small apps, not a real abstraction.
@@ -28,39 +27,38 @@ What feels different now is that, for a growing number of people working alone, 
 They build by talking to an agent in a CLI, letting it run and iterate, validating through behavior, and reading little
 to no code.
 
-In this article, I want to discuss two posts that trended recently about exactly this, with two perspectives: a non
-technical builder and a very technical builder.
-
-Here are the two posts if you want to read them first:
-
-* [How I code with agents, without being 'technical'](https://x.com/bentossell/status/2006352820140749073), by Ben
-  Tossell
-* [Shipping at Inference-Speed](https://steipete.me/posts/2025/shipping-at-inference-speed), by Peter Steinberger
-
 ## What solo builders are saying, from two sides
 
-Ben Tossell does not present himself as a traditional engineer. He describes spending an absurd amount of time with an
-agent in a terminal, shipping prototypes, throwing many away, and tolerating bugs he calls “knowledge gaps”. He does not
-read the code. He reads the agent output, watches what it is doing, runs the system, hits issues, and iterates.
+Two posts capture this shift well, from two very different profiles:
 
-Peter Steinberger is the opposite profile. He ships a lot of software and is very comfortable with engineering
-decisions. Yet his story converges on the same loop: start with a rough idea, shape it by iteration, and let execution
-drive the feedback. He also admits he reads far less code than he used to, because the loop is happening somewhere else.
+* Ben Tossell, [How I code with agents, without being "technical"](https://x.com/bentossell/status/2006352820140749073)
+* Peter Steinberger, [Shipping at Inference Speed](https://steipete.me/posts/2025/shipping-at-inference-speed)
 
-What I find useful is not the headline. It is the common behavior:
+Ben does not present himself as a traditional engineer. He describes spending an absurd amount of time with an agent in
+a terminal, shipping prototypes, throwing many away, and tolerating bugs he calls "knowledge gaps". He does not read the
+code. He reads the agent output, watches what it is doing, runs the system, hits issues, and iterates.
 
-They do not start with a complete picture.
+Peter Steinberger comes from a more traditional engineering background. He ships a lot of software and is very
+comfortable with engineering decisions. Yet his story converges on the same loop: start with a rough idea, shape it by
+iteration, and let execution drive the feedback. He also admits he reads far less code than he used to, because the loop
+is happening somewhere else.
 
-They start with something rough, then they explore until it feels right.
+What I find useful is not the headline. It is the shared behavior:
 
-And the idea itself often changes along the way.
+* They do not start with a complete picture.
+* They start with something rough, then explore until it feels right.
+* The idea itself often changes along the way.
 
 This is the part many teams claim to do, but rarely do at high speed. The loop compresses so much that exploration
 becomes normal again.
 
+One detail from Ben is worth calling out: he explicitly points to end to end tests as something he wants more of,
+because he keeps hitting silly bugs that a good executable check would have caught earlier. That fits the overall theme
+of these posts: you do not get confidence by reading more code, you get it by tightening feedback.
+
 ## Why this feels like a new abstraction
 
-I am not interested in “the end of code” takes. That is not what is happening.
+I am not interested in "the end of code" takes. That is not what is happening.
 
 The shift is simpler: the center of gravity moves.
 
@@ -69,19 +67,11 @@ The work is less about writing code directly and more about steering a running s
 When it works, you are not validating by reading. You are validating by observing behavior, getting grounded feedback,
 and asking the agent to fix what reality exposes.
 
-It sounds obvious, but it is a different mental model from “prompt to code”. It is “intent to behavior”.
+It sounds obvious, but it is a different mental model from "prompt to code". It is "intent to behavior".
 
 It also explains why the interface is often a terminal. Not because terminals are cool. Because the loop is tight:
 
-You ask.
-
-The agent changes.
-
-The agent runs.
-
-Reality answers.
-
-You iterate.
+You ask → the agent changes → the agent runs → reality answers → you iterate.
 
 ## What makes this possible now
 
@@ -89,12 +79,9 @@ A year ago, we had impressive models and lots of folklore. Big prompts, complex 
 
 Now, the enabling ingredients are getting boring, which is a compliment.
 
-Tools are more reliable.
-
-Agents are better at using tools without constant hand holding.
-
-The ecosystem is converging on shared patterns: MCP for tool access and integration, and simple portable instruction
-files like agents.md and skills that let you carry conventions across projects.
+Tools are more reliable. Agents are better at using tools without constant hand holding. The ecosystem is converging on
+shared patterns, including MCP for tool access and integration, and portable instruction files like agents.md and skills
+that let you carry conventions across projects.
 
 And yes, the models seem better at the agentic part: planning, executing, noticing feedback, and staying on track across
 multiple steps.
@@ -109,15 +96,13 @@ A lot of people get intimidated by the screenshots: multiple panes, custom scrip
 These two posts point to something much simpler, and I think that is the useful message for our audience.
 
 1. Talk to the model in short instructions.
-
 2. Iterate in small steps.
-
 3. Make sure the agent can check by itself.
 
 That third point is the real one. If the agent cannot run, observe, and self correct, you will end up doing the checking
 manually, and the abstraction collapses back into reading and babysitting.
 
-This “self check” requirement is also where the next challenge begins, especially once you move from solo work to teams.
+This "self check" requirement is also where the next challenge begins, especially once you move from solo work to teams.
 It is something we work actively on at Umans.ai too. wink wink envs.umans.ai
 
 ## Promising, but not solved
@@ -139,12 +124,13 @@ enough that the model has strong prior knowledge. These decisions can make the d
 hours of drift.
 
 Architecture and system design are still hard. Where does state live. What goes to the client. What stays on the server.
-How data flows. How boundaries are shaped. These are harder to “just prompt”, and the cost of a poor choice compounds.
+How data flows. How boundaries are shaped. These are harder to just prompt, and the cost of a poor choice compounds.
 
-Then there is model behavior itself. Karpathy’s “cognitive deficits” framing is useful here: models can be over
-defensive and fill gaps with extra guards, try catch, and complexity. The result is often code that works but feels
-bloated, or ambiguous, or hard to reason about. This is not a moral failure. It is a predictable outcome when intent and
-constraints are fuzzy.
+Then there is model behavior itself. Karpathy describes this
+as ["LLM cognitive deficits"](https://www.dwarkesh.com/i/176425744/llm-cognitive-deficits): models can miss obvious
+gaps, over compensate, and produce overly defensive code. That often means extra guards, try catch blocks, and
+complexity that make the code feel bloated or harder to reason about. This is not a moral failure. It is a predictable
+outcome when intent and constraints are fuzzy.
 
 Which brings us to the real lever.
 
@@ -152,13 +138,10 @@ Which brings us to the real lever.
 
 If you want this abstraction to hold, intent has to be explicit.
 
-Why are we building this.
-
-What constraints matter.
-
-What should never happen.
-
-What “good” looks like when the system runs.
+* Why are we building this?
+* What constraints matter?
+* What should never happen?
+* What does "good" look like when the system runs?
 
 In solo mode, you can keep intent in your head and correct course quickly. That is why this works so well for one
 person.
@@ -169,48 +152,53 @@ In team mode, intent has to survive beyond one person. And that is where things 
 
 Solo work is the best case scenario.
 
-The moment you add a team, you re introduce shared trust, alignment, and governance. Not as bureaucracy, but as a
+The moment you add a team, you reintroduce shared trust, alignment, and governance. Not as bureaucracy, but as a
 survival mechanism.
 
 And we hit the same wall again: agents can produce more change than teams can comfortably review. A large pull request
 is not just more code. It is more decisions.
 
-So the next question is not “can I build solo without reading code”.
+So the next question is not "can I build solo without reading code".
 
 It is:
 
-How do we keep the abstraction while building software with humans who need shared confidence.
+How do we keep the abstraction while building software with humans who need shared confidence?
 
-How do we avoid turning humans into the review bottleneck again.
+How do we avoid turning humans into the review bottleneck again?
 
 That is the follow up article I want to write next.
 
 ## References
 
 ### Featured field reports
-- Peter Steinberger, *Shipping at Inference Speed* (Dec 28, 2025)  
+
+* Peter Steinberger, *Shipping at Inference Speed* (Dec 28, 2025)  
   https://steipete.me/posts/2025/shipping-at-inference-speed
-- Ben Tossell, *How I code with agents, without being “technical”* (Dec 31, 2025)  
+* Ben Tossell, *How I code with agents, without being "technical"* (Dec 31, 2025)  
   X thread: https://x.com/bentossell/status/2006352820140749073  
   Blog version: https://www.bentossell.com/blog/post.html?slug=how-i-code
 
 ### Context: the pace of change
-- Andrej Karpathy, “I’ve never felt this behind as a programmer…” (Dec 26, 2025)  
+
+* Andrej Karpathy, "I’ve never felt this behind as a programmer…" (Dec 26, 2025)  
   https://x.com/karpathy/status/2004607146781278521
 
-### On “LLM cognitive deficits” and defensive code
-- Andrej Karpathy interview, Dwarkesh Patel podcast (full transcript)  
+### On "LLM cognitive deficits" and defensive code
+
+* Andrej Karpathy interview, Dwarkesh Patel podcast (full transcript)  
   https://www.dwarkesh.com/p/andrej-karpathy
-- Clip reference to the “LLM cognitive deficit” segment (timestamped)  
+* Clip reference to the "LLM cognitive deficit" segment (timestamped)  
   https://www.youtube.com/watch?v=lXUZvyajciY&t=1833s
 
 ### Acceptance tests as executable specifications
-- Dave Farley, *Acceptance testing is the future of programming*  
+
+* Dave Farley, *Acceptance testing is the future of programming*  
   https://www.youtube.com/watch?v=NsOUKfzyZiU
 
 ### Earlier talks where we discussed the abstraction layer idea
-- *The Ultimate Software Crafter* (Crafting Data Science meetup, Jun 25, 2024)  
+
+* *The Ultimate Software Crafter* (Crafting Data Science meetup, Jun 25, 2024)  
   Video: https://www.youtube.com/watch?v=Rz1MWIp-oko  
   Slides: https://speakerdeck.com/jcraftsman/the-ultimate-software-crafter-meetup-crafting-data-science
-- *Au delà du buzz: IA dans le développement logiciel, assistant ou agent de code* (Nov 2024)  
+* *Au delà du buzz: IA dans le développement logiciel, assistant ou agent de code* (Nov 2025)  
   Slides: https://speakerdeck.com/jcraftsman/au-dela-du-buzz-lia-dans-le-developpement-logicielle-assistant-ou-agent-de-code
