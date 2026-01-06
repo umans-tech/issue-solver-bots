@@ -1,12 +1,12 @@
 ---
 title: "Shipping Solo With AI Agents Without Reading the Code"
-excerpt: "Some solo builders now ship by talking to a CLI agent, running the system, iterating fast, and barely reading code. Two perspectives, what enables it, and what breaks in teams."
+excerpt: "A new abstraction is emerging for solo building: iterate on intent with an AI agent, run, refine, and read little code. What enables it now, and where it breaks."
 publishDate: 2026-01-02
 isFeatured: true
-tags: [ "AI", "Coding Agents", "Agentic Workflows", "CLI", "Software Delivery", "Testing" ]
+tags: [ "AI", "Coding Agents", "Agentic Workflows", "Software Engineering", "Testing", "Developer Experience" ]
 seo:
   title: "Shipping solo with AI agents without reading code"
-  description: "AI is becoming a new abstraction for solo building: iterate on intent with a CLI agent, run, refine, read little code. Two field reports, real limits."
+  description: "AI is becoming a new abstraction for solo building: iterate on intent, run, refine, read little code. What enables it now, and why teams are harder."
 ---
 
 If your mental model of coding agents is stuck around May 2025, it is worth updating. The baseline shifts
@@ -79,12 +79,19 @@ A year ago, we had impressive models and lots of folklore. Big prompts, complex 
 
 Now, the enabling ingredients are getting boring, which is a compliment.
 
-Tools are more reliable. Agents are better at using tools without constant hand holding. The ecosystem is converging on
-shared patterns, including MCP for tool access and integration, and portable instruction files like agents.md and skills
-that let you carry conventions across projects.
+Tools are more reliable. Agents are better at using tools without constant guidance. The ecosystem is converging on
+shared building blocks: [MCP](https://modelcontextprotocol.io/), plus agent instruction surfaces
+like [AGENTS.md](https://agents.md/)
+and [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills). The
+practical benefit is simple: less prompt folklore, more repeatable guidance the agent can load when needed.
 
 And yes, the models seem better at the agentic part: planning, executing, noticing feedback, and staying on track across
 multiple steps.
+
+Another underrated piece is documentation as context. Both the workflow and the system get easier to iterate on when the
+agent also maintains the docs. A simple pattern like keeping living notes in `docs/*.md` gives the agent a stable place
+to write down decisions, setup steps, and how things are supposed to work, then update it as the project evolves. It
+reduces the need for long prompts and makes the loop more repeatable across sessions.
 
 This matters because it lowers the cost of keeping things simple. You do not need a complicated setup to get real
 iteration. You need an agent that can act and check.
@@ -158,13 +165,10 @@ survival mechanism.
 And we hit the same wall again: agents can produce more change than teams can comfortably review. A large pull request
 is not just more code. It is more decisions.
 
-So the next question is not "can I build solo without reading code".
+So here is what I care about next:
 
-It is:
-
-How do we keep the abstraction while building software with humans who need shared confidence?
-
-How do we avoid turning humans into the review bottleneck again?
+- **Keeping the abstraction:** How do we build with humans who need shared understanding and confidence?
+- **Avoiding the bottleneck:** How do we keep validation fast without turning humans into the approval gate again?
 
 That is the follow up article I want to write next.
 
