@@ -73,6 +73,7 @@ const PurePreviewMessage = ({
   isReadonly,
   requiresScrollPadding,
   selectedChatModel,
+  sendMessage,
 }: {
   chatId: string;
   message: ChatMessage;
@@ -85,6 +86,7 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
   requiresScrollPadding: boolean;
   selectedChatModel: string;
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const attachmentsFromMessage = message.parts.filter(
@@ -842,6 +844,7 @@ const PurePreviewMessage = ({
                 vote={vote}
                 isLoading={isLoading}
                 isReadonly={isReadonly}
+                sendMessage={sendMessage}
               />
             )}
           </div>
