@@ -270,7 +270,7 @@ const PurePreviewMessage = ({
         type:
           part.type === 'reasoning'
             ? ('reasoning' as const)
-            : part.type.startsWith('tool-')
+            : part.type.startsWith('tool-') && part.type !== 'tool-publishAutoDoc'
               ? ('tool' as const)
               : ('other' as const),
       }))
