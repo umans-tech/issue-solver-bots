@@ -2,6 +2,7 @@ import logging
 import os
 
 import asyncpg
+import boto3
 from fastapi import Header
 from redis import Redis
 
@@ -20,6 +21,10 @@ from issue_solver.events.event_store import EventStore
 from issue_solver.git_operations.git_helper import (
     DefaultGitValidationService,
     GitValidationService,
+)
+from issue_solver.worker.documenting.knowledge_repository import KnowledgeRepository
+from issue_solver.worker.documenting.s3_knowledge_repository import (
+    S3KnowledgeRepository,
 )
 from issue_solver.logging_config import default_logging_config
 from starlette.requests import Request
@@ -57,6 +62,18 @@ def get_clock() -> Clock:
 
 def get_validation_service() -> GitValidationService:
     return DefaultGitValidationService()
+
+
+def get_knowledge_repository() -> KnowledgeRepository:
+    bucket_name = os.environ.get("KNOWLEDGE_BUCKET_NAME") or os.environ.get(
+        "BLOB_BUCKET_NAME"
+    )
+    if not bucket_name:
+        raise RuntimeError("KNOWLEDGE_BUCKET_NAME is not configured")
+    return S3KnowledgeRepository(
+        s3_client=boto3.client("s3"),
+        bucket_name=bucket_name,
+    )
 
 
 async def init_webapi_event_store() -> EventStore:

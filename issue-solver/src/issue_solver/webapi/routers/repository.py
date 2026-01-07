@@ -32,7 +32,7 @@ from issue_solver.webapi.payloads import (
     AutoDocumentationConfigRequest,
     AutoDocumentationDeleteRequest,
     AutoDocManualGenerationRequest,
-    AutoDocPublishCompletedRequest,
+    AutoDocPublishRequest,
 )
 from issue_solver.events.auto_documentation import (
     load_auto_documentation_setup,
@@ -43,6 +43,11 @@ from issue_solver.events.domain import (
     DocumentationGenerationRequested,
     DocumentationGenerationCompleted,
 )
+from issue_solver.worker.documenting.knowledge_repository import (
+    KnowledgeBase,
+    KnowledgeRepository,
+)
+from issue_solver.webapi.dependencies import get_knowledge_repository
 from issue_solver.worker.logging_config import logger as worker_logger
 from openai import OpenAI
 
@@ -529,25 +534,28 @@ async def trigger_auto_document_generation(
 
 
 @router.post(
-    "/{knowledge_base_id}/auto-documentation/publish-completed",
+    "/{knowledge_base_id}/auto-documentation/publish",
     status_code=201,
 )
-async def record_auto_documentation_publish(
+async def publish_auto_documentation(
     knowledge_base_id: str,
-    request: AutoDocPublishCompletedRequest,
+    request: AutoDocPublishRequest,
     user_id: Annotated[str, Depends(get_user_id_or_default)],
     event_store: Annotated[EventStore, Depends(get_event_store)],
     clock: Annotated[Clock, Depends(get_clock)],
+    knowledge_repository: Annotated[
+        KnowledgeRepository, Depends(get_knowledge_repository)
+    ],
     logger: Annotated[
         logging.Logger | logging.LoggerAdapter,
         Depends(
             lambda: get_logger(
-                "issue_solver.webapi.routers.repository.record_auto_doc_publish"
+                "issue_solver.webapi.routers.repository.publish_auto_doc"
             )
         ),
     ],
 ):
-    """Record a completed auto-doc publish so updates can seed from it."""
+    """Publish a chat-approved doc as auto documentation and record completion."""
 
     await _ensure_repository_connection_or_404(
         knowledge_base_id=knowledge_base_id,
@@ -555,43 +563,72 @@ async def record_auto_documentation_publish(
         logger=logger,
     )
 
-    setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
-    if request.prompt_id not in setup.docs_prompts:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Prompt {request.prompt_id} not found for knowledge base {knowledge_base_id}",
-        )
-
     latest_commit = await _latest_indexed_commit(event_store, knowledge_base_id)
     if not latest_commit:
         raise HTTPException(
             status_code=409,
             detail="Repository has not been indexed yet; cannot publish documentation.",
         )
-    if request.code_version != latest_commit:
-        raise HTTPException(
-            status_code=409,
-            detail="Stale code version; publish against the latest indexed commit.",
-        )
 
-    process_id = request.process_id or str(uuid.uuid4())
-    run_id = request.run_id or str(uuid.uuid4())
+    normalized = _normalize_doc_path(request.path)
+    if normalized is None:
+        raise HTTPException(status_code=400, detail="Invalid doc path.")
+    doc_path, prompt_id = normalized
+
+    prompt_description = request.prompt_description.strip()
+    if not prompt_description:
+        raise HTTPException(status_code=400, detail="Prompt description is required.")
+
+    content = request.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Content is required.")
+
+    auto_doc_setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
+    prompts_process_id = auto_doc_setup.last_process_id or str(uuid.uuid4())
+    prompts_event = DocumentationPromptsDefined(
+        knowledge_base_id=knowledge_base_id,
+        user_id=user_id,
+        docs_prompts={prompt_id: prompt_description},
+        process_id=prompts_process_id,
+        occurred_at=clock.now(),
+    )
+    await event_store.append(prompts_process_id, prompts_event)
+
+    process_id = str(uuid.uuid4())
+    run_id = str(uuid.uuid4())
+    metadata: dict[str, str] = {
+        "origin": "auto",
+        "source": "conversation",
+        "process_id": process_id,
+    }
+    if request.chat_id:
+        metadata["chat_id"] = request.chat_id
+    if request.message_id:
+        metadata["message_id"] = request.message_id
+
+    knowledge_repository.add(
+        KnowledgeBase(knowledge_base_id, latest_commit),
+        doc_path,
+        content,
+        metadata=metadata,
+    )
+
     event = DocumentationGenerationCompleted(
         knowledge_base_id=knowledge_base_id,
-        prompt_id=request.prompt_id,
-        code_version=request.code_version,
+        prompt_id=prompt_id,
+        code_version=latest_commit,
         run_id=run_id,
-        generated_documents=request.generated_documents,
+        generated_documents=[doc_path],
         process_id=process_id,
         occurred_at=clock.now(),
     )
     await event_store.append(process_id, event)
     worker_logger.info(
-        "Auto-doc publish recorded",
+        "Auto-doc publish completed",
         extra={
             "knowledge_base_id": knowledge_base_id,
-            "prompt_id": request.prompt_id,
-            "code_version": request.code_version,
+            "prompt_id": prompt_id,
+            "code_version": latest_commit,
             "process_id": process_id,
             "run_id": run_id,
             "user_id": user_id,
@@ -602,9 +639,10 @@ async def record_auto_documentation_publish(
         "process_id": process_id,
         "run_id": run_id,
         "knowledge_base_id": knowledge_base_id,
-        "prompt_id": request.prompt_id,
-        "code_version": request.code_version,
-        "generated_documents": request.generated_documents,
+        "prompt_id": prompt_id,
+        "code_version": latest_commit,
+        "generated_documents": [doc_path],
+        "path": doc_path,
     }
 
 
@@ -677,6 +715,20 @@ def _validate_repository_access(connect_repository_request, logger, validation_s
     except GitValidationError as e:
         logger.error(f"Repository validation failed: {e.message}")
         raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
+def _normalize_doc_path(path: str) -> tuple[str, str] | None:
+    if not path:
+        return None
+    trimmed = path.strip().lstrip("/").replace("\\", "/")
+    if not trimmed:
+        return None
+    segments = trimmed.split("/")
+    if any(segment in ("", ".", "..") for segment in segments):
+        return None
+    if trimmed.lower().endswith(".md"):
+        return trimmed, trimmed[:-3]
+    return f"{trimmed}.md", trimmed
 
 
 async def _latest_indexed_commit(

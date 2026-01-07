@@ -19,22 +19,20 @@ This feature allows a user to turn an approved chat output into an auto-doc that
 1) User asks in chat: “Turn this into auto documentation.”
 2) The assistant calls `publishAutoDoc` for the approved output.
 3) The model infers a prompt description from the conversation and output.
-4) The tool fetches the latest indexed commit and registers the prompt.
-5) The tool writes the doc to S3 with auto metadata and records a completed generation event.
-6) The doc appears in Docs tab as an auto doc and updates on next indexing.
+4) The backend fetches the latest indexed commit, registers the prompt, writes the doc, and records completion.
+5) The doc appears in Docs tab as an auto doc and updates on next indexing.
 
 ## 4) Backend Design
 
-### 4.1 Endpoints Used
+### 4.1 Endpoint
 
-- `GET /repositories/{knowledge_base_id}/auto-documentation/latest-indexed-commit`
-- `POST /repositories/{knowledge_base_id}/auto-documentation` (existing prompt config)
-- `POST /repositories/{knowledge_base_id}/auto-documentation/publish-completed`
+- `POST /repositories/{knowledge_base_id}/auto-documentation/publish`
 
 Behavior:
 - Validate repo connection exists.
 - Require latest indexed commit (otherwise return 409).
 - Define/overwrite prompt mapping via `DocumentationPromptsDefined`.
+- Write doc content to S3 with auto metadata.
 - Record a `DocumentationGenerationCompleted` event for the prompt and commit.
 
 ### 4.2 Prompt ID Strategy
@@ -49,7 +47,7 @@ Behavior:
 - Path supports folders and is normalized to a `.md` file.
 
 ### 5.2 Storage
-- The tool writes the markdown file directly to S3 under the latest commit.
+- The backend writes the markdown file to S3 under the latest commit.
 - Metadata is updated in `__metadata__.json` with:
   - `origin: auto`
   - `source: conversation`

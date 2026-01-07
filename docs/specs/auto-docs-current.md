@@ -21,6 +21,19 @@ Umans supports automatic documentation generated from code via prompt definition
 - The worker generates markdown and writes to S3.
 - The Docs UI reads S3 and renders the latest commit’s docs.
 
+```mermaid
+sequenceDiagram
+  participant UI as Docs UI
+  participant WebAPI as Issue-Solver WebAPI
+  participant Worker
+  participant S3 as Knowledge Bucket
+
+  UI->>WebAPI: Index request / repo sync
+  WebAPI->>Worker: CodeRepositoryIndexed event
+  Worker->>S3: Write markdown + __metadata__.json
+  UI->>S3: List + fetch docs for latest commit
+```
+
 ## 4) Key Concepts
 
 - Knowledge base: the repo-linked identifier used by indexing and docs.
@@ -62,46 +75,26 @@ Umans supports automatic documentation generated from code via prompt definition
   - `__metadata__.json`
 - Auto-docs are marked with `origin: auto`.
 
-### 5.5 Docs UI
-
-- Docs tab lists files from S3 and uses metadata to display origin and approvals.
-- Doc prompts can be configured via the Docs Setup panel.
-
-## 6) Diagrams
-
-### 6.1 Index-to-Docs Sequence
-
-```mermaid
-sequenceDiagram
-  participant WebAPI as Issue-Solver WebAPI
-  participant Worker
-  participant S3 as Knowledge Bucket
-  participant UI as Docs UI
-
-  WebAPI->>Worker: CodeRepositoryIndexed event
-  Worker->>Worker: Generate docs for prompts
-  Worker->>S3: Write markdown + __metadata__.json
-  UI->>S3: List docs for latest commit
-  UI->>S3: Fetch selected doc content
-```
-
-### 6.2 Storage Layout
-
 ```mermaid
 flowchart TD
-  A[base/{knowledge_base_id}/docs/{commit_sha}/] --> B[index.md]
+  A["base/{knowledge_base_id}/docs/{commit_sha}/"] --> B[index.md]
   A --> C[architecture/overview.md]
   A --> D[runbook.md]
   A --> E[__metadata__.json]
 ```
 
-## 7) Failure Modes (Observed)
+### 5.5 Docs UI
+
+- Docs tab lists files from S3 and uses metadata to display origin and approvals.
+- Doc prompts can be configured via the Docs Setup panel.
+
+## 6) Failure Modes (Observed)
 
 - No prompts defined: no auto-doc generation on index.
 - Repo not indexed: manual generation returns 409.
 - Missing prompt: manual generation returns 404.
 
-## 8) Key Paths (Reference)
+## 7) Key Paths (Reference)
 
 Backend:
 - `src/issue_solver/events/auto_documentation.py`

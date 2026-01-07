@@ -7,14 +7,18 @@ from fastapi import HTTPException
 from issue_solver.events.domain import (
     CodeRepositoryConnected,
     CodeRepositoryIndexed,
-    DocumentationPromptsDefined,
     DocumentationGenerationCompleted,
+    DocumentationPromptsDefined,
 )
 from issue_solver.events.event_store import InMemoryEventStore
-from issue_solver.webapi.payloads import AutoDocPublishCompletedRequest
+from issue_solver.webapi.payloads import AutoDocPublishRequest
 from issue_solver.webapi.routers.repository import (
     get_latest_auto_documentation_commit,
-    record_auto_documentation_publish,
+    publish_auto_documentation,
+)
+from issue_solver.worker.documenting.knowledge_repository import (
+    KnowledgeBase,
+    KnowledgeRepository,
 )
 from tests.controllable_clock import ControllableClock
 
@@ -30,6 +34,39 @@ def build_connected_repo(kb_id: str, occurred_at: datetime):
         occurred_at=occurred_at,
         token_permissions=None,
     )
+
+
+class InMemoryKnowledgeRepository(KnowledgeRepository):
+    def __init__(self) -> None:
+        self._docs: dict[tuple[str, str, str], str] = {}
+        self._metadata: dict[tuple[str, str, str], dict[str, str]] = {}
+
+    def contains(self, base: KnowledgeBase, document_name: str) -> bool:
+        return (base.id, base.version, document_name) in self._docs
+
+    def add(
+        self,
+        base: KnowledgeBase,
+        document_name: str,
+        content: str,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        self._docs[(base.id, base.version, document_name)] = content
+        if metadata:
+            self._metadata[(base.id, base.version, document_name)] = metadata
+
+    def list_entries(self, base: KnowledgeBase) -> list[str]:
+        return [
+            name
+            for (kb_id, version, name), _ in self._docs.items()
+            if kb_id == base.id and version == base.version
+        ]
+
+    def get_content(self, base: KnowledgeBase, document_name: str) -> str:
+        return self._docs[(base.id, base.version, document_name)]
+
+    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
+        return self._metadata.get((base.id, base.version, document_name), {})
 
 
 @pytest.mark.asyncio
@@ -100,11 +137,12 @@ async def test_latest_indexed_commit_returns_409_when_missing():
 
 
 @pytest.mark.asyncio
-async def test_publish_completed_records_generation_completed_event():
+async def test_publish_auto_documentation_stores_doc_and_records_events():
     # Given
     event_store = InMemoryEventStore()
     clock = ControllableClock(datetime.fromisoformat("2025-01-01T00:00:00+00:00"))
     kb_id = "kb-auto-doc-publish"
+    knowledge_repository = InMemoryKnowledgeRepository()
 
     await event_store.append("conn", build_connected_repo(kb_id, clock.now()))
     await event_store.append(
@@ -118,133 +156,85 @@ async def test_publish_completed_records_generation_completed_event():
             occurred_at=clock.now(),
         ),
     )
-    await event_store.append(
-        "prompts",
-        DocumentationPromptsDefined(
-            knowledge_base_id=kb_id,
-            user_id="user-1",
-            docs_prompts={"overview": "Summarize the system"},
-            process_id="prompts",
-            occurred_at=clock.now(),
-        ),
-    )
 
-    request = AutoDocPublishCompletedRequest(
-        prompt_id="overview",
-        code_version="commit-123",
-        generated_documents=["overview.md"],
-        process_id="publish-1",
-        run_id="run-1",
+    request = AutoDocPublishRequest(
+        path="architecture/overview",
+        content="## Overview\nApproved content.",
+        prompt_description="Summarize the architecture for onboarding.",
+        title="Architecture Overview",
+        chat_id="chat-1",
+        message_id="msg-1",
     )
 
     # When
-    result = await record_auto_documentation_publish(
+    result = await publish_auto_documentation(
         knowledge_base_id=kb_id,
         request=request,
         user_id="user-1",
         event_store=event_store,
         clock=clock,
+        knowledge_repository=knowledge_repository,
         logger=logging.getLogger("test"),
     )
 
     # Then
-    assert result["process_id"] == "publish-1"
-    assert result["run_id"] == "run-1"
+    assert result["prompt_id"] == "architecture/overview"
+    assert result["code_version"] == "commit-123"
+    assert result["generated_documents"] == ["architecture/overview.md"]
 
-    events = await event_store.get("publish-1")
-    assert len(events) == 1
-    event = events[0]
-    assert isinstance(event, DocumentationGenerationCompleted)
-    assert event.prompt_id == "overview"
-    assert event.code_version == "commit-123"
-    assert event.generated_documents == ["overview.md"]
+    stored_content = knowledge_repository.get_content(
+        KnowledgeBase(kb_id, "commit-123"), "architecture/overview.md"
+    )
+    assert "Approved content" in stored_content
+
+    stored_metadata = knowledge_repository.get_metadata(
+        KnowledgeBase(kb_id, "commit-123"), "architecture/overview.md"
+    )
+    assert stored_metadata["origin"] == "auto"
+    assert stored_metadata["source"] == "conversation"
+    assert stored_metadata["chat_id"] == "chat-1"
+    assert stored_metadata["message_id"] == "msg-1"
+
+    prompts_events = await event_store.find(
+        {"knowledge_base_id": kb_id}, DocumentationPromptsDefined
+    )
+    assert prompts_events
+    assert prompts_events[-1].docs_prompts == {
+        "architecture/overview": "Summarize the architecture for onboarding."
+    }
+
+    generation_events = await event_store.find(
+        {"knowledge_base_id": kb_id}, DocumentationGenerationCompleted
+    )
+    assert generation_events
+    assert generation_events[-1].generated_documents == ["architecture/overview.md"]
 
 
 @pytest.mark.asyncio
-async def test_publish_completed_returns_404_when_prompt_missing():
+async def test_publish_auto_documentation_returns_409_when_repo_not_indexed():
     # Given
     event_store = InMemoryEventStore()
     clock = ControllableClock(datetime.fromisoformat("2025-01-01T00:00:00+00:00"))
-    kb_id = "kb-auto-doc-missing-prompt"
+    kb_id = "kb-auto-doc-no-index"
+    knowledge_repository = InMemoryKnowledgeRepository()
 
     await event_store.append("conn", build_connected_repo(kb_id, clock.now()))
-    await event_store.append(
-        "indexed",
-        CodeRepositoryIndexed(
-            branch="main",
-            commit_sha="commit-123",
-            stats={},
-            knowledge_base_id=kb_id,
-            process_id="indexed",
-            occurred_at=clock.now(),
-        ),
-    )
 
-    request = AutoDocPublishCompletedRequest(
-        prompt_id="overview",
-        code_version="commit-123",
-        generated_documents=["overview.md"],
+    request = AutoDocPublishRequest(
+        path="overview",
+        content="Docs",
+        prompt_description="Summarize the repo.",
     )
 
     # When
     with pytest.raises(HTTPException) as exc:
-        await record_auto_documentation_publish(
+        await publish_auto_documentation(
             knowledge_base_id=kb_id,
             request=request,
             user_id="user-1",
             event_store=event_store,
             clock=clock,
-            logger=logging.getLogger("test"),
-        )
-
-    # Then
-    assert exc.value.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_publish_completed_returns_409_when_commit_is_stale():
-    # Given
-    event_store = InMemoryEventStore()
-    clock = ControllableClock(datetime.fromisoformat("2025-01-01T00:00:00+00:00"))
-    kb_id = "kb-auto-doc-stale"
-
-    await event_store.append("conn", build_connected_repo(kb_id, clock.now()))
-    await event_store.append(
-        "indexed",
-        CodeRepositoryIndexed(
-            branch="main",
-            commit_sha="commit-123",
-            stats={},
-            knowledge_base_id=kb_id,
-            process_id="indexed",
-            occurred_at=clock.now(),
-        ),
-    )
-    await event_store.append(
-        "prompts",
-        DocumentationPromptsDefined(
-            knowledge_base_id=kb_id,
-            user_id="user-1",
-            docs_prompts={"overview": "Summarize the system"},
-            process_id="prompts",
-            occurred_at=clock.now(),
-        ),
-    )
-
-    request = AutoDocPublishCompletedRequest(
-        prompt_id="overview",
-        code_version="commit-older",
-        generated_documents=["overview.md"],
-    )
-
-    # When
-    with pytest.raises(HTTPException) as exc:
-        await record_auto_documentation_publish(
-            knowledge_base_id=kb_id,
-            request=request,
-            user_id="user-1",
-            event_store=event_store,
-            clock=clock,
+            knowledge_repository=knowledge_repository,
             logger=logging.getLogger("test"),
         )
 

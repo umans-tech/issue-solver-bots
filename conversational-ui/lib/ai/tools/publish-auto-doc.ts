@@ -1,21 +1,12 @@
 import { z } from 'zod';
 import { tool, type UIMessageStreamWriter } from 'ai';
 import type { Session } from 'next-auth';
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
-
 import type { ChatMessage } from '@/lib/types';
-import { generateUUID } from '@/lib/utils';
 
 interface PublishAutoDocProps {
   session: Session;
   dataStream: UIMessageStreamWriter<ChatMessage>;
 }
-
-type Manifest = Record<string, Record<string, string>>;
 
 type DocPathResult = { docPath: string; promptId: string } | { error: string };
 
@@ -43,31 +34,6 @@ const sanitizeDocPath = (value: string): DocPathResult => {
   const promptId = hasMarkdownExtension ? trimmed.slice(0, -3) : trimmed;
 
   return { docPath, promptId };
-};
-
-const streamToString = async (stream: any): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const chunks: any[] = [];
-    stream.on('data', (chunk: any) => chunks.push(Buffer.from(chunk)));
-    stream.on('error', (err: any) => reject(err));
-    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-  });
-
-const loadManifest = async (
-  s3Client: S3Client,
-  bucket: string,
-  key: string,
-): Promise<Manifest> => {
-  try {
-    const res = await s3Client.send(
-      new GetObjectCommand({ Bucket: bucket, Key: key }),
-    );
-    const bodyString = await streamToString(res.Body);
-    const parsed = JSON.parse(bodyString);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
 };
 
 export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
@@ -140,113 +106,8 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
         return { error: 'CUDU API endpoint is not configured' };
       }
 
-      const latestCommitResponse = await fetch(
-        `${cuduEndpoint}/repositories/${kbId}/auto-documentation/latest-indexed-commit`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-ID': session.user?.id || 'unknown',
-          },
-        },
-      );
-
-      if (!latestCommitResponse.ok) {
-        const errorData = await latestCommitResponse.json().catch(() => ({}));
-        return {
-          error:
-            errorData?.detail ||
-            errorData?.error ||
-            'Failed to resolve latest indexed commit',
-        };
-      }
-
-      const latestCommitPayload = await latestCommitResponse.json();
-      const commitSha = latestCommitPayload?.commit_sha;
-      if (!commitSha) {
-        return { error: 'Latest commit not found for this repository.' };
-      }
-
-      const promptResponse = await fetch(
-        `${cuduEndpoint}/repositories/${kbId}/auto-documentation`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-ID': session.user?.id || 'unknown',
-          },
-          body: JSON.stringify({ docsPrompts: { [promptId]: prompt } }),
-        },
-      );
-
-      if (!promptResponse.ok) {
-        const errorData = await promptResponse.json().catch(() => ({}));
-        return {
-          error:
-            errorData?.detail ||
-            errorData?.error ||
-            'Failed to configure auto-documentation prompts',
-        };
-      }
-
-      const bucket = process.env.BLOB_BUCKET_NAME || '';
-      const region = process.env.BLOB_REGION || '';
-      const endpoint = process.env.BLOB_ENDPOINT || '';
-      const accessKeyId = process.env.BLOB_ACCESS_KEY_ID || '';
-      const secretAccessKey = process.env.BLOB_READ_WRITE_TOKEN || '';
-
-      if (!bucket || !region || !accessKeyId || !secretAccessKey) {
-        return { error: 'Docs storage is not configured.' };
-      }
-
-      const s3Client = new S3Client({
-        region,
-        endpoint,
-        forcePathStyle: !!endpoint,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-
-      const docKey = `base/${kbId}/docs/${commitSha}/${docPath}`;
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: docKey,
-          Body: bodyContent,
-          ContentType: 'text/markdown',
-        }),
-      );
-
-      const processId = generateUUID();
-      const runId = generateUUID();
-      const manifestKey = `base/${kbId}/docs/${commitSha}/__metadata__.json`;
-      const manifest = await loadManifest(s3Client, bucket, manifestKey);
-      const metadataUpdate: Record<string, string> = {
-        origin: 'auto',
-        process_id: processId,
-        source: 'conversation',
-      };
-      if (chatId) metadataUpdate.chat_id = chatId;
-      if (messageId) metadataUpdate.message_id = messageId;
-
-      manifest[docPath] = {
-        ...(manifest[docPath] || {}),
-        ...metadataUpdate,
-      };
-
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: manifestKey,
-          Body: JSON.stringify(manifest),
-          ContentType: 'application/json',
-        }),
-      );
-
-      const completionResponse = await fetch(
-        `${cuduEndpoint}/repositories/${kbId}/auto-documentation/publish-completed`,
+      const publishResponse = await fetch(
+        `${cuduEndpoint}/repositories/${kbId}/auto-documentation/publish`,
         {
           method: 'POST',
           headers: {
@@ -254,30 +115,35 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
             'X-User-ID': session.user?.id || 'unknown',
           },
           body: JSON.stringify({
-            promptId,
-            codeVersion: commitSha,
-            generatedDocuments: [docPath],
-            processId,
-            runId,
+            path: docPath,
+            content: bodyContent,
+            promptDescription: prompt,
+            title,
+            chatId,
+            messageId,
           }),
         },
       );
 
-      if (!completionResponse.ok) {
-        const errorData = await completionResponse.json().catch(() => ({}));
+      const publishPayload = await publishResponse.json().catch(() => ({}));
+
+      if (!publishResponse.ok) {
         return {
           error:
-            errorData?.detail ||
-            errorData?.error ||
-            'Failed to record auto-doc publish',
+            publishPayload?.detail ||
+            publishPayload?.error ||
+            'Failed to publish auto documentation',
         };
       }
 
+      const commitSha = publishPayload?.code_version;
       const encodedPath = docPath
         .split('/')
         .map((segment) => encodeURIComponent(segment))
         .join('/');
-      const docUrl = `/docs/${encodeURIComponent(kbId)}/${encodedPath}?v=${encodeURIComponent(commitSha)}`;
+      const docUrl = commitSha
+        ? `/docs/${encodeURIComponent(kbId)}/${encodedPath}?v=${encodeURIComponent(commitSha)}`
+        : `/docs/${encodeURIComponent(kbId)}/${encodedPath}`;
 
       return {
         ok: true,
@@ -286,8 +152,8 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
         commitSha,
         path: docPath,
         promptId,
-        processId,
-        runId,
+        processId: publishPayload?.process_id,
+        runId: publishPayload?.run_id,
         docUrl,
       };
     },

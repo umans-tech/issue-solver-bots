@@ -103,15 +103,14 @@ class AutoDocManualGenerationRequest(BaseSchema):
     mode: str = Field(default="update", pattern="^(update|complete)$")
 
 
-class AutoDocPublishCompletedRequest(BaseSchema):
-    prompt_id: str = Field(..., min_length=1, validation_alias=AliasChoices("promptId"))
-    code_version: str = Field(
-        ..., min_length=1, validation_alias=AliasChoices("codeVersion")
+class AutoDocPublishRequest(BaseSchema):
+    path: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
+    prompt_description: str = Field(
+        ..., min_length=1, validation_alias=AliasChoices("promptDescription")
     )
-    generated_documents: list[str] = Field(
-        ..., min_length=1, validation_alias=AliasChoices("generatedDocuments")
+    title: str | None = None
+    chat_id: str | None = Field(default=None, validation_alias=AliasChoices("chatId"))
+    message_id: str | None = Field(
+        default=None, validation_alias=AliasChoices("messageId")
     )
-    process_id: str | None = Field(
-        default=None, validation_alias=AliasChoices("processId")
-    )
-    run_id: str | None = Field(default=None, validation_alias=AliasChoices("runId"))
