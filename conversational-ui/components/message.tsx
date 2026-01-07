@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { Vote } from '@/lib/db/schema';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
-import { Copy, Pencil } from 'lucide-react';
+import { Copy, Loader2, Pencil } from 'lucide-react';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
@@ -637,8 +637,9 @@ const PurePreviewMessage = ({
                           }
                         />
                       ) : toolName === 'publishAutoDoc' ? (
-                        <div className="text-sm text-muted-foreground">
-                          Publishing to Docs...
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Publishing to Docs...</span>
                         </div>
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPAnimation toolName={toolName} args={input} />
