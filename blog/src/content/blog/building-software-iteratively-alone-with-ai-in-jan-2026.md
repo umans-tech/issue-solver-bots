@@ -110,7 +110,7 @@ That third point is the real one. If the agent cannot run, observe, and self cor
 manually, and the abstraction collapses back into reading and babysitting.
 
 This "self check" requirement is also where the next challenge begins, especially once you move from solo work to teams.
-It is something we work actively on at Umans.ai too. wink wink envs.umans.ai
+It is something we work actively on at Umans.ai too. _wink wink [envs.umans.ai](https://envs.umans.ai)_ 
 
 ## Promising, but not solved
 
