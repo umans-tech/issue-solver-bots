@@ -33,6 +33,7 @@ import { codebaseSearch } from '@/lib/ai/tools/codebase-search';
 import { webSearch } from '@/lib/ai/tools/web-search';
 import { remoteCodingAgent } from '@/lib/ai/tools/remote-coding-agent';
 import { fetchWebpage } from '@/lib/ai/tools/fetch-webpage';
+import { publishAutoDoc } from '@/lib/ai/tools/publish-auto-doc';
 import {
   createResumableStreamContext,
   type ResumableStreamContext,
@@ -248,6 +249,7 @@ export async function POST(request: Request) {
           'webSearch',
           'remoteCodingAgent',
           'fetchWebpage',
+          'publishAutoDoc',
           // @ts-expect-error
           ...activeTools,
         ],
@@ -278,6 +280,10 @@ export async function POST(request: Request) {
             dataStream,
           }),
           fetchWebpage: fetchWebpage({
+            session,
+            dataStream,
+          }),
+          publishAutoDoc: publishAutoDoc({
             session,
             dataStream,
           }),

@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { AutoDocPublishResult } from './auto-doc-publish';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { useLocalStorage } from 'usehooks-ts';
 import { Sources } from './sources';
@@ -635,6 +636,10 @@ const PurePreviewMessage = ({
                             (input as ChatTools['fetchWebpage']['input'])?.url
                           }
                         />
+                      ) : toolName === 'publishAutoDoc' ? (
+                        <div className="text-sm text-muted-foreground">
+                          Publishing to Docs...
+                        </div>
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPAnimation toolName={toolName} args={input} />
                       ) : isGitHubMCPTool(toolName) ? (
@@ -798,6 +803,8 @@ const PurePreviewMessage = ({
                           result={result}
                           url={(args as ChatTools['fetchWebpage']['input']).url}
                         />
+                      ) : toolName === 'publishAutoDoc' ? (
+                        <AutoDocPublishResult result={result} />
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPResult
                           toolName={toolName}

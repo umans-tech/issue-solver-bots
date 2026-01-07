@@ -32,6 +32,7 @@ from issue_solver.webapi.payloads import (
     AutoDocumentationConfigRequest,
     AutoDocumentationDeleteRequest,
     AutoDocManualGenerationRequest,
+    AutoDocPublishCompletedRequest,
 )
 from issue_solver.events.auto_documentation import (
     load_auto_documentation_setup,
@@ -40,6 +41,7 @@ from issue_solver.events.auto_documentation import (
 )
 from issue_solver.events.domain import (
     DocumentationGenerationRequested,
+    DocumentationGenerationCompleted,
 )
 from issue_solver.worker.logging_config import logger as worker_logger
 from openai import OpenAI
@@ -436,6 +438,41 @@ async def get_auto_documentation(
     }
 
 
+@router.get(
+    "/{knowledge_base_id}/auto-documentation/latest-indexed-commit",
+    status_code=200,
+)
+async def get_latest_auto_documentation_commit(
+    knowledge_base_id: str,
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.get_latest_auto_doc_commit"
+            )
+        ),
+    ],
+):
+    """Return the latest indexed commit for auto-documentation publishing."""
+
+    await _ensure_repository_connection_or_404(
+        knowledge_base_id=knowledge_base_id,
+        event_store=event_store,
+        logger=logger,
+    )
+    latest_commit = await _latest_indexed_commit(event_store, knowledge_base_id)
+    if not latest_commit:
+        raise HTTPException(
+            status_code=409,
+            detail="Repository has not been indexed yet; cannot publish documentation.",
+        )
+    return {
+        "knowledge_base_id": knowledge_base_id,
+        "commit_sha": latest_commit,
+    }
+
+
 @router.post(
     "/{knowledge_base_id}/auto-documentation/generate",
     status_code=201,
@@ -489,6 +526,86 @@ async def trigger_auto_document_generation(
         },
     )
     return {"process_id": process_id, "run_id": run_id}
+
+
+@router.post(
+    "/{knowledge_base_id}/auto-documentation/publish-completed",
+    status_code=201,
+)
+async def record_auto_documentation_publish(
+    knowledge_base_id: str,
+    request: AutoDocPublishCompletedRequest,
+    user_id: Annotated[str, Depends(get_user_id_or_default)],
+    event_store: Annotated[EventStore, Depends(get_event_store)],
+    clock: Annotated[Clock, Depends(get_clock)],
+    logger: Annotated[
+        logging.Logger | logging.LoggerAdapter,
+        Depends(
+            lambda: get_logger(
+                "issue_solver.webapi.routers.repository.record_auto_doc_publish"
+            )
+        ),
+    ],
+):
+    """Record a completed auto-doc publish so updates can seed from it."""
+
+    await _ensure_repository_connection_or_404(
+        knowledge_base_id=knowledge_base_id,
+        event_store=event_store,
+        logger=logger,
+    )
+
+    setup = await load_auto_documentation_setup(event_store, knowledge_base_id)
+    if request.prompt_id not in setup.docs_prompts:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Prompt {request.prompt_id} not found for knowledge base {knowledge_base_id}",
+        )
+
+    latest_commit = await _latest_indexed_commit(event_store, knowledge_base_id)
+    if not latest_commit:
+        raise HTTPException(
+            status_code=409,
+            detail="Repository has not been indexed yet; cannot publish documentation.",
+        )
+    if request.code_version != latest_commit:
+        raise HTTPException(
+            status_code=409,
+            detail="Stale code version; publish against the latest indexed commit.",
+        )
+
+    process_id = request.process_id or str(uuid.uuid4())
+    run_id = request.run_id or str(uuid.uuid4())
+    event = DocumentationGenerationCompleted(
+        knowledge_base_id=knowledge_base_id,
+        prompt_id=request.prompt_id,
+        code_version=request.code_version,
+        run_id=run_id,
+        generated_documents=request.generated_documents,
+        process_id=process_id,
+        occurred_at=clock.now(),
+    )
+    await event_store.append(process_id, event)
+    worker_logger.info(
+        "Auto-doc publish recorded",
+        extra={
+            "knowledge_base_id": knowledge_base_id,
+            "prompt_id": request.prompt_id,
+            "code_version": request.code_version,
+            "process_id": process_id,
+            "run_id": run_id,
+            "user_id": user_id,
+        },
+    )
+
+    return {
+        "process_id": process_id,
+        "run_id": run_id,
+        "knowledge_base_id": knowledge_base_id,
+        "prompt_id": request.prompt_id,
+        "code_version": request.code_version,
+        "generated_documents": request.generated_documents,
+    }
 
 
 @router.get(

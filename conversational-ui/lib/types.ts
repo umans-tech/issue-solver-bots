@@ -11,6 +11,7 @@ import type { codebaseSearch } from './ai/tools/codebase-search';
 import type { webSearch } from './ai/tools/web-search';
 import type { remoteCodingAgent } from './ai/tools/remote-coding-agent';
 import type { fetchWebpage } from './ai/tools/fetch-webpage';
+import type { publishAutoDoc } from './ai/tools/publish-auto-doc';
 
 export type DataPart = { type: 'append-message'; message: string };
 
@@ -30,6 +31,7 @@ type codebaseSearchTool = InferUITool<ReturnType<typeof codebaseSearch>>;
 type webSearchTool = InferUITool<ReturnType<typeof webSearch>>;
 type remoteCodingAgentTool = InferUITool<ReturnType<typeof remoteCodingAgent>>;
 type fetchWebpageTool = InferUITool<ReturnType<typeof fetchWebpage>>;
+type publishAutoDocTool = InferUITool<ReturnType<typeof publishAutoDoc>>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -40,6 +42,7 @@ export type ChatTools = {
   webSearch: webSearchTool;
   remoteCodingAgent: remoteCodingAgentTool;
   fetchWebpage: fetchWebpageTool;
+  publishAutoDoc: publishAutoDocTool;
 };
 
 export type CustomUIDataTypes = {
