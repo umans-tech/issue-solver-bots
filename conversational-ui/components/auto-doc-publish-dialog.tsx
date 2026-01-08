@@ -27,13 +27,15 @@ export function AutoDocPublishDialog({
   defaultPath,
   onPublish,
 }: AutoDocPublishDialogProps) {
-  const [title, setTitle] = useState(defaultTitle);
-  const [path, setPath] = useState(defaultPath);
+  const [title, setTitle] = useState('');
+  const [path, setPath] = useState('');
+  const [isCustomizing, setIsCustomizing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setTitle(defaultTitle);
-    setPath(defaultPath);
+    setTitle('');
+    setPath('');
+    setIsCustomizing(false);
   }, [defaultPath, defaultTitle, open]);
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -49,28 +51,64 @@ export function AutoDocPublishDialog({
           <AlertDialogTitle>Publish to Docs</AlertDialogTitle>
         </AlertDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="auto-doc-title">Title</Label>
-            <Input
-              id="auto-doc-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Doc title"
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="auto-doc-path">Doc path</Label>
-            <Input
-              id="auto-doc-path"
-              value={path}
-              onChange={(event) => setPath(event.target.value)}
-              placeholder="architecture/overview"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Supports folders. We'll save it as a markdown file.
-            </p>
-          </div>
+          {!isCustomizing ? (
+            <div className="rounded-md border border-dashed border-border/70 bg-muted/30 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground">
+                  Auto-generated from the conversation.
+                </div>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto px-0 text-sm"
+                  onClick={() => setIsCustomizing(true)}
+                >
+                  Customize
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Optional. Leave blank to auto-generate.
+                </p>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="h-auto px-0 text-xs"
+                  onClick={() => {
+                    setTitle(defaultTitle);
+                    setPath(defaultPath);
+                  }}
+                >
+                  Suggest
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="auto-doc-title">Title</Label>
+                <Input
+                  id="auto-doc-title"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Doc title"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="auto-doc-path">Doc path</Label>
+                <Input
+                  id="auto-doc-path"
+                  value={path}
+                  onChange={(event) => setPath(event.target.value)}
+                  placeholder="architecture/overview"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Supports folders. We'll save it as a markdown file.
+                </p>
+              </div>
+            </>
+          )}
           <AlertDialogFooter>
             <Button
               type="button"
@@ -79,7 +117,7 @@ export function AutoDocPublishDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!path.trim()}>
+            <Button type="submit">
               Publish
             </Button>
           </AlertDialogFooter>

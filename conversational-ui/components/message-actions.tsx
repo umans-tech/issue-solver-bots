@@ -109,18 +109,20 @@ export function PureMessageActions({
       return;
     }
 
-    const docTitle = title.trim() || defaultTitle;
+    const docTitle = title.trim();
     const docPath = path.trim();
-    if (!docPath) {
-      toast.error('Doc path is required.');
-      return;
-    }
+    const titleLine = docTitle
+      ? `Title: ${docTitle}`
+      : 'Title: (choose a short, human-readable title)';
+    const pathLine = docPath
+      ? `Path: ${docPath}`
+      : 'Path: (choose a short, stable doc path; supports folders)';
 
     const publishPrompt = [
       'Please publish the following assistant response as auto documentation.',
       '',
-      `Path: ${docPath}`,
-      `Title: ${docTitle}`,
+      titleLine,
+      pathLine,
       `Chat ID: ${chatId}`,
       `Message ID: ${message.id}`,
       '',
