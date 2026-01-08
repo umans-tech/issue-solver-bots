@@ -316,6 +316,7 @@ function PureArtifact({
                   messages={messages}
                   setMessages={setMessages}
                   regenerate={regenerate}
+                  sendMessage={sendMessage}
                   stop={stop}
                   isReadonly={isReadonly}
                   artifactStatus={artifact.status}

@@ -579,6 +579,38 @@ const PurePreviewMessage = ({
                 return null;
               }
 
+              if ((part as any).type === 'tool-invocation') {
+                const { toolInvocation } = part as any;
+                const { toolName, toolCallId, state, result } =
+                  toolInvocation || {};
+
+                if (toolName !== 'publishAutoDoc') {
+                  return null;
+                }
+
+                if (state === 'call' || state === 'partial-call') {
+                  return (
+                    <div
+                      key={toolCallId || key}
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Publishing to Docs...</span>
+                    </div>
+                  );
+                }
+
+                if (state === 'result') {
+                  return (
+                    <div key={toolCallId || key}>
+                      <AutoDocPublishResult result={result} />
+                    </div>
+                  );
+                }
+
+                return null;
+              }
+
               if (type.startsWith('tool-')) {
                 const toolName = type.split('-')[1];
                 const { toolCallId, state, input } =
@@ -668,6 +700,18 @@ const PurePreviewMessage = ({
                         issueDescription={issueDescription}
                         result={null}
                       />
+                    );
+                  }
+
+                  if (toolName === 'publishAutoDoc') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Publishing to Docs...</span>
+                      </div>
                     );
                   }
 

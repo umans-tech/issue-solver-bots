@@ -15,6 +15,7 @@ interface ArtifactMessagesProps {
   messages: ChatMessage[];
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   stop: UseChatHelpers<ChatMessage>['stop'];
   isReadonly: boolean;
   artifactStatus: UIArtifact['status'];
@@ -28,6 +29,7 @@ function PureArtifactMessages({
   messages,
   setMessages,
   regenerate,
+  sendMessage,
   stop,
   isReadonly,
   selectedChatModel,
@@ -60,6 +62,7 @@ function PureArtifactMessages({
           }
           setMessages={setMessages}
           regenerate={regenerate}
+          sendMessage={sendMessage}
           stop={stop}
           status={status}
           isReadonly={isReadonly}

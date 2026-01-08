@@ -21,6 +21,7 @@
 - To install dependencies (only when the task actually needs them refreshed), run `cd conversational-ui && just install`; it shells out to pnpm install.
 - To run the UI for explicit end-to-end requests, the usual order is `just start-services` (one-time Postgres/Redis/MinIO stack) followed by `just dev`, which applies Drizzle migrations and launches `pnpm dev` on port 3000 (auto-increments when occupied). Skip this entire sequence unless the user specifically asks for a live UI.
 - Quality guardrail is `just build` (Next build + Drizzle). `just lint` remains red until lint debt is paid down, so leave it alone unless the task is lint remediation; use `pnpm format` and migrations (`pnpm db:generate`, `pnpm db:migrate`) for schema changes.
+- When Postgres is not running, use `pnpm build:only` to verify the Next.js build without migrations.
 
 ## Backend (`issue-solver`)
 
