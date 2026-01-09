@@ -598,13 +598,23 @@ async def publish_auto_documentation(
     run_id = str(uuid.uuid4())
     metadata: dict[str, str] = {
         "origin": "auto",
-        "source": "conversation",
         "process_id": process_id,
     }
+    source_metadata: dict[str, str] = {}
+    if request.source:
+        source_metadata.update(request.source)
     if request.chat_id:
-        metadata["chat_id"] = request.chat_id
+        source_metadata.setdefault("chat_id", request.chat_id)
     if request.message_id:
-        metadata["message_id"] = request.message_id
+        source_metadata.setdefault("message_id", request.message_id)
+    if source_metadata:
+        metadata.update(
+            {
+                key: value
+                for key, value in source_metadata.items()
+                if key not in {"origin", "process_id"}
+            }
+        )
 
     knowledge_repository.add(
         KnowledgeBase(knowledge_base_id, latest_commit),

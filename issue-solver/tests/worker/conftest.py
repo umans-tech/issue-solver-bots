@@ -12,10 +12,8 @@ from issue_solver.agents.issue_resolving_agent import (
 from issue_solver.events.event_store import EventStore, InMemoryEventStore
 from issue_solver.git_operations.git_helper import GitHelper
 from issue_solver.worker.dependencies import Dependencies, IDGenerator
-from issue_solver.worker.documenting.knowledge_repository import (
-    KnowledgeRepository,
-    KnowledgeBase,
-)
+from issue_solver.worker.documenting.knowledge_repository import KnowledgeRepository
+from tests.fixtures import InMemoryKnowledgeRepository
 
 DEFAULT_CURRENT_TIME = datetime.fromisoformat("2022-01-01T00:00:00")
 
@@ -28,43 +26,6 @@ def time_under_control() -> ControllableClock:
 @pytest.fixture
 def event_store() -> EventStore:
     return InMemoryEventStore()
-
-
-class InMemoryKnowledgeRepository(KnowledgeRepository):
-    def __init__(self):
-        self._documents = {}
-
-    def add(
-        self,
-        base: KnowledgeBase,
-        document_name: str,
-        content: str,
-        metadata: dict[str, str] | None = None,
-    ) -> None:
-        if base not in self._documents:
-            self._documents[base] = {}
-        self._documents[base][document_name] = {
-            "content": content,
-            "metadata": metadata or {},
-        }
-
-    def contains(self, base: KnowledgeBase, document_name: str) -> bool:
-        return document_name in self._documents.get(base, {})
-
-    def get_content(self, base: KnowledgeBase, document_name: str) -> str:
-        entry = self._documents.get(base, {}).get(document_name)
-        if not entry:
-            return ""
-        return entry["content"]
-
-    def list_entries(self, base: KnowledgeBase) -> list[str]:
-        return list(self._documents.get(base, {}).keys())
-
-    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
-        entry = self._documents.get(base, {}).get(document_name)
-        if not entry:
-            return {}
-        return entry.get("metadata", {})
 
 
 @pytest.fixture

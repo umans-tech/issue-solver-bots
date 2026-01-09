@@ -53,6 +53,10 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
       promptDescription: z
         .string()
         .describe('Prompt inferred from the conversation to regenerate this doc.'),
+      source: z
+        .record(z.string())
+        .optional()
+        .describe('Optional source metadata describing where this doc came from.'),
       knowledgeBaseId: z
         .string()
         .optional()
@@ -68,6 +72,7 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
       path,
       content,
       promptDescription,
+      source,
       knowledgeBaseId,
       chatId,
       messageId,
@@ -100,6 +105,15 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
       }
 
       const { docPath, promptId } = pathResult;
+      const sourceMetadata: Record<string, string> = {
+        ...(source ?? {}),
+      };
+      if (chatId) {
+        sourceMetadata.chat_id ??= chatId;
+      }
+      if (messageId) {
+        sourceMetadata.message_id ??= messageId;
+      }
 
       const cuduEndpoint = process.env.CUDU_ENDPOINT;
       if (!cuduEndpoint) {
@@ -119,6 +133,7 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
             content: bodyContent,
             promptDescription: prompt,
             title,
+            source: Object.keys(sourceMetadata).length ? sourceMetadata : undefined,
             chatId,
             messageId,
           }),

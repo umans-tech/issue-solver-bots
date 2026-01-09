@@ -110,6 +110,7 @@ class AutoDocPublishRequest(BaseSchema):
         ..., min_length=1, validation_alias=AliasChoices("promptDescription")
     )
     title: str | None = None
+    source: dict[str, str] | None = None
     chat_id: str | None = Field(default=None, validation_alias=AliasChoices("chatId"))
     message_id: str | None = Field(
         default=None, validation_alias=AliasChoices("messageId")

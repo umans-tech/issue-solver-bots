@@ -6,6 +6,10 @@ from issue_solver.git_operations.git_helper import (
     GitValidationService,
     ValidationResult,
 )
+from issue_solver.worker.documenting.knowledge_repository import (
+    KnowledgeBase,
+    KnowledgeRepository,
+)
 
 CURR_PATH = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT_PATH = os.path.join(CURR_PATH, "..")
@@ -49,3 +53,40 @@ class NoopGitValidationService(GitValidationService):
             token_permissions = GitHubTokenPermissions(scopes=scopes)
 
         return ValidationResult(success=True, token_permissions=token_permissions)
+
+
+class InMemoryKnowledgeRepository(KnowledgeRepository):
+    def __init__(self) -> None:
+        self._documents: dict[KnowledgeBase, dict[str, dict[str, object]]] = {}
+
+    def add(
+        self,
+        base: KnowledgeBase,
+        document_name: str,
+        content: str,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        if base not in self._documents:
+            self._documents[base] = {}
+        self._documents[base][document_name] = {
+            "content": content,
+            "metadata": metadata or {},
+        }
+
+    def contains(self, base: KnowledgeBase, document_name: str) -> bool:
+        return document_name in self._documents.get(base, {})
+
+    def get_content(self, base: KnowledgeBase, document_name: str) -> str:
+        entry = self._documents.get(base, {}).get(document_name)
+        if not entry:
+            return ""
+        return str(entry.get("content", ""))
+
+    def list_entries(self, base: KnowledgeBase) -> list[str]:
+        return list(self._documents.get(base, {}).keys())
+
+    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
+        entry = self._documents.get(base, {}).get(document_name)
+        if not entry:
+            return {}
+        return entry.get("metadata", {})  # type: ignore[return-value]

@@ -16,11 +16,9 @@ from issue_solver.webapi.routers.repository import (
     get_latest_auto_documentation_commit,
     publish_auto_documentation,
 )
-from issue_solver.worker.documenting.knowledge_repository import (
-    KnowledgeBase,
-    KnowledgeRepository,
-)
+from issue_solver.worker.documenting.knowledge_repository import KnowledgeBase
 from tests.controllable_clock import ControllableClock
+from tests.fixtures import InMemoryKnowledgeRepository
 
 
 def build_connected_repo(kb_id: str, occurred_at: datetime):
@@ -34,39 +32,6 @@ def build_connected_repo(kb_id: str, occurred_at: datetime):
         occurred_at=occurred_at,
         token_permissions=None,
     )
-
-
-class InMemoryKnowledgeRepository(KnowledgeRepository):
-    def __init__(self) -> None:
-        self._docs: dict[tuple[str, str, str], str] = {}
-        self._metadata: dict[tuple[str, str, str], dict[str, str]] = {}
-
-    def contains(self, base: KnowledgeBase, document_name: str) -> bool:
-        return (base.id, base.version, document_name) in self._docs
-
-    def add(
-        self,
-        base: KnowledgeBase,
-        document_name: str,
-        content: str,
-        metadata: dict[str, str] | None = None,
-    ) -> None:
-        self._docs[(base.id, base.version, document_name)] = content
-        if metadata:
-            self._metadata[(base.id, base.version, document_name)] = metadata
-
-    def list_entries(self, base: KnowledgeBase) -> list[str]:
-        return [
-            name
-            for (kb_id, version, name), _ in self._docs.items()
-            if kb_id == base.id and version == base.version
-        ]
-
-    def get_content(self, base: KnowledgeBase, document_name: str) -> str:
-        return self._docs[(base.id, base.version, document_name)]
-
-    def get_metadata(self, base: KnowledgeBase, document_name: str) -> dict[str, str]:
-        return self._metadata.get((base.id, base.version, document_name), {})
 
 
 @pytest.mark.asyncio
@@ -162,8 +127,11 @@ async def test_publish_auto_documentation_stores_doc_and_records_events():
         content="## Overview\nApproved content.",
         prompt_description="Summarize the architecture for onboarding.",
         title="Architecture Overview",
-        chat_id="chat-1",
-        message_id="msg-1",
+        source={
+            "source": "conversation",
+            "chat_id": "chat-1",
+            "message_id": "msg-1",
+        },
     )
 
     # When
