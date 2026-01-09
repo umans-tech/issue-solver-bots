@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Copy, Split, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Copy, Split, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -13,11 +13,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import type { ChatMessage } from '@/lib/types';
-import type { UseChatHelpers } from '@ai-sdk/react';
-import { AutoDocPublishDialog } from './auto-doc-publish-dialog';
 
 export function PureMessageActions({
   chatId,
@@ -25,19 +23,16 @@ export function PureMessageActions({
   vote,
   isLoading,
   isReadonly,
-  sendMessage,
 }: {
   chatId: string;
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
   isReadonly: boolean;
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
   const router = useRouter();
-  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
 
   // Only hide actions when loading
   if (isLoading) return null;
@@ -74,73 +69,6 @@ export function PureMessageActions({
     }
   };
 
-  const getMessageText = () =>
-    message.parts
-      ?.filter((part) => part.type === 'text')
-      .map((part) => part.text)
-      .join('\n')
-      .trim() || '';
-
-  const deriveTitle = (text: string) => {
-    const line = text
-      .split('\n')
-      .map((entry) => entry.trim())
-      .find((entry) => entry.length > 0);
-    return line ? line.slice(0, 80) : 'Auto Doc';
-  };
-
-  const slugify = (value: string) =>
-    value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s/-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^\//, '')
-      .replace(/\/$/, '') || 'auto-doc';
-
-  const defaultTitle = deriveTitle(getMessageText());
-  const defaultPath = slugify(defaultTitle);
-
-  const handlePublish = ({ title, path }: { title: string; path: string }) => {
-    const textFromParts = getMessageText();
-    if (!textFromParts) {
-      toast.error("There's no text to publish yet.");
-      return;
-    }
-
-    const docTitle = title.trim();
-    const docPath = path.trim();
-    const titleLine = docTitle
-      ? `Title: ${docTitle}`
-      : 'Title: (choose a short, human-readable title)';
-    const pathLine = docPath
-      ? `Path: ${docPath}`
-      : 'Path: (choose a short, stable doc path; supports folders)';
-
-    const publishPrompt = [
-      'Please publish the following assistant response as auto documentation.',
-      '',
-      titleLine,
-      pathLine,
-      `Chat ID: ${chatId}`,
-      `Message ID: ${message.id}`,
-      '',
-      'Use the publishAutoDoc tool. The content must be published exactly as provided below.',
-      'Infer a concise prompt description from the conversation context.',
-      '',
-      'CONTENT:',
-      '```',
-      textFromParts,
-      '```',
-    ].join('\n');
-
-    sendMessage({
-      role: 'user',
-      parts: [{ type: 'text', text: publishPrompt }],
-    });
-  };
-
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex flex-row gap-1">
@@ -175,30 +103,6 @@ export function PureMessageActions({
 
         {message.role === 'assistant' && (
           <>
-            {!isReadonly && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="py-1 px-2 h-7 w-7 rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100 z-10"
-                    variant="ghost"
-                    onClick={() => {
-                      const textFromParts = getMessageText();
-                      if (!textFromParts) {
-                        toast.error("There's no text to publish yet.");
-                        return;
-                      }
-                      setIsPublishDialogOpen(true);
-                    }}
-                  >
-                    <BookOpen />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={5} side="top">
-                  Publish to Docs
-                </TooltipContent>
-              </Tooltip>
-            )}
-
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -328,13 +232,6 @@ export function PureMessageActions({
           </>
         )}
       </div>
-      <AutoDocPublishDialog
-        open={isPublishDialogOpen}
-        onOpenChange={setIsPublishDialogOpen}
-        defaultTitle={defaultTitle}
-        defaultPath={defaultPath}
-        onPublish={handlePublish}
-      />
     </TooltipProvider>
   );
 }

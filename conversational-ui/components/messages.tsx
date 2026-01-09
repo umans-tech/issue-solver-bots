@@ -17,7 +17,6 @@ interface MessagesProps {
   messages: ChatMessage[];
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
-  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   stop: UseChatHelpers<ChatMessage>['stop'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
@@ -31,7 +30,6 @@ function PureMessages({
   messages,
   setMessages,
   regenerate,
-  sendMessage,
   stop,
   isReadonly,
   selectedChatModel,
@@ -69,7 +67,6 @@ function PureMessages({
           }
           setMessages={setMessages}
           regenerate={regenerate}
-          sendMessage={sendMessage}
           stop={stop}
           status={status}
           isReadonly={isReadonly}
