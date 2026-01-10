@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { Vote } from '@/lib/db/schema';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
-import { Copy, Pencil } from 'lucide-react';
+import { Copy, Loader2, Pencil } from 'lucide-react';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { AutoDocPublishResult } from './auto-doc-publish';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { useLocalStorage } from 'usehooks-ts';
 import { Sources } from './sources';
@@ -269,7 +270,7 @@ const PurePreviewMessage = ({
         type:
           part.type === 'reasoning'
             ? ('reasoning' as const)
-            : part.type.startsWith('tool-')
+            : part.type.startsWith('tool-') && part.type !== 'tool-publishAutoDoc'
               ? ('tool' as const)
               : ('other' as const),
       }))
@@ -576,6 +577,38 @@ const PurePreviewMessage = ({
                 return null;
               }
 
+              if ((part as any).type === 'tool-invocation') {
+                const { toolInvocation } = part as any;
+                const { toolName, toolCallId, state, result } =
+                  toolInvocation || {};
+
+                if (toolName !== 'publishAutoDoc') {
+                  return null;
+                }
+
+                if (state === 'call' || state === 'partial-call') {
+                  return (
+                    <div
+                      key={toolCallId || key}
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Publishing to Docs...</span>
+                    </div>
+                  );
+                }
+
+                if (state === 'result') {
+                  return (
+                    <div key={toolCallId || key}>
+                      <AutoDocPublishResult result={result} />
+                    </div>
+                  );
+                }
+
+                return null;
+              }
+
               if (type.startsWith('tool-')) {
                 const toolName = type.split('-')[1];
                 const { toolCallId, state, input } =
@@ -635,6 +668,11 @@ const PurePreviewMessage = ({
                             (input as ChatTools['fetchWebpage']['input'])?.url
                           }
                         />
+                      ) : toolName === 'publishAutoDoc' ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Publishing to Docs...</span>
+                        </div>
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPAnimation toolName={toolName} args={input} />
                       ) : isGitHubMCPTool(toolName) ? (
@@ -660,6 +698,18 @@ const PurePreviewMessage = ({
                         issueDescription={issueDescription}
                         result={null}
                       />
+                    );
+                  }
+
+                  if (toolName === 'publishAutoDoc') {
+                    return (
+                      <div
+                        key={toolCallId}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Publishing to Docs...</span>
+                      </div>
                     );
                   }
 
@@ -798,6 +848,8 @@ const PurePreviewMessage = ({
                           result={result}
                           url={(args as ChatTools['fetchWebpage']['input']).url}
                         />
+                      ) : toolName === 'publishAutoDoc' ? (
+                        <AutoDocPublishResult result={result} />
                       ) : isNotionMCPTool(toolName) ? (
                         <NotionMCPResult
                           toolName={toolName}

@@ -101,3 +101,18 @@ class AutoDocumentationDeleteRequest(BaseSchema):
 class AutoDocManualGenerationRequest(BaseSchema):
     prompt_id: str = Field(..., min_length=1, validation_alias=AliasChoices("promptId"))
     mode: str = Field(default="update", pattern="^(update|complete)$")
+
+
+class AutoDocSource(BaseSchema):
+    type: str = Field(..., min_length=1)
+    ref: str = Field(..., min_length=1)
+    meta: dict[str, str] | None = None
+
+
+class AutoDocPublishRequest(BaseSchema):
+    path: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
+    prompt_description: str = Field(
+        ..., min_length=1, validation_alias=AliasChoices("promptDescription")
+    )
+    source: AutoDocSource | None = None

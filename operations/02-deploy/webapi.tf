@@ -51,6 +51,7 @@ resource "aws_lambda_function" "webapi" {
       NOTION_MCP_OAUTH_REDIRECT_URI = "https://${local.api_domain}/integrations/notion/mcp/oauth/callback",
       NOTION_MCP_RETURN_BASE_URL    = "https://${local.app_domain}",
       NOTION_MCP_STATE_TTL_SECONDS  = tostring(var.notion_mcp_state_ttl_seconds),
+      KNOWLEDGE_BUCKET_NAME         = data.terraform_remote_state.provision.outputs.blob_bucket_name,
     }
   }
 }
