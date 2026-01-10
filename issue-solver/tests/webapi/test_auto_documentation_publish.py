@@ -13,7 +13,6 @@ from issue_solver.events.domain import (
 from issue_solver.events.event_store import InMemoryEventStore
 from issue_solver.webapi.payloads import AutoDocPublishRequest
 from issue_solver.webapi.routers.repository import (
-    get_latest_auto_documentation_commit,
     publish_auto_documentation,
 )
 from issue_solver.worker.documenting.knowledge_repository import KnowledgeBase
@@ -32,73 +31,6 @@ def build_connected_repo(kb_id: str, occurred_at: datetime):
         occurred_at=occurred_at,
         token_permissions=None,
     )
-
-
-@pytest.mark.asyncio
-async def test_latest_indexed_commit_returns_latest_commit():
-    # Given
-    event_store = InMemoryEventStore()
-    clock = ControllableClock(datetime.fromisoformat("2025-01-01T00:00:00+00:00"))
-    kb_id = "kb-auto-doc-latest"
-
-    await event_store.append("conn", build_connected_repo(kb_id, clock.now()))
-    await event_store.append(
-        "indexed-1",
-        CodeRepositoryIndexed(
-            branch="main",
-            commit_sha="commit-111",
-            stats={},
-            knowledge_base_id=kb_id,
-            process_id="indexed-1",
-            occurred_at=clock.now(),
-        ),
-    )
-    clock.set_from_iso_format("2025-01-02T00:00:00+00:00")
-    await event_store.append(
-        "indexed-2",
-        CodeRepositoryIndexed(
-            branch="main",
-            commit_sha="commit-222",
-            stats={},
-            knowledge_base_id=kb_id,
-            process_id="indexed-2",
-            occurred_at=clock.now(),
-        ),
-    )
-
-    # When
-    result = await get_latest_auto_documentation_commit(
-        knowledge_base_id=kb_id,
-        event_store=event_store,
-        logger=logging.getLogger("test"),
-    )
-
-    # Then
-    assert result["commit_sha"] == "commit-222"
-
-
-@pytest.mark.asyncio
-async def test_latest_indexed_commit_returns_409_when_missing():
-    # Given
-    event_store = InMemoryEventStore()
-    kb_id = "kb-auto-doc-missing"
-    await event_store.append(
-        "conn",
-        build_connected_repo(
-            kb_id, datetime.fromisoformat("2025-01-01T00:00:00+00:00")
-        ),
-    )
-
-    # When
-    with pytest.raises(HTTPException) as exc:
-        await get_latest_auto_documentation_commit(
-            knowledge_base_id=kb_id,
-            event_store=event_store,
-            logger=logging.getLogger("test"),
-        )
-
-    # Then
-    assert exc.value.status_code == 409
 
 
 @pytest.mark.asyncio
@@ -126,11 +58,13 @@ async def test_publish_auto_documentation_stores_doc_and_records_events():
         path="architecture/overview",
         content="## Overview\nApproved content.",
         prompt_description="Summarize the architecture for onboarding.",
-        title="Architecture Overview",
         source={
-            "source": "conversation",
-            "chat_id": "chat-1",
-            "message_id": "msg-1",
+            "type": "conversation",
+            "ref": "/chat/chat-1/message/msg-1",
+            "meta": {
+                "chat_id": "chat-1",
+                "message_id": "msg-1",
+            },
         },
     )
 
@@ -159,9 +93,10 @@ async def test_publish_auto_documentation_stores_doc_and_records_events():
         KnowledgeBase(kb_id, "commit-123"), "architecture/overview.md"
     )
     assert stored_metadata["origin"] == "auto"
-    assert stored_metadata["source"] == "conversation"
-    assert stored_metadata["chat_id"] == "chat-1"
-    assert stored_metadata["message_id"] == "msg-1"
+    assert stored_metadata["source_type"] == "conversation"
+    assert stored_metadata["source_ref"] == "/chat/chat-1/message/msg-1"
+    assert stored_metadata["source_meta_chat_id"] == "chat-1"
+    assert stored_metadata["source_meta_message_id"] == "msg-1"
 
     prompts_events = await event_store.find(
         {"knowledge_base_id": kb_id}, DocumentationPromptsDefined

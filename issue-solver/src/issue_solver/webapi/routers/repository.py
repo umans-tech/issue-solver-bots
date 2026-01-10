@@ -443,41 +443,6 @@ async def get_auto_documentation(
     }
 
 
-@router.get(
-    "/{knowledge_base_id}/auto-documentation/latest-indexed-commit",
-    status_code=200,
-)
-async def get_latest_auto_documentation_commit(
-    knowledge_base_id: str,
-    event_store: Annotated[EventStore, Depends(get_event_store)],
-    logger: Annotated[
-        logging.Logger | logging.LoggerAdapter,
-        Depends(
-            lambda: get_logger(
-                "issue_solver.webapi.routers.repository.get_latest_auto_doc_commit"
-            )
-        ),
-    ],
-):
-    """Return the latest indexed commit for auto-documentation publishing."""
-
-    await _ensure_repository_connection_or_404(
-        knowledge_base_id=knowledge_base_id,
-        event_store=event_store,
-        logger=logger,
-    )
-    latest_commit = await _latest_indexed_commit(event_store, knowledge_base_id)
-    if not latest_commit:
-        raise HTTPException(
-            status_code=409,
-            detail="Repository has not been indexed yet; cannot publish documentation.",
-        )
-    return {
-        "knowledge_base_id": knowledge_base_id,
-        "commit_sha": latest_commit,
-    }
-
-
 @router.post(
     "/{knowledge_base_id}/auto-documentation/generate",
     status_code=201,
@@ -600,21 +565,12 @@ async def publish_auto_documentation(
         "origin": "auto",
         "process_id": process_id,
     }
-    source_metadata: dict[str, str] = {}
     if request.source:
-        source_metadata.update(request.source)
-    if request.chat_id:
-        source_metadata.setdefault("chat_id", request.chat_id)
-    if request.message_id:
-        source_metadata.setdefault("message_id", request.message_id)
-    if source_metadata:
-        metadata.update(
-            {
-                key: value
-                for key, value in source_metadata.items()
-                if key not in {"origin", "process_id"}
-            }
-        )
+        metadata["source_type"] = request.source.type
+        metadata["source_ref"] = request.source.ref
+        if request.source.meta:
+            for key, value in request.source.meta.items():
+                metadata[f"source_meta_{key}"] = value
 
     knowledge_repository.add(
         KnowledgeBase(knowledge_base_id, latest_commit),

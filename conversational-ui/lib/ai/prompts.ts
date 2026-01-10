@@ -49,8 +49,9 @@ Do not update document right after creating it. Wait for user feedback or reques
 
 **When to use \`publishAutoDoc\`:**
 - When the user explicitly asks to turn the current response into auto documentation.
-- Provide a doc path (supports \`/\`), title, and the full approved markdown content.
+- Provide a doc path (supports \`/\`) and the full approved markdown content.
 - Infer a concise prompt description from the conversation so the doc can be regenerated later.
+- Include a source object with \`type\`, \`ref\`, and optional \`meta\` when available.
 - If the user hasn’t provided a doc path, ask for one before calling the tool.
 
 Always use \`remoteCodingAgent\` when the user asks to provide a Pull Request (PR), a Merge Request (MR), 

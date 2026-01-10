@@ -1,7 +1,7 @@
 # Auto Documentation — Publish From Conversation
 
 Status: Current (implemented)
-Last updated: 2026-01-07
+Last updated: 2026-01-10
 
 ## 1) Summary
 
@@ -43,16 +43,17 @@ Behavior:
 
 ### 5.1 Chat UI
 - The assistant uses the `publishAutoDoc` tool when the user asks to publish.
-- Tool inputs include `title`, `path`, `content`, and `promptDescription`.
+- Tool inputs include `path`, `content`, `promptDescription`, and optional `source`.
 - Path supports folders and is normalized to a `.md` file.
+- When `source.type = conversation`, use `source.ref` format `/chat/<chat_id>/message/<message_id>`.
 
 ### 5.2 Storage
 - The backend writes the markdown file to S3 under the latest commit.
 - Metadata is updated in `__metadata__.json` with:
   - `origin: auto`
-  - `source: conversation`
   - `process_id`
-  - `chat_id`, `message_id` (if provided)
+  - `source_type`, `source_ref` (when provided)
+  - `source_meta_*` (flattened from `source.meta` when provided)
 
 ## 6) Validation & Edge Cases
 

@@ -103,15 +103,16 @@ class AutoDocManualGenerationRequest(BaseSchema):
     mode: str = Field(default="update", pattern="^(update|complete)$")
 
 
+class AutoDocSource(BaseSchema):
+    type: str = Field(..., min_length=1)
+    ref: str = Field(..., min_length=1)
+    meta: dict[str, str] | None = None
+
+
 class AutoDocPublishRequest(BaseSchema):
     path: str = Field(..., min_length=1)
     content: str = Field(..., min_length=1)
     prompt_description: str = Field(
         ..., min_length=1, validation_alias=AliasChoices("promptDescription")
     )
-    title: str | None = None
-    source: dict[str, str] | None = None
-    chat_id: str | None = Field(default=None, validation_alias=AliasChoices("chatId"))
-    message_id: str | None = Field(
-        default=None, validation_alias=AliasChoices("messageId")
-    )
+    source: AutoDocSource | None = None

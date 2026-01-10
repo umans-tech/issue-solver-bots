@@ -41,7 +41,6 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
     description:
       'Publish an approved assistant response as auto documentation in the Docs tab. Use when the user explicitly asks to turn the response into auto documentation.',
     inputSchema: z.object({
-      title: z.string().describe('Short human-readable title for the doc.'),
       path: z
         .string()
         .describe(
@@ -54,28 +53,24 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
         .string()
         .describe('Prompt inferred from the conversation to regenerate this doc.'),
       source: z
-        .record(z.string())
+        .object({
+          type: z.string().min(1),
+          ref: z.string().min(1),
+          meta: z.record(z.string()).optional(),
+        })
         .optional()
         .describe('Optional source metadata describing where this doc came from.'),
       knowledgeBaseId: z
         .string()
         .optional()
         .describe('Override knowledge base ID if needed.'),
-      chatId: z.string().optional().describe('Chat identifier for traceability.'),
-      messageId: z
-        .string()
-        .optional()
-        .describe('Message identifier for traceability.'),
     }),
     execute: async ({
-      title,
       path,
       content,
       promptDescription,
       source,
       knowledgeBaseId,
-      chatId,
-      messageId,
     }) => {
       const kbId =
         knowledgeBaseId ||
@@ -105,15 +100,6 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
       }
 
       const { docPath, promptId } = pathResult;
-      const sourceMetadata: Record<string, string> = {
-        ...(source ?? {}),
-      };
-      if (chatId) {
-        sourceMetadata.chat_id ??= chatId;
-      }
-      if (messageId) {
-        sourceMetadata.message_id ??= messageId;
-      }
 
       const cuduEndpoint = process.env.CUDU_ENDPOINT;
       if (!cuduEndpoint) {
@@ -132,10 +118,7 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
             path: docPath,
             content: bodyContent,
             promptDescription: prompt,
-            title,
-            source: Object.keys(sourceMetadata).length ? sourceMetadata : undefined,
-            chatId,
-            messageId,
+            source,
           }),
         },
       );
@@ -162,7 +145,6 @@ export const publishAutoDoc = ({ session }: PublishAutoDocProps) =>
 
       return {
         ok: true,
-        title,
         knowledgeBaseId: kbId,
         commitSha,
         path: docPath,
