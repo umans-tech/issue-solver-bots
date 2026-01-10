@@ -12,11 +12,14 @@ Umans supports automatic documentation generated from code via prompt definition
 - Conversational UI
   - Collects user intent to publish and displays docs.
   - Reads docs directly from the knowledge repository for the latest commit.
+  - Lets users configure auto-doc prompts from the Docs UI.
+  - Shows generation progress and agent messages in the Tasks UI.
 - Web API (Issue Solver)
   - Validates repository connection and indexing status.
   - Defines/updates auto-doc prompts.
   - Writes approved docs to the knowledge repository.
   - Records `DocumentationGenerationCompleted` events.
+  - Serves process status and agent message streams to the UI.
 - Worker
   - Generates docs from prompts on indexing or manual generation.
   - Writes generated docs to the knowledge repository.
@@ -32,22 +35,26 @@ Umans supports automatic documentation generated from code via prompt definition
 flowchart TD
   User["User<br/><i>[Person]</i>"]
   UI["Conversational UI<br/><i>[Container: Next.js]</i>"]
-  API["Issue Solver Web API<br/><i>[Container: FastAPI]</i>"]
-  Worker["Worker<br/><i>[Container: Python]</i>"]
-  EventDB[("Event Store<br/><i>[Container: PostgreSQL]</i>")]
+
+  subgraph IssueSolver["Issue Solver Backend<br/><i>[Subsystem]</i>"]
+    API["Web API<br/><i>[Container: FastAPI]</i>"]
+    Worker["Worker<br/><i>[Container: Python]</i>"]
+    EventDB[("Event Store<br/><i>[Container: PostgreSQL]</i>")]
+  end
+
   S3[("Knowledge Repository<br/><i>[Container: S3]</i>")]
   Git["Git Repositories<br/><i>[External System]</i>"]
   LLM["LLM Providers<br/><i>[External System]</i>"]
 
   User -->|approves docs, reads docs| UI
-  UI -->|publish auto-doc| API
+  UI -->|configure prompts, publish docs, view processes| API
   UI -->|read docs| S3
 
   API -->|write approved docs| S3
   API -->|record prompts + completions| EventDB
 
-  Worker -->|read prompts, write generated docs| S3
-  Worker -->|emit generation events| EventDB
+  Worker -->|read prompts + write events| EventDB
+  Worker -->|write generated docs| S3
   Worker -->|read code| Git
   Worker -->|generate docs| LLM
 
@@ -55,11 +62,13 @@ flowchart TD
   classDef container fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
   classDef database fill:#5b9bd5,stroke:#2e75b5,color:#fff,stroke-width:2px
   classDef person fill:#1f4e79,stroke:#0f2e4f,color:#fff,stroke-width:2px
+  classDef subsystem fill:#4472C4,stroke:#2E5396,color:#fff,stroke-width:3px
 
   class Git,LLM external
   class UI,API,Worker container
   class EventDB,S3 database
   class User person
+  class IssueSolver subsystem
 ```
 
 ## 4) Core Flows
@@ -86,6 +95,16 @@ flowchart TD
    - defines the prompt mapping via `DocumentationPromptsDefined`
    - writes the approved markdown to S3
    - emits `DocumentationGenerationCompleted`
+
+### 4.4 Configure prompts in the UI
+1) The user opens Docs setup and edits prompt definitions.
+2) The UI posts prompt mappings to the Web API.
+3) The API records `DocumentationPromptsDefined`, which the worker uses on indexing.
+
+### 4.5 Observe generation in the UI
+1) The Tasks UI lists running and completed processes.
+2) The UI polls process status and streams agent messages for the generation run.
+3) The UI renders the timeline and messages as they arrive.
 
 ## 5) Storage & Metadata
 
@@ -131,3 +150,5 @@ Frontend:
 - `conversational-ui/app/docs/[spaceId]/[[...path]]/page.tsx`
 - `conversational-ui/components/doc-prompts-panel.tsx`
 - `conversational-ui/app/api/docs/*`
+- `conversational-ui/app/tasks/[processId]/page.tsx`
+- `conversational-ui/hooks/use-process-messages.ts`
