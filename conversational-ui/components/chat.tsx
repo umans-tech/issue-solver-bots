@@ -1,6 +1,7 @@
 'use client';
 
 import { DefaultChatTransport } from 'ai';
+import type { DataUIPart } from 'ai';
 import pRetry from 'p-retry';
 import { useChat } from '@ai-sdk/react';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,7 +29,7 @@ import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useAutoResume } from '@/hooks/use-auto-resume';
-import type { Attachment, ChatMessage } from '@/lib/types';
+import type { Attachment, ChatMessage, CustomUIDataTypes } from '@/lib/types';
 import { useDataStream } from '@/components/data-stream-provider';
 import { differenceInHours, differenceInMinutes } from 'date-fns';
 
@@ -153,7 +154,8 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
-      setDataStream((ds) => (ds ? [...ds, dataPart] : [dataPart]));
+      const typedPart = dataPart as DataUIPart<CustomUIDataTypes>;
+      setDataStream((ds) => (ds ? [...ds, typedPart] : [typedPart]));
     },
     onFinish: () => {
       mutate('/api/history');
